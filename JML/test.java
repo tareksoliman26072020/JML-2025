@@ -1,3 +1,67 @@
+
+////////////////////////////////////////////////////
+
+/*
+// example.js
+var x = 10;                   // (1)
+function foo(a, b) {          // (2)
+  var y = a + b;              // (3)
+
+  function bar(c) {           // (4)
+    let z = y + c;            // (5)
+    return z;                 // (6)
+  }
+
+  return bar;                 // (7)
+}
+
+const result = foo(1, 2)(3);  // (8)
+console.log(result);          // 16
+*/
+
+////////////////////////////////////////////////////
+
+/*
+// example-with-branches.js
+
+// ─── Global Declarations ───────────────────────────────────────
+const input = [1, 2, 3, 4, 5];
+var status;
+
+function processArray(arr) {
+  // ─── processArray Scope ────────────────────────────────────
+  let sum = 0;
+  // ─── for-loop Block Scope ─────────────────────────────────
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i] % 2 === 0) {
+      sum += arr[i];
+    } else {
+      sum -= arr[i];
+    }
+  }
+  // ─── while-loop Block Scope ───────────────────────────────
+  while (sum > 10) {
+    sum -= 5;
+  }
+  return sum;
+}
+
+// ─── Global Control Flow ──────────────────────────────────────
+if (input.length > 0) {
+  let msg = "non-empty";
+  status = msg;
+} else {
+  let msg = "empty";
+  status = msg;
+}
+
+const result = processArray(input);
+console.log("Status:", status);
+console.log("Result:", result);
+
+*/
+////
+
 public int boo21(){
   return 5;
 }
@@ -157,5 +221,4 @@ public static int sqrt(int y) throws Exception{
     }
   }
 }
-
 

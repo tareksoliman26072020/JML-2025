@@ -83,17 +83,14 @@ parseStmt = parseBlock <|> parseIf <|> parseFor <|> parseWhile <|> parseTry
   <|> parseReturn <|> parseExcp <|> parseDeclOrFunCall
 
 parseComment :: Parser ()
-parseComment = do
-  let ts  = try . string
-      tch = try . char
-  optional $ many $ choice [
-    skip $ ts "/*" *> manyTill anyChar (ts "*/"),
-    skip $ ts "//" *> manyTill anyChar (tch '\n')]
+parseComment = choice [
+    (try $ string "/*" *> manyTill anyChar (string "*/") <* many space),
+    (try $ string "//" *> manyTill anyChar (char '\n') <* many space)] *> return ()
   
 
 parseExtDecl :: Parser ExternalDeclaration
 parseExtDecl = do
-  parseComment
+  many parseComment
   l <- parseModifiers
   b <- optionMaybe $ keyword "/*@" *> keyword "pure" <* keyword "@*/"
   t <- parseOptFunCall -- arguments are obligatory here
