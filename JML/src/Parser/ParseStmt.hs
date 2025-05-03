@@ -83,9 +83,12 @@ parseStmt = parseBlock <|> parseIf <|> parseFor <|> parseWhile <|> parseTry
   <|> parseReturn <|> parseExcp <|> parseDeclOrFunCall
 
 parseComment :: Parser ()
-parseComment = choice [
-    (try $ string "/*" *> manyTill anyChar (string "*/") <* many space),
-    (try $ string "//" *> manyTill anyChar (char '\n') <* many space)] *> return ()
+parseComment = do
+  choice [
+    (try $ string "/*" *> manyTill anyChar (try $ string "*/") <* many space),
+    (try $ string "//" *> manyTill anyChar (char '\n') <* many space),
+    (try $ string "//" *> manyTill anyChar eof <* many space)]
+  return ()
   
 
 parseExtDecl :: Parser ExternalDeclaration
@@ -98,4 +101,4 @@ parseExtDecl = do
   FunDef l (isJust b) (FunCallStmt t) e <$> parseStmt
 
 parseDeclList :: Parser [ExternalDeclaration]
-parseDeclList = spaces *> many parseExtDecl <* eof
+parseDeclList = spaces *> many (try parseExtDecl) <* many parseComment <* eof
