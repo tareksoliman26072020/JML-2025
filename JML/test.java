@@ -149,8 +149,66 @@ public int boo32(){
 
 ///////////////////////////////////////////////////
 
+public int boo33(){
+  int x = 1;
+  x++;
+  return x;
+}
+
+///////////////////////////////////////////////////
+
+/*
+FunDef {
+    funModifier = [Public],
+    isPureFlag = False,
+    funDecl = FunCallStmt {
+        funCall = FunCallExpr {
+            funName = VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "fill"},
+            funArgs = [
+                VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "arr"},
+                VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "pos"}
+            ]
+        }
+    },
+    throws = Nothing,
+    funBody = CompStmt {statements = [
+        CondStmt {
+            condition = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}, binOp = <=, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "pos"}},
+            siff = CompStmt {statements = [ReturnStmt {returnS = Just (ExcpExpr {excpName = Exception, excpmsg = Just "not found"})}]},
+            selsee = CompStmt {statements = []}},
+        ReturnStmt {returnS = Just (ArrayExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "pos"})})
+        }
+    ]}
+}
+*/
+public int[] fill(int[] arr, int pos){
+  if(arr.length<=pos) {
+    throw new Exception("not found");
+  }
+  return arr[pos];
+}
+
+///////////////////////////////////////////////////
+
 public static int sqrt(int y) throws Exception{
   for(int i=0; i<=y; i=i+1){
+    int j = i*i;
+    if(j==y){
+      return i;
+    }
+    else{
+      if(i==y){
+	throw new Exception("not found");
+      }
+      else{}
+    }
+  }
+}
+
+///////////////////////////////////////////////////
+
+public static int sqrt2(int y) throws Exception{
+  for(int i=0; i<=y; i++){
     int j = i*i;
     if(j==y){
       return i;

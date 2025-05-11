@@ -76,7 +76,7 @@ primExpr = skip javaLit
   <|> Null <$ keyword "null"
   <|> BoolLiteral True <$ keyword "true"
   <|> BoolLiteral False <$ keyword "false"
-  <|> parseArray
+  <|> parseVar_or_FunCall_or_Array
 
 parseVar :: Parser Expression
 parseVar = do
@@ -94,8 +94,8 @@ parseVar = do
   let l = i : q
   pure . VarExpr mt (init l) $ last l
 
-parseOptFunCall :: Parser Expression
-parseOptFunCall = do
+parseVar_or_FunCall :: Parser Expression
+parseVar_or_FunCall = do
   v <- parseVar
   l <- optionMaybe
     $ skipChar '(' *> sepBy parseExpr (skipChar ',') <* skipChar ')'
@@ -103,9 +103,9 @@ parseOptFunCall = do
     Just args -> FunCallExpr v args
     _ -> v
 
-parseArray :: Parser Expression
-parseArray = do
-  e <- parseOptFunCall
+parseVar_or_FunCall_or_Array :: Parser Expression
+parseVar_or_FunCall_or_Array = do
+  e <- parseVar_or_FunCall
   l <- optionMaybe
     $ skipChar '[' *> parseExpr <* skipChar ']'
   pure $ case l of
@@ -133,9 +133,39 @@ parseBinExpr p = let
         Nothing -> pure e
         Just b -> BinOpExpr e b <$> q
 
+parseAssignExpr1 :: Parser Expression
+parseAssignExpr1 = do
+  e <- parseBinExpr POr
+  op <- string "++" <|> string "--"
+  return $ AssignExpr {
+      assEleft  = e,
+      assEright = BinOpExpr {
+        expr1 = e, 
+        binOp = case op of
+          "++" -> Plus
+          "--" -> Minus, 
+        expr2 = NumberLiteral 1
+      }
+    }
+
+parseAssignExpr2 :: Parser Expression
+parseAssignExpr2 = do
+  op <- string "++" <|> string "--"
+  e <- parseBinExpr POr
+  return $ AssignExpr {
+      assEleft  = e,
+      assEright = BinOpExpr {
+        expr1 = e, 
+        binOp = case op of
+          "++" -> Plus
+          "--" -> Minus, 
+        expr2 = NumberLiteral 1
+      }
+    }
+
 parseExpr :: Parser Expression
 parseExpr = do
-  e1 <- parseBinExpr POr
+  e1 <- try (parseAssignExpr1 <|> parseAssignExpr2) <|> parseBinExpr POr
   m <- optionMaybe $ skipChar '?'
   case m of
     Just _ -> do

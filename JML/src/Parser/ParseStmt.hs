@@ -28,14 +28,18 @@ parseModifiers = nub <$> many
 
 parseDeclOrFunCall :: Parser Statement
 parseDeclOrFunCall = do
-  l <- parseModifiers
-  e <- parseArray
-  m <- optionMaybe $ skipChar '=' *> parseExpr
-  pure $ case m of
-    Just v -> AssignStmt l (AssignExpr e v)
-    _ -> case e of -- ignore modifiers
-      FunCallExpr {} -> FunCallStmt e
-      _ -> VarStmt e -- could be an array
+  mAssignExpr <- optionMaybe $ try $ parseAssignExpr1 <|> parseAssignExpr2
+  case mAssignExpr of
+    Just ae@AssignExpr{} -> return $ AssignStmt [] ae
+    Nothing -> do
+      l <- parseModifiers
+      e <- parseVar_or_FunCall_or_Array
+      m <- optionMaybe $ skipChar '=' *> parseExpr
+      return $ case m of
+        Just v -> AssignStmt l (AssignExpr e v)
+        _ -> case e of -- ignore modifiers
+          FunCallExpr {} -> FunCallStmt e
+          _ -> VarStmt e -- could be an array
 
 parseIf :: Parser Statement
 parseIf = do
@@ -96,7 +100,7 @@ parseExtDecl = do
   many parseComment
   l <- parseModifiers
   b <- optionMaybe $ keyword "/*@" *> keyword "pure" <* keyword "@*/"
-  t <- parseOptFunCall -- arguments are obligatory here
+  t <- parseVar_or_FunCall -- arguments are obligatory here
   e <- optionMaybe $ keyword "throws" *> (Exception <$> ident)
   FunDef l (isJust b) (FunCallStmt t) e <$> parseStmt
 
