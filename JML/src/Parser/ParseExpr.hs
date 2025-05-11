@@ -47,6 +47,13 @@ intLit = do
   i <- many1 $ satisfy isDigit
   pure . maybe id (const negate) m $ read i
 
+floatLit :: Parser Float
+floatLit = try $ do
+  m  <- optionMaybe $ char '-'
+  i1 <- liftA2 (:) digit (manyTill digit (char '.'))
+  i2 <- many digit
+  pure . maybe id (const negate) m $ read $ i1 ++ "." ++ i2
+
 charLit :: Parser Char
 charLit = char '\'' *> ((char '\\' *> oneOf "\\'") <|> noneOf "'") <* char '\''
 
@@ -55,8 +62,10 @@ stringLit =
   char '"' *> many ((char '\\' *> oneOf "\\\"") <|> noneOf "\"") <* char '"'
 
 javaLit :: Parser Expression
-javaLit = IntLiteral <$> intLit
-  <|> CharLiteral <$> charLit
+javaLit =
+      FloatLiteral  <$> floatLit
+  <|> IntLiteral    <$> intLit
+  <|> CharLiteral   <$> charLit
   <|> StringLiteral <$> stringLit
 
 skipChar :: Char -> Parser Char

@@ -50,6 +50,7 @@ instance Show UnOp where
 
 data Expression
   = IntLiteral Int
+  | FloatLiteral Float
   | BoolLiteral Bool
   | CharLiteral Char
   | StringLiteral String
