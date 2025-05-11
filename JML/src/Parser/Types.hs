@@ -49,8 +49,7 @@ instance Show UnOp where
   show NotOp = "!"
 
 data Expression
-  = IntLiteral Int
-  | FloatLiteral Float
+  = NumberLiteral Float
   | BoolLiteral Bool
   | CharLiteral Char
   | StringLiteral String
@@ -67,7 +66,7 @@ data Expression
   deriving (Eq, Show)
 
 isLiteral :: Expression -> Bool
-isLiteral (IntLiteral _) = True
+isLiteral (NumberLiteral _) = True
 isLiteral (BoolLiteral _) = True
 isLiteral (CharLiteral _) = True
 isLiteral (StringLiteral _) = True

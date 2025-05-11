@@ -41,18 +41,14 @@ ident = try $ do
   let i = c : r
   if i `elem` keywords then unexpected $ "keyword: " ++ i else skip (return i)
 
-intLit :: Parser Int
-intLit = do
-  m <- optionMaybe $ char '-'
-  i <- many1 $ satisfy isDigit
-  pure . maybe id (const negate) m $ read i
-
-floatLit :: Parser Float
-floatLit = try $ do
-  m  <- optionMaybe $ char '-'
-  i1 <- liftA2 (:) digit (manyTill digit (char '.'))
-  i2 <- many digit
-  pure . maybe id (const negate) m $ read $ i1 ++ "." ++ i2
+numberLit :: Parser Float
+numberLit = do
+  m1  <- optionMaybe $ char '-'
+  i1  <- many1 digit
+  mi2 <- optionMaybe $ char '.' *> many1 digit
+  let left  = maybe i1 (const $  '-' : i1) m1
+      right = maybe ".0" ("." ++) mi2
+  return $ read $ left ++ right
 
 charLit :: Parser Char
 charLit = char '\'' *> ((char '\\' *> oneOf "\\'") <|> noneOf "'") <* char '\''
@@ -63,8 +59,7 @@ stringLit =
 
 javaLit :: Parser Expression
 javaLit =
-      FloatLiteral  <$> floatLit
-  <|> IntLiteral    <$> intLit
+      NumberLiteral <$> numberLit
   <|> CharLiteral   <$> charLit
   <|> StringLiteral <$> stringLit
 

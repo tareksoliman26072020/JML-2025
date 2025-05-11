@@ -22,7 +22,7 @@ showExpr = \case
   BinOpExpr {expr1, binOp, expr2} -> let p = prec binOp in
     showLeftArg p expr1 ++ show binOp ++ showRightArg p expr2
   UnOpExpr {unOp, expr} -> show unOp ++ showParenExpr expr
-  IntLiteral num -> show num
+  NumberLiteral num -> show num
   BoolLiteral bool -> map toLower $ show bool
   CharLiteral char -> show char
   StringLiteral str -> show str
