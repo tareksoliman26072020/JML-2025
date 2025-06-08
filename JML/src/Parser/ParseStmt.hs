@@ -26,12 +26,25 @@ parseModifiers :: Parser [Modifier]
 parseModifiers = nub <$> many
   (choice $ map (\ m -> m <$ keyword (map toLower $ show m)) modifiers)
 
+parseCompoundAssignment :: Parser Statement
+parseCompoundAssignment = do
+  e1 <- parseVar_or_FunCall_or_Array
+  o  <- choice $ map skipString ["+=","-=","*-","/="]
+  e2 <- parseExpr
+  let op = case o of
+        "+=" -> Plus
+        "-=" -> Minus
+        "*=" -> Mult
+        "/=" -> Div
+        _    -> undefined
+  return $ AssignStmt [] $ AssignExpr e1 (BinOpExpr e1 op e2)
+
 parseDeclOrFunCall :: Parser Statement
 parseDeclOrFunCall = do
   mAssignExpr <- optionMaybe $ try $ parseAssignExpr1 <|> parseAssignExpr2
   case mAssignExpr of
     Just ae@AssignExpr{} -> return $ AssignStmt [] ae
-    Nothing -> do
+    Nothing -> try parseCompoundAssignment <|> do
       l <- parseModifiers
       e <- parseVar_or_FunCall_or_Array
       m <- optionMaybe $ skipChar '=' *> parseExpr
@@ -40,6 +53,7 @@ parseDeclOrFunCall = do
         _ -> case e of -- ignore modifiers
           FunCallExpr {} -> FunCallStmt e
           _ -> VarStmt e -- could be an array
+    _ -> undefined
 
 parseIf :: Parser Statement
 parseIf = do
@@ -87,17 +101,15 @@ parseStmt = parseBlock <|> parseIf <|> parseFor <|> parseWhile <|> parseTry
   <|> parseReturn <|> parseExcp <|> parseDeclOrFunCall
 
 parseComment :: Parser ()
-parseComment = do
-  choice [
+parseComment = choice [
     (try $ string "/*" *> manyTill anyChar (try $ string "*/") <* many space),
     (try $ string "//" *> manyTill anyChar (char '\n') <* many space),
-    (try $ string "//" *> manyTill anyChar eof <* many space)]
-  return ()
+    (try $ string "//" *> manyTill anyChar eof <* many space)
+  ] *> return ()
   
 
 parseExtDecl :: Parser ExternalDeclaration
-parseExtDecl = do
-  many parseComment
+parseExtDecl = many parseComment *> do
   l <- parseModifiers
   b <- optionMaybe $ keyword "/*@" *> keyword "pure" <* keyword "@*/"
   t <- parseVar_or_FunCall -- arguments are obligatory here

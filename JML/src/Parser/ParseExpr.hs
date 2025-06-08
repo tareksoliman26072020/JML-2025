@@ -66,6 +66,9 @@ javaLit =
 skipChar :: Char -> Parser Char
 skipChar = skip . char
 
+skipString :: String -> Parser String
+skipString = skip . string
+
 parenExpr :: Parser Expression
 parenExpr = skipChar '(' *> parseExpr <* skipChar ')'
 
@@ -136,21 +139,22 @@ parseBinExpr p = let
 parseAssignExpr1 :: Parser Expression
 parseAssignExpr1 = do
   e <- parseBinExpr POr
-  op <- string "++" <|> string "--"
+  op <- skipString "++" <|> skipString "--"
   return $ AssignExpr {
       assEleft  = e,
       assEright = BinOpExpr {
         expr1 = e, 
         binOp = case op of
           "++" -> Plus
-          "--" -> Minus, 
+          "--" -> Minus
+          _    -> undefined, 
         expr2 = NumberLiteral 1
       }
     }
 
 parseAssignExpr2 :: Parser Expression
 parseAssignExpr2 = do
-  op <- string "++" <|> string "--"
+  op <- skipString "++" <|> skipString "--"
   e <- parseBinExpr POr
   return $ AssignExpr {
       assEleft  = e,
@@ -158,7 +162,8 @@ parseAssignExpr2 = do
         expr1 = e, 
         binOp = case op of
           "++" -> Plus
-          "--" -> Minus, 
+          "--" -> Minus
+          _    -> undefined, 
         expr2 = NumberLiteral 1
       }
     }

@@ -1,3 +1,4 @@
+/*
 public int boo21(){
   return 5;
 }
@@ -148,10 +149,68 @@ public int boo32(){
 }
 
 ///////////////////////////////////////////////////
+*/
+/*
+FunDef {
+  funModifier = [Public], 
+  isPureFlag = False, 
+  funDecl = FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "boo33"}, funArgs = []}},
+   throws = Nothing, 
+   funBody = CompStmt {
+     statements = [
+       AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x"}, assEright = NumberLiteral 1.0}},
+       AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "x"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "x"}, binOp = +, expr2 = NumberLiteral 1.0}}},
+       ReturnStmt {returnS = Just (VarExpr {varType = Nothing, varObj = [], varName = "x"})}
+     ]
+   }
+}
+*/
 
 public int boo33(){
   int x = 1;
   x++;
+  return x;
+}
+
+///////////////////////////////////////////////////
+
+/*
+FunDef {
+  funModifier = [Public],
+  isPureFlag = False,
+  funDecl = FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "boo33_2"}, funArgs = []}},
+  throws = Nothing,
+  funBody = CompStmt {statements = [
+    AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x"}, assEright = NumberLiteral 1.0}},
+    AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "x"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "x"}, binOp = +, expr2 = NumberLiteral 2.0}}},
+    ReturnStmt {returnS = Just (VarExpr {varType = Nothing, varObj = [], varName = "x"})}
+  ]}
+}
+*/
+public int boo33_2(){
+  int x = 1;
+  x+=2;
+  return x;
+}
+
+///////////////////////////////////////////////////
+
+/*
+FunDef {
+  funModifier = [Public],
+  isPureFlag = False,
+  funDecl = FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Just (BuiltInType Double), varObj = [], varName = "boo33_3"}, funArgs = []}},
+  throws = Nothing,
+  funBody = CompStmt {statements = [
+    AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Double), varObj = [], varName = "x"}, assEright = NumberLiteral 1.0}},
+    AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "x"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "x"}, binOp = +, expr2 = NumberLiteral 0.1}}},
+    ReturnStmt {returnS = Just (VarExpr {varType = Nothing, varObj = [], varName = "x"})}]
+  }
+}
+*/
+public double boo33_3(){
+  double x = 1;
+  x+=0.1;
   return x;
 }
 
@@ -181,6 +240,7 @@ FunDef {
     ]}
 }
 */
+/*
 public int[] fill(int[] arr, int pos){
   if(arr.length<=pos) {
     throw new Exception("not found");
@@ -221,7 +281,7 @@ public static int sqrt2(int y) throws Exception{
     }
   }
 }
-
+*/
 ////////////////////////////////////////////////////
 
 /*
