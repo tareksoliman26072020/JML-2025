@@ -1,4 +1,3 @@
-/*
 public int boo21(){
   return 5;
 }
@@ -149,7 +148,7 @@ public int boo32(){
 }
 
 ///////////////////////////////////////////////////
-*/
+
 /*
 FunDef {
   funModifier = [Public], 
@@ -222,7 +221,7 @@ FunDef {
     isPureFlag = False,
     funDecl = FunCallStmt {
         funCall = FunCallExpr {
-            funName = VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "fill"},
+            funName = VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "elemAt"},
             funArgs = [
                 VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "arr"},
                 VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "pos"}
@@ -240,8 +239,7 @@ FunDef {
     ]}
 }
 */
-/*
-public int[] fill(int[] arr, int pos){
+public int[] elemAt(int[] arr, int pos){
   if(arr.length<=pos) {
     throw new Exception("not found");
   }
@@ -281,66 +279,195 @@ public static int sqrt2(int y) throws Exception{
     }
   }
 }
-*/
+
 ////////////////////////////////////////////////////
 
 /*
-// example.js
-var x = 10;                   // (1)
-function foo(a, b) {          // (2)
-  var y = a + b;              // (3)
-
-  function bar(c) {           // (4)
-    let z = y + c;            // (5)
-    return z;                 // (6)
+FunDef {
+  funModifier = [Public],
+  isPureFlag = False,
+  funDecl = FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "processArray1"}, funArgs = [VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "arr"}]}},
+  throws = Nothing,
+  funBody = CompStmt {statements = [
+    AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "sum"}, assEright = NumberLiteral 0.0}},
+    ForStmt {
+      acc = AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}},
+      cond = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}},
+      step = AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}},
+      forBody = CompStmt {statements = [
+        CondStmt {
+          condition = BinOpExpr {expr1 = BinOpExpr {expr1 = ArrayExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, binOp = %, expr2 = NumberLiteral 2.0}, binOp = ==, expr2 = NumberLiteral 0.0},
+          siff = CompStmt {statements = [
+            AssignStmt {
+              varModifier = [],
+              assign = AssignExpr {
+                assEleft = VarExpr {varType = Nothing, varObj = [], varName = "sum"},
+                assEright = BinOpExpr {
+                  expr1 = VarExpr {varType = Nothing, varObj = [], varName = "sum"},
+                  binOp = +,
+                  expr2 = ArrayExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})
+                  }
+                }
+              }
+            }]
+          },
+          selsee = CompStmt {statements = [
+            AssignStmt {
+              varModifier = [],
+              assign = AssignExpr {
+                assEleft = VarExpr {varType = Nothing, varObj = [], varName = "sum"},
+                assEright = BinOpExpr {
+                  expr1 = VarExpr {varType = Nothing, varObj = [], varName = "sum"},
+                  binOp = -,
+                  expr2 = ArrayExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})
+                  }
+                }
+              }
+            }]
+          }}
+      ]}
+    },
+    ReturnStmt {returnS = Just (VarExpr {varType = Nothing, varObj = [], varName = "sum"})}]
   }
-
-  return bar;                 // (7)
 }
-
-const result = foo(1, 2)(3);  // (8)
-console.log(result);          // 16
 */
-
-////////////////////////////////////////////////////
-
-/*
-// example-with-branches.js
-
-// ─── Global Declarations ───────────────────────────────────────
-const input = [1, 2, 3, 4, 5];
-var status;
-
-function processArray(arr) {
-  // ─── processArray Scope ────────────────────────────────────
-  let sum = 0;
-  // ─── for-loop Block Scope ─────────────────────────────────
-  for (let i = 0; i < arr.length; i++) {
-    if (arr[i] % 2 === 0) {
+public int processArray1(int[] arr) {
+  int sum = 0;
+  for (int i = 0; i < arr.length; i++) {
+    if (arr[i] % 2 == 0) {
       sum += arr[i];
     } else {
       sum -= arr[i];
     }
   }
-  // ─── while-loop Block Scope ───────────────────────────────
-  while (sum > 10) {
-    sum -= 5;
-  }
   return sum;
 }
 
-// ─── Global Control Flow ──────────────────────────────────────
-if (input.length > 0) {
-  let msg = "non-empty";
-  status = msg;
-} else {
-  let msg = "empty";
-  status = msg;
+//////////////////////////////
+
+/*
+FunDef {
+  funModifier = [Public,Static],
+  isPureFlag = False,
+  funDecl = FunCallStmt {
+    funCall = FunCallExpr {
+      funName = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "rest"},
+      funArgs = [
+        VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "a"},
+        VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "b"}
+      ]
+    }
+  },
+  throws = Nothing,
+  funBody = CompStmt {statements = [
+    WhileStmt {
+      condition = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "a"}, binOp = >, expr2 = NumberLiteral 0.0},
+      whileBody = CompStmt {statements = [
+        AssignStmt {
+          varModifier = [],
+          assign = AssignExpr {
+            assEleft = VarExpr {varType = Nothing, varObj = [], varName = "a"},
+            assEright = BinOpExpr {
+              expr1 = VarExpr {varType = Nothing, varObj = [], varName = "a"},
+              binOp = -,
+              expr2 = VarExpr {varType = Nothing, varObj = [], varName = "b"}
+            }
+          }
+        }
+      ]
+      }},
+    ReturnStmt {
+      returnS = Just (
+        CondExpr {
+          eiff = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "a"}, binOp = <, expr2 = NumberLiteral 0.0},
+          ethenn = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "a"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "b"}},
+          eelsee = VarExpr {varType = Nothing, varObj = [], varName = "a"}
+        }
+      )
+    }
+  ]}
+}
+*/
+public static int rest(int a, int b) {
+  while(a > 0) {
+    a -= b;
+  }
+  return a<0 ? a+b : a;
 }
 
-const result = processArray(input);
-console.log("Status:", status);
-console.log("Result:", result);
+////////////////////
 
+/*
+FunDef {
+  funModifier = [Public],
+  isPureFlag = False,
+  funDecl = FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Just (BuiltInType Boolean), varObj = [], varName = "isEmpty"}, funArgs = [VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "arr"}]}},
+  throws = Nothing,
+  funBody = CompStmt {statements = [
+    ReturnStmt {returnS = Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}, binOp = ==, expr2 = NumberLiteral 0.0})}
+  ]
+  }
+}
 */
+public boolean isEmpty(int[] arr) {
+  return arr.length == 0;
+}
+
+/*
+FunDef {
+  funModifier = [Public],
+  isPureFlag = False,
+  funDecl = FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Just (BuiltInType Boolean), varObj = [], varName = "callIsEmpty"}, funArgs = []}},
+  throws = Nothing,
+  funBody = CompStmt {statements = [
+    ReturnStmt {
+      returnS = Just (
+        FunCallExpr {
+          funName = VarExpr {varType = Nothing, varObj = [], varName = "isEmpty"},
+          funArgs = [
+            ArrayInstantiationExpr {arrType = Just (ArrayType {baseType = BuiltInType Int}), arrSize = Nothing, arrElems = []}
+          ]
+        })
+    }
+  ]}
+}
+*/
+public boolean callIsEmpty() {
+  return isEmpty(new int[]{});
+}
+
+////////////////////
+
+/*
+FunDef {
+  funModifier = [Public],
+  isPureFlag = False,
+  funDecl = FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "fillArray"}, funArgs = [VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "size"},VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "elem"}]}},
+  throws = Nothing,
+  funBody = CompStmt {statements = [
+    AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "arr"}, assEright = ArrayInstantiationExpr {arrType = Just (ArrayType {baseType = BuiltInType Int}), arrSize = Just (VarExpr {varType = Nothing, varObj = [], varName = "size"}), arrElems = []}}},
+    ForStmt {acc = AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}, cond = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "size"}}, step = AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}}, forBody = CompStmt {statements = [AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "elem"}}}]}},
+    ReturnStmt {returnS = Just (VarExpr {varType = Nothing, varObj = [], varName = "arr"})}
+  ]}
+}
+*/
+public int[] fillArray(int size, int elem) {
+  int[] arr = new int[size];
+  for(int i=0; i<size; i++) {
+    arr[i] = elem;
+  }
+  return arr;
+}
+
+////////////////////
+
+public void boo34(String input){
+  if (input.length() > 0) {
+    String msg = "non-empty";
+    status = msg;
+  } else {
+    String msg = "empty";
+    status = msg;
+  }
+}
 ////

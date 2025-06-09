@@ -55,7 +55,8 @@ data Expression
   | StringLiteral String
   | Null
   | VarExpr {varType :: Maybe (Type Types), varObj :: [String], varName :: String}
-  | ArrayExpr {arrName :: Expression, index :: Maybe Expression}
+  | ArrayCallExpr {arrName :: Expression, index :: Maybe Expression}
+  | ArrayInstantiationExpr {arrType :: Maybe (Type Types), arrSize :: Maybe Expression, arrElems :: [Expression]}
   | BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
   | UnOpExpr {unOp :: UnOp, expr :: Expression}
   | FunCallExpr {funName :: Expression, funArgs :: [Expression]}

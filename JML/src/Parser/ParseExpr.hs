@@ -82,7 +82,7 @@ primExpr = skip javaLit
   <|> parseVar_or_FunCall_or_Array
 
 parseVar :: Parser Expression
-parseVar = do
+parseVar = parseArrayInstantiation <|> do
   t <- parseArrType
   (mt, i) <- case t of
     AnyType i Nothing -> do -- i may be the variable not a type
@@ -113,7 +113,7 @@ parseVar_or_FunCall_or_Array = do
     $ skipChar '[' *> parseExpr <* skipChar ']'
   pure $ case l of
     Nothing -> e
-    _ -> ArrayExpr e l
+    _ -> ArrayCallExpr e l
 
 binOps :: [BinOp]
 binOps = [ Plus, Mult, Minus, Div, Mod, Less, LessEq, Greater, GreaterEq
@@ -124,17 +124,18 @@ parseBinOp p =
   choice . map (\ a -> a <$ keyword (show a)) $ filter ((== p) . prec) binOps
 
 parseBinExpr :: Prec -> Parser Expression
-parseBinExpr p = let
-  q = if p == PMul then primExpr else parseBinExpr (pred p)
-  o = flip BinOpExpr <$> parseBinOp p in case assoc p of
-    ALeft -> chainl1 q o
-    ARight -> chainr1 q o
-    ANon -> do
-      e <- q
-      m <- optionMaybe $ parseBinOp p
-      case m of
-        Nothing -> pure e
-        Just b -> BinOpExpr e b <$> q
+parseBinExpr p =
+  let q = if p == PMul then primExpr else parseBinExpr (pred p)
+      o = flip BinOpExpr <$> parseBinOp p
+  in case assoc p of
+       ALeft -> chainl1 q o
+       ARight -> chainr1 q o
+       ANon -> do
+         e <- q
+         m <- optionMaybe $ parseBinOp p
+         case m of
+           Nothing -> pure e
+           Just b -> BinOpExpr e b <$> q
 
 parseAssignExpr1 :: Parser Expression
 parseAssignExpr1 = do
@@ -198,3 +199,41 @@ parseArrType = do
   t <- parseType
   l <- many . try $ skipChar '[' *> skipChar ']'
   pure $ foldr (\ _ r -> ArrayType r) t l
+
+parseArrayInstantiation :: Parser Expression
+parseArrayInstantiation = choice $ map try
+  [parseArrayInstantiation1,parseArrayInstantiation2,parseArrayInstantiation3]
+
+-- in `parseArrayInstantiation1` I used `parseBaseType` to denote the fact
+-- that I'm only considering base types 
+-- expressions of form `new int[5]` are being parsed here
+parseArrayInstantiation1 :: Parser Expression
+parseArrayInstantiation1 = skipString "new" *> do
+  bt <- parseBaseType <|> const String <$> keyword "String"
+  size <- skipChar '[' *> parseExpr <* skipChar ']'
+  return $ ArrayInstantiationExpr {
+    arrType = Just $ ArrayType (BuiltInType bt),
+    arrSize = Just size,
+    arrElems = []
+  }
+
+-- expressions of form `new int[]{11,22,33,44,55}` are being parsed here
+parseArrayInstantiation2 :: Parser Expression
+parseArrayInstantiation2 = skipString "new" *> do
+  bt <- parseBaseType <|> const String <$> keyword "String"
+  arr <- skipString "[]" *> parseArrayInstantiation3
+  return $ ArrayInstantiationExpr {
+    arrType = Just $ ArrayType (BuiltInType bt),
+    arrSize = Nothing,
+    arrElems = arrElems arr
+  }
+
+-- expressions of form `{11,22,33,44,55}` are being parsed here
+parseArrayInstantiation3 :: Parser Expression
+parseArrayInstantiation3 = do
+  elems <- skipChar '{' *> sepBy javaLit (skipChar ',') <* skipChar '}'
+  return $ ArrayInstantiationExpr {
+    arrType = Nothing,
+    arrSize = Nothing,
+    arrElems = elems
+  }
