@@ -31,7 +31,9 @@ data ExplanationTag =
   | CatchScope
   deriving Show
 
-type Scope = OMap (Int,Maybe String) (Maybe SymbolType,ExplanationTag)
+type ScopeKey = (Int,Maybe String)
+type ScopeValue = (Maybe SymbolType,ExplanationTag)
+type Scope = OMap ScopeKey ScopeValue
 
 type SymbolTable = [Scope]
 
