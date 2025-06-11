@@ -1,6 +1,6 @@
 module SymbolTable.API.SymbolTable where
 
-import qualified Data.Map as Map
+import Data.Map.Ordered (OMap)
 
 data SymbolType =
     Int
@@ -13,6 +13,7 @@ data SymbolType =
   | Float
   | Long
   | Byte
+  | Array SymbolType
   deriving Show
 
 data ExplanationTag =
@@ -23,10 +24,14 @@ data ExplanationTag =
   | Update
   | MethodScope
   | IfScope
+  | ElseScope
   | WhileScope
   | ForScope
+  | TryScope
+  | CatchScope
   deriving Show
 
-type Scope = Map.Map String (Maybe SymbolType,ExplanationTag)
+type Scope = OMap (Int,Maybe String) (Maybe SymbolType,ExplanationTag)
 
 type SymbolTable = [Scope]
+
