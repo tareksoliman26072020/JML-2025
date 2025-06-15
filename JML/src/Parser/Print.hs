@@ -115,7 +115,7 @@ showStmt = \case
     Just e@ExcpExpr {} -> showExpr e
     _ -> showExpr (ReturnExpr returnS)
 
-showDecl :: ExternalDeclaration -> String
+showDecl :: Method -> String
 showDecl FunDef {funModifier, isPureFlag, funDecl, throws, funBody} =
   showModifiers funModifier
   ++ (if isPureFlag then "/*@ pure @*/ " else "") ++ showStmt funDecl

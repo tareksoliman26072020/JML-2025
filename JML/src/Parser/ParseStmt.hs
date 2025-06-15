@@ -108,7 +108,7 @@ parseComment = choice [
   ] *> return ()
   
 
-parseExtDecl :: Parser ExternalDeclaration
+parseExtDecl :: Parser Method
 parseExtDecl = many parseComment *> do
   l <- parseModifiers
   b <- optionMaybe $ keyword "/*@" *> keyword "pure" <* keyword "@*/"
@@ -116,5 +116,5 @@ parseExtDecl = many parseComment *> do
   e <- optionMaybe $ keyword "throws" *> (Exception <$> ident)
   FunDef l (isJust b) (FunCallStmt t) e <$> parseStmt
 
-parseDeclList :: Parser [ExternalDeclaration]
+parseDeclList :: Parser [Method]
 parseDeclList = spaces *> many (try parseExtDecl) <* many parseComment <* eof

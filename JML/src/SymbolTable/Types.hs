@@ -19,9 +19,8 @@ data Kind = For | While | Try | Catch | Finally | If | Else
 
 data Variable = Variable {
   name    :: String,
-  defined :: Bool,
-  varType :: Type,
-  val     :: Expression
+  varType :: Maybe Type,
+  val     :: Maybe Expression
 }
 
 type Pos = Int
