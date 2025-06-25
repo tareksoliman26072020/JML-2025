@@ -30,8 +30,8 @@ library
       Parser.Print
       Parser.Types
       SymbolTable.API
+      SymbolTable.MethodVisitor
       SymbolTable.Types
-      SymbolTable.VariablesCollector
   other-modules:
       Paths_JML
   autogen-modules:

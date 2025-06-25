@@ -1,34 +1,20 @@
-{-# Language LambdaCase #-}
-module SymbolTable.VariablesCollector where
+{-# Language LambdaCase, MultiParamTypeClasses #-}
+module SymbolTable.MethodVisitor where
 
 import Parser.Types as AST
 import SymbolTable.Types as ST
 import SymbolTable.API
 
-newtype VariablesCollector = VariablesCollector ST.Scope
-
-instance ASTVisitor VariablesCollector where
-{-
-data Scope = Scope {
-  outsiderVars :: [Variable],
-  size         :: Int,
-  vars         :: [(Pos,Variable)],
-  scopes       :: [(Pos,Kind,Scope)]
-}
--}
---visitMethod :: AST.Method -> VariablesCollector
-  visitMethod fun = 
+instance Visitor AST.Method MethodVisitor where
+--visit :: AST.Method -> MethodVisitor
+  visit fun = 
     let (vars_,branches) = separate_stmts (funBody fun)
-    in VariablesCollector $ Scope {
+    in MethodVisitor $ Scope {
          outsiderVars = map from_funarg_To_Var (funArgs $ funCall $ funDecl fun),
          size         = length $ statements $ funBody fun,
          vars         = map (\(pos,a) -> (pos,from_assign_to_Var a)) vars_,
          scopes       = visitStatements branches
        }
---visitStatement :: AST.Statement -> VariablesCollector
-  visitStatement = undefined
---visitExpression :: AST.Expression -> VariablesCollector
-  visitExpression = undefined
 
 ------------------------------
 ------------------------------
@@ -55,7 +41,7 @@ visitStatements :: [(ST.Pos,AST.Statement)] -> [(ST.Pos,ST.Kind,ST.Scope)]
 visitStatements ((pos, a@CondStmt{}) : rest) =
   (pos, ST.If (condition a), from_compStmt_to_scope (siff a))
   : (pos+1, ST.Else, from_compStmt_to_scope (selsee a))
-  : visitStatements (map (\(p,s) -> (p+1,s)) rest)
+  : visitStatements (map (\(p,s) -> (p+2,s)) rest)
 --WhileStmt {condition :: Expression, whileBody :: Statement}
 visitStatements ((pos, a@WhileStmt{}) : rest) =
   (pos, ST.While (condition a), from_compStmt_to_scope (whileBody a))
@@ -71,7 +57,11 @@ visitStatements ((pos, a@ForStmt{}) : rest) =
 --TryCatchStmt {tryBody :: Statement,
 --              catchExcp :: Type Exception, catchBody :: Statement,
 --              finallyBody :: Statement}
-visitStatements ((pos, a@TryCatchStmt{}) : rest) = undefined
+visitStatements ((pos, a@TryCatchStmt{}) : rest) =
+  (pos, ST.Try, from_compStmt_to_scope (tryBody a))
+  : (pos+1, ST.Catch, from_compStmt_to_scope (catchBody a))
+  : (pos+2, ST.Finally, from_compStmt_to_scope (finallyBody a))
+  : visitStatements (map (\(p,s) -> (p+3,s)) rest)
 visitStatements [] = []
 visitStatements (_ : rest) = visitStatements rest
 
@@ -186,18 +176,17 @@ get_branches_from_block = filter $ \case
 from_assign_to_Var :: AST.Statement -> ST.Variable
 from_assign_to_Var a@AST.AssignStmt{} = case assign a of
   --AssignExpr {assEleft :: Expression, assEright :: Expression}
-  --AssignExpr {
-  --  assEleft = VarExpr {
-  --    varType = Just (BuiltInType Int),
-  --    varObj = [],
-  --    varName = "x"
-  --  },
-  --  assEright = NumberLiteral 1.0
-  --}
   b@AST.AssignExpr{} -> Variable {
     name       = varName $ assEleft b,
     ST.varType = fmap from_AST_to_type (AST.varType $ assEleft b),
     val        = Just $ assEright b
   }
   _                  -> error "Each AssignStmt contains AssignExpr"
-from_assign_to_Var _ = error "this function is meant only for AssignStmt"
+from_assign_to_Var _ = error "This function is meant only for AssignStmt"
+
+------------------------------
+------------------------------
+-----------testing------------
+------------------------------
+------------------------------
+

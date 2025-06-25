@@ -66,6 +66,22 @@ public int boo27(int i){
 
 ///////////////////////////////////////////////////
 
+/*
+FunDef {
+  funModifier = [Public],
+  isPureFlag = False,
+  funDecl = FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "boo28"}, funArgs = []}},
+  throws = Nothing,
+  funBody = CompStmt {statements = [
+    TryCatchStmt {
+      tryBody = CompStmt {statements = [AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x"}, assEright = NumberLiteral 3.0}},CondStmt {condition = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "x"}, binOp = ==, expr2 = NumberLiteral 3.0}, siff = CompStmt {statements = [ReturnStmt {returnS = Just (ExcpExpr {excpName = Exception, excpmsg = Just "something"})}]}, selsee = CompStmt {statements = [ReturnStmt {returnS = Just (NumberLiteral 1.0)}]}}]},
+      catchExcp = AnyType {typee = "Exception", generic = Just (AnyType {typee = "e", generic = Nothing})},
+      catchBody = CompStmt {statements = [ReturnStmt {returnS = Just (FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "boo27"}, funArgs = [NumberLiteral 5.0]})}]},
+      finallyBody = CompStmt {statements = []}
+    }
+  ]}
+}
+*/
 public int boo28(){
   try{
     int x = 3;

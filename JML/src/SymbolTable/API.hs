@@ -1,9 +1,8 @@
+{-# Language MultiParamTypeClasses #-}
 module SymbolTable.API where
 
 import Parser.Types
 
-class ASTVisitor v where
-  visitMethod     :: Method     -> v
-  visitStatement  :: Statement  -> v
-  visitExpression :: Expression -> v
+class Visitor inn out where
+  visit :: inn -> out
 

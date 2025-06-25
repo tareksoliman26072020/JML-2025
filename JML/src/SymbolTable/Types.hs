@@ -14,14 +14,16 @@ data Type
   | Float
   | Long
   | Byte
+  deriving Show
 
 data Kind = For Expression | While Expression | Try | Catch | Finally | If Expression | Else
+          deriving Show
 
 data Variable = Variable {
   name    :: String,
   varType :: Maybe Type,
   val     :: Maybe Expression
-}
+} deriving Show
 
 type Pos = Int
 
@@ -36,6 +38,9 @@ data Scope = Scope {
   size         :: Int,
   vars         :: [(Pos,Variable)],
   scopes       :: [(Pos,Kind,Scope)]
-}
+} deriving Show
+
+newtype MethodVisitor = MethodVisitor Scope
+                      deriving Show
 
 ----------
