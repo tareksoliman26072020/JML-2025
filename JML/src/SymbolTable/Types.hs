@@ -15,7 +15,7 @@ data Type
   | Long
   | Byte
 
-data Kind = For | While | Try | Catch | Finally | If | Else
+data Kind = For Expression | While Expression | Try | Catch | Finally | If Expression | Else
 
 data Variable = Variable {
   name    :: String,

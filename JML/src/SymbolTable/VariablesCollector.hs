@@ -17,14 +17,14 @@ data Scope = Scope {
 }
 -}
 --visitMethod :: AST.Method -> VariablesCollector
-  visitMethod fun = VariablesCollector $ Scope {
-  outsiderVars = map from_funarg_To_Var (funArgs $ funCall $ funDecl fun),
-  size         = length $ statements $ funBody fun,
-  vars         = map (\(pos,a) -> (pos,from_assign_to_Var a))
-                 $ fst $ separate_stmts (funBody fun),
-  scopes       = visitStatements
-                 $ snd $ separate_stmts (funBody fun)
-}
+  visitMethod fun = 
+    let (vars_,branches) = separate_stmts (funBody fun)
+    in VariablesCollector $ Scope {
+         outsiderVars = map from_funarg_To_Var (funArgs $ funCall $ funDecl fun),
+         size         = length $ statements $ funBody fun,
+         vars         = map (\(pos,a) -> (pos,from_assign_to_Var a)) vars_,
+         scopes       = visitStatements branches
+       }
 --visitStatement :: AST.Statement -> VariablesCollector
   visitStatement = undefined
 --visitExpression :: AST.Expression -> VariablesCollector
@@ -46,15 +46,27 @@ separate_stmts a@CompStmt{} =
   in (vars_,branches)
 separate_stmts _ = error "this function is meant only for CompStmt"
 
--- | receives the body of some scope,
+-- | receives statements that have a body (a scope),
 -- and calls the function `visitStatement` on each of them (only those with AssignStmt and branches),
 -- | and calculates pos (mind CondStmt)
 -- | and calculates outsiderVars in case of ForStmt
 visitStatements :: [(ST.Pos,AST.Statement)] -> [(ST.Pos,ST.Kind,ST.Scope)]
 --CondStmt {condition :: Expression, siff :: Statement, selsee :: Statement}
-visitStatements ((pos, a@CondStmt{}) : rest) = undefined
+visitStatements ((pos, a@CondStmt{}) : rest) =
+  (pos, ST.If (condition a), from_compStmt_to_scope (siff a))
+  : (pos+1, ST.Else, from_compStmt_to_scope (selsee a))
+  : visitStatements (map (\(p,s) -> (p+1,s)) rest)
+--WhileStmt {condition :: Expression, whileBody :: Statement}
+visitStatements ((pos, a@WhileStmt{}) : rest) =
+  (pos, ST.While (condition a), from_compStmt_to_scope (whileBody a))
+  : visitStatements rest
 --ForStmt {acc :: Statement, cond :: Expression, step :: Statement, forBody :: Statement}
-visitStatements ((pos, a@ForStmt{}) : rest) = undefined
+visitStatements ((pos, a@ForStmt{}) : rest) =
+  (pos, ST.For (cond a),
+   add_step_to_for_scope (step a) 
+   $ add_acc_to_for_scope (acc a)
+   $ from_compStmt_to_scope (forBody a)
+  ) : visitStatements rest
 --WhileStmt {condition :: Expression, whileBody :: Statement}
 --TryCatchStmt {tryBody :: Statement,
 --              catchExcp :: Type Exception, catchBody :: Statement,
@@ -62,6 +74,53 @@ visitStatements ((pos, a@ForStmt{}) : rest) = undefined
 visitStatements ((pos, a@TryCatchStmt{}) : rest) = undefined
 visitStatements [] = []
 visitStatements (_ : rest) = visitStatements rest
+
+-- | converts the bodis of if, else, while, for to ST.Scope
+from_compStmt_to_scope :: AST.Statement -> ST.Scope
+from_compStmt_to_scope al@CompStmt{} =
+  let (vars_,branches) = separate_stmts al
+  in ST.Scope { 
+  --outsiderVars :: [Variable],
+    outsiderVars = [],
+  --size         :: Int,
+    size         = length $ statements al,
+  --vars         :: [(Pos,Variable)],
+    vars         = map (\(pos,a) -> (pos,from_assign_to_Var a)) vars_,
+  --scopes       :: [(Pos,Kind,Scope)]
+    scopes       = visitStatements branches
+  }
+from_compStmt_to_scope _ = error "this function is meant only for CompStmt"
+
+-- | the accumulator in the for statement becomes an outsider variable
+add_acc_to_for_scope :: AST.Statement -> ST.Scope -> ST.Scope
+add_acc_to_for_scope a@AssignStmt{} scope_ = ST.Scope {
+--outsiderVars :: [Variable],
+  outsiderVars = [from_assign_to_Var a],
+--size         :: Int,
+  size         = size scope_,
+--vars         :: [(Pos,Variable)],
+  vars         = vars scope_,
+--scopes       :: [(Pos,Kind,Scope)]
+  scopes       = scopes scope_
+}
+add_acc_to_for_scope _ _ = error "This function is only meant for AssignStmt"
+
+-- | the step in the for statement becomes an outsider variable
+-- AssignStmt {varModifier :: [Modifier], assign :: Expression}
+add_step_to_for_scope :: AST.Statement -> ST.Scope -> ST.Scope
+add_step_to_for_scope a@AssignStmt{} scope_ =
+  let newSize = size scope_ + 1
+  in ST.Scope {
+     --outsiderVars :: [Variable],
+       outsiderVars = outsiderVars scope_,
+     --size         :: Int,
+       size         = newSize,
+     --vars         :: [(Pos,Variable)],
+       vars         = vars scope_ ++ [(newSize, from_assign_to_Var a)],
+     --scopes       :: [(Pos,Kind,Scope)]
+       scopes       = scopes scope_
+  }
+add_step_to_for_scope _ _ = error "This function is only meant for AssignStmt"
 
 -- receives method, and returns the its name
 getMethodName :: AST.Method -> String
@@ -120,7 +179,7 @@ get_branches_from_block = filter $ \case
   (_,WhileStmt{})    -> True
   (_,TryCatchStmt{}) -> True
   _                  -> False
-  
+
 --------------------
 
 -- converts AST.AssignStmt to ST.Variable
