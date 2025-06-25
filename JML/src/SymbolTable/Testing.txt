@@ -2,7 +2,7 @@ public int boo21(){
   return 5;
 }
 
-VariablesCollector (Scope {outsiderVars = [], size = 1, vars = [], scopes = []})
+Scope {outsiderVars = [], size = 1, vars = [], scopes = []}
 
 ==============================
 
@@ -11,16 +11,14 @@ public int boo22_2(){
   return x;
 }
 
-VariablesCollector (
-    Scope {
-        outsiderVars = [],
-        size = 2,
-        vars = [
-            (1,Variable {name = "x", varType = Just Int, val = Just (FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "boo21"}, funArgs = []})})
-        ],
-        scopes = []
-    }
-)
+Scope {
+    outsiderVars = [],
+    size = 2,
+    vars = [
+        (1,Variable {name = "x", varType = Just Int, val = Just (FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "boo21"}, funArgs = []})})
+    ],
+    scopes = []
+}
 
 ==============================
 
@@ -29,15 +27,6 @@ public int boo23(){
   return x;
 }
 
-VariablesCollector (
-    Scope {
-        outsiderVars = [],
-        size = 2,
-        vars = [
-            (1,Variable {name = "x", varType = Just Int, val = Just (BinOpExpr {expr1 = NumberLiteral 3.0, binOp = +, expr2 = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "boo21"}, funArgs = []}})})
-        ],
-        scopes = []
-    }
-)
+Scope {outsiderVars = [], size = 2, vars = [(1,Variable {name = "x", varType = Just Int, val = Just (BinOpExpr {expr1 = NumberLiteral 3.0, binOp = +, expr2 = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "boo21"}, funArgs = []}})})], scopes = []}
 
 ==============================

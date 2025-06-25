@@ -17,30 +17,55 @@ data Type
   deriving Show
 
 data Kind = For Expression | While Expression | Try | Catch | Finally | If Expression | Else
-          deriving Show
 
-data Variable = Variable {
-  name    :: String,
-  varType :: Maybe Type,
-  val     :: Maybe Expression
-} deriving Show
+instance Show Kind where
+  show (For _) = "For"
+  show (While _) = "While"
+  show Try = "Try"
+  show Catch = "Catch"
+  show Finally = "Finally"
+  show (If _) = "If"
+  show Else = "Else"
+
+list :: b -> ([a] -> b) -> [a] -> b
+list empty _ [] = empty
+list _ f li = f li
 
 type Pos = Int
 
-data Method = Method {
-  methodName :: String,
-  methodType :: Type,
-  scope      :: Scope
+data Entry = Scope {
+  outsiderVars :: [Entry],           -- Variable
+  size         :: Int,
+  vars         :: [(Pos,Entry)],     -- Variable
+  scopes       :: [(Pos,Kind,Entry)] -- Scope
+} | Variable {
+  name    :: String,
+  varType :: Maybe Type,
+  val     :: Maybe Expression
 }
 
-data Scope = Scope {
-  outsiderVars :: [Variable],
-  size         :: Int,
-  vars         :: [(Pos,Variable)],
-  scopes       :: [(Pos,Kind,Scope)]
-} deriving Show
+instance Show Entry where
+  show entry = pp 0 entry
 
-newtype MethodVisitor = MethodVisitor Scope
-                      deriving Show
+pp :: Int -> Entry -> String
+pp indent a@Scope{} =
+  replicate indent ' ' ++ "{ " ++ " size: " ++ show (size a) ++ "\n" ++
+  (case outsiderVars a of
+     [] -> ""
+     al -> replicate (indent+4) ' ' ++ "Outsider Vars:" ++ "\n" ++
+           unlines (map (pp (indent+6)) al)
+  ) ++
+  (case vars a of
+     [] -> ""
+     al -> replicate (indent+4) ' ' ++ "Vars:" ++ "\n" ++
+           unlines (map (\(pos,v) -> replicate (indent+6) ' ' ++ show pos ++ ": " ++ pp 0 v) al)
+  ) ++
+  (case scopes a of
+     [] -> ""
+     al -> unlines (map (\(pos,kind,entry) -> replicate (indent+4) ' ' ++ show pos ++ ": " ++ show kind ++ " scope:" ++ pp (indent+6) entry) al)
+  ) ++
+  replicate indent ' ' ++ "}"
+pp indent a@Variable{} =
+  replicate indent ' ' ++ maybe "" show (varType a) ++ " " + name a
 
 ----------

@@ -30,7 +30,7 @@ library
       Parser.Print
       Parser.Types
       SymbolTable.API
-      SymbolTable.MethodVisitor
+      SymbolTable.SymbolTableCreator
       SymbolTable.Types
   other-modules:
       Paths_JML

@@ -3,6 +3,7 @@ module SymbolTable.API where
 
 import Parser.Types
 
-class Visitor inn out where
-  visit :: inn -> out
+class Visitor v where
+  visitMethod :: Method -> v
+  visitStatement :: Statement -> v
 
