@@ -1,4 +1,4 @@
-module SymbolTable.API where
+module Visitors.API where
 
 import Parser.Types
 

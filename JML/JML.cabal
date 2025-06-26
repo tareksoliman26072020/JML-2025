@@ -25,13 +25,15 @@ source-repository head
 
 library
   exposed-modules:
+      CFG.CFG
+      CFG.Types
       Parser.ParseExpr
       Parser.ParseStmt
       Parser.Print
       Parser.Types
-      SymbolTable.API
       SymbolTable.SymbolTableCreator
       SymbolTable.Types
+      Visitors.API
   other-modules:
       Paths_JML
   autogen-modules:

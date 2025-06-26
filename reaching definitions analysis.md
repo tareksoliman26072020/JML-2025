@@ -53,8 +53,6 @@ void example(int x) {
    N6: d5: c = a + b
 ```
 
-  
-
 **3. GEN/KILL sets per node**  
 For each node Nᵢ:
 

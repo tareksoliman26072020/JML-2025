@@ -2,7 +2,7 @@ module Main (main) where
 
 import Text.ParserCombinators.Parsec
 import Parser.ParseStmt
-import SymbolTable.API (ASTVisitor(visitMethod))
+import Visitors.API (ASTVisitor(visitMethod))
 import Data.Either (fromRight)
 import Parser.Types (Method)
 import SymbolTable.SymbolTableCreator(SymbolTableCreator)

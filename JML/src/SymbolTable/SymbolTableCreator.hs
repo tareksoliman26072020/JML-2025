@@ -3,7 +3,7 @@ module SymbolTable.SymbolTableCreator where
 
 import Parser.Types as AST
 import SymbolTable.Types as ST
-import SymbolTable.API
+import Visitors.API
 import Data.List(foldl')
 
 newtype SymbolTableCreator = SymbolTableCreator {symbolTable :: ST.Entry}
