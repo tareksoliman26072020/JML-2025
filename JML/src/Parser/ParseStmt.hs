@@ -29,7 +29,7 @@ parseModifiers = nub <$> many
 parseCompoundAssignment :: Parser Statement
 parseCompoundAssignment = do
   e1 <- parseVar_or_FunCall_or_Array
-  o  <- choice $ map skipString ["+=","-=","*-","/="]
+  o  <- choice $ map skipString ["+=","-=","*=","/="]
   e2 <- parseExpr
   let op = case o of
         "+=" -> Plus
