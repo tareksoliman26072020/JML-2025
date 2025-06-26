@@ -1,6 +1,7 @@
 module SymbolTable.Types where
 
 import Parser.Types (Expression)
+import Data.Char (isSpace)
 
 data Type
   = Array Type
@@ -49,7 +50,7 @@ instance Show Entry where
 
 pp :: Int -> Entry -> String
 pp indent a@Scope{} =
-  replicate indent ' ' ++ "{ " ++ " size: " ++ show (size a) ++ "\n" ++
+  replicate indent ' ' ++ "{" ++ show (size a) ++ "\n" ++
   (case outsiderVars a of
      [] -> ""
      al -> replicate (indent+4) ' ' ++ "Outsider Vars:" ++ "\n" ++
@@ -62,10 +63,9 @@ pp indent a@Scope{} =
   ) ++
   (case scopes a of
      [] -> ""
-     al -> unlines (map (\(pos,kind,entry) -> replicate (indent+4) ' ' ++ show pos ++ ": " ++ show kind ++ " scope:" ++ pp (indent+6) entry) al)
+     al -> unlines (map (\(pos,kind,entry) -> replicate (indent+4) ' ' ++ show pos ++ ": " ++ show kind ++ " scope:" ++ let str = pp (indent+4) entry in " " ++ dropWhile isSpace str) al)
   ) ++
   replicate indent ' ' ++ "}"
 pp indent a@Variable{} =
-  replicate indent ' ' ++ maybe "" show (varType a) ++ " " + name a
-
+  replicate indent ' ' ++ maybe "" ((++ " ") . show) (varType a) ++ name a
 ----------

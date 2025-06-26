@@ -1,27 +1,57 @@
-{-# Language LambdaCase, MultiParamTypeClasses #-}
+{-# Language LambdaCase #-}
 module SymbolTable.SymbolTableCreator where
 
 import Parser.Types as AST
 import SymbolTable.Types as ST
 import SymbolTable.API
+import Data.List(foldl')
 
-newtype SymbolTableCreator = SymbolTableCreator ST.Entry
+newtype SymbolTableCreator = SymbolTableCreator {symbolTable :: ST.Entry}
 
 instance Show SymbolTableCreator where
   show (SymbolTableCreator entry) = show entry
 
-instance Visitor SymbolTableCreator where
+instance ASTVisitor SymbolTableCreator where
 --visitMethod :: AST.Method -> SymbolTableCreator
   visitMethod fun = 
     let (vars_,branches) = separate_stmts (funBody fun)
     in SymbolTableCreator $ ST.Scope {
-         outsiderVars = map from_funarg_To_Var (funArgs $ funCall $ funDecl fun),
-         size         = length $ statements $ funBody fun,
-         vars         = map (\(pos,a) -> (pos,from_assign_to_Var a)) vars_,
+         outsiderVars = map (symbolTable . visitStatement . AST.VarStmt) (funArgs $ funCall $ funDecl fun),
+         size         = scopeSize $ statements $ funBody fun,
+         vars         = map (\(pos,a) -> (pos,symbolTable $ visitStatement a)) vars_,
          scopes       = visitStatements branches
        }
 --visitStatement :: AST.Statement -> SymbolTableCreator
-  visitStatement = undefined
+  visitStatement a@AST.AssignStmt{} = case assign a of
+    b@AST.AssignExpr{} ->
+      let (name0,type0) = case assEleft b of
+            c@VarExpr{}       -> (varName c, fmap from_AST_to_type (AST.varType c))
+            c@ArrayCallExpr{} -> (varName $ arrName c, Nothing)
+            _                 -> error "left operand of AssignExpr is either VarExpr or ArrayCallExpr"
+      in SymbolTableCreator $ ST.Variable {
+        name       = name0,
+        ST.varType = type0,
+        val        = Just $ assEright b
+      }
+    _ -> error "Each AssignStmt contains AssignExpr"
+  visitStatement a@AST.VarStmt{} = SymbolTableCreator $ ST.Variable {
+    name       = varName $ var a,
+    ST.varType = fmap from_AST_to_type (AST.varType $ var a),
+    val        = Nothing
+  }
+  visitStatement a@CompStmt{} =
+    let (vars_,branches) = separate_stmts a
+    in SymbolTableCreator $ ST.Scope { 
+    --outsiderVars :: [Variable],
+      outsiderVars = [],
+    --size         :: Int,
+      size         = scopeSize $ statements a,
+    --vars         :: [(Pos,Variable)],
+      vars         = map (\(pos,s) -> (pos,symbolTable $ visitStatement s)) vars_,
+    --scopes       :: [(Pos,Kind,Scope)]
+      scopes       = visitStatements branches
+    }
+  visitStatement _               = error "won't happen"
 
 ------------------------------
 ------------------------------
@@ -34,8 +64,16 @@ instance Visitor SymbolTableCreator where
 separate_stmts :: AST.Statement -> ([(ST.Pos,AST.Statement)],[(ST.Pos,AST.Statement)])
 separate_stmts a@CompStmt{} =
   let enumerated = zip [1 ..] (statements a)
-      vars_      = get_vars_from_block enumerated
-      branches   = get_branches_from_block enumerated
+      vars_      = flip filter enumerated $ \case
+          (_,AssignStmt{}) -> True
+          (_,VarStmt{})    -> True
+          _                -> False
+      branches   = flip filter enumerated $ \case
+          (_,CondStmt{})     -> True
+          (_,ForStmt{})      -> True
+          (_,WhileStmt{})    -> True
+          (_,TryCatchStmt{}) -> True
+          _                  -> False
   in (vars_,branches)
 separate_stmts _ = error "this function is meant only for CompStmt"
 
@@ -46,53 +84,34 @@ separate_stmts _ = error "this function is meant only for CompStmt"
 visitStatements :: [(Pos,AST.Statement)] -> [(ST.Pos,ST.Kind,ST.Entry)]
 --CondStmt {condition :: Expression, siff :: Statement, selsee :: Statement}
 visitStatements ((pos, a@CondStmt{}) : rest) =
-  (pos, ST.If (condition a), from_compStmt_to_scope (siff a))
-  : (pos+1, ST.Else, from_compStmt_to_scope (selsee a))
+  (pos, ST.If (condition a), symbolTable $ visitStatement (siff a))
+  : (pos+1, ST.Else, symbolTable $ visitStatement (selsee a))
   : visitStatements (map (\(p,s) -> (p+2,s)) rest)
 --WhileStmt {condition :: Expression, whileBody :: Statement}
 visitStatements ((pos, a@WhileStmt{}) : rest) =
-  (pos, ST.While (condition a), from_compStmt_to_scope (whileBody a))
+  (pos, ST.While (condition a), symbolTable $ visitStatement (whileBody a))
   : visitStatements rest
 --ForStmt {acc :: Statement, cond :: Expression, step :: Statement, forBody :: Statement}
 visitStatements ((pos, a@ForStmt{}) : rest) =
   (pos, ST.For (cond a),
    add_step_to_for_scope (step a) 
    $ add_acc_to_for_scope (acc a)
-   $ from_compStmt_to_scope (forBody a)
+   $ symbolTable
+   $ visitStatement (forBody a)
   ) : visitStatements rest
---WhileStmt {condition :: Expression, whileBody :: Statement}
---TryCatchStmt {tryBody :: Statement,
---              catchExcp :: Type Exception, catchBody :: Statement,
---              finallyBody :: Statement}
 visitStatements ((pos, a@TryCatchStmt{}) : rest) =
-  (pos, ST.Try, from_compStmt_to_scope (tryBody a))
-  : (pos+1, ST.Catch, from_compStmt_to_scope (catchBody a))
-  : (pos+2, ST.Finally, from_compStmt_to_scope (finallyBody a))
+  (pos, ST.Try, symbolTable $ visitStatement (tryBody a))
+  : (pos+1, ST.Catch, symbolTable $ visitStatement (catchBody a))
+  : (pos+2, ST.Finally, symbolTable $ visitStatement (finallyBody a))
   : visitStatements (map (\(p,s) -> (p+3,s)) rest)
 visitStatements [] = []
 visitStatements (_ : rest) = visitStatements rest
-
--- | converts the bodis of if, else, while, for to Scope
-from_compStmt_to_scope :: AST.Statement -> ST.Entry
-from_compStmt_to_scope al@CompStmt{} =
-  let (vars_,branches) = separate_stmts al
-  in Scope { 
-  --outsiderVars :: [Variable],
-    outsiderVars = [],
-  --size         :: Int,
-    size         = length $ statements al,
-  --vars         :: [(Pos,Variable)],
-    vars         = map (\(pos,a) -> (pos,from_assign_to_Var a)) vars_,
-  --scopes       :: [(Pos,Kind,Scope)]
-    scopes       = visitStatements branches
-  }
-from_compStmt_to_scope _ = error "this function is meant only for CompStmt"
 
 -- | the accumulator in the for statement becomes an outsider variable
 add_acc_to_for_scope :: AST.Statement -> ST.Entry -> ST.Entry
 add_acc_to_for_scope a@AssignStmt{} scope_ = ST.Scope {
 --outsiderVars :: [Variable],
-  outsiderVars = [from_assign_to_Var a],
+  outsiderVars = [symbolTable $ visitStatement a],
 --size         :: Int,
   size         = size scope_,
 --vars         :: [(Pos,Variable)],
@@ -113,7 +132,7 @@ add_step_to_for_scope a@AssignStmt{} scope_ =
      --size         :: Int,
        size         = newSize,
      --vars         :: [(Pos,Variable)],
-       vars         = vars scope_ ++ [(newSize, from_assign_to_Var a)],
+       vars         = vars scope_ ++ [(newSize, symbolTable $ visitStatement a)],
      --scopes       :: [(Pos,Kind,Scope)]
        scopes       = scopes scope_
   }
@@ -148,47 +167,15 @@ from_AST_to_type = \case
     AST.Float   -> ST.Float
     AST.Long    -> ST.Long
     AST.Byte    -> ST.Byte
-  AST.AnyType{}   -> error "This won't be implemented for this master thesis"
+  a@AST.AnyType{}
+    | typee a == "String" -> ST.String
+    | otherwise           -> error "This won't be implemented for this master thesis"
   AST.ArrayType t -> ST.Array $ from_AST_to_type t
 
--- converts expressions of parameters to variable
-from_funarg_To_Var :: AST.Expression -> Entry
-from_funarg_To_Var a@AST.VarExpr{} = Variable {
-  name       = varName a,
-  ST.varType = fmap from_AST_to_type (AST.varType a),
-  val        = Nothing
-}
-from_funarg_To_Var a = error $ "This must be VarExpr, but it's " ++ show a
-
---------------------
-
--- returns only all AssignStmts 
-get_vars_from_block :: [(ST.Pos,AST.Statement)] -> [(ST.Pos,AST.Statement)]
-get_vars_from_block = filter $ \case
-  (_,AssignStmt{}) -> True
-  _                -> False
-
--- returns only all Statements with branches
-get_branches_from_block :: [(ST.Pos,AST.Statement)] -> [(ST.Pos,AST.Statement)]
-get_branches_from_block = filter $ \case
-  (_,CondStmt{})     -> True
-  (_,ForStmt{})      -> True
-  (_,WhileStmt{})    -> True
-  (_,TryCatchStmt{}) -> True
-  _                  -> False
-
---------------------
-
--- converts AST.AssignStmt to Variable
-from_assign_to_Var :: AST.Statement -> ST.Entry
-from_assign_to_Var a@AST.AssignStmt{} = case assign a of
-  --AssignExpr {assEleft :: Expression, assEright :: Expression}
-  b@AST.AssignExpr{} -> Variable {
-    name       = varName $ assEleft b,
-    ST.varType = fmap from_AST_to_type (AST.varType $ assEleft b),
-    val        = Just $ assEright b
-  }
-  _                  -> error "Each AssignStmt contains AssignExpr"
-from_assign_to_Var _ = error "This function is meant only for AssignStmt"
-
+scopeSize :: [AST.Statement] -> Int
+scopeSize = foldl' f 0
+  where
+  f acc_ CondStmt{} = acc_+2
+  f acc_ _          = acc_+1
+ 
 --------------------
