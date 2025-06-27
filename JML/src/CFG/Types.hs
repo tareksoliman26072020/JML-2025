@@ -6,7 +6,7 @@ type NodeID = Int
 
 data Node = Entry {id :: NodeID} | End {id :: NodeID} | Node {
   id :: NodeID,
-  contents :: NodeData
+  nodeData :: NodeData
 } deriving Show
 
 data CFG = CFG {

@@ -1,10 +1,10 @@
-{-# Language LambdaCase #-}
+{-# Language LambdaCase, NamedFieldPuns #-}
 module CFG.CFG where
 
 import Visitors.API
 import qualified Parser.Types as AST
 import qualified CFG.Types as G
-import Data.List (maximumBy)
+import Data.List (maximumBy, foldl',nub)
 
 data CFGCreator = Node {node :: G.Node} | Nodes {cfg :: G.CFG}
 {-
@@ -16,52 +16,54 @@ data CFG = CFG {
 instance ASTVisitor CFGCreator where
 --visitMethod :: AST.Method -> CFGCreator
   visitMethod method =
-    let funBodyNodes = undefined--map (node . visitStatement0 1) (AST.statements $ AST.funBody method)
-        nodes0 :: [G.Node]
-        nodes0 = G.Entry 0
-                 : funBodyNodes
-                 : G.End (getNextIdNode funBodyNodes)
-                 : []
-        edges0 = connectNodes nodes0
-    in Nodes $ G.CFG nodes0 edges0
---visitStatement :: AST.Statement -> CFGCreator
+    let (nextNodeId,g) = visitStatement0 0 1 (AST.funBody method)
+    in g
   visitStatement = undefined
 
 
 
-visitStatement0 :: Int -> AST.Statement -> (G.NodeID,CFGCreator)
-visitStatement0 = undefined
-{-
-visitStatement0 startPos a@AST.CompStmt{} =
-  let nodes0 = map (\(pos,stmt) -> node $ visitStatement0 pos stmt)
-                   (zip [startPos ..] $ AST.statements a)
-      edges0 = connectNodes nodes0
-  in Nodes $ G.CFG nodes0 edges0
---CondStmt {condition :: Expression, siff :: Statement, selsee :: Statement}
-visitStatement0 startPos a@AST.CondStmt{} =
-  let conditionNode = G.Node { -- :: G.Node
-        G.id = startPos,--NodeID,
-        G.contents = G.BooleanExpression G.If (AST.condition a)
-      }
-      if_cfg = cfg $ visitStatement0 (startPos+1) $ AST.siff a -- :: G.CFG
-      else_cfg = cfg $ visitStatement0 (getNextIdNode $ G.nodes if_cfg) $ AST.selsee a -- :: G.CFG
-      endNode = G.Node { -- :: G.Node
-        G.id = error "Not Error: enumerateNodes will override this",
-        G.contents = G.Meet G.If
-      }
-visitStatement0 _ a@AST.ForStmt{} = undefined
-visitStatement0 _ a@AST.WhileStmt{} = undefined
-visitStatement0 _ a@AST.TryCatchStmt{} = undefined
-visitStatement0 _ a = Node $ undefined a
--}
+visitStatement0 :: Int -> Int -> AST.Statement -> (G.NodeID,CFGCreator)
+visitStatement0 currentNodeId nextNodeId stmt@AST.CompStmt{} =
+  foldl' f (nextNodeId, Nodes $ G.CFG [] []) (AST.statements stmt)
+  where
+  f :: (G.NodeID,CFGCreator) -> AST.Statement -> (G.NodeID,CFGCreator)
+  f (nextNodeId1, cfgCreator1) nextStmt = case cfgCreator1 of
+    Node _     -> error "CompStmt results in Nodes"
+    Nodes cfg1 -> case visitStatement0 currentNodeId nextNodeId1 nextStmt of
+      -- the new nodes and edges get added
+      (nextNodeId2, Nodes cfg2) -> (,)
+        nextNodeId2
+        (Nodes $ G.CFG {
+           G.nodes = G.nodes cfg1 ++ G.nodes cfg2,
+           G.edges = G.edges cfg1 ++ G.edges cfg2
+         })
+      -- the new node gets added
+      (nextNodeId2, n@(Node node2)) -> (,)
+        nextNodeId2
+        (Nodes $ G.CFG {
+           G.nodes = G.nodes cfg1 ++ [node2],
+           G.edges = addEdge (currentNodeId,nextNodeId1) (G.edges cfg1)
+         })
+
+-- receives a pair of nodes (from,to) and adds it to the list of edges
+addEdge :: (G.NodeID,G.NodeID) -> [(G.NodeID,[G.NodeID])] -> [(G.NodeID,[G.NodeID])]
+addEdge (from,to) edges = case lookup from edges of
+  Nothing -> edges ++ [(from,[to])]
+  _       -> flip map edges $ \(v1,vs2) ->
+    if v1 == from
+      then (v1,nub $ vs2 ++ [to])
+      else (v1,vs2)
+
+-----------
+-----------
 
 enumerateNodes :: Int -> [G.Node] -> [G.Node]
 enumerateNodes start nodes = flip map (zip [start ..] nodes) $ \case
-  (num,G.Entry{}) -> error "won't happen"
-  (num,G.End{})   -> error "won't happen"
+  (_,G.Entry{}) -> error "won't happen"
+  (_,G.End{})   -> error "won't happen"
   (num,node)      -> G.Node {
     G.id       = num,
-    G.contents = G.contents node
+    G.nodeData = G.nodeData node
   }
 
 connectNodes :: [G.Node] -> [(G.NodeID,[G.NodeID])]
