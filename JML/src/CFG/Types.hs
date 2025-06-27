@@ -20,5 +20,5 @@ data NodeData = Statement AST.Statement
               | Meet Kind
               deriving Show
 
-data Kind = If | While
+data Kind = If | While | For
           deriving Show

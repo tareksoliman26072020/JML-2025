@@ -20,10 +20,10 @@ instance ASTVisitor CFGCreator where
     in g
   visitStatement = undefined
 
+
 type SourceNodeID  = G.NodeID
 type CurrentNodeID = G.NodeID
 type NextNodeID    = G.NodeID
-
 
 visitStatement0 :: (SourceNodeID,CurrentNodeID,NextNodeID) -> AST.Statement -> ((SourceNodeID,CurrentNodeID,NextNodeID),CFGCreator)
 visitStatement0 ids stmt@AST.CompStmt{} =
@@ -72,18 +72,18 @@ visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.CondStmt{} =
       ((_,if_currentNodeID,if_nextNodeID),if_cfg_creator) =
         visitStatement0 (nextNodeID,nextNodeID,nextNodeID+1) (AST.siff stmt)
       ---------------- elseBranch
-      ((_,else_currentNodeID,else_nextNodeID),else_cfg_creator) = visitStatement0 (nextNodeID,nextNodeID,if_nextNodeID) (AST.selsee stmt)
+      ((_,else_currentNodeID,else_nextNodeID),else_cfg_creator) =
+        visitStatement0 (nextNodeID,nextNodeID,if_nextNodeID) (AST.selsee stmt)
       meetNode = G.Node {
         G.id       = else_nextNodeID,
         G.nodeData = G.Meet G.If,
         G.parent   = sourceNodeID
       }
   in case (if_cfg_creator,else_cfg_creator) of
-       (Nodes if_cfg,Nodes else_cfg) -> 
-         (,)
-         (G.id meetNode,undefined,G.id meetNode + 1)
+       (Nodes if_cfg,Nodes else_cfg) -> (,)
+         (sourceNodeID,G.id meetNode,G.id meetNode + 1)
          (Nodes $ G.CFG {
-           G.nodes = condNode : G.nodes if_cfg ++ G.nodes else_cfg,
+           G.nodes = condNode : G.nodes if_cfg ++ G.nodes else_cfg ++ [meetNode],
            G.edges = (currentNodeID,[nextNodeID])
                       : G.edges if_cfg ++ G.edges else_cfg
                        -- There's an edge between the end of the if branch, and the meet node
@@ -92,6 +92,46 @@ visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.CondStmt{} =
                          ,(else_currentNodeID,[else_nextNodeID])]
          })
        _ -> error "won't happen"
+visitStatement0 (sourceNodeID,_,nextNodeID) stmt@AST.ForStmt{} =
+  let ---------------- condNode
+      condNode = G.Node {
+        G.id = nextNodeID,-- :: NodeID,
+        G.nodeData = G.BooleanExpression G.For $ AST.cond stmt,-- :: NodeData,
+        G.parent = sourceNodeID-- :: NodeID
+      }
+      ---------------- trueBranch
+      ((_,trueCurrentID,trueNextID),true_cfg_creator0) =
+        visitStatement0 (G.id condNode,G.id condNode,G.id condNode+1) (AST.forBody stmt)
+      ---------------- step node
+      stepNode = G.Node {
+        G.id       = trueNextID,
+        G.nodeData = G.Statement $ AST.step stmt,
+        G.parent   = trueCurrentID
+      }
+      ---------------- add step node to true branch
+      ---------------- add edge from step node to cond node
+      true_cfg_creator = case true_cfg_creator0 of
+        Nodes true_cfg -> G.CFG {
+          G.nodes = G.nodes true_cfg ++ [stepNode],
+          G.edges = (G.edges true_cfg) ++
+                    [(trueCurrentID,[G.id stepNode])] ++ -- from for body to step node
+                    [(G.id stepNode,[G.id condNode])]       -- from step node to cond node
+        }
+        _                      -> error "won't happen"
+      ---------------- meet branch
+      meetNode = G.Node {
+        G.id       = trueNextID+1,-- :: NodeID,
+        G.nodeData = G.Meet G.For,-- :: NodeData,
+        G.parent   = sourceNodeID-- :: NodeID
+      }
+  in (,)
+       (sourceNodeID,G.id meetNode,G.id meetNode+1)
+       (Nodes $ G.CFG { -- add cond node, meet node
+          G.nodes = condNode : G.nodes true_cfg_creator ++ [meetNode],
+          G.edges = G.edges true_cfg_creator
+                    ++ [(G.id stepNode,[G.id meetNode])] -- from step node to Meet node
+                    ++ [(G.id condNode,[G.id meetNode])] -- from cond node to meet node
+       })
 
 -- receives a pair of nodes (from,to) and adds it to the list of edges
 addEdge :: (G.NodeID,G.NodeID) -> [(G.NodeID,[G.NodeID])] -> [(G.NodeID,[G.NodeID])]
