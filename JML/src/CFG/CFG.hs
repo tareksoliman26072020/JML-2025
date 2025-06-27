@@ -16,34 +16,82 @@ data CFG = CFG {
 instance ASTVisitor CFGCreator where
 --visitMethod :: AST.Method -> CFGCreator
   visitMethod method =
-    let (nextNodeId,g) = visitStatement0 0 1 (AST.funBody method)
+    let (nextNodeId,g) = visitStatement0 (0,0,1) (AST.funBody method)
     in g
   visitStatement = undefined
 
+type SourceNodeID  = G.NodeID
+type CurrentNodeID = G.NodeID
+type NextNodeID    = G.NodeID
 
 
-visitStatement0 :: Int -> Int -> AST.Statement -> (G.NodeID,CFGCreator)
-visitStatement0 currentNodeId nextNodeId stmt@AST.CompStmt{} =
-  foldl' f (nextNodeId, Nodes $ G.CFG [] []) (AST.statements stmt)
+visitStatement0 :: (SourceNodeID,CurrentNodeID,NextNodeID) -> AST.Statement -> ((SourceNodeID,CurrentNodeID,NextNodeID),CFGCreator)
+visitStatement0 ids stmt@AST.CompStmt{} =
+  foldl' f (ids, Nodes $ G.CFG [] []) (AST.statements stmt)
   where
-  f :: (G.NodeID,CFGCreator) -> AST.Statement -> (G.NodeID,CFGCreator)
-  f (nextNodeId1, cfgCreator1) nextStmt = case cfgCreator1 of
+  f :: ((SourceNodeID,CurrentNodeID,NextNodeID),CFGCreator) -> AST.Statement -> ((SourceNodeID,CurrentNodeID,NextNodeID),CFGCreator)
+  f ((sourceNodeID1,currentNodeID1,nextNodeID1), cfgCreator1) nextStmt = case cfgCreator1 of
     Node _     -> error "CompStmt results in Nodes"
-    Nodes cfg1 -> case visitStatement0 currentNodeId nextNodeId1 nextStmt of
+    Nodes cfg1 -> case visitStatement0 (sourceNodeID1,currentNodeID1,nextNodeID1) nextStmt of
       -- the new nodes and edges get added
-      (nextNodeId2, Nodes cfg2) -> (,)
-        nextNodeId2
+      (nodeIDs, Nodes cfg2) -> (,)
+        nodeIDs
         (Nodes $ G.CFG {
            G.nodes = G.nodes cfg1 ++ G.nodes cfg2,
            G.edges = G.edges cfg1 ++ G.edges cfg2
          })
       -- the new node gets added
-      (nextNodeId2, n@(Node node2)) -> (,)
-        nextNodeId2
+      (nodeIDs, Node node2) -> (,)
+        nodeIDs
         (Nodes $ G.CFG {
-           G.nodes = G.nodes cfg1 ++ [node2],
-           G.edges = addEdge (currentNodeId,nextNodeId1) (G.edges cfg1)
+           G.nodes  = G.nodes cfg1 ++ [node2],
+           G.edges  = addEdge (currentNodeID1,nextNodeID1) (G.edges cfg1)
          })
+visitStatement0 (sourceNodeID,_,nextNodeID) stmt@AST.VarStmt{} =
+  let node = G.Node {
+        G.id = nextNodeID,
+        G.nodeData = G.Statement stmt,
+        G.parent = sourceNodeID
+      }
+  in ((sourceNodeID,nextNodeID,nextNodeID+1),Node node)
+visitStatement0 (sourceNodeID,_,nextNodeID) stmt@AST.AssignStmt{} =
+  let node = G.Node {
+        G.id = nextNodeID,
+        G.nodeData = G.Statement stmt,
+        G.parent = sourceNodeID
+      }
+  in ((sourceNodeID,nextNodeID,nextNodeID+1),Node node)
+visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.CondStmt{} =
+  let ---------------- condNode
+      condNode = G.Node {
+        G.id = nextNodeID,
+        G.nodeData = G.BooleanExpression G.If (AST.condition stmt),
+        G.parent = sourceNodeID
+      }
+      ---------------- ifBranch
+      ((_,if_currentNodeID,if_nextNodeID),if_cfg_creator) =
+        visitStatement0 (nextNodeID,nextNodeID,nextNodeID+1) (AST.siff stmt)
+      ---------------- elseBranch
+      ((_,else_currentNodeID,else_nextNodeID),else_cfg_creator) = visitStatement0 (nextNodeID,nextNodeID,if_nextNodeID) (AST.selsee stmt)
+      meetNode = G.Node {
+        G.id       = else_nextNodeID,
+        G.nodeData = G.Meet G.If,
+        G.parent   = sourceNodeID
+      }
+  in case (if_cfg_creator,else_cfg_creator) of
+       (Nodes if_cfg,Nodes else_cfg) -> 
+         (,)
+         (G.id meetNode,undefined,G.id meetNode + 1)
+         (Nodes $ G.CFG {
+           G.nodes = condNode : G.nodes if_cfg ++ G.nodes else_cfg,
+           G.edges = (currentNodeID,[nextNodeID])
+                      : G.edges if_cfg ++ G.edges else_cfg
+                       -- There's an edge between the end of the if branch, and the meet node
+                      ++ [(if_currentNodeID,[else_nextNodeID])
+                       -- There's an edge between the end of the else branch, and the meet node
+                         ,(else_currentNodeID,[else_nextNodeID])]
+         })
+       _ -> error "won't happen"
 
 -- receives a pair of nodes (from,to) and adds it to the list of edges
 addEdge :: (G.NodeID,G.NodeID) -> [(G.NodeID,[G.NodeID])] -> [(G.NodeID,[G.NodeID])]
@@ -56,15 +104,6 @@ addEdge (from,to) edges = case lookup from edges of
 
 -----------
 -----------
-
-enumerateNodes :: Int -> [G.Node] -> [G.Node]
-enumerateNodes start nodes = flip map (zip [start ..] nodes) $ \case
-  (_,G.Entry{}) -> error "won't happen"
-  (_,G.End{})   -> error "won't happen"
-  (num,node)      -> G.Node {
-    G.id       = num,
-    G.nodeData = G.nodeData node
-  }
 
 connectNodes :: [G.Node] -> [(G.NodeID,[G.NodeID])]
 connectNodes (node1 : node2 : rest) = (G.id node1,[G.id node2]) : connectNodes (node2 : rest)

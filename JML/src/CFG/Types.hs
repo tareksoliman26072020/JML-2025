@@ -4,9 +4,10 @@ import qualified Parser.Types as AST(Statement,Expression)
 
 type NodeID = Int
 
-data Node = Entry {id :: NodeID} | End {id :: NodeID} | Node {
+data Node = Entry | End {id :: NodeID} | Node {
   id :: NodeID,
-  nodeData :: NodeData
+  nodeData :: NodeData,
+  parent :: NodeID
 } deriving Show
 
 data CFG = CFG {
@@ -14,7 +15,9 @@ data CFG = CFG {
   edges :: [(NodeID,[NodeID])]
 } deriving Show
 
-data NodeData = Statement AST.Statement | BooleanExpression Kind AST.Expression | Meet Kind
+data NodeData = Statement AST.Statement
+              | BooleanExpression Kind AST.Expression 
+              | Meet Kind
               deriving Show
 
 data Kind = If | While
