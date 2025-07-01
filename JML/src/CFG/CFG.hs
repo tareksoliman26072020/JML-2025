@@ -16,9 +16,14 @@ data CFG = CFG {
 instance ASTVisitor CFGCreator where
 --visitMethod :: AST.Method -> CFGCreator
   visitMethod method =
-    let (nextNodeId,g) = visitStatement0 (0,0,1) (AST.funBody method)
-    in g
-  visitStatement = undefined
+    let (_,g) = visitStatement0 (0,0,1) (AST.funBody method)
+    in case g of
+         Nodes cfg -> Nodes $ G.CFG {
+           G.nodes = G.Entry : G.nodes cfg,
+           G.edges = G.edges cfg
+         }
+         _ -> error "won't happen"
+  visitStatement = error "visitStatement0 is a replacement for this"
 
 
 type SourceNodeID  = G.NodeID
@@ -157,6 +162,50 @@ visitStatement0 (sourceNodeID,_,nextNodeID) stmt@AST.WhileStmt{} =
           G.edges = (G.id condNode,[G.id condNode+1]) : G.edges true_cfg_creator
                     ++ [(G.id condNode,[G.id meetNode])]
        })
+visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.TryCatchStmt{} =
+  let -- try
+      ((_,tryCurrentID,tryNextID),try_cfg_creator0) =
+        visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) (AST.tryBody stmt)
+      -- catch
+      ((catchSourceID,catchCurrentID,catchNextID),catch_cfg_creator0) =
+        visitStatement0 (sourceNodeID,tryCurrentID,tryNextID) (AST.catchBody stmt)
+      -- meet node: both try and catch meet in this node:
+      meetNode = G.Node {
+        G.id       = catchNextID,
+        G.nodeData = G.Meet G.TryCatch,
+        G.parent   = catchSourceID
+      }
+      -- finally
+      ((_,finallyCurrentID,finallyNextID),finally_cfg_creator0) =
+        visitStatement0 (sourceNodeID,G.id meetNode,G.id meetNode+1) (AST.finallyBody stmt)
+      -- CFGs
+      getCfg = \case
+        Nodes cfg -> G.CFG {
+          G.nodes = G.nodes cfg,
+          G.edges = G.edges cfg
+        }
+        _         -> error "won't happen"
+      ----------
+      allNodes = flip concatMap
+        [try_cfg_creator0, catch_cfg_creator0, Node meetNode, finally_cfg_creator0]
+        $ \case Node node -> [node]
+                cfg0      -> G.nodes $ getCfg cfg0
+      allEdges = (concatMap (G.edges . getCfg)
+        [try_cfg_creator0, catch_cfg_creator0, finally_cfg_creator0])
+        ++ [(tryCurrentID  ,[G.id meetNode])]
+        ++ [(catchCurrentID,[G.id meetNode])]
+        ++ [(G.id meetNode ,[G.id meetNode+1])]
+  in (,)
+       (sourceNodeID,finallyCurrentID,finallyNextID)
+       (Nodes $ G.CFG {
+          G.nodes = allNodes,
+          G.edges = allEdges
+       })
+visitStatement0 (sourceNodeID,_,nextNodeID) stmt@AST.ReturnStmt{} =
+  (,)
+    (sourceNodeID,nextNodeID,nextNodeID+1)
+    $ Node $ G.End nextNodeID (AST.returnS stmt)
+visitStatement0 _ AST.FunCallStmt{} = error "won't happen"
 
 -- receives a pair of nodes (from,to) and adds it to the list of edges
 addEdge :: (G.NodeID,G.NodeID) -> [(G.NodeID,[G.NodeID])] -> [(G.NodeID,[G.NodeID])]
