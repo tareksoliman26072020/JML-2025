@@ -95,9 +95,9 @@ visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.CondStmt{} =
 visitStatement0 (sourceNodeID,_,nextNodeID) stmt@AST.ForStmt{} =
   let ---------------- condNode
       condNode = G.Node {
-        G.id = nextNodeID,-- :: NodeID,
+        G.id       = nextNodeID,-- :: NodeID,
         G.nodeData = G.BooleanExpression G.For $ AST.cond stmt,-- :: NodeData,
-        G.parent = sourceNodeID-- :: NodeID
+        G.parent   = sourceNodeID-- :: NodeID
       }
       ---------------- trueBranch
       ((_,trueCurrentID,trueNextID),true_cfg_creator0) =
@@ -129,8 +129,33 @@ visitStatement0 (sourceNodeID,_,nextNodeID) stmt@AST.ForStmt{} =
        (Nodes $ G.CFG { -- add cond node, meet node
           G.nodes = condNode : G.nodes true_cfg_creator ++ [meetNode],
           G.edges = G.edges true_cfg_creator
-                    ++ [(G.id stepNode,[G.id meetNode])] -- from step node to Meet node
                     ++ [(G.id condNode,[G.id meetNode])] -- from cond node to meet node
+       })
+visitStatement0 (sourceNodeID,_,nextNodeID) stmt@AST.WhileStmt{} =
+  let condNode = G.Node {
+        G.id       = nextNodeID,
+        G.nodeData = G.BooleanExpression G.While (AST.condition stmt),
+        G.parent   = sourceNodeID
+      }
+      ((_,trueCurrentID,trueNextID),true_cfg_creator0) =
+        visitStatement0 (G.id condNode,G.id condNode,G.id condNode+1) (AST.whileBody stmt)
+      true_cfg_creator = case true_cfg_creator0 of
+        Nodes cfg -> G.CFG {
+          G.nodes = G.nodes cfg,
+          G.edges = G.edges cfg ++ [(trueCurrentID,[G.id condNode])]
+        }
+        _         -> error "won't happen"
+      meetNode = G.Node {
+        G.id       = trueNextID,
+        G.nodeData = G.Meet G.While,
+        G.parent   = sourceNodeID
+      }
+  in (,)
+       (sourceNodeID,G.id meetNode,G.id meetNode+1)
+       (Nodes $ G.CFG {
+          G.nodes = condNode : G.nodes true_cfg_creator ++ [meetNode],
+          G.edges = (G.id condNode,[G.id condNode+1]) : G.edges true_cfg_creator
+                    ++ [(G.id condNode,[G.id meetNode])]
        })
 
 -- receives a pair of nodes (from,to) and adds it to the list of edges
