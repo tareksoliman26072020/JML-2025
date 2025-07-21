@@ -236,3 +236,18 @@ getNextIdNode nodes
       _        -> False =
       G.id (maximumBy (\node1 node2 -> compare (G.id node1) (G.id node2)) nodes) + 1
   | otherwise = error "This is only meant to process the constructor named Node"
+
+-----------
+-----------
+
+exec :: AST.Method -> G.CFG
+exec x = case visitMethod x of
+  Nodes cfg -> cfg
+  _         -> error "won't happen"
+
+-----------
+-----------
+
+showCFGCreator :: CFGCreator -> String
+showCFGCreator (Node n) = G.showNode n
+showCFGCreator (Nodes cfg) = G.showCFG cfg
