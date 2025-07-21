@@ -1,6 +1,6 @@
 module CFG.Types where
 
-import qualified Parser.Types as AST(Statement,Expression(..), Type(..), Types(..))
+import qualified Parser.Types as AST(Statement(..),Expression(..), Type(..), Types(..), Modifier(..))
 import Data.List (intercalate)
 import Text.Printf(printf)
 
@@ -12,26 +12,43 @@ data Node = Entry | End {id :: NodeID, mExpr :: Maybe AST.Expression} | Node {
   parent :: NodeID
 } deriving Show
 
+showNode Entry = "Entry"
+showNode (end@End{}) = "End " ++ show (CFG.Types.id end)
+  ++ maybe "" (\e -> ": " ++ showExpr e) (mExpr end)
+showNode (node@Node{}) = printf "%d -> %d:\n        %s"
+  (parent node) (CFG.Types.id node) (showNodeData (nodeData node))
+
+------------------------------
+
 data CFG = CFG {
   nodes :: [Node],
   edges :: [(NodeID,[NodeID])]
 } deriving Show
+
+showCFG :: CFG -> String
+showCFG (cfg@CFG{}) = "  " ++
+  intercalate "\n----------\n  " (map showNode $ nodes cfg) ++ "\n" ++
+  "========================\n  " ++
+  intercalate "\n  " (map show $ edges cfg) ++ "\n"
+
+------------------------------
 
 data NodeData = Statement AST.Statement
               | BooleanExpression Kind AST.Expression 
               | Meet Kind
               deriving Show
 
+showNodeData :: NodeData -> String
+showNodeData (Statement stmt) = showStatement stmt
+showNodeData (BooleanExpression kind expr) = error "TODO"
+showNodeData (Meet kind) = error "TODO"
+
+------------------------------
+
 data Kind = If | While | For | TryCatch
           deriving Show
 
-showNode Entry = "Entry"
-showNode (end@End{}) = "End " ++ show (CFG.Types.id end)
-  ++ maybe "" (\e -> ": " ++ showExpr e) (mExpr end)
-showNode (node@Node{}) = error "TODO"
-
 {-
-  | VarExpr {varType :: Maybe (Type Types), varObj :: [String], varName :: String}
   | ArrayCallExpr {arrName :: Expression, index :: Maybe Expression}
   | ArrayInstantiationExpr {arrType :: Maybe (Type Types), arrSize :: Maybe Expression, arrElems :: [Expression]}
   | BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
@@ -55,32 +72,12 @@ showExpr (v@AST.VarExpr{}) =
   in theType ++ objs ++ AST.varName v
 showExpr _ = error "TODO"
 
-showCFG :: CFG -> String
-showCFG (cfg@CFG{}) = "  " ++
-  intercalate "\n----------\n  " (map showNode $ nodes cfg) ++ "\n" ++
-  "========================\n  " ++
-  intercalate "\n  " (map show $ edges cfg) ++ "\n"
-
 {-
 data Type a
   = BuiltInType a
   | AnyType {typee :: String, generic :: Maybe (Type a)}
   | ArrayType {baseType :: Type a}
   deriving (Eq, Show)
-
-==============================
-
-data Types
-  = Int
-  | Void
-  | Char
-  | String
-  | Boolean
-  | Double
-  | Short
-  | Float
-  | Long
-  | Byte
 -}
 showType :: AST.Type AST.Types -> String
 showType (AST.BuiltInType t) = case t of
@@ -95,6 +92,35 @@ showType (AST.BuiltInType t) = case t of
   AST.Long    -> "Long"
   AST.Byte    -> "Byte"
 showType _ = error "TODO"
+
+{-
+  = CompStmt {statements :: [Statement]}
+  | VarStmt {var :: Expression}
+  | AssignStmt {varModifier :: [Modifier], assign :: Expression}
+  | CondStmt {condition :: Expression, siff :: Statement, selsee :: Statement}
+  | ForStmt {acc :: Statement, cond :: Expression, step :: Statement, forBody :: Statement}
+  | WhileStmt {condition :: Expression, whileBody :: Statement}
+  | FunCallStmt {funCall :: Expression}
+  | TryCatchStmt {tryBody :: Statement,
+                  catchExcp :: Type Exception, catchBody :: Statement,
+                  finallyBody :: Statement}
+  | ReturnStmt {returnS :: Maybe Expression}
+-}
+showStatement :: AST.Statement -> String
+showStatement stmt@AST.AssignStmt{} = error "TODO"
+showStatement _ = error "TODO"
+
+{-
+data Modifier
+  = Static
+  | Public
+  | Private
+  | Protected
+  | Final
+  | Abstract
+-}
+showModifier :: AST.Modifier -> String
+showModifier _ = error "TODO"
 
 list :: b -> ([a] -> b) -> [a] -> b
 list b _ [] = b

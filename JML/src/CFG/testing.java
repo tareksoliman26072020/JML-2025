@@ -43,6 +43,20 @@ public int boo22(){
 
 ///////////////////////////////////////////////////
 
+/*
+CFG {
+  nodes = [
+    Entry,
+    Node {
+      id = 1,
+      nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x"}, assEright = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "boo21"}, funArgs = []}}}),
+      parent = 0
+    },
+    End {id = 2, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "x"})}
+  ],
+  edges = [(0,[1]),(1,[2])]
+}
+*/
 public int boo22_2(){
   int x = boo21();
   return x;
