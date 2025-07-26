@@ -1,6 +1,6 @@
 module CFG.Types where
 
-import qualified Parser.Types as AST(Statement(..),Expression(..), Type(..), Types(..), Modifier(..))
+import qualified Parser.Types as AST(Statement(..),Expression(..), Type(..), Types(..), Modifier(..), Exception(..))
 import Data.List (intercalate)
 import Text.Printf(printf)
 
@@ -41,6 +41,7 @@ showCFG (cfg@CFG{}) = "  " ++
 
 data NodeData = Statement AST.Statement
               | BooleanExpression Kind AST.Expression 
+              | TryNode | CatchNode (AST.Type AST.Exception) | FinallyNode
               | Meet Kind
               deriving Show
 
@@ -51,7 +52,7 @@ showNodeData (Meet kind) = "Meet: " ++ show kind
 
 ------------------------------
 
-data Kind = If | While | For | TryCatch
+data Kind = If | While | For
           deriving Show
 
 {-

@@ -163,6 +163,61 @@ visitStatement0 (sourceNodeID,_,nextNodeID) stmt@AST.WhileStmt{} =
                     ++ [(G.id condNode,[G.id meetNode])]
        })
 visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.TryCatchStmt{} =
+  let -- try start node
+      try_start = G.Node {
+        G.id       = nextNodeID,
+        G.nodeData = G.TryNode,
+        G.parent   = sourceNodeID
+      }
+      -- try
+      ((_,tryCurrentID,tryNextID),try_cfg_creator0) =
+        visitStatement0 (sourceNodeID, G.id try_start, G.id try_start + 1) (AST.tryBody stmt)
+      -- catch start node
+      catch_start = G.Node {
+        G.id       = tryNextID,
+        G.nodeData = G.CatchNode $ AST.catchExcp stmt,
+        G.parent   = sourceNodeID
+      }
+      -- catch
+      ((_,catchCurrentID,catchNextID),catch_cfg_creator0) =
+        visitStatement0 (sourceNodeID, G.id catch_start, G.id catch_start + 1) (AST.catchBody stmt)
+      -- finally start node
+      finally_start = --case AST.finallyBody stmt of AST.CompStmt ss -> ...
+        G.Node {
+          G.id       = catchNextID,
+          G.nodeData = G.FinallyNode,
+          G.parent   = sourceNodeID
+        }
+      -- finally
+      ((_,finallyCurrentID,finallyNextID),finally_cfg_creator0) =
+        visitStatement0 (sourceNodeID, G.id finally_start, G.id finally_start + 1) (AST.finallyBody stmt)
+      -- all nodes
+      allNodes = [try_start]
+                 ++ case try_cfg_creator0 of
+                      Nodes cfg -> G.nodes cfg
+                      Node _    -> error "won't happen"
+                 ++ [catch_start]
+                 ++ case catch_cfg_creator0 of
+                      Nodes cfg -> G.nodes cfg
+                      Node _    -> error "won't happen"
+                 ++ case AST.finallyBody stmt of
+                      AST.CompStmt [] -> []
+                      AST.CompStmt{}  ->
+                        [finally_start]
+                        ++ case finally_cfg_creator0 of
+                             Nodes cfg -> G.nodes cfg
+                             Node _    -> error "won't happen"
+                      _               -> error "won't happen"
+      -- all edges
+      allEdges = undefined
+  in (,)
+       (sourceNodeID, finallyCurrentID, finallyNextID)
+       (Nodes $ G.CFG {
+          G.nodes = allNodes,
+          G.edges = allEdges -- :: [(NodeID,[NodeID])]
+       })
+{-
+visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.TryCatchStmt{} =
   let -- try
       ((_,tryCurrentID,tryNextID),try_cfg_creator0) =
         visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) (AST.tryBody stmt)
@@ -172,7 +227,7 @@ visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.TryCatchStmt{} 
       -- meet node: both try and catch meet in this node:
       meetNode = G.Node {
         G.id       = catchNextID,
-        G.nodeData = G.Meet G.TryCatch,
+        G.nodeData = G.Meet G.TryCatchFinally,
         G.parent   = catchSourceID
       }
       -- finally
@@ -201,6 +256,7 @@ visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.TryCatchStmt{} 
           G.nodes = allNodes,
           G.edges = allEdges
        })
+-}
 visitStatement0 (sourceNodeID,_,nextNodeID) stmt@AST.ReturnStmt{} =
   (,)
     (sourceNodeID,nextNodeID,nextNodeID+1)
