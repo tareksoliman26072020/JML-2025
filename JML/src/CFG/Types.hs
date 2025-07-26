@@ -14,7 +14,7 @@ data Node = Entry | End {id :: NodeID, mExpr :: Maybe AST.Expression} | Node {
 
 showNode Entry = "Entry"
 showNode (end@End{}) = "End " ++ show (CFG.Types.id end)
-  ++ maybe "" (\e -> ": " ++ showExpr e) (mExpr end)
+  ++ maybe "()" (\e -> ": " ++ showExpr e) (mExpr end)
 showNode (node@Node{}) = printf "%d -> %d:\n        %s"
   (parent node) (CFG.Types.id node) (showNodeData (nodeData node))
 
@@ -54,7 +54,6 @@ data Kind = If | While | For | TryCatch
   | BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
   | UnOpExpr {unOp :: UnOp, expr :: Expression}
   | CondExpr {eiff :: Expression, ethenn :: Expression, eelsee :: Expression}
-  | AssignExpr {assEleft :: Expression, assEright :: Expression}
   | ExcpExpr {excpName :: Exception, excpmsg :: Maybe String}
 -}
 showExpr :: AST.Expression -> String
@@ -70,6 +69,8 @@ showExpr (v@AST.VarExpr{}) =
   let theType = maybe "" (\t -> showType t ++ " ") (AST.varType v)
       objs    = list "" (\li -> intercalate "." li ++ ".") (AST.varObj v)
   in theType ++ objs ++ AST.varName v
+showExpr expr@AST.AssignExpr{} =
+  showExpr (AST.assEleft expr) ++ " = " ++ showExpr (AST.assEright expr)
 showExpr _ = error "TODO"
 
 {-
@@ -96,7 +97,6 @@ showType _ = error "TODO"
 {-
   = CompStmt {statements :: [Statement]}
   | VarStmt {var :: Expression}
-  | AssignStmt {varModifier :: [Modifier], assign :: Expression}
   | CondStmt {condition :: Expression, siff :: Statement, selsee :: Statement}
   | ForStmt {acc :: Statement, cond :: Expression, step :: Statement, forBody :: Statement}
   | WhileStmt {condition :: Expression, whileBody :: Statement}
@@ -107,7 +107,9 @@ showType _ = error "TODO"
   | ReturnStmt {returnS :: Maybe Expression}
 -}
 showStatement :: AST.Statement -> String
-showStatement stmt@AST.AssignStmt{} = error "TODO"
+showStatement stmt@AST.AssignStmt{} =
+  list "" (\li -> unwords (map showModifier li) ++ " ") (AST.varModifier stmt) ++
+  showExpr (AST.assign stmt)
 showStatement _ = error "TODO"
 
 {-
