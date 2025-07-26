@@ -4,7 +4,7 @@ module CFG.CFG where
 import Visitors.API
 import qualified Parser.Types as AST
 import qualified CFG.Types as G
-import Data.List (maximumBy, foldl',nub)
+import Data.List (foldl',nub)
 
 data CFGCreator = Node {node :: G.Node} | Nodes {cfg :: G.CFG}
 {-
@@ -90,7 +90,7 @@ visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.CondStmt{} =
          (Nodes $ G.CFG {
            G.nodes = condNode : G.nodes if_cfg ++ G.nodes else_cfg ++ [meetNode],
            G.edges = (currentNodeID,[nextNodeID])
-                      : G.edges if_cfg ++ G.edges else_cfg
+                      : refineEdges (G.edges if_cfg ++ G.edges else_cfg)
                        -- There's an edge between the end of the if branch, and the meet node
                       ++ [(if_currentNodeID,[else_nextNodeID])
                        -- There's an edge between the end of the else branch, and the meet node
@@ -219,23 +219,24 @@ addEdge (from,to) edges = case lookup from edges of
 -----------
 -----------
 
-connectNodes :: [G.Node] -> [(G.NodeID,[G.NodeID])]
-connectNodes (node1 : node2 : rest) = (G.id node1,[G.id node2]) : connectNodes (node2 : rest)
-connectNodes _ = []
-
 {-
-data Node = Entry {id :: NodeID} | End {id :: NodeID} | Node {
-  id :: NodeID,
-  contents :: NodeData
-} deriving Show
+concatenates values of collided keys:
+
+[(0,[1]),(1,[2]),(1,[3]),(2,[4]),(3,[4])]
+  ==>
+[(0,[1]),(1,[2,3]),(2,[4]),(3,[4])]
 -}
-getNextIdNode :: [G.Node] -> Int
-getNextIdNode nodes
-  | flip all nodes $ \case
-      G.Node{} -> True
-      _        -> False =
-      G.id (maximumBy (\node1 node2 -> compare (G.id node1) (G.id node2)) nodes) + 1
-  | otherwise = error "This is only meant to process the constructor named Node"
+refineEdges :: [(G.NodeID,[G.NodeID])] -> [(G.NodeID,[G.NodeID])]
+refineEdges [] = []
+refineEdges (x@(k1,_) : rest) =
+  let search_and_combine = foldl' f1 x rest
+      newRest            = filter (\(k,_) -> k /= k1) rest
+  in search_and_combine : refineEdges newRest
+  where
+  f1 :: (G.NodeID,[G.NodeID]) -> (G.NodeID,[G.NodeID]) -> (G.NodeID,[G.NodeID])
+  f1 y@(key,vals) (k,vs)
+    | k==key    = (key,vals++vs)
+    | otherwise = y
 
 -----------
 -----------

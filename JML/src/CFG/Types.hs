@@ -7,7 +7,7 @@ import Text.Printf(printf)
 type NodeID = Int
 
 data Node = Entry | End {
-    id :: NodeID, 
+    id :: NodeID,
     parent :: NodeID,
     mExpr :: Maybe AST.Expression
   } | Node {
@@ -16,6 +16,7 @@ data Node = Entry | End {
     parent :: NodeID
   } deriving Show
 
+showNode :: Node -> String
 showNode Entry = "Entry"
 showNode (end@End{}) =
   printf "End: %d -> %d:\n        %s"
@@ -45,8 +46,8 @@ data NodeData = Statement AST.Statement
 
 showNodeData :: NodeData -> String
 showNodeData (Statement stmt) = showStatement stmt
-showNodeData (BooleanExpression kind expr) = error "TODO"
-showNodeData (Meet kind) = error "TODO"
+showNodeData (BooleanExpression kind expr) = show kind ++ ": " ++ showExpr expr
+showNodeData (Meet kind) = "Meet: " ++ show kind
 
 ------------------------------
 
@@ -56,7 +57,6 @@ data Kind = If | While | For | TryCatch
 {-
   | ArrayCallExpr {arrName :: Expression, index :: Maybe Expression}
   | ArrayInstantiationExpr {arrType :: Maybe (Type Types), arrSize :: Maybe Expression, arrElems :: [Expression]}
-  | BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
   | UnOpExpr {unOp :: UnOp, expr :: Expression}
   | CondExpr {eiff :: Expression, ethenn :: Expression, eelsee :: Expression}
   | ExcpExpr {excpName :: Exception, excpmsg :: Maybe String}
@@ -76,6 +76,10 @@ showExpr (v@AST.VarExpr{}) =
   in theType ++ objs ++ AST.varName v
 showExpr expr@AST.AssignExpr{} =
   showExpr (AST.assEleft expr) ++ " = " ++ showExpr (AST.assEright expr)
+showExpr expr@AST.BinOpExpr{} = printf "%s %s %s"
+  (showExpr $ AST.expr1 expr) (show $ AST.binOp expr) (showExpr $ AST.expr2 expr)
+showExpr (expr@AST.ExcpExpr{}) = printf "%s(%s)"
+  (show (AST.excpName expr)) (maybe "" Prelude.id (AST.excpmsg expr))
 showExpr _ = error "TODO"
 
 {-
@@ -115,6 +119,7 @@ showStatement :: AST.Statement -> String
 showStatement stmt@AST.AssignStmt{} =
   list "" (\li -> unwords (map showModifier li) ++ " ") (AST.varModifier stmt) ++
   showExpr (AST.assign stmt)
+showStatement (AST.VarStmt expr) = showExpr expr
 showStatement _ = error "TODO"
 
 {-

@@ -77,6 +77,32 @@ public int boo22_2(){
 
 ///////////////////////////////////////////////////
 
+/*
+CFG {
+  nodes = [
+    Entry,
+    Node {
+      id = 1,
+      nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x"}, assEright = BinOpExpr {expr1 = NumberLiteral 3.0, binOp = +, expr2 = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "boo21"}, funArgs = []}}}}),
+      parent = 0
+    },
+    End {id = 2, parent = 0, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "x"})}],
+  edges = [(0,[1]),(1,[2])]
+}
+*/
+/*
+  Entry
+----------
+  0 -> 1:
+        Int x = 3.0 + boo21()
+----------
+  End: 0 -> 2:
+        x
+========================
+  (0,[1])
+  (1,[2])
+
+*/
 public int boo23(){
   int x = 3 + boo21();
   return x;
@@ -85,17 +111,38 @@ public int boo23(){
 ///////////////////////////////////////////////////
 
 /*
-FunDef {
-  funModifier = [Public],
-  isPureFlag = False,
-  funDecl = FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "boo23_2"}, funArgs = []}},
-  throws = Nothing,
-  funBody = CompStmt {statements = [
-    VarStmt {var = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x"}},
-    AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "x"}, assEright = BinOpExpr {expr1 = NumberLiteral 3.0, binOp = +, expr2 = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "boo21"}, funArgs = []}}}},
-    ReturnStmt {returnS = Just (VarExpr {varType = Nothing, varObj = [], varName = "x"})}]
-  }
+CFG {
+  nodes = [
+    Entry,
+    Node {
+      id = 1,
+      nodeData = Statement (VarStmt {var = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x"}}),
+      parent = 0
+    },
+    Node {
+      id = 2,
+      nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "x"}, assEright = BinOpExpr {expr1 = NumberLiteral 3.0, binOp = +, expr2 = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "boo21"}, funArgs = []}}}}),
+      parent = 0
+    },
+    End {id = 3, parent = 0, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "x"})}],
+  edges = [(0,[1]),(1,[2]),(2,[3])]
 }
+*/
+/*
+  Entry
+----------
+  0 -> 1:
+        Int x
+----------
+  0 -> 2:
+        x = 3.0 + boo21()
+----------
+  End: 0 -> 3:
+        x
+========================
+  (0,[1])
+  (1,[2])
+  (2,[3])
 */
 public int boo23_2(){
   int x;
@@ -105,6 +152,28 @@ public int boo23_2(){
 
 ///////////////////////////////////////////////////
 
+/*
+CFG {
+  nodes = [
+    Entry,
+    Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x"}, assEright = BinOpExpr {expr1 = NumberLiteral 3.0, binOp = +, expr2 = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "boo25"}, funArgs = [NumberLiteral 5.0]}}}}), parent = 0},
+    End {id = 2, parent = 0, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "x"})}
+  ],
+  edges = [(0,[1]),(1,[2])]
+}
+*/
+/*
+  Entry
+----------
+  0 -> 1:
+        Int x = 3.0 + boo25(5.0)
+----------
+  End: 0 -> 2:
+        x
+========================
+  (0,[1])
+  (1,[2])
+*/
 public int boo24(){
   int x = 3 + boo25(5);
   return x;
@@ -112,6 +181,38 @@ public int boo24(){
 
 ///////////////////////////////////////////////////
 
+/*
+CFG {
+  nodes = [
+    Entry,
+    Node {id = 1, nodeData = BooleanExpression If (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >, expr2 = NumberLiteral 10.0}), parent = 0},
+    End {id = 2, parent = 1, mExpr = Just (ExcpExpr {excpName = Exception, excpmsg = Just "meow"})},
+    End {id = 3, parent = 1, mExpr = Just (NumberLiteral 6.0)},
+    Node {id = 4, nodeData = Meet If, parent = 0}
+  ],
+  edges = [(0,[1]),(1,[2,3]),(2,[4]),(3,[4])]
+}
+*/
+/*
+  Entry
+----------
+  0 -> 1:
+        If: i > 10.0
+----------
+  End: 1 -> 2:
+        Exception(meow)
+----------
+  End: 1 -> 3:
+        6.0
+----------
+  0 -> 4:
+        Meet: If
+========================
+  (0,[1])
+  (1,[2,3])
+  (2,[4])
+  (3,[4])
+*/
 public int boo25(int i){
   if(i>10){
     throw new Exception("meow");
@@ -129,6 +230,43 @@ public int boo26_2(){
 
 ///////////////////////////////////////////////////
 
+/*
+CFG {
+  nodes = [
+    Entry,
+    Node {id = 1, nodeData = BooleanExpression If (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >=, expr2 = NumberLiteral 0.0}), parent = 0},
+    End {id = 2, parent = 1, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})},
+    Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = NumberLiteral (-1.0), binOp = *, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}}), parent = 1},
+    End {id = 4, parent = 1, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "res"})},
+    Node {id = 5, nodeData = Meet If, parent = 0}
+  ],
+  edges = [(0,[1]),(1,[2,3]),(3,[4]),(2,[5]),(4,[5])]
+}
+*/
+/*
+  Entry
+----------
+  0 -> 1:
+        If: i >= 0.0
+----------
+  End: 1 -> 2:
+        i
+----------
+  1 -> 3:
+        Int res = -1.0 * i
+----------
+  End: 1 -> 4:
+        res
+----------
+  0 -> 5:
+        Meet: If
+========================
+  (0,[1])
+  (1,[2,3])
+  (3,[4])
+  (2,[5])
+  (4,[5])
+*/
 public int boo27(int i){
   if(i >= 0){
     return i;
@@ -142,20 +280,45 @@ public int boo27(int i){
 ///////////////////////////////////////////////////
 
 /*
-FunDef {
-  funModifier = [Public],
-  isPureFlag = False,
-  funDecl = FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "boo28"}, funArgs = []}},
-  throws = Nothing,
-  funBody = CompStmt {statements = [
-    TryCatchStmt {
-      tryBody = CompStmt {statements = [AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x"}, assEright = NumberLiteral 3.0}},CondStmt {condition = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "x"}, binOp = ==, expr2 = NumberLiteral 3.0}, siff = CompStmt {statements = [ReturnStmt {returnS = Just (ExcpExpr {excpName = Exception, excpmsg = Just "something"})}]}, selsee = CompStmt {statements = [ReturnStmt {returnS = Just (NumberLiteral 1.0)}]}}]},
-      catchExcp = AnyType {typee = "Exception", generic = Just (AnyType {typee = "e", generic = Nothing})},
-      catchBody = CompStmt {statements = [ReturnStmt {returnS = Just (FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "boo27"}, funArgs = [NumberLiteral 5.0]})}]},
-      finallyBody = CompStmt {statements = []}
-    }
-  ]}
+CFG {
+  nodes = [Entry,Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x"}, assEright = NumberLiteral 3.0}}), parent = 0},Node {id = 2, nodeData = BooleanExpression If (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "x"}, binOp = ==, expr2 = NumberLiteral 3.0}), parent = 0},End {id = 3, parent = 2, mExpr = Just (ExcpExpr {excpName = Exception, excpmsg = Just "something"})},End {id = 4, parent = 2, mExpr = Just (NumberLiteral 1.0)},Node {id = 5, nodeData = Meet If, parent = 0},End {id = 6, parent = 0, mExpr = Just (FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "boo27"}, funArgs = [NumberLiteral 5.0]})},Node {id = 7, nodeData = Meet TryCatch, parent = 0}
+  ],
+  edges = [(0,[1]),(1,[2]),(2,[3,4]),(3,[5]),(4,[5]),(5,[6]),(5,[7]),(6,[7]),(7,[8])]
 }
+*/
+/*
+  Entry
+----------
+  0 -> 1:
+        Int x = 3.0
+----------
+  0 -> 2:
+        If: x == 3.0
+----------
+  End: 2 -> 3:
+        Exception(something)
+----------
+  End: 2 -> 4:
+        1.0
+----------
+  0 -> 5:
+        Meet: If
+----------
+  End: 0 -> 6:
+        boo27(5.0)
+----------
+  0 -> 7:
+        Meet: TryCatch
+========================
+  (0,[1])
+  (1,[2])
+  (2,[3,4])
+  (3,[5])
+  (4,[5])
+  (5,[6])
+  (5,[7])
+  (6,[7])
+  (7,[8])
 */
 public int boo28(){
   try{
