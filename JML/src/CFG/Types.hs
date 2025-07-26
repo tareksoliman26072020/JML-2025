@@ -6,15 +6,20 @@ import Text.Printf(printf)
 
 type NodeID = Int
 
-data Node = Entry | End {id :: NodeID, mExpr :: Maybe AST.Expression} | Node {
-  id :: NodeID,
-  nodeData :: NodeData,
-  parent :: NodeID
-} deriving Show
+data Node = Entry | End {
+    id :: NodeID, 
+    parent :: NodeID,
+    mExpr :: Maybe AST.Expression
+  } | Node {
+    id :: NodeID,
+    nodeData :: NodeData,
+    parent :: NodeID
+  } deriving Show
 
 showNode Entry = "Entry"
-showNode (end@End{}) = "End " ++ show (CFG.Types.id end)
-  ++ maybe "()" (\e -> ": " ++ showExpr e) (mExpr end)
+showNode (end@End{}) =
+  printf "End: %d -> %d:\n        %s"
+    (parent end) (CFG.Types.id end) (maybe "()" showExpr (mExpr end))
 showNode (node@Node{}) = printf "%d -> %d:\n        %s"
   (parent node) (CFG.Types.id node) (showNodeData (nodeData node))
 

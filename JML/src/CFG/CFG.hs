@@ -204,7 +204,7 @@ visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.TryCatchStmt{} 
 visitStatement0 (sourceNodeID,_,nextNodeID) stmt@AST.ReturnStmt{} =
   (,)
     (sourceNodeID,nextNodeID,nextNodeID+1)
-    $ Node $ G.End nextNodeID (AST.returnS stmt)
+    $ Node $ G.End nextNodeID sourceNodeID (AST.returnS stmt)
 visitStatement0 _ AST.FunCallStmt{} = error "won't happen"
 
 -- receives a pair of nodes (from,to) and adds it to the list of edges
