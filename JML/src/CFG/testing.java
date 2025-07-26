@@ -281,42 +281,52 @@ public int boo27(int i){
 
 /*
 CFG {
-  nodes = [Entry,Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x"}, assEright = NumberLiteral 3.0}}), parent = 0},Node {id = 2, nodeData = BooleanExpression If (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "x"}, binOp = ==, expr2 = NumberLiteral 3.0}), parent = 0},End {id = 3, parent = 2, mExpr = Just (ExcpExpr {excpName = Exception, excpmsg = Just "something"})},End {id = 4, parent = 2, mExpr = Just (NumberLiteral 1.0)},Node {id = 5, nodeData = Meet If, parent = 0},End {id = 6, parent = 0, mExpr = Just (FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "boo27"}, funArgs = [NumberLiteral 5.0]})},Node {id = 7, nodeData = Meet TryCatch, parent = 0}
+  nodes = [
+    Entry,
+    Node {id = 1, nodeData = TryNode, parent = 0},
+    Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x"}, assEright = NumberLiteral 3.0}}), parent = 0},
+    Node {id = 3, nodeData = BooleanExpression If (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "x"}, binOp = ==, expr2 = NumberLiteral 3.0}), parent = 0},
+    End {id = 4, parent = 3, mExpr = Just (ExcpExpr {excpName = Exception, excpmsg = Just "something"})},
+    End {id = 5, parent = 3, mExpr = Just (NumberLiteral 1.0)},
+    Node {id = 6, nodeData = Meet If, parent = 0},
+    Node {id = 7, nodeData = CatchNode (AnyType {typee = "Exception", generic = Just (AnyType {typee = "e", generic = Nothing})}), parent = 0},
+    End {id = 8, parent = 0, mExpr = Just (FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "boo27"}, funArgs = [NumberLiteral 5.0]})}
   ],
-  edges = [(0,[1]),(1,[2]),(2,[3,4]),(3,[5]),(4,[5]),(5,[6]),(5,[7]),(6,[7]),(7,[8])]
-}
+  edges = [(0,[1]),(1,[2]),(2,[3]),(3,[4,5]),(4,[6]),(5,[6]),(6,[7]),(7,[8])]}
 */
 /*
   Entry
 ----------
   0 -> 1:
-        Int x = 3.0
+        Try Node
 ----------
   0 -> 2:
+        Int x = 3.0
+----------
+  0 -> 3:
         If: x == 3.0
 ----------
-  End: 2 -> 3:
+  End: 3 -> 4:
         Exception(something)
 ----------
-  End: 2 -> 4:
+  End: 3 -> 5:
         1.0
 ----------
-  0 -> 5:
+  0 -> 6:
         Meet: If
 ----------
-  End: 0 -> 6:
-        boo27(5.0)
-----------
   0 -> 7:
-        Meet: TryCatch
+        Catch Node: Exception
+----------
+  End: 0 -> 8:
+        boo27(5.0)
 ========================
   (0,[1])
   (1,[2])
-  (2,[3,4])
-  (3,[5])
-  (4,[5])
+  (2,[3])
+  (3,[4,5])
+  (4,[6])
   (5,[6])
-  (5,[7])
   (6,[7])
   (7,[8])
 */
@@ -765,4 +775,32 @@ public int boo35(int a, int b) {
     x=a+b;
   }
   return x;
+}
+
+////////////////////////////
+
+/*
+CFG {
+  nodes = [
+    Entry,
+    Node {id = 1, nodeData = TryNode, parent = 0},
+    Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "myNumbers"}, assEright = ArrayInstantiationExpr {arrType = Nothing, arrSize = Nothing, arrElems = [NumberLiteral 1.0,NumberLiteral 2.0,NumberLiteral 3.0]}}}), parent = 0},
+    Node {id = 3, nodeData = Statement (FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = ["System","out"], varName = "println"}, funArgs = [ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "myNumbers"}, index = Just (NumberLiteral 10.0)}]}}), parent = 0},
+    Node {id = 4, nodeData = CatchNode (AnyType {typee = "Exception", generic = Just (AnyType {typee = "e", generic = Nothing})}), parent = 0},
+    Node {id = 5, nodeData = Statement (FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = ["System","out"], varName = "println"}, funArgs = [StringLiteral "Something went wrong."]}}), parent = 0},
+    Node {id = 6, nodeData = FinallyNode, parent = 0},
+    Node {id = 7, nodeData = Statement (FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = ["System","out"], varName = "println"}, funArgs = [StringLiteral "The 'try catch' is finished."]}}), parent = 0}
+  ],
+  edges = [(0,[1]),(1,[2]),(2,[3]),(3,[4]),(4,[5]),(5,[6]),(6,[7])]
+}
+*/
+public void boo36() {
+  try {
+    int[] myNumbers = {1, 2, 3};
+    System.out.println(myNumbers[10]);
+  } catch (Exception e) {
+    System.out.println("Something went wrong.");
+  } finally {
+    System.out.println("The 'try catch' is finished.");
+  }
 }

@@ -1,14 +1,10 @@
-public int boo28(){
-  try{
-    int x = 3;
-    if(x == 3){
-      throw new Exception("something");
-    }
-    else{
-      return 1;
-    }
-  }
-  catch(Exception e){
-    return boo27(5);
+public void boo36() {
+  try {
+    int[] myNumbers = {1, 2, 3};
+    System.out.println(myNumbers[10]);
+  } catch (Exception e) {
+    System.out.println("Something went wrong.");
+  } finally {
+    System.out.println("The 'try catch' is finished.");
   }
 }

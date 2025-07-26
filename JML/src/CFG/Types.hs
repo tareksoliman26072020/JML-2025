@@ -48,6 +48,9 @@ data NodeData = Statement AST.Statement
 showNodeData :: NodeData -> String
 showNodeData (Statement stmt) = showStatement stmt
 showNodeData (BooleanExpression kind expr) = show kind ++ ": " ++ showExpr expr
+showNodeData TryNode = "Try Node"
+showNodeData (CatchNode t) = "Catch Node: " ++ showTypeException t
+showNodeData FinallyNode = "Finally Node"
 showNodeData (Meet kind) = "Meet: " ++ show kind
 
 ------------------------------
@@ -81,7 +84,18 @@ showExpr expr@AST.BinOpExpr{} = printf "%s %s %s"
   (showExpr $ AST.expr1 expr) (show $ AST.binOp expr) (showExpr $ AST.expr2 expr)
 showExpr (expr@AST.ExcpExpr{}) = printf "%s(%s)"
   (show (AST.excpName expr)) (maybe "" Prelude.id (AST.excpmsg expr))
-showExpr _ = error "TODO"
+showExpr expr@AST.ArrayInstantiationExpr{} =
+  maybe ""
+    (\t ->
+      maybe (showType t)
+            (\e -> ((\s -> take (length s -2) s) (showType t)
+                    ++ "[" ++ (show $ (read (showExpr e) :: Int)) ++ "]"
+                   )
+            )
+            (AST.arrSize expr)
+    )
+    (AST.arrType expr)
+showExpr expr = error $ "TODO: " ++ show expr
 
 {-
 data Type a
@@ -102,7 +116,13 @@ showType (AST.BuiltInType t) = case t of
   AST.Float   -> "Float"
   AST.Long    -> "Long"
   AST.Byte    -> "Byte"
+showType (AST.ArrayType bt) = showType bt ++ "[]"
 showType _ = error "TODO"
+
+-- AnyType {typee :: String, generic :: Maybe (Type a)}
+showTypeException :: AST.Type AST.Exception -> String
+showTypeException t@AST.AnyType{} = AST.typee t
+showTypeException _ = error "won't happen"
 
 {-
   = CompStmt {statements :: [Statement]}

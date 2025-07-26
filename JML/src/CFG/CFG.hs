@@ -208,13 +208,41 @@ visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.TryCatchStmt{} 
                              Nodes cfg -> G.nodes cfg
                              Node _    -> error "won't happen"
                       _               -> error "won't happen"
-      -- all edges
-      allEdges = undefined
+      -- all edges :: [(NodeID,[NodeID])]
+      allEdges =
+        -- before try start node ==> try start node
+        [(currentNodeID, [G.id try_start])] ++ 
+        -- try start node ==> try path
+  --    [(G.id try_start, [G.id try_start + 1])] ++
+        -- try edges
+        (case try_cfg_creator0 of
+           Nodes cfg -> G.edges cfg
+           Node  _   -> error "won't happen") ++
+        -- end of try path ==> catch start node
+        [(tryCurrentID, [G.id catch_start])] ++
+        -- catch start node ==> catch path
+  --    [(G.id catch_start, [G.id catch_start + 1])] ++
+        -- catch edges
+        (case catch_cfg_creator0 of
+           Nodes cfg -> G.edges cfg
+           Node  _   -> error "won't happen") ++
+        case AST.finallyBody stmt of
+          AST.CompStmt [] -> []
+          AST.CompStmt{}  ->
+            -- end of catch path ==> finally start node (if there's finally)
+            [(catchCurrentID,[G.id finally_start])] ++
+            -- finally start node ==> finally path
+  --        [(G.id finally_start, [G.id finally_start + 1])] ++
+            -- finally edges
+            case finally_cfg_creator0 of
+              Nodes cfg -> G.edges cfg
+              Node  _   -> error "won't happen"
+          _               -> error "won't happen"
   in (,)
        (sourceNodeID, finallyCurrentID, finallyNextID)
        (Nodes $ G.CFG {
           G.nodes = allNodes,
-          G.edges = allEdges -- :: [(NodeID,[NodeID])]
+          G.edges = allEdges
        })
 {-
 visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.TryCatchStmt{} =
@@ -261,7 +289,14 @@ visitStatement0 (sourceNodeID,_,nextNodeID) stmt@AST.ReturnStmt{} =
   (,)
     (sourceNodeID,nextNodeID,nextNodeID+1)
     $ Node $ G.End nextNodeID sourceNodeID (AST.returnS stmt)
-visitStatement0 _ AST.FunCallStmt{} = error "won't happen"
+visitStatement0 (sourceNodeID,_,nextNodeID) stmt@AST.FunCallStmt{} =
+  (,)
+    (sourceNodeID,nextNodeID,nextNodeID+1)
+    (Node $ G.Node {
+       G.id       = nextNodeID,
+       G.nodeData = G.Statement stmt,
+       G.parent   = sourceNodeID
+    })
 
 -- receives a pair of nodes (from,to) and adds it to the list of edges
 addEdge :: (G.NodeID,G.NodeID) -> [(G.NodeID,[G.NodeID])] -> [(G.NodeID,[G.NodeID])]

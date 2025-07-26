@@ -549,3 +549,32 @@ public int boo35(int a, int b) {
   }
   return x;
 }
+
+///////////////////////////////
+
+/*
+FunDef {
+  funModifier = [Public],
+  isPureFlag = False,
+  funDecl = FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Just (BuiltInType Void), varObj = [], varName = "boo36"}, funArgs = []}},
+  throws = Nothing,
+  funBody = CompStmt {statements = [
+    TryCatchStmt {
+      tryBody = CompStmt {statements = [AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "myNumbers"}, assEright = ArrayInstantiationExpr {arrType = Nothing, arrSize = Nothing, arrElems = [NumberLiteral 1.0,NumberLiteral 2.0,NumberLiteral 3.0]}}},FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = ["System","out"], varName = "println"}, funArgs = [ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "myNumbers"}, index = Just (NumberLiteral 10.0)}]}}]},
+      catchExcp = AnyType {typee = "Exception", generic = Just (AnyType {typee = "e", generic = Nothing})},
+      catchBody = CompStmt {statements = [FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = ["System","out"], varName = "println"}, funArgs = [StringLiteral "Something went wrong."]}}]},
+      finallyBody = CompStmt {statements = [FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = ["System","out"], varName = "println"}, funArgs = [StringLiteral "The 'try catch' is finished."]}}]}
+    }
+  ]}
+}
+*/
+public void boo36() {
+  try {
+    int[] myNumbers = {1, 2, 3};
+    System.out.println(myNumbers[10]);
+  } catch (Exception e) {
+    System.out.println("Something went wrong.");
+  } finally {
+    System.out.println("The 'try catch' is finished.");
+  }
+}
