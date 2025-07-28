@@ -556,53 +556,61 @@ public static int sqrt2(int y) throws Exception{
 ////////////////////////////////////////////////////
 
 /*
-FunDef {
-  funModifier = [Public],
-  isPureFlag = False,
-  funDecl = FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "processArray1"}, funArgs = [VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "arr"}]}},
-  throws = Nothing,
-  funBody = CompStmt {statements = [
-    AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "sum"}, assEright = NumberLiteral 0.0}},
-    ForStmt {
-      acc = AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}},
-      cond = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}},
-      step = AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}},
-      forBody = CompStmt {statements = [
-        CondStmt {
-          condition = BinOpExpr {expr1 = BinOpExpr {expr1 = ArrayExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, binOp = %, expr2 = NumberLiteral 2.0}, binOp = ==, expr2 = NumberLiteral 0.0},
-          siff = CompStmt {statements = [
-            AssignStmt {
-              varModifier = [],
-              assign = AssignExpr {
-                assEleft = VarExpr {varType = Nothing, varObj = [], varName = "sum"},
-                assEright = BinOpExpr {
-                  expr1 = VarExpr {varType = Nothing, varObj = [], varName = "sum"},
-                  binOp = +,
-                  expr2 = ArrayExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})
-                  }
-                }
-              }
-            }]
-          },
-          selsee = CompStmt {statements = [
-            AssignStmt {
-              varModifier = [],
-              assign = AssignExpr {
-                assEleft = VarExpr {varType = Nothing, varObj = [], varName = "sum"},
-                assEright = BinOpExpr {
-                  expr1 = VarExpr {varType = Nothing, varObj = [], varName = "sum"},
-                  binOp = -,
-                  expr2 = ArrayExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})
-                  }
-                }
-              }
-            }]
-          }}
-      ]}
-    },
-    ReturnStmt {returnS = Just (VarExpr {varType = Nothing, varObj = [], varName = "sum"})}]
-  }
+CFG {
+  nodes = [
+    Entry,
+    Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "sum"}, assEright = NumberLiteral 0.0}}), parent = 0},
+    Node {id = 2, nodeData = BooleanExpression For (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}}), parent = 0},
+    Node {id = 3, nodeData = BooleanExpression If (BinOpExpr {expr1 = BinOpExpr {expr1 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, binOp = %, expr2 = NumberLiteral 2.0}, binOp = ==, expr2 = NumberLiteral 0.0}), parent = 2},
+    Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "sum"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "sum"}, binOp = +, expr2 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}}}}), parent = 3},
+    Node {id = 5, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "sum"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "sum"}, binOp = -, expr2 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}}}}), parent = 3},
+    Node {id = 6, nodeData = Meet If, parent = 2},
+    Node {id = 7, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}}), parent = 6},
+    Node {id = 8, nodeData = Meet For, parent = 0},
+    End {id = 9, parent = 0, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "sum"})}
+  ],
+  edges = [(0,[1]),(2,[3]),(3,[4,5]),(4,[6]),(5,[6]),(6,[7]),(7,[2]),(2,[8]),(8,[9])]
 }
+*/
+/*
+  Entry
+----------
+  0 -> 1:
+        Int sum = 0.0
+----------
+  0 -> 2:
+        For: i < arr.length
+----------
+  2 -> 3:
+        If: arr[i] % 2.0 == 0.0
+----------
+  3 -> 4:
+        sum = sum + arr[i]
+----------
+  3 -> 5:
+        sum = sum - arr[i]
+----------
+  2 -> 6:
+        Meet: If
+----------
+  6 -> 7:
+        i = i + 1.0
+----------
+  0 -> 8:
+        Meet: For
+----------
+  End: 0 -> 9:
+        sum
+========================
+  (0,[1])
+  (2,[3])
+  (3,[4,5])
+  (4,[6])
+  (5,[6])
+  (6,[7])
+  (7,[2])
+  (2,[8])
+  (8,[9])
 */
 public int processArray1(int[] arr) {
   int sum = 0;
@@ -692,23 +700,21 @@ public boolean isEmpty(int[] arr) {
 }
 
 /*
-FunDef {
-  funModifier = [Public],
-  isPureFlag = False,
-  funDecl = FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Just (BuiltInType Boolean), varObj = [], varName = "callIsEmpty"}, funArgs = []}},
-  throws = Nothing,
-  funBody = CompStmt {statements = [
-    ReturnStmt {
-      returnS = Just (
-        FunCallExpr {
-          funName = VarExpr {varType = Nothing, varObj = [], varName = "isEmpty"},
-          funArgs = [
-            ArrayInstantiationExpr {arrType = Just (ArrayType {baseType = BuiltInType Int}), arrSize = Nothing, arrElems = []}
-          ]
-        })
-    }
-  ]}
+CFG {
+  nodes = [
+    Entry,
+    End {id = 1, parent = 0, mExpr = Just (FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "isEmpty"}, funArgs = [ArrayInstantiationExpr {arrType = Just (ArrayType {baseType = BuiltInType Int}), arrSize = Nothing, arrElems = []}]})}
+  ],
+  edges = [(0,[1])]
 }
+*/
+/*
+  Entry
+----------
+  End: 0 -> 1:
+        isEmpty(new Int[]{})
+========================
+  (0,[1])
 */
 public boolean callIsEmpty() {
   return isEmpty(new int[]{});
