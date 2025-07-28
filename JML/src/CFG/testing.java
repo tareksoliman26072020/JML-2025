@@ -480,28 +480,37 @@ public double boo33_3(){
 ///////////////////////////////////////////////////
 
 /*
-FunDef {
-    funModifier = [Public],
-    isPureFlag = False,
-    funDecl = FunCallStmt {
-        funCall = FunCallExpr {
-            funName = VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "elemAt"},
-            funArgs = [
-                VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "arr"},
-                VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "pos"}
-            ]
-        }
-    },
-    throws = Nothing,
-    funBody = CompStmt {statements = [
-        CondStmt {
-            condition = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}, binOp = <=, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "pos"}},
-            siff = CompStmt {statements = [ReturnStmt {returnS = Just (ExcpExpr {excpName = Exception, excpmsg = Just "not found"})}]},
-            selsee = CompStmt {statements = []}},
-        ReturnStmt {returnS = Just (ArrayExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "pos"})})
-        }
-    ]}
+CFG {
+  nodes = [
+    Entry,
+    Node {id = 1, nodeData = BooleanExpression If (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}, binOp = <=, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "pos"}}), parent = 0},
+    End {id = 2, parent = 1, mExpr = Just (ExcpExpr {excpName = Exception, excpmsg = Just "not found"})},
+    Node {id = 3, nodeData = Meet If, parent = 0},
+    End {id = 4, parent = 0, mExpr = Just (ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "pos"})})}
+  ],
+  edges = [(0,[1]),(1,[2]),(2,[3]),(1,[3]),(3,[4])]
 }
+*/
+/*
+  Entry
+----------
+  0 -> 1:
+        If: arr.length <= pos
+----------
+  End: 1 -> 2:
+        Exception(not found)
+----------
+  0 -> 3:
+        Meet: If
+----------
+  End: 0 -> 4:
+        arr[pos]
+========================
+  (0,[1])
+  (1,[2])
+  (2,[3])
+  (1,[3])
+  (3,[4])
 */
 public int[] elemAt(int[] arr, int pos){
   if(arr.length<=pos) {
@@ -662,16 +671,21 @@ public static int rest(int a, int b) {
 ////////////////////
 
 /*
-FunDef {
-  funModifier = [Public],
-  isPureFlag = False,
-  funDecl = FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Just (BuiltInType Boolean), varObj = [], varName = "isEmpty"}, funArgs = [VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "arr"}]}},
-  throws = Nothing,
-  funBody = CompStmt {statements = [
-    ReturnStmt {returnS = Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}, binOp = ==, expr2 = NumberLiteral 0.0})}
-  ]
-  }
+CFG {
+  nodes = [
+    Entry,
+    End {id = 1, parent = 0, mExpr = Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}, binOp = ==, expr2 = NumberLiteral 0.0})}
+  ],
+  edges = [(0,[1])]
 }
+*/
+/*
+  Entry
+----------
+  End: 0 -> 1:
+        arr.length == 0.0
+========================
+  (0,[1])
 */
 public boolean isEmpty(int[] arr) {
   return arr.length == 0;
@@ -793,6 +807,38 @@ CFG {
   ],
   edges = [(0,[1]),(1,[2]),(2,[3]),(3,[4]),(4,[5]),(5,[6]),(6,[7])]
 }
+*/
+/*
+  Entry
+----------
+  0 -> 1:
+        Try Node
+----------
+  0 -> 2:
+        Int[] myNumbers = {1.0, 2.0, 3.0}
+----------
+  0 -> 3:
+        System.out.println(myNumbers[10.0])
+----------
+  0 -> 4:
+        Catch Node: Exception
+----------
+  0 -> 5:
+        System.out.println(Something went wrong.)
+----------
+  0 -> 6:
+        Finally Node
+----------
+  0 -> 7:
+        System.out.println(The 'try catch' is finished.)
+========================
+  (0,[1])
+  (1,[2])
+  (2,[3])
+  (3,[4])
+  (4,[5])
+  (5,[6])
+  (6,[7])
 */
 public void boo36() {
   try {

@@ -60,7 +60,6 @@ data Kind = If | While | For
 
 {-
   | ArrayCallExpr {arrName :: Expression, index :: Maybe Expression}
-  | ArrayInstantiationExpr {arrType :: Maybe (Type Types), arrSize :: Maybe Expression, arrElems :: [Expression]}
   | UnOpExpr {unOp :: UnOp, expr :: Expression}
   | CondExpr {eiff :: Expression, ethenn :: Expression, eelsee :: Expression}
   | ExcpExpr {excpName :: Exception, excpmsg :: Maybe String}
@@ -84,17 +83,28 @@ showExpr expr@AST.BinOpExpr{} = printf "%s %s %s"
   (showExpr $ AST.expr1 expr) (show $ AST.binOp expr) (showExpr $ AST.expr2 expr)
 showExpr (expr@AST.ExcpExpr{}) = printf "%s(%s)"
   (show (AST.excpName expr)) (maybe "" Prelude.id (AST.excpmsg expr))
-showExpr expr@AST.ArrayInstantiationExpr{} =
-  maybe ""
-    (\t ->
-      maybe (showType t)
-            (\e -> ((\s -> take (length s -2) s) (showType t)
-                    ++ "[" ++ (show $ (read (showExpr e) :: Int)) ++ "]"
-                   )
-            )
-            (AST.arrSize expr)
-    )
-    (AST.arrType expr)
+showExpr expr@AST.ArrayInstantiationExpr{} = newInstance ++ size ++ value where
+
+  newInstance :: String
+  newInstance = case AST.arrType expr of
+    Nothing           -> ""
+    Just (AST.ArrayType t) -> printf "new %s" (showType t)
+    Just _ -> error "won't happen"
+
+  size :: String
+  size = case (AST.arrType expr, AST.arrSize expr) of
+    (Just _, Nothing)  -> "[]"
+    (Just _, Just e)   -> printf "[%s]" (showExpr e)
+    (Nothing, Nothing) -> ""
+    (Nothing, Just _)  -> error "won't happen"
+  
+  value :: String
+  value = case (AST.arrType expr, AST.arrSize expr) of
+    (Nothing,_)      -> printf "{%s}" $ intercalate ", " (map showExpr $ AST.arrElems expr)
+    (Just _,Just _)  -> ""
+    (Just _,Nothing) -> "{}"
+showExpr expr@AST.ArrayCallExpr{} =
+  showExpr (AST.arrName expr) ++ "[" ++ maybe "" showExpr (AST.index expr) ++ "]"
 showExpr expr = error $ "TODO: " ++ show expr
 
 {-
@@ -116,7 +126,8 @@ showType (AST.BuiltInType t) = case t of
   AST.Float   -> "Float"
   AST.Long    -> "Long"
   AST.Byte    -> "Byte"
-showType (AST.ArrayType bt) = showType bt ++ "[]"
+-- This will be called by `showExpr VarExpr`:
+showType (t@AST.ArrayType{}) = showType (AST.baseType t) ++ "[]"
 showType _ = error "TODO"
 
 -- AnyType {typee :: String, generic :: Maybe (Type a)}
@@ -130,7 +141,6 @@ showTypeException _ = error "won't happen"
   | CondStmt {condition :: Expression, siff :: Statement, selsee :: Statement}
   | ForStmt {acc :: Statement, cond :: Expression, step :: Statement, forBody :: Statement}
   | WhileStmt {condition :: Expression, whileBody :: Statement}
-  | FunCallStmt {funCall :: Expression}
   | TryCatchStmt {tryBody :: Statement,
                   catchExcp :: Type Exception, catchBody :: Statement,
                   finallyBody :: Statement}
@@ -141,6 +151,7 @@ showStatement stmt@AST.AssignStmt{} =
   list "" (\li -> unwords (map showModifier li) ++ " ") (AST.varModifier stmt) ++
   showExpr (AST.assign stmt)
 showStatement (AST.VarStmt expr) = showExpr expr
+showStatement stmt@AST.FunCallStmt{} = showExpr (AST.funCall stmt)
 showStatement _ = error "TODO"
 
 {-
