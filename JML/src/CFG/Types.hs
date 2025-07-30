@@ -20,7 +20,7 @@ showNode :: Node -> String
 showNode Entry = "Entry"
 showNode (end@End{}) =
   printf "End: %d -> %d:\n        %s"
-    (parent end) (CFG.Types.id end) (maybe "()" showExpr (mExpr end))
+    (parent end) (CFG.Types.id end) (maybe "()" (\e -> "return: " ++ showExpr e) (mExpr end))
 showNode (node@Node{}) = printf "%d -> %d:\n        %s"
   (parent node) (CFG.Types.id node) (showNodeData (nodeData node))
 
@@ -40,18 +40,23 @@ showCFG (cfg@CFG{}) = "  " ++
 ------------------------------
 
 data NodeData = Statement AST.Statement
-              | BooleanExpression Kind AST.Expression 
+              | ForInitialization AST.Expression
+              | BooleanExpression Kind AST.Expression
+              | ForStep AST.Statement 
               | TryNode | CatchNode (AST.Type AST.Exception) | FinallyNode
               | Meet Kind
               deriving Show
 
 showNodeData :: NodeData -> String
 showNodeData (Statement stmt) = showStatement stmt
-showNodeData (BooleanExpression kind expr) = show kind ++ ": " ++ showExpr expr
+showNodeData (ForInitialization expr) = "For: init: " ++ showExpr expr
+showNodeData (BooleanExpression kind expr) = show kind ++ ": " ++ "cond: " ++ showExpr expr
+showNodeData (ForStep stmt) = "For: step: " ++ showStatement stmt
 showNodeData TryNode = "Try Node"
 showNodeData (CatchNode t) = "Catch Node: " ++ showTypeException t
 showNodeData FinallyNode = "Finally Node"
 showNodeData (Meet kind) = "Meet: " ++ show kind
+
 
 ------------------------------
 
@@ -105,6 +110,8 @@ showExpr expr@AST.ArrayInstantiationExpr{} = newInstance ++ size ++ value where
     (Just _,Nothing) -> "{}"
 showExpr expr@AST.ArrayCallExpr{} =
   showExpr (AST.arrName expr) ++ "[" ++ maybe "" showExpr (AST.index expr) ++ "]"
+showExpr expr@AST.CondExpr{} = printf "%s ? %s : %s"
+  (showExpr $ AST.eiff expr) (showExpr $ AST.ethenn expr) (showExpr $ AST.eelsee expr)
 showExpr expr = error $ "TODO: " ++ show expr
 
 {-

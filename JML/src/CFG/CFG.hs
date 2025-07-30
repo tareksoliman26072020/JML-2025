@@ -75,7 +75,7 @@ visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.CondStmt{} =
       }
       ---------------- ifBranch
       ((_,if_currentNodeID,if_nextNodeID),if_cfg_creator) =
-        visitStatement0 (nextNodeID,nextNodeID,nextNodeID+1) (AST.siff stmt)
+        visitStatement0 (sourceNodeID,nextNodeID,nextNodeID+1) (AST.siff stmt)
       ---------------- elseBranch
       ((_,else_currentNodeID,else_nextNodeID),else_cfg_creator) =
         visitStatement0 (nextNodeID,nextNodeID,if_nextNodeID) (AST.selsee stmt)
@@ -97,21 +97,29 @@ visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.CondStmt{} =
                          ,(else_currentNodeID,[else_nextNodeID])]
          })
        _ -> error "won't happen"
-visitStatement0 (sourceNodeID,_,nextNodeID) stmt@AST.ForStmt{} =
-  let ---------------- condNode
+visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.ForStmt{} =
+  let ---------------- initializationNode
+      initializationNode = G.Node {
+        G.id       = nextNodeID,
+        G.nodeData = G.ForInitialization $ case AST.acc stmt of
+                       a@AST.AssignStmt{} -> AST.assign a
+                       _                  -> error "won't happen",
+        G.parent   = sourceNodeID
+      }
+      ---------------- condNode
       condNode = G.Node {
-        G.id       = nextNodeID,-- :: NodeID,
-        G.nodeData = G.BooleanExpression G.For $ AST.cond stmt,-- :: NodeData,
-        G.parent   = sourceNodeID-- :: NodeID
+        G.id       = G.id initializationNode + 1,
+        G.nodeData = G.BooleanExpression G.For $ AST.cond stmt,
+        G.parent   = sourceNodeID
       }
       ---------------- trueBranch
       ((_,trueCurrentID,trueNextID),true_cfg_creator0) =
-        visitStatement0 (G.id condNode,G.id condNode,G.id condNode+1) (AST.forBody stmt)
+        visitStatement0 (sourceNodeID,G.id condNode,G.id condNode+1) (AST.forBody stmt)
       ---------------- step node
       stepNode = G.Node {
         G.id       = trueNextID,
-        G.nodeData = G.Statement $ AST.step stmt,
-        G.parent   = trueCurrentID
+        G.nodeData = G.ForStep $ AST.step stmt,
+        G.parent   = sourceNodeID
       }
       ---------------- add step node to true branch
       ---------------- add edge from step node to cond node
@@ -120,30 +128,33 @@ visitStatement0 (sourceNodeID,_,nextNodeID) stmt@AST.ForStmt{} =
           G.nodes = G.nodes true_cfg ++ [stepNode],
           G.edges = (G.edges true_cfg) ++
                     [(trueCurrentID,[G.id stepNode])] ++ -- from for body to step node
-                    [(G.id stepNode,[G.id condNode])]       -- from step node to cond node
+                    [(G.id stepNode,[G.id condNode])]    -- from step node to cond node
         }
-        _                      -> error "won't happen"
+        _              -> error "won't happen"
       ---------------- meet branch
       meetNode = G.Node {
-        G.id       = trueNextID+1,-- :: NodeID,
-        G.nodeData = G.Meet G.For,-- :: NodeData,
-        G.parent   = sourceNodeID-- :: NodeID
+        G.id       = G.id stepNode + 1,
+        G.nodeData = G.Meet G.For,
+        G.parent   = sourceNodeID
       }
   in (,)
        (sourceNodeID,G.id meetNode,G.id meetNode+1)
        (Nodes $ G.CFG { -- add cond node, meet node
-          G.nodes = condNode : G.nodes true_cfg_creator ++ [meetNode],
-          G.edges = G.edges true_cfg_creator
-                    ++ [(G.id condNode,[G.id meetNode])] -- from cond node to meet node
+          G.nodes = initializationNode : condNode
+                    : G.nodes true_cfg_creator ++ [meetNode],
+          G.edges = [(currentNodeID,[nextNodeID])]
+                    ++ [(G.id initializationNode,[G.id condNode])] -- init node ==> cond node
+                    ++ G.edges true_cfg_creator
+                    ++ [(G.id condNode,[G.id meetNode])]        -- cond node ==> meet node
        })
-visitStatement0 (sourceNodeID,_,nextNodeID) stmt@AST.WhileStmt{} =
+visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.WhileStmt{} =
   let condNode = G.Node {
         G.id       = nextNodeID,
         G.nodeData = G.BooleanExpression G.While (AST.condition stmt),
         G.parent   = sourceNodeID
       }
       ((_,trueCurrentID,trueNextID),true_cfg_creator0) =
-        visitStatement0 (G.id condNode,G.id condNode,G.id condNode+1) (AST.whileBody stmt)
+        visitStatement0 (sourceNodeID,G.id condNode,G.id condNode+1) (AST.whileBody stmt)
       true_cfg_creator = case true_cfg_creator0 of
         Nodes cfg -> G.CFG {
           G.nodes = G.nodes cfg,
@@ -159,7 +170,8 @@ visitStatement0 (sourceNodeID,_,nextNodeID) stmt@AST.WhileStmt{} =
        (sourceNodeID,G.id meetNode,G.id meetNode+1)
        (Nodes $ G.CFG {
           G.nodes = condNode : G.nodes true_cfg_creator ++ [meetNode],
-          G.edges = (G.id condNode,[G.id condNode+1]) : G.edges true_cfg_creator
+          G.edges = [(currentNodeID,[nextNodeID])]
+                    ++ G.edges true_cfg_creator
                     ++ [(G.id condNode,[G.id meetNode])]
        })
 visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.TryCatchStmt{} =
@@ -244,47 +256,6 @@ visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.TryCatchStmt{} 
           G.nodes = allNodes,
           G.edges = allEdges
        })
-{-
-visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.TryCatchStmt{} =
-  let -- try
-      ((_,tryCurrentID,tryNextID),try_cfg_creator0) =
-        visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) (AST.tryBody stmt)
-      -- catch
-      ((catchSourceID,catchCurrentID,catchNextID),catch_cfg_creator0) =
-        visitStatement0 (sourceNodeID,tryCurrentID,tryNextID) (AST.catchBody stmt)
-      -- meet node: both try and catch meet in this node:
-      meetNode = G.Node {
-        G.id       = catchNextID,
-        G.nodeData = G.Meet G.TryCatchFinally,
-        G.parent   = catchSourceID
-      }
-      -- finally
-      ((_,finallyCurrentID,finallyNextID),finally_cfg_creator0) =
-        visitStatement0 (sourceNodeID,G.id meetNode,G.id meetNode+1) (AST.finallyBody stmt)
-      -- CFGs
-      getCfg = \case
-        Nodes cfg -> G.CFG {
-          G.nodes = G.nodes cfg,
-          G.edges = G.edges cfg
-        }
-        _         -> error "won't happen"
-      ----------
-      allNodes = flip concatMap
-        [try_cfg_creator0, catch_cfg_creator0, Node meetNode, finally_cfg_creator0]
-        $ \case Node node -> [node]
-                cfg0      -> G.nodes $ getCfg cfg0
-      allEdges = (concatMap (G.edges . getCfg)
-        [try_cfg_creator0, catch_cfg_creator0, finally_cfg_creator0])
-        ++ [(tryCurrentID  ,[G.id meetNode])]
-        ++ [(catchCurrentID,[G.id meetNode])]
-        ++ [(G.id meetNode ,[G.id meetNode+1])]
-  in (,)
-       (sourceNodeID,finallyCurrentID,finallyNextID)
-       (Nodes $ G.CFG {
-          G.nodes = allNodes,
-          G.edges = allEdges
-       })
--}
 visitStatement0 (sourceNodeID,_,nextNodeID) stmt@AST.ReturnStmt{} =
   (,)
     (sourceNodeID,nextNodeID,nextNodeID+1)

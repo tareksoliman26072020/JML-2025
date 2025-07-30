@@ -1,11 +1,9 @@
-public int processArray1(int[] arr) {
-  int sum = 0;
-  for (int i = 0; i < arr.length; i++) {
-    if (arr[i] % 2 == 0) {
-      sum += arr[i];
-    } else {
-      sum -= arr[i];
-    }
+public int boo35(int a, int b) {
+  int x=a+b;
+  int y=a*b;
+  while (y>a+b) {
+    a=a+1;
+    x=a+b;
   }
-  return sum;
+  return x;
 }
