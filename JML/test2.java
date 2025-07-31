@@ -1,9 +1,6 @@
-public int boo35(int a, int b) {
-  int x=a+b;
-  int y=a*b;
-  while (y>a+b) {
-    a=a+1;
-    x=a+b;
+public int[] elemAt(int[] arr, int pos){
+  if(arr.length<=pos) {
+    throw new Exception("not found");
   }
-  return x;
+  return arr[pos];
 }

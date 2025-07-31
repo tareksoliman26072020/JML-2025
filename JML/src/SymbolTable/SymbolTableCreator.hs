@@ -175,7 +175,14 @@ from_AST_to_type = \case
 scopeSize :: [AST.Statement] -> Int
 scopeSize = foldl' f 0
   where
-  f acc_ CondStmt{} = acc_+2
-  f acc_ _          = acc_+1
+  f acc_ CondStmt{}     = acc_+2
+  f acc_ TryCatchStmt{} = acc_+3
+  f acc_ _              = acc_+1
  
 --------------------
+
+exec :: AST.Method -> ST.Entry
+exec = symbolTable . visitMethod
+
+--------------------
+

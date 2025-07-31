@@ -46,7 +46,7 @@ void example(int x) {
     T│          │F
      ▼          ▼
    N4: d3       N5: d4
-   a = b + x    
+   a = b + x    b = a - x
      │          │
      └───┬──────┘
          ▼

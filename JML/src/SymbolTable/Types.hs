@@ -15,7 +15,18 @@ data Type
   | Float
   | Long
   | Byte
-  deriving Show
+instance Show Type where
+  show (Array t) = show t ++ "[]"
+  show Int = "Int"
+  show Void = "Void"
+  show Char = "Char"
+  show String = "String"
+  show Boolean = "Boolean"
+  show Double = "Double"
+  show Short = "Short"
+  show Float = "Float"
+  show Long = "Long"
+  show Byte = "Byte"
 
 data Kind = For Expression | While Expression | Try | Catch | Finally | If Expression | Else
 
@@ -43,10 +54,11 @@ data Entry = Scope {
   name    :: String,
   varType :: Maybe Type,
   val     :: Maybe Expression
-}
+} deriving Show
 
-instance Show Entry where
-  show entry = pp 0 entry
+
+showEntry :: Entry -> String
+showEntry = pp 0
 
 pp :: Int -> Entry -> String
 pp indent a@Scope{} =
