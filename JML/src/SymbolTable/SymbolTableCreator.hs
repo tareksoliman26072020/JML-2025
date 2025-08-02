@@ -85,7 +85,7 @@ visitStatements :: [(Pos,AST.Statement)] -> [(ST.Pos,ST.Kind,ST.Entry)]
 --CondStmt {condition :: Expression, siff :: Statement, selsee :: Statement}
 visitStatements ((pos, a@CondStmt{}) : rest) =
   (pos, ST.If (condition a), symbolTable $ visitStatement (siff a))
-  : (pos+1, ST.Else, symbolTable $ visitStatement (selsee a))
+  : (pos, ST.Else, symbolTable $ visitStatement (selsee a))
   : visitStatements (map (\(p,s) -> (p+2,s)) rest)
 --WhileStmt {condition :: Expression, whileBody :: Statement}
 visitStatements ((pos, a@WhileStmt{}) : rest) =
@@ -101,8 +101,8 @@ visitStatements ((pos, a@ForStmt{}) : rest) =
   ) : visitStatements rest
 visitStatements ((pos, a@TryCatchStmt{}) : rest) =
   (pos, ST.Try, symbolTable $ visitStatement (tryBody a))
-  : (pos+1, ST.Catch, symbolTable $ visitStatement (catchBody a))
-  : (pos+2, ST.Finally, symbolTable $ visitStatement (finallyBody a))
+  : (pos, ST.Catch (catchExcp a), symbolTable $ visitStatement (catchBody a))
+  : (pos, ST.Finally, symbolTable $ visitStatement (finallyBody a))
   : visitStatements (map (\(p,s) -> (p+3,s)) rest)
 visitStatements [] = []
 visitStatements (_ : rest) = visitStatements rest
@@ -175,8 +175,7 @@ from_AST_to_type = \case
 scopeSize :: [AST.Statement] -> Int
 scopeSize = foldl' f 0
   where
-  f acc_ CondStmt{}     = acc_+2
-  f acc_ TryCatchStmt{} = acc_+3
+  f acc_ TryCatchStmt{} = acc_+2
   f acc_ _              = acc_+1
  
 --------------------

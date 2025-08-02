@@ -1,8 +1,11 @@
 module Visitors.API where
 
-import Parser.Types
+import qualified Parser.Types as AST
+import qualified CFG.Types as CFG
 
 class ASTVisitor v where
-  visitMethod :: Method -> v
-  visitStatement :: Statement -> v
+  visitMethod :: AST.Method -> v
+  visitStatement :: AST.Statement -> v
 
+class CFGVisitor v where
+  visitNode :: CFG.Node -> v

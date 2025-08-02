@@ -1,6 +1,10 @@
-public int[] elemAt(int[] arr, int pos){
-  if(arr.length<=pos) {
-    throw new Exception("not found");
+public void boo36() {
+  try {
+    int[] myNumbers = {1, 2, 3};
+    System.out.println(myNumbers[10]);
+  } catch (Exception e) {
+    System.out.println("Something went wrong.");
+  } finally {
+    System.out.println("The 'try catch' is finished.");
   }
-  return arr[pos];
 }

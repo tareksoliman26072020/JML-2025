@@ -1,6 +1,6 @@
 module SymbolTable.Types where
 
-import Parser.Types (Expression)
+import qualified Parser.Types as AST (Expression, Type, Exception)
 import Data.Char (isSpace)
 
 data Type
@@ -28,13 +28,13 @@ instance Show Type where
   show Long = "Long"
   show Byte = "Byte"
 
-data Kind = For Expression | While Expression | Try | Catch | Finally | If Expression | Else
+data Kind = For AST.Expression | While AST.Expression | Try | Catch (AST.Type AST.Exception) | Finally | If AST.Expression | Else
 
 instance Show Kind where
   show (For _) = "For"
   show (While _) = "While"
   show Try = "Try"
-  show Catch = "Catch"
+  show (Catch _) = "Catch"
   show Finally = "Finally"
   show (If _) = "If"
   show Else = "Else"
@@ -53,7 +53,7 @@ data Entry = Scope {
 } | Variable {
   name    :: String,
   varType :: Maybe Type,
-  val     :: Maybe Expression
+  val     :: Maybe AST.Expression
 } deriving Show
 
 
