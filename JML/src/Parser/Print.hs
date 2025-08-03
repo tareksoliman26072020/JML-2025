@@ -39,6 +39,7 @@ showExpr = \case
   ExcpExpr {excpName, excpmsg} -> "throw new " ++ showExcp excpName ++ "("
     ++ maybe "" show excpmsg ++ ")"
   ReturnExpr {returnE} -> "return" ++ maybe "" ((" " ++) . showExpr) returnE
+  _ -> error "TODO"
 
 addParen :: String -> String
 addParen = ("(" ++) . (++ ")")

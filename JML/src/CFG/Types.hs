@@ -1,12 +1,13 @@
+{-# Language LambdaCase #-}
 module CFG.Types where
 
 import qualified Parser.Types as AST(Statement(..),Expression(..), Type(..), Types(..), Modifier(..), Exception(..))
-import Data.List (intercalate)
+import Data.List (intercalate, find)
 import Text.Printf(printf)
 
 type NodeID = Int
 
-data Node = Entry | End {
+data Node = Entry AST.Types | End {
     id :: NodeID,
     parent :: NodeID,
     mExpr :: Maybe AST.Expression
@@ -17,7 +18,7 @@ data Node = Entry | End {
   } deriving Show
 
 showNode :: Node -> String
-showNode Entry = "Entry"
+showNode (Entry t) = "Entry: method type: " ++ showType (AST.BuiltInType t)
 showNode (end@End{}) =
   printf "End: %d -> %d:\n        %s"
     (parent end) (CFG.Types.id end) (maybe "()" (\e -> "return: " ++ showExpr e) (mExpr end))
@@ -176,3 +177,22 @@ showModifier _ = error "TODO"
 list :: b -> ([a] -> b) -> [a] -> b
 list b _ [] = b
 list _ f li = f li
+
+-----------------------------
+
+findNode_via_id :: CFG -> NodeID -> Node
+findNode_via_id cfg nodeId =
+  case find (\n -> getNodeId n == nodeId) $ nodes cfg of
+    Just node -> node
+    Nothing   -> error "won't happen"
+
+findEdge_via_id :: CFG -> NodeID -> Maybe (NodeID,[NodeID])
+findEdge_via_id cfg nodeId = find (\(n,_) -> n==nodeId) $ edges cfg
+
+getNodeId :: Node -> NodeID
+getNodeId = \case
+  Entry _  -> 0
+  n@End{}  -> CFG.Types.id n
+  n@Node{} -> CFG.Types.id n
+
+-----------------------------

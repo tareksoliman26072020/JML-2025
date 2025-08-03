@@ -7,11 +7,13 @@ import qualified CFG.Types as G
 import Data.List (foldl',nub)
 
 data CFGCreator = Node {node :: G.Node} | Nodes {cfg :: G.CFG}
+
 {-
-data CFG = CFG {
-  nodes :: [Node],
-  edges :: [(NodeID,[NodeID])]
-} deriving Show
+data Method = FunDef {funModifier :: [Modifier],
+                      isPureFlag :: Bool,
+                      funDecl :: Statement,
+                      throws :: Maybe Exception,
+                      funBody :: Statement} deriving(Eq,Show)
 -}
 instance ASTVisitor CFGCreator where
 --visitMethod :: AST.Method -> CFGCreator
@@ -19,7 +21,16 @@ instance ASTVisitor CFGCreator where
     let (_,g) = visitStatement0 (0,0,1) (AST.funBody method)
     in case g of
          Nodes cfg -> Nodes $ G.CFG {
-           G.nodes = G.Entry : G.nodes cfg,
+           G.nodes = G.Entry (case AST.funDecl method of
+             AST.FunCallStmt s   -> case s of
+               AST.FunCallExpr n _ -> case n of
+                 --VarExpr {varType = Just (BuiltInType Void), varObj = [], varName = "boo36"}
+                 AST.VarExpr mt _ _ -> case mt of
+                   Just (AST.BuiltInType t) -> t
+                   _ -> error "won't happen"
+               _                   -> error "won't happen"
+             _                   -> error "won't happen")
+             : G.nodes cfg,
            G.edges = G.edges cfg
          }
          _ -> error "won't happen"
