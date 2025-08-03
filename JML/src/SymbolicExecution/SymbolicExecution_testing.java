@@ -17,7 +17,8 @@ CFG {
 */
 /*
 SymState {
-  env = SInt 5,
+  env = fromList [("return",SymInt 5)],
+  methodType = Int,
   pc = []
 }
 */
