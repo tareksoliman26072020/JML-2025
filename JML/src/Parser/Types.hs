@@ -66,6 +66,16 @@ data Expression
   | ReturnExpr {returnE :: Maybe Expression}
   deriving (Eq, Show)
 
+-- public int boo30(int z) ==> (Just BuiltInType Int, "boo30")
+getMethodDecl :: Method -> (Maybe (Type Types), String)
+getMethodDecl method = case funDecl method of
+  FunCallStmt s   -> case s of
+    FunCallExpr n _ -> case n of
+      --VarExpr {varType = Just (BuiltInType Void), varObj = [], varName = "boo36"}
+      VarExpr mt _ mn -> (mt,mn)
+    _               -> error "won't happen"
+  _               -> error "won't happen"
+
 isLiteral :: Expression -> Bool
 isLiteral (NumberLiteral _) = True
 isLiteral (BoolLiteral _) = True

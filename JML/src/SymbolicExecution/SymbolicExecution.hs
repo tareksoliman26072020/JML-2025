@@ -35,7 +35,7 @@ data SymState = SymState
 execNode :: CFG.Node -> SY.SymExec ()
 --execNode node = return $ SY.SymState Map.empty []
 execNode = \case
-  CFG.Entry t ->
+  CFG.Entry t _ ->
     modify $ \symState -> SY.SymState {
       SY.env = SY.env symState,
       SY.methodType = t,
@@ -60,7 +60,6 @@ data Expression
   | ArrayInstantiationExpr {arrType :: Maybe (Type Types), arrSize :: Maybe Expression, arrElems :: [Expression]}
   | BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
   | UnOpExpr {unOp :: UnOp, expr :: Expression}
-  | FunCallExpr {funName :: Expression, funArgs :: [Expression]}
   | CondExpr {eiff :: Expression, ethenn :: Expression, eelsee :: Expression}
   | AssignExpr {assEleft :: Expression, assEright :: Expression}
   | ExcpExpr {excpName :: Exception, excpmsg :: Maybe String}
@@ -94,6 +93,8 @@ execExpr (AST.NumberLiteral float) isEnd = modify $ \symState ->
        SY.methodType = SY.methodType symState,
        SY.pc = SY.pc symState
      }
+-- FunCallExpr {funName :: Expression, funArgs :: [Expression]}
+execExpr (AST.FunCallExpr{}) _ = error "TODO"
 execExpr _ _ = error "won't happen"
 
 ------------------------------
@@ -126,8 +127,8 @@ data SymState = SymState
  { env :: Map.Map String SymExpr
  , pc  :: [SymExpr]          -- ^ Path‐conditions: accumulate the conditions under which each execution state is feasible.
 -}
-runCFG :: CFG.CFG -> SY.SymState
-runCFG cfg = case CFG.edges cfg of
+runCFG :: [CFG.CFG] -> CFG.CFG -> SY.SymState
+runCFG cfgs cfg = case CFG.edges cfg of
   [] -> SY.SymState Map.empty undefined []
   (x : _) -> runHelper x where
     runHelper :: (CFG.NodeID,[CFG.NodeID]) -> SY.SymState
@@ -146,3 +147,5 @@ runCFG cfg = case CFG.edges cfg of
           run_s :: SY.SymState
           run_s = execState run_r initialSymState
       in run_s
+
+

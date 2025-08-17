@@ -7,7 +7,7 @@ import Text.Printf(printf)
 
 type NodeID = Int
 
-data Node = Entry AST.Types | End {
+data Node = Entry AST.Types String | End {
     id :: NodeID,
     parent :: NodeID,
     mExpr :: Maybe AST.Expression
@@ -18,7 +18,7 @@ data Node = Entry AST.Types | End {
   } deriving Show
 
 showNode :: Node -> String
-showNode (Entry t) = "Entry: method type: " ++ showType (AST.BuiltInType t)
+showNode (Entry t n) = "Entry " ++ n ++ ": method type: " ++ showType (AST.BuiltInType t)
 showNode (end@End{}) =
   printf "End: %d -> %d:\n        %s"
     (parent end) (CFG.Types.id end) (maybe "()" (\e -> "return: " ++ showExpr e) (mExpr end))
@@ -37,6 +37,18 @@ showCFG (cfg@CFG{}) = "  " ++
   intercalate "\n----------\n  " (map showNode $ nodes cfg) ++ "\n" ++
   "========================\n  " ++
   intercalate "\n  " (map show $ edges cfg) ++ "\n"
+
+findCFGByName :: String -> [CFG] -> Maybe CFG
+findCFGByName name = find ((== name) . getCFGName)
+
+getCFGName :: CFG -> String
+getCFGName = f2 . find f1 . nodes
+  where
+  f1 (Entry _ _) = True
+  f1 _           = False
+  
+  f2 (Just (Entry _ name)) = name
+  f2 Nothing               = error "Won't happen"
 
 ------------------------------
 
@@ -191,8 +203,8 @@ findEdge_via_id cfg nodeId = find (\(n,_) -> n==nodeId) $ edges cfg
 
 getNodeId :: Node -> NodeID
 getNodeId = \case
-  Entry _  -> 0
-  n@End{}  -> CFG.Types.id n
-  n@Node{} -> CFG.Types.id n
+  Entry _ _ -> 0
+  n@End{}   -> CFG.Types.id n
+  n@Node{}  -> CFG.Types.id n
 
 -----------------------------

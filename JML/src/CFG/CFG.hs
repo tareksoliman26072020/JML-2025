@@ -21,6 +21,10 @@ instance ASTVisitor CFGCreator where
     let (_,g) = visitStatement0 (0,0,1) (AST.funBody method)
     in case g of
          Nodes cfg -> Nodes $ G.CFG {
+           G.nodes = case AST.getMethodDecl method of
+             (Just (AST.BuiltInType methodType),methodName) ->
+               G.Entry methodType methodName : G.nodes cfg,
+         {-
            G.nodes = G.Entry (case AST.funDecl method of
              AST.FunCallStmt s   -> case s of
                AST.FunCallExpr n _ -> case n of
@@ -31,6 +35,7 @@ instance ASTVisitor CFGCreator where
                _                   -> error "won't happen"
              _                   -> error "won't happen")
              : G.nodes cfg,
+         -}
            G.edges = G.edges cfg
          }
          _ -> error "won't happen"
