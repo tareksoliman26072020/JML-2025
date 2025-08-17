@@ -5,9 +5,12 @@ import qualified SymbolicExecution.Types as SY
 import qualified CFG.Types as CFG
 import qualified Data.Map as Map
 import Control.Monad.Reader (runReaderT)
-import Control.Monad.State  (State(..), execState, modify)
+import Control.Monad.State  (State, modify, runState)
+import Control.Monad.Except
 import Control.Monad (forM_)
 import qualified Parser.Types as AST
+
+import Control.Monad.Reader
 
 {-
 data Node = Entry | End {
@@ -23,7 +26,7 @@ data Node = Entry | End {
 
 {-
 type SymExec a =
-   ReaderT Config                 -- solver endpoints, thresholds…
+   ReaderT (Config,[CFG])         -- solver endpoints, thresholds…
    (State SymState) a             -- env :: Map Var SymExpr; pc :: [SymExpr]
 
 data SymState = SymState
@@ -93,8 +96,30 @@ execExpr (AST.NumberLiteral float) isEnd = modify $ \symState ->
        SY.methodType = SY.methodType symState,
        SY.pc = SY.pc symState
      }
+{-
+data SymState = SymState
+ { env :: Map.Map String SymExpr
+ , methodType :: AST.Types
+ , pc  :: [SymExpr]
+ }
+-}
 -- FunCallExpr {funName :: Expression, funArgs :: [Expression]}
-execExpr (AST.FunCallExpr{}) _ = error "TODO"
+execExpr (expr@AST.FunCallExpr{}) isEnd = do
+  (co,cfgs) <- ask-- :: ReaderT (SY.Config,[CFG.CFG]) (State SY.SymState) (SY.Config,[CFG.CFG])
+  let funCallName = AST.getFunCallName $ AST.FunCallStmt expr
+  case CFG.findCFGByName funCallName cfgs of
+    Nothing   -> throwError $ "Method " ++ funCallName ++ " does not exist"
+    Just cfg0 -> 
+      let funCallSymState = runCFG cfgs cfg0
+          symExpr = case isEnd of
+            True  -> SY.getReturnSymExpr funCallSymState
+            False -> error "TODO: Here we have a fun call, but not within a return statement"
+      in modify $ \symState ->
+           SY.SymState {
+             SY.env        = Map.insert "return" symExpr (SY.env symState),
+             SY.methodType = SY.methodType symState,
+             SY.pc         = SY.pc symState
+           }
 execExpr _ _ = error "won't happen"
 
 ------------------------------
@@ -142,10 +167,13 @@ runCFG cfgs cfg = case CFG.edges cfg of
     f :: SY.SymExec () -> SY.SymState
     f theRun =
       let initialSymState = SY.SymState Map.empty undefined []
-          run_r :: State SY.SymState ()
-          run_r = runReaderT theRun SY.defaultConfig
-          run_s :: SY.SymState
-          run_s = execState run_r initialSymState
-      in run_s
+          run_r :: ExceptT String (State SY.SymState) ()
+          run_r = runReaderT theRun (SY.defaultConfig,cfgs)
+          run_e :: State SY.SymState (Either String ())
+          run_e = runExceptT run_r
+          run_s :: (Either String (), SY.SymState)
+          run_s@(ei,s) = runState run_e initialSymState
+      -- either :: (a -> c) -> (b -> c) -> Either a b -> c
+      in either error (const s) ei
 
 

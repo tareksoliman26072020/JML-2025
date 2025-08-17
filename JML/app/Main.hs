@@ -59,7 +59,7 @@ getSymState :: String -> IO SYT.SymState
 getSymState funName = readFile "test3.java" >>= return
   . (\cfgs -> case CFGT.findCFGByName funName cfgs of
                 Just cfg0 -> SY.runCFG cfgs cfg0
-                Nothing   -> error "won't happen")
+                Nothing   -> error $ "method " ++ funName ++ " does not exist")
   . map CFG.exec
   . fromRight undefined . parse parseDeclList ""
 {-

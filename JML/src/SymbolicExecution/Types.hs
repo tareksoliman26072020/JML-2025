@@ -3,11 +3,13 @@ module SymbolicExecution.Types where
 import qualified Data.Map as Map
 import Control.Monad.Reader
 import Control.Monad.State
+import Control.Monad.Except
 import qualified Parser.Types as AST (Types)
+import qualified CFG.Types as CFGT (CFG)
 
 type SymExec a =
-   ReaderT Config                 -- solver endpoints, thresholds…
-   (State SymState) a             -- env :: Map Var SymExpr; pc :: [SymExpr]
+   ReaderT (Config,[CFGT.CFG])         -- solver endpoints, thresholds…
+   (ExceptT String (State SymState)) a -- env :: Map Var SymExpr; pc :: [SymExpr]
 
 data SymState = SymState
  { env :: Map.Map String SymExpr
@@ -16,6 +18,10 @@ data SymState = SymState
  }
  deriving Show
 
+getReturnSymExpr :: SymState -> SymExpr
+getReturnSymExpr symState = case Map.lookup "return" $ env symState of
+  Just symExpr -> symExpr
+  Nothing      -> error "won't happen, because this function is only called on SymStates with a return Statement."
 {-
 In short, every element of pc becomes a clause in your requires or loop_invariant, and every binding in your final env becomes an equation in your ensures. That’s exactly how symbolic execution wires into JML inference.
 -}

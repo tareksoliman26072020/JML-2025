@@ -46,6 +46,13 @@ CFG {
 ========================
   (0,[1])
 */
+/*
+SymState {
+  env = fromList [("return",SymInt 5)],
+  methodType = Int,
+  pc = []
+}
+*/
 public int boo22(){
   return boo21();
 }
