@@ -53,6 +53,7 @@ data SymBinOp
 -- | A (tiny) symbolic expression language
 data SymExpr
   = SVar    String                -- ^ symbolic variable, e.g. "x" or "tmp1"
+  | SymNum    Float
   | SymInt    Integer             -- ^ concrete integer literal
   | SymDouble Double              -- ^ concrete double literal
   | SymFloat  Float               -- ^ concrete float literal

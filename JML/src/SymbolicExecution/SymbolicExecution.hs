@@ -44,12 +44,29 @@ execNode = \case
       SY.methodType = t,
       SY.pc = SY.pc symState
     }
-  -- End {id = 1, mExpr = Just (NumberLiteral 5.0)}
   n@CFG.End{} -> case CFG.mExpr n of
-    Nothing   -> return ()
-    Just expr -> execExpr expr True
+    Nothing       -> return ()
+    a@(Just expr) -> execStmt (AST.ReturnStmt a)--execExpr expr True
   _ -> error "TODO"
 
+execStmt :: AST.Statement -> SY.SymExec ()
+execStmt (AST.ReturnStmt (Just expr)) = do
+  symExpr <- execExpr expr
+  modify $ \symState ->
+    SY.SymState {
+      SY.env = case (SY.methodType symState, symExpr) of
+        (AST.Int, SY.SymNum float)    ->
+          Map.insert "return" (SY.SymInt (round float)) (SY.env symState)
+        (AST.Double, SY.SymNum float) ->
+          Map.insert "return" (SY.SymDouble (realToFrac float)) (SY.env symState)
+        (AST.Float, SY.SymNum float)  ->
+          Map.insert "return" (SY.SymFloat float) (SY.env symState)
+        (_,s)                         ->
+          Map.insert "return" s (SY.env symState),
+      SY.methodType = SY.methodType symState,
+      SY.pc = SY.pc symState
+    }
+execStmt _ = error "won't happen, or TODO"
 
 {-
 data Expression
@@ -82,7 +99,9 @@ data Types
   | Long
   | Byte
 -}
-execExpr :: AST.Expression -> Bool -> SY.SymExec ()
+execExpr :: AST.Expression -> SY.SymExec SY.SymExpr
+execExpr (AST.NumberLiteral float) = return $ SY.SymNum float
+{-
 execExpr (AST.NumberLiteral float) isEnd = modify $ \symState -> 
   let symExpr = case SY.methodType symState of
         AST.Int    -> SY.SymInt (round float)
@@ -96,6 +115,7 @@ execExpr (AST.NumberLiteral float) isEnd = modify $ \symState ->
        SY.methodType = SY.methodType symState,
        SY.pc = SY.pc symState
      }
+-}
 {-
 data SymState = SymState
  { env :: Map.Map String SymExpr
@@ -104,8 +124,17 @@ data SymState = SymState
  }
 -}
 -- FunCallExpr {funName :: Expression, funArgs :: [Expression]}
+execExpr (expr@AST.FunCallExpr{}) = do
+  (_,cfgs) <- ask-- :: ReaderT (SY.Config,[CFG.CFG]) (State SY.SymState) (SY.Config,[CFG.CFG])
+  let funCallName = AST.getFunCallName $ AST.FunCallStmt expr
+  case CFG.findCFGByName funCallName cfgs of
+    Nothing   -> throwError $ "Method " ++ funCallName ++ " does not exist"
+    Just cfg0 -> 
+      let funCallSymState = runCFG cfgs cfg0
+      in return $ SY.getReturnSymExpr funCallSymState
+{-
 execExpr (expr@AST.FunCallExpr{}) isEnd = do
-  (co,cfgs) <- ask-- :: ReaderT (SY.Config,[CFG.CFG]) (State SY.SymState) (SY.Config,[CFG.CFG])
+  (_,cfgs) <- ask-- :: ReaderT (SY.Config,[CFG.CFG]) (State SY.SymState) (SY.Config,[CFG.CFG])
   let funCallName = AST.getFunCallName $ AST.FunCallStmt expr
   case CFG.findCFGByName funCallName cfgs of
     Nothing   -> throwError $ "Method " ++ funCallName ++ " does not exist"
@@ -120,7 +149,8 @@ execExpr (expr@AST.FunCallExpr{}) isEnd = do
              SY.methodType = SY.methodType symState,
              SY.pc         = SY.pc symState
            }
-execExpr _ _ = error "won't happen"
+-}
+execExpr _ = error "won't happen"
 
 ------------------------------
 
