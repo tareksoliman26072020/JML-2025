@@ -62,10 +62,4 @@ getSymState funName = readFile "test3.java" >>= return
                 Nothing   -> error $ "method " ++ funName ++ " does not exist")
   . map CFG.exec
   . fromRight undefined . parse parseDeclList ""
-{-
-getSymState :: IO SYT.SymState
-getSymState = readFile "test2.java" >>= return
-  . SY.runCFG undefined
-  . CFG.exec
-  . fromRight undefined . parse parseExtDecl ""
--}
+

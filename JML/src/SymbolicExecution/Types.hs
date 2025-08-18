@@ -7,9 +7,15 @@ import Control.Monad.Except
 import qualified Parser.Types as AST (Types)
 import qualified CFG.Types as CFGT (CFG)
 
-type SymExec a =
-   ReaderT (Config,[CFGT.CFG])         -- solver endpoints, thresholds…
-   (ExceptT String (State SymState)) a -- env :: Map Var SymExpr; pc :: [SymExpr]
+type R =
+    ReaderT (Config,[CFGT.CFG])         -- solver endpoints, thresholds…
+    (ExceptT String (State SymState))   -- env :: Map Var SymExpr; pc :: [SymExpr]
+    ExecutionResult
+
+newtype SymExec = SymExec R
+
+getReader :: SymExec -> R
+getReader (SymExec r) = r
 
 data SymState = SymState
  { env :: Map.Map String SymExpr
@@ -50,9 +56,10 @@ data SymBinOp
   | Or       -- ^ logical ||
   deriving (Eq, Show)
 
+data ExecutionResult = ER_Expr SymExpr | ER_Void deriving (Eq, Show)
+data SymExpr =
 -- | A (tiny) symbolic expression language
-data SymExpr
-  = SVar    String                -- ^ symbolic variable, e.g. "x" or "tmp1"
+    SymVar    String              -- ^ symbolic variable, e.g. "x" or "tmp1"
   | SymNum    Float
   | SymInt    Integer             -- ^ concrete integer literal
   | SymDouble Double              -- ^ concrete double literal

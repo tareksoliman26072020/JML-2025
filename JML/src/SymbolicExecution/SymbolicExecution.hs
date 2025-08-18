@@ -1,7 +1,7 @@
 {-# Language LambdaCase #-}
 module SymbolicExecution.SymbolicExecution where
 
-import qualified SymbolicExecution.Types as SY
+import SymbolicExecution.Types
 import qualified CFG.Types as CFG
 import qualified Data.Map as Map
 import Control.Monad.Reader (runReaderT)
@@ -9,7 +9,7 @@ import Control.Monad.State  (State, modify, runState)
 import Control.Monad.Except
 import Control.Monad (forM_)
 import qualified Parser.Types as AST
-
+import Visitors.API
 import Control.Monad.Reader
 
 {-
@@ -35,38 +35,43 @@ data SymState = SymState
  , pc  :: [SymExpr]          -- ^ Path‐conditions: accumulate the conditions under which each execution state is feasible.
  }
 -}
-execNode :: CFG.Node -> SY.SymExec ()
---execNode node = return $ SY.SymState Map.empty []
-execNode = \case
-  CFG.Entry t _ ->
-    modify $ \symState -> SY.SymState {
-      SY.env = SY.env symState,
-      SY.methodType = t,
-      SY.pc = SY.pc symState
-    }
-  n@CFG.End{} -> case CFG.mExpr n of
-    Nothing       -> return ()
-    a@(Just expr) -> execStmt (AST.ReturnStmt a)--execExpr expr True
-  _ -> error "TODO"
+instance CFGVisitor SymExec where
+--visitNode :: CFG.Node -> SymExec
+  --visitNode node = return $ SymState Map.empty []
+  visitNode node = SymExec $ case node of
+    CFG.Entry t _ -> do
+      modify $ \symState -> SymState {
+        env = env symState,
+        methodType = t,
+        pc = pc symState
+      }
+      return ER_Void
+    n@CFG.End{} -> case CFG.mExpr n of
+      Nothing       -> return ER_Void
+      a@(Just expr) -> visitStmt (AST.ReturnStmt a)--visitExpr expr True
+    _ -> error "TODO"
 
-execStmt :: AST.Statement -> SY.SymExec ()
-execStmt (AST.ReturnStmt (Just expr)) = do
-  symExpr <- execExpr expr
+
+visitStmt :: AST.Statement -> R
+visitStmt (AST.ReturnStmt (Just expr)) = do
+  symExpr <- visitExpr expr
   modify $ \symState ->
-    SY.SymState {
-      SY.env = case (SY.methodType symState, symExpr) of
-        (AST.Int, SY.SymNum float)    ->
-          Map.insert "return" (SY.SymInt (round float)) (SY.env symState)
-        (AST.Double, SY.SymNum float) ->
-          Map.insert "return" (SY.SymDouble (realToFrac float)) (SY.env symState)
-        (AST.Float, SY.SymNum float)  ->
-          Map.insert "return" (SY.SymFloat float) (SY.env symState)
-        (_,s)                         ->
-          Map.insert "return" s (SY.env symState),
-      SY.methodType = SY.methodType symState,
-      SY.pc = SY.pc symState
+    SymState {
+      env = case (methodType symState, symExpr) of
+        (AST.Int, ER_Expr (SymNum float))    ->
+          Map.insert "return" (SymInt (round float)) (env symState)
+        (AST.Double, ER_Expr (SymNum float)) ->
+          Map.insert "return" (SymDouble (realToFrac float)) (env symState)
+        (AST.Float, ER_Expr (SymNum float))  ->
+          Map.insert "return" (SymFloat float) (env symState)
+        (_,ER_Expr s)                           ->
+          Map.insert "return" s (env symState)
+        _ -> error "TODO",
+      methodType = methodType symState,
+      pc = pc symState
     }
-execStmt _ = error "won't happen, or TODO"
+  return ER_Void
+visitStmt _ = error "won't happen, or TODO"
 
 {-
 data Expression
@@ -99,23 +104,8 @@ data Types
   | Long
   | Byte
 -}
-execExpr :: AST.Expression -> SY.SymExec SY.SymExpr
-execExpr (AST.NumberLiteral float) = return $ SY.SymNum float
-{-
-execExpr (AST.NumberLiteral float) isEnd = modify $ \symState -> 
-  let symExpr = case SY.methodType symState of
-        AST.Int    -> SY.SymInt (round float)
-        AST.Double -> SY.SymDouble (realToFrac float)
-        AST.Float  -> SY.SymFloat float
-        _          -> error "won't happen"
-  in SY.SymState {
-       SY.env = case isEnd of
-         True -> Map.insert "return" symExpr (SY.env symState)
-         False -> error "TODO",
-       SY.methodType = SY.methodType symState,
-       SY.pc = SY.pc symState
-     }
--}
+visitExpr :: AST.Expression -> R
+visitExpr (AST.NumberLiteral float) = return $ ER_Expr (SymNum float)
 {-
 data SymState = SymState
  { env :: Map.Map String SymExpr
@@ -124,33 +114,15 @@ data SymState = SymState
  }
 -}
 -- FunCallExpr {funName :: Expression, funArgs :: [Expression]}
-execExpr (expr@AST.FunCallExpr{}) = do
-  (_,cfgs) <- ask-- :: ReaderT (SY.Config,[CFG.CFG]) (State SY.SymState) (SY.Config,[CFG.CFG])
+visitExpr (expr@AST.FunCallExpr{}) = do
+  (_,cfgs) <- ask-- :: ReaderT (Config,[CFG.CFG]) (State SymState) (Config,[CFG.CFG])
   let funCallName = AST.getFunCallName $ AST.FunCallStmt expr
   case CFG.findCFGByName funCallName cfgs of
     Nothing   -> throwError $ "Method " ++ funCallName ++ " does not exist"
     Just cfg0 -> 
       let funCallSymState = runCFG cfgs cfg0
-      in return $ SY.getReturnSymExpr funCallSymState
-{-
-execExpr (expr@AST.FunCallExpr{}) isEnd = do
-  (_,cfgs) <- ask-- :: ReaderT (SY.Config,[CFG.CFG]) (State SY.SymState) (SY.Config,[CFG.CFG])
-  let funCallName = AST.getFunCallName $ AST.FunCallStmt expr
-  case CFG.findCFGByName funCallName cfgs of
-    Nothing   -> throwError $ "Method " ++ funCallName ++ " does not exist"
-    Just cfg0 -> 
-      let funCallSymState = runCFG cfgs cfg0
-          symExpr = case isEnd of
-            True  -> SY.getReturnSymExpr funCallSymState
-            False -> error "TODO: Here we have a fun call, but not within a return statement"
-      in modify $ \symState ->
-           SY.SymState {
-             SY.env        = Map.insert "return" symExpr (SY.env symState),
-             SY.methodType = SY.methodType symState,
-             SY.pc         = SY.pc symState
-           }
--}
-execExpr _ = error "won't happen"
+      in return $ ER_Expr $ getReturnSymExpr funCallSymState
+visitExpr _ = error "won't happen"
 
 ------------------------------
 
@@ -182,28 +154,28 @@ data SymState = SymState
  { env :: Map.Map String SymExpr
  , pc  :: [SymExpr]          -- ^ Path‐conditions: accumulate the conditions under which each execution state is feasible.
 -}
-runCFG :: [CFG.CFG] -> CFG.CFG -> SY.SymState
+
+runCFG :: [CFG.CFG] -> CFG.CFG -> SymState
 runCFG cfgs cfg = case CFG.edges cfg of
-  [] -> SY.SymState Map.empty undefined []
+  [] -> SymState Map.empty undefined []
   (x : _) -> runHelper x where
-    runHelper :: (CFG.NodeID,[CFG.NodeID]) -> SY.SymState
+    runHelper :: (CFG.NodeID,[CFG.NodeID]) -> SymState
     runHelper (from,[to]) =
       let node1 = CFG.findNode_via_id cfg from
           node2 = CFG.findNode_via_id cfg to
           rec = CFG.findEdge_via_id cfg to
       in case rec of
-           Nothing   -> f $ execNode node1 >> execNode node2
-           Just edge -> f $ execNode node1 >> return (runHelper edge) >> return ()
-    f :: SY.SymExec () -> SY.SymState
+           Nothing   -> f $ getReader (visitNode node1) >> getReader (visitNode node2)
+           Just edge -> f $ getReader (visitNode node1) >> return (runHelper edge) >> return ER_Void
+    f :: R -> SymState
     f theRun =
-      let initialSymState = SY.SymState Map.empty undefined []
-          run_r :: ExceptT String (State SY.SymState) ()
-          run_r = runReaderT theRun (SY.defaultConfig,cfgs)
-          run_e :: State SY.SymState (Either String ())
+      let initialSymState = SymState Map.empty undefined []
+          run_r :: ExceptT String (State SymState) ExecutionResult
+          run_r = runReaderT theRun (defaultConfig,cfgs)
+          run_e :: State SymState (Either String ExecutionResult)
           run_e = runExceptT run_r
-          run_s :: (Either String (), SY.SymState)
+          run_s :: (Either String ExecutionResult, SymState)
           run_s@(ei,s) = runState run_e initialSymState
       -- either :: (a -> c) -> (b -> c) -> Either a b -> c
       in either error (const s) ei
-
 
