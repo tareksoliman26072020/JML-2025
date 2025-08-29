@@ -4,15 +4,22 @@ import qualified Data.Map as Map
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Except
+import Control.Monad.Writer
 import qualified Parser.Types as AST (Types)
 import qualified CFG.Types as CFGT (CFG)
 
 type R =
     ReaderT (Config,[CFGT.CFG])         -- solver endpoints, thresholds…
-    (ExceptT String (State SymState))   -- env :: Map Var SymExpr; pc :: [SymExpr]
+    (ExceptT String (WriterT [Log] (State SymState)))   -- env :: Map Var SymExpr; pc :: [SymExpr]
     ExecutionResult
 
 newtype SymExec = SymExec R
+
+data Log = Expression_2_Handle String String
+         | MethodStart String String
+         | MethodEnd String
+         | Void String
+         | ReturnStatement String String
 
 getReader :: SymExec -> R
 getReader (SymExec r) = r

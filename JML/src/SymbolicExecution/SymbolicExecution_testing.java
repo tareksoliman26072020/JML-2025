@@ -92,16 +92,19 @@ public int boo22_2(){
 
 ///////////////////////////////////////////////////
 
+public int boo23_2(){
+  return 3 + boo21();
+}
+
+///////////////////////////////////////////////////
+
 /*
 CFG {
   nodes = [
-    Entry,
-    Node {
-      id = 1,
-      nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x"}, assEright = BinOpExpr {expr1 = NumberLiteral 3.0, binOp = +, expr2 = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "boo21"}, funArgs = []}}}}),
-      parent = 0
-    },
-    End {id = 2, parent = 0, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "x"})}],
+    Entry Int "boo23",
+    Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x"}, assEright = BinOpExpr {expr1 = NumberLiteral 3.0, binOp = +, expr2 = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "boo21"}, funArgs = []}}}}), parent = 0}
+    ,End {id = 2, parent = 0, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "x"})}
+  ],
   edges = [(0,[1]),(1,[2])]
 }
 */
