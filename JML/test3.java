@@ -18,5 +18,5 @@ public int boo23_2(){
 
 public int boo23(){
   int x = 3 + boo21();
-  return x;
+  return 5;
 }

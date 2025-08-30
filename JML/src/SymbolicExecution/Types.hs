@@ -10,7 +10,7 @@ import qualified CFG.Types as CFGT (CFG)
 
 type R =
     ReaderT (Config,[CFGT.CFG])         -- solver endpoints, thresholds…
-    (ExceptT String (WriterT [Log] (State SymState)))   -- env :: Map Var SymExpr; pc :: [SymExpr]
+    (ExceptT String (WriterT [Log] (StateT SymState Maybe)))   -- env :: Map Var SymExpr; pc :: [SymExpr]
     ExecutionResult
 
 newtype SymExec = SymExec R
