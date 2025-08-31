@@ -5,13 +5,14 @@ import SymbolicExecution.Types
 import qualified CFG.Types as CFG
 import qualified Data.Map as Map
 import Control.Monad.Reader (runReaderT)
-import Control.Monad.State  (StateT, modify, runStateT)
+import Control.Monad.State (StateT, modify, runStateT, get)
 import Control.Monad.Except
 import Control.Monad (forM_)
 import qualified Parser.Types as AST
 import Visitors.API
 import Control.Monad.Reader
 import Control.Monad.Writer
+import Text.Printf (printf)
 
 {-
 data Node = Entry | End {
@@ -60,7 +61,7 @@ Node {
     parent :: NodeID
   }
 -}
-    n@CFG.Node{} -> throwError "TODO -> visitNode -> Node"--error "TODO"
+    n@CFG.Node{} -> throwError $ "TODO -> visitNode -> Node -> " ++ show n
 
 visitStmt :: AST.Statement -> R
 visitStmt (AST.ReturnStmt (Just expr)) = do
@@ -75,7 +76,7 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
           Map.insert "return" (SymDouble (realToFrac float)) (env symState)
         (AST.Float, ER_Expr (SymNum float))  ->
           Map.insert "return" (SymFloat float) (env symState)
-        (_,ER_Expr s)                           ->
+        (_,ER_Expr s)                        ->
           Map.insert "return" s (env symState)
         _ -> error "TODO -> visitStmt -> 1",
       methodType = methodType symState,
@@ -215,14 +216,22 @@ runCFG cfgs cfg = case CFG.edges cfg of
           node2 :: CFG.Node
           node2 = CFG.findNode_via_id cfg to
           rec = CFG.findEdge_via_id cfg to
-      in case rec of
-         --Nothing   -> f $ getReader (visitNode node1) >> getReader (visitNode node2)
+      in tell [Meow "meow" "meow"] >> case rec of
            Nothing -> f $ do
+             tell [
+               Edge_2_Handle
+                 (printf "\ncurrent edge:\n    %s\nnode1:\n    %s\nnode2:\n    %s" (show (from,[to])) (show node1) (show node2))
+                 "runCFG -> runHelper -> case rec of Nothing"]
              getReader $ visitNode node1
              getReader $ visitNode node2
            Just edge -> f $ do
+             tell [
+               Edge_2_Handle
+                 (printf "\ncurrent edge:\n    %s\ncurrent node:\n    %s\nnext edge:\n    %s" (show (from,[to])) (show node1) (show edge))
+                 "runCFG -> runHelper -> case rec of Just"]
              getReader (visitNode node1)
-             return (runHelper edge)
+             let (_,s) = runHelper edge       --return (runHelper edge)
+             modify (const s)
              return ER_Void
     f :: R -> ([Log],SymState)
     f theRun =

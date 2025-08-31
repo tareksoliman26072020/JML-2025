@@ -1,3 +1,4 @@
+{-# Language LambdaCase #-}
 module SymbolicExecution.Types where
 
 import qualified Data.Map as Map
@@ -7,6 +8,7 @@ import Control.Monad.Except
 import Control.Monad.Writer
 import qualified Parser.Types as AST (Types)
 import qualified CFG.Types as CFGT (CFG)
+import Text.Printf (printf)
 
 type R =
     ReaderT (Config,[CFGT.CFG])         -- solver endpoints, thresholds…
@@ -20,6 +22,19 @@ data Log = Expression_2_Handle String String
          | MethodEnd String
          | Void String
          | ReturnStatement String String
+         | Edge_2_Handle String String
+         | Meow String String
+         | Node_2_Handle String String
+
+instance Show Log where
+  show = \case
+    MethodEnd loc               -> printf "(%s): Method End" loc
+    Void loc                    -> printf "(%s): Void" loc
+    MethodStart str loc         -> printf "(%s): Method Start: %s" loc str
+    Expression_2_Handle str loc -> printf "(%s): handling expression: %s" loc str
+    ReturnStatement str loc     -> printf "(%s): handling return statement: %s" loc str
+    Edge_2_Handle str loc       -> printf "(%s): running CFG: %s" loc str
+    Meow str1 str2              -> printf "Meow: %s %s" str1 str2
 
 getReader :: SymExec -> R
 getReader (SymExec r) = r

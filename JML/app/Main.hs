@@ -62,24 +62,17 @@ getSymState funName = readFile "test3.java" >>=
   (\cfgs -> case CFGT.findCFGByName funName cfgs of
               Just cfg0 ->
                 let (logs,s) = SY.runCFG cfgs cfg0
-                in do putStrLn "=========="
-                      putStrLn "===Logs==="
-                      putStrLn "=========="
+                in do putStrLn "================"
+                      putStrLn "===Begin Logs==="
+                      putStrLn "================"
                       mapM_ ppLogs $ zip [1 ..] logs
-                      putStrLn "=========="
-                      putStrLn "===Logs==="
-                      putStrLn "=========="
+                      putStrLn "=============="
+                      putStrLn "===End Logs==="
+                      putStrLn "=============="
                       return s
               Nothing   -> error $ "method " ++ funName ++ " does not exist")
   . map CFG.exec
   . fromRight undefined . parse parseDeclList ""
 
 ppLogs :: (Int,SYT.Log) -> IO ()
-ppLogs (num,l) = putStrLn $ printf "%d) %s" num f where
-  f :: String
-  f = case l of
-        SYT.MethodEnd loc               -> printf "(%s): Method End" loc
-        SYT.Void loc                    -> printf "(%s): Void" loc
-        SYT.MethodStart str loc         -> printf "(%s): Method Start: %s" loc str
-        SYT.Expression_2_Handle str loc -> printf "(%s): handling expression: %s" loc str
-        SYT.ReturnStatement str loc     -> printf "(%s): handling return statement: %s" loc str
+ppLogs (num,l) = putStrLn $ printf "%d) %s" num (show l)
