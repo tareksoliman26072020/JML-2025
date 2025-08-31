@@ -13,7 +13,7 @@ import Data.List (foldl')
 
 type R =
     ReaderT (Config,[CFGT.CFG])         -- solver endpoints, thresholds…
-    (ExceptT String (WriterT [Log] (StateT SymState Maybe)))   -- env :: Map Var SymExpr; pc :: [SymExpr]
+    (ExceptT String (WriterT [Log] (StateT SymState Maybe))) -- env :: Map Var SymExpr; pc :: [SymExpr]
     ExecutionResult
 
 newtype SymExec = SymExec R
@@ -28,6 +28,7 @@ data Log = Expression_2_Handle String String
          | Node_2_Handle String String
          | HorizontalLine String
          | MethodStatement String
+         | AssignStatement String String
 
 instance Show Log where
   show = \case
@@ -37,6 +38,7 @@ instance Show Log where
     MethodStatement str         -> printf "(%s): Method Statement" str
     Expression_2_Handle str loc -> printf "(%s): handling expression: %s" loc str
     ReturnStatement str loc     -> printf "(%s): handling return statement: %s" loc str
+    AssignStatement str loc     -> printf "(%s): handling return statement: %s" loc str
     Edge_2_Handle str loc       -> printf "(%s): running CFG: %s" loc str
     Meow str1 str2              -> printf "Meow: %s %s" str1 str2
     HorizontalLine str          -> printf ">>>>>>>>>> %s <<<<<<<<<<" str

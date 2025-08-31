@@ -180,6 +180,23 @@ public int boo23_7(){
   return x;
 }
 
+////////////////////////////////////////
+
+//TODO
+public int boo23_8(){
+  int x = 3+5;
+  return x;
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo23_9(){
+  int x = 3+5;
+  x = 10-1;
+  return x;
+}
+
 ///////////////////////////////////////////////////
 
 /*
@@ -563,19 +580,7 @@ public int boo33_2(){
 
 ///////////////////////////////////////////////////
 
-/*
-FunDef {
-  funModifier = [Public],
-  isPureFlag = False,
-  funDecl = FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Just (BuiltInType Double), varObj = [], varName = "boo33_3"}, funArgs = []}},
-  throws = Nothing,
-  funBody = CompStmt {statements = [
-    AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Double), varObj = [], varName = "x"}, assEright = NumberLiteral 1.0}},
-    AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "x"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "x"}, binOp = +, expr2 = NumberLiteral 0.1}}},
-    ReturnStmt {returnS = Just (VarExpr {varType = Nothing, varObj = [], varName = "x"})}]
-  }
-}
-*/
+//TODO
 public double boo33_3(){
   double x = 1;
   x+=0.1;

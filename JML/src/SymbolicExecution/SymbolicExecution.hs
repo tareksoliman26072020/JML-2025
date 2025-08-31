@@ -62,8 +62,7 @@ Node {
   }
 
 >>>>>>>>>> <<<<<<<<<<
-data NodeData = Statement AST.Statement
-              | ForInitialization AST.Expression
+data NodeData = ForInitialization AST.Expression
               | BooleanExpression Kind AST.Expression
               | ForStep AST.Statement 
               | TryNode | CatchNode (AST.Type AST.Exception) | FinallyNode
@@ -73,7 +72,6 @@ data NodeData = Statement AST.Statement
       CFG.Statement stmt -> do
         tell [MethodStatement "visitNode -> case nodeData of Node -> Statement"]
         visitStmt stmt
-        --throwError $ "TODO -> visitNode -> Node -> nodeData -> Statement" ++ show stmt
       _ -> throwError
         $ "TODO -> visitNode -> Node -> nodeData -> otherwise" ++ show n
 
@@ -93,6 +91,17 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
         (_,ER_Expr s)                        ->
           Map.insert "return" s (env symState)
         _ -> error "TODO -> visitStmt -> 1",
+      methodType = methodType symState,
+      pc = pc symState
+    }
+  return ER_Void
+-- AssignStmt {varModifier :: [Modifier], assign :: Expression}
+visitStmt stmt@AST.AssignStmt{} = do--throwError "TODO -> visitStmt -> AssignStmt"
+  tell [AssignStatement (show $ AST.assign stmt) "visitStmt -> pattern matching: AssignStmt"]
+  symExpr <- visitExpr $ AST.assign stmt
+  modify $ \symState ->
+    SymState {
+      env = error "TODO",
       methodType = methodType symState,
       pc = pc symState
     }
