@@ -60,8 +60,22 @@ Node {
     nodeData :: NodeData,
     parent :: NodeID
   }
+
+>>>>>>>>>> <<<<<<<<<<
+data NodeData = Statement AST.Statement
+              | ForInitialization AST.Expression
+              | BooleanExpression Kind AST.Expression
+              | ForStep AST.Statement 
+              | TryNode | CatchNode (AST.Type AST.Exception) | FinallyNode
+              | Meet Kind
 -}
-    n@CFG.Node{} -> throwError $ "TODO -> visitNode -> Node -> " ++ show n
+    n@CFG.Node{} -> case CFG.nodeData n of
+      CFG.Statement stmt -> do
+        tell [MethodStatement "visitNode -> case nodeData of Node -> Statement"]
+        visitStmt stmt
+        --throwError $ "TODO -> visitNode -> Node -> nodeData -> Statement" ++ show stmt
+      _ -> throwError
+        $ "TODO -> visitNode -> Node -> nodeData -> otherwise" ++ show n
 
 visitStmt :: AST.Statement -> R
 visitStmt (AST.ReturnStmt (Just expr)) = do

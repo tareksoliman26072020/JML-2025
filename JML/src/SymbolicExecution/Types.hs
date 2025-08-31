@@ -27,12 +27,14 @@ data Log = Expression_2_Handle String String
          | Meow String String
          | Node_2_Handle String String
          | HorizontalLine String
+         | MethodStatement String
 
 instance Show Log where
   show = \case
     MethodEnd loc               -> printf "(%s): Method End" loc
     Void loc                    -> printf "(%s): Void" loc
     MethodStart str loc         -> printf "(%s): Method Start: %s" loc str
+    MethodStatement str         -> printf "(%s): Method Statement" str
     Expression_2_Handle str loc -> printf "(%s): handling expression: %s" loc str
     ReturnStatement str loc     -> printf "(%s): handling return statement: %s" loc str
     Edge_2_Handle str loc       -> printf "(%s): running CFG: %s" loc str
