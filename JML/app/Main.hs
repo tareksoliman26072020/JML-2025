@@ -65,7 +65,7 @@ getSymState funName = readFile "test3.java" >>=
                 in do putStrLn "================"
                       putStrLn "===Begin Logs==="
                       putStrLn "================"
-                      mapM_ ppLogs $ zip [1 ..] logs
+                      mapM_ putStrLn (SYT.ppLogs logs)
                       putStrLn "=============="
                       putStrLn "===End Logs==="
                       putStrLn "=============="
@@ -74,5 +74,3 @@ getSymState funName = readFile "test3.java" >>=
   . map CFG.exec
   . fromRight undefined . parse parseDeclList ""
 
-ppLogs :: (Int,SYT.Log) -> IO ()
-ppLogs (num,l) = putStrLn $ printf "%d) %s" num (show l)

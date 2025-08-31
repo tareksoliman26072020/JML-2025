@@ -10,13 +10,59 @@ public int boo22(){
 
 ////////////////////////////////////////
 
+//TODO
+public int boo22_2(){
+  int x = boo21();
+  return x;
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo23(){
+  int x = 3 + boo21();
+  return 5;
+}
+
+////////////////////////////////////////
+
 public int boo23_2(){
   return 3 + boo21();
 }
 
 ////////////////////////////////////////
 
-public int boo23(){
-  int x = 3 + boo21();
-  return 5;
+//TODO
+public int boo23_3(){
+  return 8;
+}
+
+////////////////////////////////////////
+
+//TODO
+public double boo23_4(){
+  return 8;
+}
+
+////////////////////////////////////////
+
+//TODO
+public double boo23_5(){
+  return 3+5;
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo23_6(){
+  return 3+5;
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo23_7(){
+  int x;
+  x = 3 + boo21();
+  return x;
 }

@@ -1,3 +1,4 @@
-public int boo23_2(){
-  return 3 + boo21();
+public int boo22_2(){
+  int x = boo21();
+  return x;
 }

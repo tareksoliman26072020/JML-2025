@@ -36,7 +36,7 @@ data SymState = SymState
 instance CFGVisitor SymExec where
 --visitNode :: CFG.Node -> SymExec
   --visitNode node = return $ SymState Map.empty []
-  visitNode node = SymExec $ case node of
+  visitNode node = SymExec $ tell [HorizontalLine "visitNode"] >> case node of
     CFG.Entry t mn -> do
       tell [MethodStart mn "visitNode -> case node of Entry"]
       modify $ \symState -> SymState {
@@ -216,7 +216,7 @@ runCFG cfgs cfg = case CFG.edges cfg of
           node2 :: CFG.Node
           node2 = CFG.findNode_via_id cfg to
           rec = CFG.findEdge_via_id cfg to
-      in tell [Meow "meow" "meow"] >> case rec of
+      in tell [HorizontalLine "process edge"] >> case rec of
            Nothing -> f $ do
              tell [
                Edge_2_Handle

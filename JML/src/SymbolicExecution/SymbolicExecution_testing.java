@@ -62,38 +62,29 @@ public int boo22(){
 /*
 CFG {
   nodes = [
-    Entry,
-    Node {
-      id = 1,
-      nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x"}, assEright = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "boo21"}, funArgs = []}}}),
-      parent = 0
-    },
-    End {id = 2, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "x"})}
+    Entry Int "boo22_2",
+    Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x"}, assEright = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "boo21"}, funArgs = []}}}), parent = 0},
+    End {id = 2, parent = 0, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "x"})}
   ],
   edges = [(0,[1]),(1,[2])]
 }
 */
 /*
-  Entry
+  Entry boo22_2: method type: Int
 ----------
   0 -> 1:
         Int x = boo21()
 ----------
   End: 0 -> 2:
-        x
+        return: x
 ========================
   (0,[1])
   (1,[2])
 */
+//TODO
 public int boo22_2(){
   int x = boo21();
   return x;
-}
-
-///////////////////////////////////////////////////
-
-public int boo23_2(){
-  return 3 + boo21();
 }
 
 ///////////////////////////////////////////////////
@@ -121,6 +112,7 @@ CFG {
   (1,[2])
 
 */
+//TODO
 public int boo23(){
   int x = 3 + boo21();
   return x;
@@ -131,38 +123,58 @@ public int boo23(){
 /*
 CFG {
   nodes = [
-    Entry,
-    Node {
+    Entry Int "boo23_2",
+    End {
       id = 1,
-      nodeData = Statement (VarStmt {var = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x"}}),
-      parent = 0
-    },
-    Node {
-      id = 2,
-      nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "x"}, assEright = BinOpExpr {expr1 = NumberLiteral 3.0, binOp = +, expr2 = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "boo21"}, funArgs = []}}}}),
-      parent = 0
-    },
-    End {id = 3, parent = 0, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "x"})}],
-  edges = [(0,[1]),(1,[2]),(2,[3])]
+      parent = 0,
+      mExpr = Just (
+        BinOpExpr {expr1 = NumberLiteral 3.0, binOp = +, expr2 = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "boo21"}, funArgs = []}
+        }
+      )
+    }
+  ],
+  edges = [(0,[1])]
 }
 */
 /*
-  Entry
-----------
-  0 -> 1:
-        Int x
-----------
-  0 -> 2:
-        x = 3.0 + boo21()
-----------
-  End: 0 -> 3:
-        x
-========================
-  (0,[1])
-  (1,[2])
-  (2,[3])
+SymState {env = fromList [("return",SymInt 8)], methodType = Int, pc = []}
 */
 public int boo23_2(){
+  return 3 + boo21();
+}
+
+///////////////////////////////////////////////////
+
+//TODO
+public int boo23_3(){
+  return 8;
+}
+
+////////////////////////////////////////
+
+//TODO
+public double boo23_4(){
+  return 8;
+}
+
+////////////////////////////////////////
+
+//TODO
+public double boo23_5(){
+  return 3+5;
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo23_6(){
+  return 3+5;
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo23_7(){
   int x;
   x = 3 + boo21();
   return x;

@@ -9,6 +9,7 @@ import Control.Monad.Writer
 import qualified Parser.Types as AST (Types)
 import qualified CFG.Types as CFGT (CFG)
 import Text.Printf (printf)
+import Data.List (foldl')
 
 type R =
     ReaderT (Config,[CFGT.CFG])         -- solver endpoints, thresholds…
@@ -25,6 +26,7 @@ data Log = Expression_2_Handle String String
          | Edge_2_Handle String String
          | Meow String String
          | Node_2_Handle String String
+         | HorizontalLine String
 
 instance Show Log where
   show = \case
@@ -35,6 +37,14 @@ instance Show Log where
     ReturnStatement str loc     -> printf "(%s): handling return statement: %s" loc str
     Edge_2_Handle str loc       -> printf "(%s): running CFG: %s" loc str
     Meow str1 str2              -> printf "Meow: %s %s" str1 str2
+    HorizontalLine str          -> printf ">>>>>>>>>> %s <<<<<<<<<<" str
+
+ppLogs :: [Log] -> [String]
+ppLogs = snd . foldl' enumerated (1,[])
+  where
+  enumerated :: (Int,[String]) -> Log -> (Int,[String])     
+  enumerated (num,res) log@(HorizontalLine _) = (num,res ++ [show log])
+  enumerated (num,res) x = (num+1,res ++ [printf "%d) %s" num (show x)])
 
 getReader :: SymExec -> R
 getReader (SymExec r) = r
