@@ -101,7 +101,7 @@ visitStmt stmt@AST.AssignStmt{} = do--throwError "TODO -> visitStmt -> AssignStm
   symExpr <- visitExpr $ AST.assign stmt
   modify $ \symState ->
     SymState {
-      env = error "TODO",
+      env = error "TODO: visitStmt",
       methodType = methodType symState,
       pc = pc symState
     }
@@ -115,12 +115,10 @@ data Expression
   | CharLiteral Char
   | StringLiteral String
   | Null
-  | VarExpr {varType :: Maybe (Type Types), varObj :: [String], varName :: String}
   | ArrayCallExpr {arrName :: Expression, index :: Maybe Expression}
   | ArrayInstantiationExpr {arrType :: Maybe (Type Types), arrSize :: Maybe Expression, arrElems :: [Expression]}
   | UnOpExpr {unOp :: UnOp, expr :: Expression}
   | CondExpr {eiff :: Expression, ethenn :: Expression, eelsee :: Expression}
-  | AssignExpr {assEleft :: Expression, assEright :: Expression}
   | ExcpExpr {excpName :: Exception, excpmsg :: Maybe String}
   | ReturnExpr {returnE :: Maybe Expression}
   deriving (Eq, Show)
@@ -168,7 +166,30 @@ visitExpr expr@AST.BinOpExpr{} = do
   case AST.binOp expr `elem` [AST.Plus, AST.Mult, AST.Minus, AST.Div] of
     True -> return $ ER_Expr $ getBinSymExpr (operand1, operand2) (AST.binOp expr)
     False -> throwError "TODO: visitExpr -> BinOpExpr"
-visitExpr _ = error "won't happen"
+-- AssignExpr {assEleft :: Expression, assEright :: Expression}
+visitExpr expr@AST.AssignExpr{} = do
+  tell [Expression_2_Handle (show expr) "visitExpr -> pattern matching: AssignExpr"]
+  ER_Expr e1 <- visitExpr (AST.assEleft expr)
+  ER_Expr e2 <- visitExpr (AST.assEright expr)
+  throwError "TODO: visitExpr -> AssignExpr: meow"
+-- VarExpr {varType :: Maybe (Type Types), varObj :: [String], varName :: String}
+visitExpr expr@AST.VarExpr{} = do
+  tell [Expression_2_Handle (show expr) "visitExpr -> pattern matching: VarExpr"]
+  case AST.varType expr of
+    Nothing -> do
+      tell [UpdateVariable (AST.varName expr) "visitExpr -> VarExpr -> update variable"]
+      throwError "TODO: visitExpr -> VarExpr -> 1"
+    Just t -> do
+      tell [NewVariable (show t) (AST.varName expr) "visitExpr -> VarExpr -> new variable"]
+      let sExpr = SymVar (AST.varName expr)
+      modify $ \symState ->
+        SymState {
+          env = Map.insert (AST.varName expr) sExpr (env symState),
+          methodType = methodType symState,
+          pc = pc symState
+        }
+      return $ ER_Expr sExpr
+visitExpr expr = error $ "What this is: " ++ show expr
 
 getIntegralArithBinOp :: Integral a => AST.BinOp -> (a -> a -> a)
 getIntegralArithBinOp = \case

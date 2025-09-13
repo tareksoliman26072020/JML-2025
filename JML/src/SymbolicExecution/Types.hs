@@ -29,6 +29,8 @@ data Log = Expression_2_Handle String String
          | HorizontalLine String
          | MethodStatement String
          | AssignStatement String String
+         | NewVariable String String String
+         | UpdateVariable String String
 
 instance Show Log where
   show = \case
@@ -42,6 +44,8 @@ instance Show Log where
     Edge_2_Handle str loc       -> printf "(%s): running CFG: %s" loc str
     Meow str1 str2              -> printf "Meow: %s %s" str1 str2
     HorizontalLine str          -> printf ">>>>>>>>>> %s <<<<<<<<<<" str
+    NewVariable tn vn loc       -> printf "(%s): %s %s" loc tn vn
+    UpdateVariable vn loc       -> printf "(%s): %s" loc vn
 
 ppLogs :: [Log] -> [String]
 ppLogs = snd . foldl' enumerated (1,[])
