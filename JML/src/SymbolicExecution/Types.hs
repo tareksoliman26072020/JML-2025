@@ -1,4 +1,5 @@
 {-# Language LambdaCase #-}
+{-# Language FlexibleInstances #-} -- to enable instancing MonadFail (Either String)
 module SymbolicExecution.Types where
 
 import qualified Data.Map as Map
@@ -13,7 +14,7 @@ import Data.List (foldl')
 
 type R =
     ReaderT (Config,[CFGT.CFG])         -- solver endpoints, thresholds…
-    (ExceptT String (WriterT [Log] (StateT SymState Maybe))) -- env :: Map Var SymExpr; pc :: [SymExpr]
+    (ExceptT String (WriterT [Log] (StateT SymState (Either String)))) -- env :: Map Var SymExpr; pc :: [SymExpr]
     ExecutionResult
 
 newtype SymExec = SymExec R
@@ -31,6 +32,8 @@ data Log = Expression_2_Handle String String
          | AssignStatement String String
          | NewVariable String String String
          | UpdateVariable String String
+         | Assign String String String
+         | LookUpEnvTable String String String
 
 instance Show Log where
   show = \case
@@ -46,6 +49,8 @@ instance Show Log where
     HorizontalLine str          -> printf ">>>>>>>>>> %s <<<<<<<<<<" str
     NewVariable tn vn loc       -> printf "(%s): %s %s" loc tn vn
     UpdateVariable vn loc       -> printf "(%s): %s" loc vn
+    Assign left right loc       -> printf "(%s): Assigning %s = %s" loc left right
+    LookUpEnvTable key val loc  -> printf "(%s): Look up in environmane table (%s ~~> %s) " loc key val
 
 ppLogs :: [Log] -> [String]
 ppLogs = snd . foldl' enumerated (1,[])
@@ -59,7 +64,6 @@ getReader (SymExec r) = r
 
 data SymState = SymState
  { env :: Map.Map String SymExpr
- , methodType :: AST.Types
  , pc  :: [SymExpr]          -- ^ Path‐conditions: accumulate the conditions under which each execution state is feasible.
  }
  deriving Show
@@ -96,7 +100,7 @@ data SymBinOp
   | Or       -- ^ logical ||
   deriving (Eq, Show)
 
-data ExecutionResult = ER_Expr SymExpr | ER_Void deriving (Eq, Show)
+data ExecutionResult = ER_Expr SymExpr | ER_Key {key :: String} | ER_Void deriving (Eq, Show)
 data SymExpr =
 -- | A (tiny) symbolic expression language
     SymVar    String              -- ^ symbolic variable, e.g. "x" or "tmp1"
@@ -108,5 +112,8 @@ data SymExpr =
   | SBin    SymBinOp SymExpr SymExpr  -- ^ binary operation
   | SNot    SymExpr               -- ^ logical negation
   | SIte    SymExpr SymExpr SymExpr   -- ^ if-then-else (cond, then, else)
+  | SymNull
   deriving (Eq, Show)
 
+instance MonadFail (Either String) where
+  fail = Left

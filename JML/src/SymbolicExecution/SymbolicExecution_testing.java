@@ -81,7 +81,12 @@ CFG {
   (0,[1])
   (1,[2])
 */
-//TODO
+/*
+SymState {
+  env = fromList [("return",SymInt 5),("x",SymInt 5)],
+  pc = []
+}
+*/
 public int boo22_2(){
   int x = boo21();
   return x;

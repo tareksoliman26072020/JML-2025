@@ -13,6 +13,7 @@ import Visitors.API
 import Control.Monad.Reader
 import Control.Monad.Writer
 import Text.Printf (printf)
+import Data.Functor (($>))
 
 {-
 data Node = Entry | End {
@@ -29,21 +30,14 @@ data Node = Entry | End {
 {-
 data SymState = SymState
  { env :: Map.Map String SymExpr
- , methodType :: Maybe AST.Types
  , pc  :: [SymExpr]          -- ^ Path‐conditions: accumulate the conditions under which each execution state is feasible.
  }
 -}
 instance CFGVisitor SymExec where
 --visitNode :: CFG.Node -> SymExec
-  --visitNode node = return $ SymState Map.empty []
   visitNode node = SymExec $ tell [HorizontalLine "visitNode"] >> case node of
     CFG.Entry t mn -> do
       tell [MethodStart mn "visitNode -> case node of Entry"]
-      modify $ \symState -> SymState {
-        env = env symState,
-        methodType = t,
-        pc = pc symState
-      }
       return ER_Void
     n@CFG.End{} -> do
       tell [MethodEnd "visitNode -> case node of End"]
@@ -78,7 +72,16 @@ data NodeData = ForInitialization AST.Expression
 visitStmt :: AST.Statement -> R
 visitStmt (AST.ReturnStmt (Just expr)) = do
   tell [ReturnStatement (show expr) "visitStmt -> pattern matching: ReturnStmt"]
-  symExpr <- visitExpr expr
+  er <- visitExpr expr
+  let symExpr = case er of
+        ER_Expr symExpr_ -> symExpr_ 
+        _                -> error "visitStmt -> ReturnStmt -> won't happen"
+  modify $ \symState ->
+    SymState {
+      env = Map.insert "return" symExpr (env symState),
+      pc = pc symState
+    }
+  {-
   modify $ \symState ->
     SymState {
       env = case (methodType symState, symExpr) of
@@ -90,22 +93,15 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
           Map.insert "return" (SymFloat float) (env symState)
         (_,ER_Expr s)                        ->
           Map.insert "return" s (env symState)
-        _ -> error "TODO -> visitStmt -> 1",
-      methodType = methodType symState,
+        tu -> error $ "TODO -> visitStmt -> " ++ show tu,
       pc = pc symState
     }
+  -}
   return ER_Void
 -- AssignStmt {varModifier :: [Modifier], assign :: Expression}
 visitStmt stmt@AST.AssignStmt{} = do--throwError "TODO -> visitStmt -> AssignStmt"
   tell [AssignStatement (show $ AST.assign stmt) "visitStmt -> pattern matching: AssignStmt"]
-  symExpr <- visitExpr $ AST.assign stmt
-  modify $ \symState ->
-    SymState {
-      env = error "TODO: visitStmt",
-      methodType = methodType symState,
-      pc = pc symState
-    }
-  return ER_Void
+  (visitExpr $ AST.assign stmt) $> ER_Void
 visitStmt _ = throwError "TODO -> visitStmt -> 2"
 
 {-
@@ -149,7 +145,7 @@ data SymState = SymState
 -}
 -- FunCallExpr {funName :: Expression, funArgs :: [Expression]}
 visitExpr (expr@AST.FunCallExpr{}) = do
-  tell [Expression_2_Handle (show expr) "visitExpr -> pattern matching: FunCallExpr"]
+  tell [Expression_2_Handle (show expr) "visitExpr -> FunCallExpr"]
   (_,cfgs) <- ask
   let funCallName = AST.getFunCallName $ AST.FunCallStmt expr
   case CFG.findCFGByName funCallName cfgs of
@@ -159,7 +155,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
       in return $ ER_Expr $ getReturnSymExpr funCallSymState
 --BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
 visitExpr expr@AST.BinOpExpr{} = do
-  tell [Expression_2_Handle (show expr) "visitExpr -> pattern matching: BinOpExpr"]
+  tell [Expression_2_Handle (show expr) "visitExpr -> BinOpExpr"]
   ER_Expr operand1 <- visitExpr (AST.expr1 expr)
   ER_Expr operand2 <- visitExpr (AST.expr2 expr)
   let operands = [operand1,operand2]
@@ -168,24 +164,34 @@ visitExpr expr@AST.BinOpExpr{} = do
     False -> throwError "TODO: visitExpr -> BinOpExpr"
 -- AssignExpr {assEleft :: Expression, assEright :: Expression}
 visitExpr expr@AST.AssignExpr{} = do
-  tell [Expression_2_Handle (show expr) "visitExpr -> pattern matching: AssignExpr"]
+  tell [Expression_2_Handle (show expr) "visitExpr -> AssignExpr"]
   ER_Expr e1 <- visitExpr (AST.assEleft expr)
   ER_Expr e2 <- visitExpr (AST.assEright expr)
-  throwError "TODO: visitExpr -> AssignExpr: meow"
+  case e1 of
+    SymVar svn -> do
+      tell [Assign (show e1) (show e2) "visitExpr -> AssignExpr -> case <left side> of SymVar"]
+      modify $ \symState ->
+        SymState {
+          env = Map.insert svn e2 (env symState),
+          pc = pc symState
+        }
+      return $ ER_Key svn
+    _ -> throwError "visitExpr -> AssignExpr: won't happen, because the left side of an assignment expression is always a SymVar"
 -- VarExpr {varType :: Maybe (Type Types), varObj :: [String], varName :: String}
 visitExpr expr@AST.VarExpr{} = do
-  tell [Expression_2_Handle (show expr) "visitExpr -> pattern matching: VarExpr"]
+  tell [Expression_2_Handle (show expr) "visitExpr -> VarExpr"]
   case AST.varType expr of
     Nothing -> do
       tell [UpdateVariable (AST.varName expr) "visitExpr -> VarExpr -> update variable"]
-      throwError "TODO: visitExpr -> VarExpr -> 1"
+      val <- (Map.! (AST.varName expr)) <$> env <$> get
+      tell [LookUpEnvTable (AST.varName expr) (show val) "visitExpr -> VarExpr -> update variable"]
+      return $ ER_Expr val
     Just t -> do
       tell [NewVariable (show t) (AST.varName expr) "visitExpr -> VarExpr -> new variable"]
       let sExpr = SymVar (AST.varName expr)
       modify $ \symState ->
         SymState {
-          env = Map.insert (AST.varName expr) sExpr (env symState),
-          methodType = methodType symState,
+          env = Map.insert (AST.varName expr) SymNull (env symState),
           pc = pc symState
         }
       return $ ER_Expr sExpr
@@ -251,7 +257,7 @@ data SymState = SymState
 
 runCFG :: [CFG.CFG] -> CFG.CFG -> ([Log],SymState)
 runCFG cfgs cfg = case CFG.edges cfg of
-  [] -> ([],SymState Map.empty undefined [])
+  [] -> ([],SymState Map.empty [])
   (x : _) -> runHelper x where
     runHelper :: (CFG.NodeID,[CFG.NodeID]) -> ([Log],SymState)
     runHelper (from,[to]) =
@@ -274,21 +280,34 @@ runCFG cfgs cfg = case CFG.edges cfg of
                  (printf "\ncurrent edge:\n    %s\ncurrent node:\n    %s\nnext edge:\n    %s" (show (from,[to])) (show node1) (show edge))
                  "runCFG -> runHelper -> case rec of Just"]
              getReader (visitNode node1)
-             let (_,s) = runHelper edge       --return (runHelper edge)
+             let (_,s) = runHelper edge
              modify (const s)
              return ER_Void
     f :: R -> ([Log],SymState)
     f theRun =
-      let initialSymState = SymState Map.empty undefined []
-          run_r :: ExceptT String (WriterT [Log] (StateT SymState Maybe)) ExecutionResult
+      let initialSymState = SymState Map.empty []
+          run_r :: ExceptT String (WriterT [Log] (StateT SymState (Either String))) ExecutionResult
           run_r = runReaderT theRun (defaultConfig,cfgs)
-          run_e :: WriterT [Log] (StateT SymState Maybe) (Either String ExecutionResult)
+          run_e :: WriterT [Log] (StateT SymState (Either String)) (Either String ExecutionResult)
           run_e = runExceptT run_r
-          run_w :: StateT SymState Maybe (Either String ExecutionResult,[Log])
+          run_w :: StateT SymState (Either String) (Either String ExecutionResult,[Log])
           run_w = runWriterT run_e
-          mRun_s :: Maybe ((Either String ExecutionResult,[Log]),SymState)
+          mRun_s :: Either String ((Either String ExecutionResult,[Log]),SymState)
           mRun_s = runStateT run_w initialSymState
       in case mRun_s of
-           Nothing -> error "Why is this Nothing?"
-           Just ((ei,logs),s) -> (logs,either error (const s) ei)
+           Left str -> error str
+           Right ((ei,logs),SymState m ps) ->
+             let returnValue = m Map.! "return"
+                 m2 = flip (Map.insert "return") m $
+                        case (CFG.getCFGType cfg, returnValue) of
+                          (AST.Int, SymNum float)    ->
+                            SymInt (round float)
+                          (AST.Double, SymNum float) ->
+                            SymDouble (realToFrac float)
+                          (AST.Float, SymNum float)  ->
+                            SymFloat float
+                          (_, expr)                  ->
+                            expr
+                          tu -> error "won't happen"
+             in (logs,either error (const (SymState m2 ps)) ei)
 

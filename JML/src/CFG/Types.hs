@@ -50,6 +50,15 @@ getCFGName = f2 . find f1 . nodes
   f2 (Just (Entry _ name)) = name
   f2 Nothing               = error "Won't happen"
 
+getCFGType :: CFG -> AST.Types
+getCFGType cfg = 
+  let finding = flip find (nodes cfg) $ \case
+        Entry _ _ -> True
+        _         -> False
+  in case finding of
+       Nothing -> error "won't happen"
+       Just (Entry t _)  -> t
+
 ------------------------------
 
 data NodeData = Statement AST.Statement
