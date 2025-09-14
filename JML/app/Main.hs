@@ -4,6 +4,7 @@ import Text.ParserCombinators.Parsec
 import Parser.ParseStmt
 import Data.Either (fromRight)
 import Parser.Types (Method)
+import Data.List (intercalate)
 
 import qualified Parser.Types as AST
 
@@ -65,7 +66,7 @@ getSymState funName = readFile "test3.java" >>=
                 in do putStrLn "================"
                       putStrLn "===Begin Logs==="
                       putStrLn "================"
-                      mapM_ putStrLn (SYT.ppLogs logs)
+                      putStrLn $ intercalate "\n\n" (SYT.ppLogs logs)
                       putStrLn "=============="
                       putStrLn "===End Logs==="
                       putStrLn "=============="

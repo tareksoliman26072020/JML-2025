@@ -7,7 +7,7 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Except
 import Control.Monad.Writer
-import qualified Parser.Types as AST (Types)
+import qualified Parser.Types as AST
 import qualified CFG.Types as CFGT (CFG)
 import Text.Printf (printf)
 import Data.List (foldl')
@@ -34,6 +34,7 @@ data Log = Expression_2_Handle String String
          | UpdateVariable String String
          | Assign String String String
          | LookUpEnvTable String String String
+         | NextNode String
 
 instance Show Log where
   show = \case
@@ -42,8 +43,8 @@ instance Show Log where
     MethodStart str loc         -> printf "(%s): Method Start: %s" loc str
     MethodStatement str         -> printf "(%s): Method Statement" str
     Expression_2_Handle str loc -> printf "(%s): handling expression: %s" loc str
-    ReturnStatement str loc     -> printf "(%s): handling return statement: %s" loc str
-    AssignStatement str loc     -> printf "(%s): handling return statement: %s" loc str
+    ReturnStatement str loc     -> printf "(%s): handling return expression: %s" loc str
+    AssignStatement str loc     -> printf "(%s): handling assign statement: %s" loc str
     Edge_2_Handle str loc       -> printf "(%s): running CFG: %s" loc str
     Meow str1 str2              -> printf "Meow: %s %s" str1 str2
     HorizontalLine str          -> printf ">>>>>>>>>> %s <<<<<<<<<<" str
@@ -51,6 +52,7 @@ instance Show Log where
     UpdateVariable vn loc       -> printf "(%s): %s" loc vn
     Assign left right loc       -> printf "(%s): Assigning %s = %s" loc left right
     LookUpEnvTable key val loc  -> printf "(%s): Look up in environmane table (%s ~~> %s) " loc key val
+    NextNode nodeStr            -> "Next Node: " ++ nodeStr
 
 ppLogs :: [Log] -> [String]
 ppLogs = snd . foldl' enumerated (1,[])
@@ -72,6 +74,37 @@ getReturnSymExpr :: SymState -> SymExpr
 getReturnSymExpr symState = case Map.lookup "return" $ env symState of
   Just symExpr -> symExpr
   Nothing      -> error "won't happen, because this function is only called on SymStates with a return Statement."
+
+getBinSymExpr :: (SymExpr, SymExpr) -> AST.BinOp -> SymExpr
+getBinSypExpr (SymNum num1, SymNum num2) op =
+  SymNum (getFractionalArithBinOp op num1 num2)
+getBinSypExpr (SymInt num1, SymInt num2) op =
+  SymInt (getIntegralArithBinOp op num1 num2)
+getBinSypExpr (SymDouble num1, SymDouble num2) op =
+  SymDouble (getFractionalArithBinOp op num1 num2)
+getBinSypExpr (SymFloat num1, SymFloat num2) op =
+  SymFloat (getFractionalArithBinOp op num1 num2)
+getBinSymExpr (SymNum num1, SymInt num2) op =
+  SymInt (getIntegralArithBinOp op (round num1) num2)
+getBinSymExpr (SymNum num1, SymDouble num2) op =
+  SymDouble (getFractionalArithBinOp op (realToFrac num1) num2)
+getBinSymExpr (SymNum num1, SymFloat num2) op =
+  SymFloat (getFractionalArithBinOp op num1 num2)
+getBinSymExpr (symExpr, SymNum num2) op = getBinSymExpr (SymNum num2, symExpr) op
+
+getIntegralArithBinOp :: Integral a => AST.BinOp -> (a -> a -> a)
+getIntegralArithBinOp = \case
+    AST.Plus  -> (+)
+    AST.Mult  -> (*)
+    AST.Minus -> (-)
+
+getFractionalArithBinOp :: Fractional a => AST.BinOp -> (a -> a -> a)
+getFractionalArithBinOp = \case
+    AST.Plus  -> (+)
+    AST.Mult  -> (*)
+    AST.Minus -> (-)
+    AST.Div   -> (/)
+
 {-
 In short, every element of pc becomes a clause in your requires or loop_invariant, and every binding in your final env becomes an equation in your ensures. That’s exactly how symbolic execution wires into JML inference.
 -}
@@ -112,7 +145,7 @@ data SymExpr =
   | SBin    SymBinOp SymExpr SymExpr  -- ^ binary operation
   | SNot    SymExpr               -- ^ logical negation
   | SIte    SymExpr SymExpr SymExpr   -- ^ if-then-else (cond, then, else)
-  | SymNull
+  | SymNull                       -- ^ value of an unassigned variable
   deriving (Eq, Show)
 
 instance MonadFail (Either String) where

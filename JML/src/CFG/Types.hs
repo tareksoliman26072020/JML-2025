@@ -208,12 +208,23 @@ findNode_via_id cfg nodeId =
     Nothing   -> error "won't happen"
 
 findEdge_via_id :: CFG -> NodeID -> Maybe (NodeID,[NodeID])
-findEdge_via_id cfg nodeId = find (\(n,_) -> n==nodeId) $ edges cfg
+findEdge_via_id cfg nodeId = flip find (edges cfg) $ \(n,_) -> n==nodeId
 
 getNodeId :: Node -> NodeID
 getNodeId = \case
   Entry _ _ -> 0
-  n@End{}   -> CFG.Types.id n
-  n@Node{}  -> CFG.Types.id n
+  n@End{}  -> CFG.Types.id n
+  n@Node{} -> CFG.Types.id n
+
+getPath :: CFG -> NodeID -> [Node]
+getPath cfg startId =
+  let currentNode = findNode_via_id cfg startId
+      nextNodeId = case findEdge_via_id cfg startId of
+        Nothing -> error "won't happen"
+        Just (_,[next]) -> next
+        Just _          -> error "TODO"
+  in case currentNode of
+       End{} -> [currentNode]
+       _     -> currentNode : getPath cfg nextNodeId
 
 -----------------------------

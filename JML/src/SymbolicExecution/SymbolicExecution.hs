@@ -56,6 +56,7 @@ Node {
   }
 
 >>>>>>>>>> <<<<<<<<<<
+
 data NodeData = ForInitialization AST.Expression
               | BooleanExpression Kind AST.Expression
               | ForStep AST.Statement 
@@ -70,6 +71,7 @@ data NodeData = ForInitialization AST.Expression
         $ "TODO -> visitNode -> Node -> nodeData -> otherwise" ++ show n
 
 visitStmt :: AST.Statement -> R
+--ReturnStmt {returnS :: Maybe Expression}
 visitStmt (AST.ReturnStmt (Just expr)) = do
   tell [ReturnStatement (show expr) "visitStmt -> pattern matching: ReturnStmt"]
   er <- visitExpr expr
@@ -99,7 +101,7 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
   -}
   return ER_Void
 -- AssignStmt {varModifier :: [Modifier], assign :: Expression}
-visitStmt stmt@AST.AssignStmt{} = do--throwError "TODO -> visitStmt -> AssignStmt"
+visitStmt stmt@AST.AssignStmt{} = do
   tell [AssignStatement (show $ AST.assign stmt) "visitStmt -> pattern matching: AssignStmt"]
   (visitExpr $ AST.assign stmt) $> ER_Void
 visitStmt _ = throwError "TODO -> visitStmt -> 2"
@@ -197,37 +199,6 @@ visitExpr expr@AST.VarExpr{} = do
       return $ ER_Expr sExpr
 visitExpr expr = error $ "What this is: " ++ show expr
 
-getIntegralArithBinOp :: Integral a => AST.BinOp -> (a -> a -> a)
-getIntegralArithBinOp = \case
-    AST.Plus  -> (+)
-    AST.Mult  -> (*)
-    AST.Minus -> (-)
-
-getFractionalArithBinOp :: Fractional a => AST.BinOp -> (a -> a -> a)
-getFractionalArithBinOp = \case
-    AST.Plus  -> (+)
-    AST.Mult  -> (*)
-    AST.Minus -> (-)
-    AST.Div   -> (/)
-
-getBinSymExpr :: (SymExpr, SymExpr) -> AST.BinOp -> SymExpr
-getBinSypExpr (SymNum num1, SymNum num2) op =
-  SymNum (getFractionalArithBinOp op num1 num2)
-getBinSypExpr (SymInt num1, SymInt num2) op =
-  SymInt (getIntegralArithBinOp op num1 num2)
-getBinSypExpr (SymDouble num1, SymDouble num2) op =
-  SymDouble (getFractionalArithBinOp op num1 num2)
-getBinSypExpr (SymFloat num1, SymFloat num2) op =
-  SymFloat (getFractionalArithBinOp op num1 num2)
-getBinSymExpr (SymNum num1, SymInt num2) op =
-  SymInt (getIntegralArithBinOp op (round num1) num2)
-getBinSymExpr (SymNum num1, SymDouble num2) op =
-  SymDouble (getFractionalArithBinOp op (realToFrac num1) num2)
-getBinSymExpr (SymNum num1, SymFloat num2) op =
-  SymFloat (getFractionalArithBinOp op num1 num2)
-getBinSymExpr (symExpr, SymNum num2) op = getBinSymExpr (SymNum num2, symExpr) op
-
-
 ------------------------------
 
 {-
@@ -252,9 +223,49 @@ data Node = Entry | End {
 
 data SymState = SymState
  { env :: Map.Map String SymExpr
- , pc  :: [SymExpr]          -- ^ Path‐conditions: accumulate the conditions under which each execution state is feasible.
+ , pc  :: [SymExpr]
 -}
 
+runCFG :: [CFG.CFG] -> CFG.CFG -> ([Log],SymState)
+runCFG cfgs cfg =
+  let path :: [CFG.Node]
+      path = CFG.getPath cfg 0
+    {-
+      runner :: ReaderT (Config,[CFGT.CFG])
+                        (ExceptT String (WriterT [Log] (StateT SymState (Either String))))
+                        [ExecutionResult]
+     -}
+      runner = flip mapM path $ \node -> do
+        tell [NextNode (show node)]
+        getReader $ visitNode node
+      initialSymState = SymState Map.empty []
+      run_r :: ExceptT String (WriterT [Log] (StateT SymState (Either String))) ()
+      run_r = runReaderT (runner $> ()) (defaultConfig,cfgs)
+      run_e :: WriterT [Log] (StateT SymState (Either String)) (Either String ())
+      run_e = runExceptT run_r
+      run_w :: StateT SymState (Either String) (Either String (),[Log])
+      run_w = runWriterT run_e
+      mRun_s :: Either String ((Either String (),[Log]),SymState)
+      mRun_s = runStateT run_w initialSymState
+  in case mRun_s of
+       Left str -> error str
+       Right ((ei,logs),SymState m ps) ->
+         let returnValue = m Map.! "return"
+             m2 = flip (Map.insert "return") m $
+                    case (CFG.getCFGType cfg, returnValue) of
+                      (AST.Int, SymNum float)    ->
+                        SymInt (round float)
+                      (AST.Double, SymNum float) ->
+                        SymDouble (realToFrac float)
+                      (AST.Float, SymNum float)  ->
+                        SymFloat float
+                      (_, expr)                  ->
+                        expr
+         in (logs,either error (const (SymState m2 ps)) ei)
+
+
+
+{-
 runCFG :: [CFG.CFG] -> CFG.CFG -> ([Log],SymState)
 runCFG cfgs cfg = case CFG.edges cfg of
   [] -> ([],SymState Map.empty [])
@@ -294,7 +305,8 @@ runCFG cfgs cfg = case CFG.edges cfg of
           run_w = runWriterT run_e
           mRun_s :: Either String ((Either String ExecutionResult,[Log]),SymState)
           mRun_s = runStateT run_w initialSymState
-      in case mRun_s of
+      in --error $ unlines $ map (\(n,nn) -> printf "%d: %s\n" n (show nn)) $ zip [1 :: Int ..] $ CFG.getPath cfg 0
+         case mRun_s of
            Left str -> error str
            Right ((ei,logs),SymState m ps) ->
              let returnValue = m Map.! "return"
@@ -308,6 +320,5 @@ runCFG cfgs cfg = case CFG.edges cfg of
                             SymFloat float
                           (_, expr)                  ->
                             expr
-                          tu -> error "won't happen"
              in (logs,either error (const (SymState m2 ps)) ei)
-
+-}

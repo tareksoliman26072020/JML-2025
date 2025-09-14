@@ -150,7 +150,7 @@ public int boo23_2(){
 
 ///////////////////////////////////////////////////
 
-//TODO
+//SymState {env = fromList [("return",SymInt 8)], pc = []}
 public int boo23_3(){
   return 8;
 }
