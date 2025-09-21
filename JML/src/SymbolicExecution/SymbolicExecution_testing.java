@@ -150,36 +150,59 @@ public int boo23_2(){
 
 ///////////////////////////////////////////////////
 
-//SymState {env = fromList [("return",SymInt 8)], pc = []}
+/*
+SymState {env = fromList [("return",SymInt 5),("x",SymInt 8)], pc = []}
+*/
 public int boo23_3(){
+  int x = 3 + boo21();
+  return 5;
+}
+
+///////////////////////////////////////////////////
+
+//SymState {env = fromList [("return",SymInt 8)], pc = []}
+public int boo23_8(){
   return 8;
 }
 
 ////////////////////////////////////////
 
-//TODO
-public double boo23_4(){
+//SymState {env = fromList [("return",SymInt 8)], pc = []}
+public int boo23_4(){
+  return 3 + boo21();
+}
+
+////////////////////////////////////////
+
+//SymState {env = fromList [("return",SymInt 8)], pc = []}
+public int boo23_5(){
   return 8;
 }
 
 ////////////////////////////////////////
 
-//TODO
-public double boo23_5(){
+//SymState {env = fromList [("return",SymDouble 8.0)], pc = []}
+public double boo23_6(){
+  return 8;
+}
+
+////////////////////////////////////////
+
+//SymState {env = fromList [("return",SymDouble 8.0)], pc = []}
+public double boo23_7(){
   return 3+5;
 }
 
 ////////////////////////////////////////
 
-//TODO
-public int boo23_6(){
+//SymState {env = fromList [("return",SymInt 8)], pc = []}
+public int boo23_8(){
   return 3+5;
 }
 
 ////////////////////////////////////////
 
-//TODO
-public int boo23_7(){
+public int boo23_9(){
   int x;
   x = 3 + boo21();
   return x;
@@ -188,15 +211,7 @@ public int boo23_7(){
 ////////////////////////////////////////
 
 //TODO
-public int boo23_8(){
-  int x = 3+5;
-  return x;
-}
-
-////////////////////////////////////////
-
-//TODO
-public int boo23_9(){
+public int boo23_11(){
   int x = 3+5;
   x = 10-1;
   return x;

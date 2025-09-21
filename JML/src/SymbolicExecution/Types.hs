@@ -76,13 +76,14 @@ getReturnSymExpr symState = case Map.lookup "return" $ env symState of
   Nothing      -> error "won't happen, because this function is only called on SymStates with a return Statement."
 
 getBinSymExpr :: (SymExpr, SymExpr) -> AST.BinOp -> SymExpr
-getBinSypExpr (SymNum num1, SymNum num2) op =
+getBinSymExpr (SymNum num1, SymNum num2) op =
   SymNum (getFractionalArithBinOp op num1 num2)
-getBinSypExpr (SymInt num1, SymInt num2) op =
+--error $ show $ SymNum (getFractionalArithBinOp op num1 num2)
+getBinSymExpr (SymInt num1, SymInt num2) op =
   SymInt (getIntegralArithBinOp op num1 num2)
-getBinSypExpr (SymDouble num1, SymDouble num2) op =
+getBinSymExpr (SymDouble num1, SymDouble num2) op =
   SymDouble (getFractionalArithBinOp op num1 num2)
-getBinSypExpr (SymFloat num1, SymFloat num2) op =
+getBinSymExpr (SymFloat num1, SymFloat num2) op =
   SymFloat (getFractionalArithBinOp op num1 num2)
 getBinSymExpr (SymNum num1, SymInt num2) op =
   SymInt (getIntegralArithBinOp op (round num1) num2)

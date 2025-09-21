@@ -12,7 +12,7 @@ public int boo22(){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
 public int boo22_2(){
   int x = boo21();
   return x;
@@ -20,8 +20,8 @@ public int boo22_2(){
 
 ////////////////////////////////////////
 
-//TODO
-public int boo23(){
+//DONE
+public int boo23_3(){
   int x = 3 + boo21();
   return 5;
 }
@@ -29,42 +29,42 @@ public int boo23(){
 ////////////////////////////////////////
 
 //DONE
-public int boo23_2(){
+public int boo23_4(){
   return 3 + boo21();
 }
 
 ////////////////////////////////////////
 
-//TODO
-public int boo23_3(){
+//DONE
+public int boo23_5(){
   return 8;
 }
 
 ////////////////////////////////////////
 
-//TODO
-public double boo23_4(){
+//DONE
+public double boo23_6(){
   return 8;
 }
 
 ////////////////////////////////////////
 
-//TODO
-public double boo23_5(){
+//DONE
+public double boo23_7(){
+  return 3+5;
+}
+
+////////////////////////////////////////
+
+//DONE
+public int boo23_8(){
   return 3+5;
 }
 
 ////////////////////////////////////////
 
 //TODO
-public int boo23_6(){
-  return 3+5;
-}
-
-////////////////////////////////////////
-
-//TODO
-public int boo23_7(){
+public int boo23_9(){
   int x;
   x = 3 + boo21();
   return x;
@@ -73,7 +73,7 @@ public int boo23_7(){
 ////////////////////////////////////////
 
 //TODO
-public int boo23_8(){
+public int boo23_10(){
   int x = 3+5;
   return x;
 }
@@ -81,7 +81,7 @@ public int boo23_8(){
 ////////////////////////////////////////
 
 //TODO
-public int boo23_9(){
+public int boo23_11(){
   int x = 3+5;
   x = 10-1;
   return x;
