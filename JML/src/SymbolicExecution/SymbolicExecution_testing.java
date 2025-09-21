@@ -202,6 +202,18 @@ public int boo23_8(){
 
 ////////////////////////////////////////
 
+/*
+CFG {
+  nodes = [
+    Entry Int "boo23_9",
+    Node {id = 1, nodeData = Statement (VarStmt {var = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x"}}), parent = 0},
+    Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "x"}, assEright = BinOpExpr {expr1 = NumberLiteral 3.0, binOp = +, expr2 = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "boo21"}, funArgs = []}}}}), parent = 0},
+    End {id = 3, parent = 0, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "x"})}
+  ],
+  edges = [(0,[1]),(1,[2]),(2,[3])]
+}
+*/
+//SymState {env = fromList [("return",SymInt 8),("x",SymInt 8)], pc = []}
 public int boo23_9(){
   int x;
   x = 3 + boo21();

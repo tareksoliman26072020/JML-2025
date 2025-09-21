@@ -134,7 +134,12 @@ data SymBinOp
   | Or       -- ^ logical ||
   deriving (Eq, Show)
 
-data ExecutionResult = ER_Expr SymExpr | ER_Key {key :: String} | ER_Void deriving (Eq, Show)
+data ExecutionResult =
+    ER_Expr SymExpr
+  | ER_Key {key :: String}
+  | ER_MapEntry {key :: String, val :: SymExpr}
+  | ER_Void deriving (Eq, Show)
+
 data SymExpr =
 -- | A (tiny) symbolic expression language
     SymVar    String              -- ^ symbolic variable, e.g. "x" or "tmp1"

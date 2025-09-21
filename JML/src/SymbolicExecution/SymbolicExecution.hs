@@ -77,33 +77,21 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
   er <- visitExpr expr
   let symExpr = case er of
         ER_Expr symExpr_ -> symExpr_ 
-        _                -> error "visitStmt -> ReturnStmt -> won't happen"
+        er@ER_MapEntry{} -> val er
+        x                -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show x
   modify $ \symState ->
     SymState {
       env = Map.insert "return" symExpr (env symState),
       pc = pc symState
     }
-  {-
-  modify $ \symState ->
-    SymState {
-      env = case (methodType symState, symExpr) of
-        (AST.Int, ER_Expr (SymNum float))    ->
-          Map.insert "return" (SymInt (round float)) (env symState)
-        (AST.Double, ER_Expr (SymNum float)) ->
-          Map.insert "return" (SymDouble (realToFrac float)) (env symState)
-        (AST.Float, ER_Expr (SymNum float))  ->
-          Map.insert "return" (SymFloat float) (env symState)
-        (_,ER_Expr s)                        ->
-          Map.insert "return" s (env symState)
-        tu -> error $ "TODO -> visitStmt -> " ++ show tu,
-      pc = pc symState
-    }
-  -}
   return ER_Void
 -- AssignStmt {varModifier :: [Modifier], assign :: Expression}
 visitStmt stmt@AST.AssignStmt{} = do
   tell [AssignStatement (show $ AST.assign stmt) "visitStmt -> pattern matching: AssignStmt"]
   (visitExpr $ AST.assign stmt) $> ER_Void
+-- VarStmt {var :: Expression}
+visitStmt stmt@AST.VarStmt{} =
+  (visitExpr $ AST.var stmt) $> ER_Void
 visitStmt _ = throwError "TODO -> visitStmt -> 2"
 
 {-
@@ -167,36 +155,34 @@ visitExpr expr@AST.BinOpExpr{} = do
 -- AssignExpr {assEleft :: Expression, assEright :: Expression}
 visitExpr expr@AST.AssignExpr{} = do
   tell [Expression_2_Handle (show expr) "visitExpr -> AssignExpr"]
-  ER_Expr e1 <- visitExpr (AST.assEleft expr)
+  ER_MapEntry svn _ <- visitExpr (AST.assEleft expr)
   ER_Expr e2 <- visitExpr (AST.assEright expr)
-  case e1 of
-    SymVar svn -> do
-      tell [Assign (show e1) (show e2) "visitExpr -> AssignExpr -> case <left side> of SymVar"]
-      modify $ \symState ->
-        SymState {
-          env = Map.insert svn e2 (env symState),
-          pc = pc symState
-        }
-      return $ ER_Key svn
-    _ -> throwError "visitExpr -> AssignExpr: won't happen, because the left side of an assignment expression is always a SymVar"
+  tell [Assign svn (show e2) "visitExpr -> AssignExpr"]
+  modify $ \symState ->
+    SymState {
+      env = Map.insert svn e2 (env symState),
+      pc = pc symState
+    }
+  return $ ER_MapEntry svn e2
 -- VarExpr {varType :: Maybe (Type Types), varObj :: [String], varName :: String}
 visitExpr expr@AST.VarExpr{} = do
   tell [Expression_2_Handle (show expr) "visitExpr -> VarExpr"]
+  let varName_ = AST.varName expr
   case AST.varType expr of
     Nothing -> do
-      tell [UpdateVariable (AST.varName expr) "visitExpr -> VarExpr -> update variable"]
-      val <- (Map.! (AST.varName expr)) <$> env <$> get
-      tell [LookUpEnvTable (AST.varName expr) (show val) "visitExpr -> VarExpr -> update variable"]
-      return $ ER_Expr val
+      tell [UpdateVariable varName_ "visitExpr -> VarExpr -> update variable"]
+      val <- (Map.! varName_) <$> env <$> get
+      tell [LookUpEnvTable varName_ (show val) "visitExpr -> VarExpr -> update variable"]
+      return $ ER_MapEntry varName_ val
     Just t -> do
-      tell [NewVariable (show t) (AST.varName expr) "visitExpr -> VarExpr -> new variable"]
-      let sExpr = SymVar (AST.varName expr)
+      tell [NewVariable (show t) varName_ "visitExpr -> VarExpr -> new variable"]
+    --let sExpr = SymVar varName_
       modify $ \symState ->
         SymState {
-          env = Map.insert (AST.varName expr) SymNull (env symState),
+          env = Map.insert varName_ SymNull (env symState),
           pc = pc symState
         }
-      return $ ER_Expr sExpr
+      return $ ER_MapEntry varName_ SymNull
 visitExpr expr = error $ "What this is: " ++ show expr
 
 ------------------------------
