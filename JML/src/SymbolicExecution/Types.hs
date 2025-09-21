@@ -136,7 +136,7 @@ cast symType symExpr = case symExpr of
                 Float  -> getBinSymExpr (symExpr, SymFloat 0) AST.Plus
                 Bool   -> error "won't happen"
                 Void   -> error "won't happen"
-  _ -> error "won't happen"
+  a -> a
 
 instance MonadFail (Either String) where
   fail = Left

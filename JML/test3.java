@@ -72,7 +72,7 @@ public int boo23_9(){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
 public int boo23_10(){
   int x = 3+5;
   return x;

@@ -222,6 +222,16 @@ public int boo23_9(){
 
 ////////////////////////////////////////
 
+/*
+SymState {env = fromList [("return",SymInt 8),("x",SymInt 8)], pc = []}
+*/
+public int boo23_10(){
+  int x = 3+5;
+  return x;
+}
+
+////////////////////////////////////////
+
 //TODO
 public int boo23_11(){
   int x = 3+5;
