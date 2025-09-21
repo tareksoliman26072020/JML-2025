@@ -147,12 +147,18 @@ visitExpr (expr@AST.FunCallExpr{}) = do
 --BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
 visitExpr expr@AST.BinOpExpr{} = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> BinOpExpr"]
-  ER_Expr operand1 <- visitExpr (AST.expr1 expr)
-  ER_Expr operand2 <- visitExpr (AST.expr2 expr)
-  let operands = [operand1,operand2]
-  case AST.binOp expr `elem` [AST.Plus, AST.Mult, AST.Minus, AST.Div] of
-    True -> return $ ER_Expr $ getBinSymExpr (operand1, operand2) (AST.binOp expr)
-    False -> throwError "TODO: visitExpr -> BinOpExpr"
+  one <- visitExpr (AST.expr1 expr)
+  two <- visitExpr (AST.expr2 expr)
+  case (one,two) of
+    (ER_Expr operand1,ER_Expr operand2) -> f operand1 operand2
+    (ER_MapEntry _ operand1, ER_Expr operand2) -> f operand1 operand2
+    (ER_Expr operand1, ER_MapEntry _ operand2) -> f operand1 operand2
+    _ -> throwError $ "visitExpr ~~> BinOpExpr: " ++ show (one,two)
+  where
+  f :: SymExpr -> SymExpr -> R
+  f operand1 operand2 = case AST.binOp expr `elem` [AST.Plus, AST.Mult, AST.Minus, AST.Div] of
+      True -> return $ ER_Expr $ getBinSymExpr (operand1, operand2) (AST.binOp expr)
+      False -> throwError "TODO: visitExpr -> BinOpExpr"
 -- AssignExpr {assEleft :: Expression, assEright :: Expression}
 visitExpr expr@AST.AssignExpr{} = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> AssignExpr"]
@@ -160,10 +166,16 @@ visitExpr expr@AST.AssignExpr{} = do
   ER_Expr e2 <- visitExpr (AST.assEright expr)
   tell [Log.Assign svn (show e2) "visitExpr -> AssignExpr"]
   modify $ \symState ->
+    {-
     SymState {
       env = case val of
               SymNull vt -> Map.insert svn (cast vt e2) (env symState)
               _          -> Map.insert svn e2 (env symState),
+      pc = pc symState
+    }
+    -}
+    SymState {
+      env = Map.insert svn (cast (toSymType2 val) e2) (env symState),
       pc = pc symState
     }
   return $ ER_MapEntry svn e2
@@ -179,7 +191,7 @@ visitExpr expr@AST.VarExpr{} = do
       return $ ER_MapEntry varName_ val
     Just t -> do
       tell [Log.NewVariable (show t) varName_ "visitExpr -> VarExpr -> new variable"]
-      let sExpr = SymNull $ toSymType t
+      let sExpr = SymNull $ toSymType1 t
       modify $ \symState ->
         SymState {
           env = Map.insert varName_ sExpr (env symState),

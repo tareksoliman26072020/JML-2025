@@ -45,10 +45,14 @@ getBinSymExpr (SymFloat num1, SymFloat num2) op =
 getBinSymExpr (SymNum num1, SymInt num2) op =
   SymInt (getIntegralArithBinOp op (round num1) num2)
 getBinSymExpr (SymNum num1, SymDouble num2) op =
-  SymDouble (getFractionalArithBinOp op (realToFrac num1) num2)
+  --error $ (show num1) ++ " ::: " ++ (show num2) ++ " ::: " ++ (show $ SymDouble (getFractionalArithBinOp op (realToFrac num1) num2))
+  SymDouble (getFractionalArithBinOp op (toDouble num1) num2)
 getBinSymExpr (SymNum num1, SymFloat num2) op =
   SymFloat (getFractionalArithBinOp op num1 num2)
 getBinSymExpr (symExpr, SymNum num2) op = getBinSymExpr (SymNum num2, symExpr) op
+
+toDouble :: Float -> Double
+toDouble = undefined
 
 getIntegralArithBinOp :: Integral a => AST.BinOp -> (a -> a -> a)
 getIntegralArithBinOp = \case
@@ -113,8 +117,8 @@ data SymExpr =
 
 data SymType = Int | Double | Float | Bool | Void deriving Show
 
-toSymType :: AST.Type AST.Types -> SymType
-toSymType (AST.BuiltInType t) = case t of
+toSymType1 :: AST.Type AST.Types -> SymType
+toSymType1 (AST.BuiltInType t) = case t of
   AST.Int     -> Int
   AST.Void    -> Void
   AST.Char    -> undefined
@@ -125,6 +129,13 @@ toSymType (AST.BuiltInType t) = case t of
   AST.Float   -> Float
   AST.Long    -> undefined
   AST.Byte    -> undefined
+
+toSymType2 :: SymExpr -> SymType
+toSymType2 (SymInt _) = Int
+toSymType2 (SymDouble _) = Double
+toSymType2 (SymFloat _) = Float
+toSymType2 (SBool _) = Bool
+toSymType2 (SymNull t) = t
 
 -- getBinSymExpr :: (SymExpr, SymExpr) -> AST.BinOp -> SymExpr
 -- data BinOp = Plus | Mult | Minus | Div | Mod | Less | LessEq | Greater | GreaterEq | Eq | Neq | And | Or

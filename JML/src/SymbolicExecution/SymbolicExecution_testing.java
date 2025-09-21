@@ -232,7 +232,7 @@ public int boo23_10(){
 
 ////////////////////////////////////////
 
-//TODO
+//SymState {env = fromList [("return",SymInt 9),("x",SymInt 9)], pc = []}
 public int boo23_11(){
   int x = 3+5;
   x = 10-1;

@@ -80,7 +80,7 @@ public int boo23_10(){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
 public int boo23_11(){
   int x = 3+5;
   x = 10-1;
@@ -97,3 +97,10 @@ public double boo33_3(){
 }
 
 ////////////////////////////////////////
+
+//TODO
+public double boo33_4(){
+  double x = 1;
+  x = x + 0.1;
+  return x;
+}
