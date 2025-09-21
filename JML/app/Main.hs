@@ -16,6 +16,7 @@ import qualified CFG.Types as CFGT (CFG(..), showCFG, Node(..), findCFGByName)
 
 import qualified SymbolicExecution.Types as SYT
 import qualified SymbolicExecution.SymbolicExecution as SY (runCFG)
+import qualified SymbolicExecution.Log as SYT.Log
 
 import Text.Printf (printf)
 
@@ -66,7 +67,7 @@ getSymState funName = readFile "test3.java" >>=
                 in do putStrLn "================"
                       putStrLn "===Begin Logs==="
                       putStrLn "================"
-                      putStrLn $ intercalate "\n\n" (SYT.ppLogs logs)
+                      putStrLn $ intercalate "\n\n" (SYT.Log.ppLogs logs)
                       putStrLn "=============="
                       putStrLn "===End Logs==="
                       putStrLn "=============="

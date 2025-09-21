@@ -32,6 +32,7 @@ library
       Parser.ParseStmt
       Parser.Print
       Parser.Types
+      SymbolicExecution.Log
       SymbolicExecution.SymbolicExecution
       SymbolicExecution.Types
       SymbolTable.SymbolTableCreator

@@ -2,6 +2,7 @@
 {-# Language FlexibleInstances #-} -- to enable instancing MonadFail (Either String)
 module SymbolicExecution.Types where
 
+import qualified SymbolicExecution.Log as Log
 import qualified Data.Map as Map
 import Control.Monad.Reader
 import Control.Monad.State
@@ -9,57 +10,13 @@ import Control.Monad.Except
 import Control.Monad.Writer
 import qualified Parser.Types as AST
 import qualified CFG.Types as CFGT (CFG)
-import Text.Printf (printf)
-import Data.List (foldl')
 
 type R =
     ReaderT (Config,[CFGT.CFG])         -- solver endpoints, thresholds…
-    (ExceptT String (WriterT [Log] (StateT SymState (Either String)))) -- env :: Map Var SymExpr; pc :: [SymExpr]
+    (ExceptT String (WriterT [Log.Log] (StateT SymState (Either String)))) -- env :: Map Var SymExpr; pc :: [SymExpr]
     ExecutionResult
 
 newtype SymExec = SymExec R
-
-data Log = Expression_2_Handle String String
-         | MethodStart String String
-         | MethodEnd String
-         | Void String
-         | ReturnStatement String String
-         | Edge_2_Handle String String
-         | Meow String String
-         | Node_2_Handle String String
-         | HorizontalLine String
-         | MethodStatement String
-         | AssignStatement String String
-         | NewVariable String String String
-         | UpdateVariable String String
-         | Assign String String String
-         | LookUpEnvTable String String String
-         | NextNode String
-
-instance Show Log where
-  show = \case
-    MethodEnd loc               -> printf "(%s): Method End" loc
-    Void loc                    -> printf "(%s): Void" loc
-    MethodStart str loc         -> printf "(%s): Method Start: %s" loc str
-    MethodStatement str         -> printf "(%s): Method Statement" str
-    Expression_2_Handle str loc -> printf "(%s): handling expression: %s" loc str
-    ReturnStatement str loc     -> printf "(%s): handling return expression: %s" loc str
-    AssignStatement str loc     -> printf "(%s): handling assign statement: %s" loc str
-    Edge_2_Handle str loc       -> printf "(%s): running CFG: %s" loc str
-    Meow str1 str2              -> printf "Meow: %s %s" str1 str2
-    HorizontalLine str          -> printf ">>>>>>>>>> %s <<<<<<<<<<" str
-    NewVariable tn vn loc       -> printf "(%s): %s %s" loc tn vn
-    UpdateVariable vn loc       -> printf "(%s): %s" loc vn
-    Assign left right loc       -> printf "(%s): Assigning %s = %s" loc left right
-    LookUpEnvTable key val loc  -> printf "(%s): Look up in environmane table (%s ~~> %s) " loc key val
-    NextNode nodeStr            -> "Next Node: " ++ nodeStr
-
-ppLogs :: [Log] -> [String]
-ppLogs = snd . foldl' enumerated (1,[])
-  where
-  enumerated :: (Int,[String]) -> Log -> (Int,[String])     
-  enumerated (num,res) log@(HorizontalLine _) = (num,res ++ [show log])
-  enumerated (num,res) x = (num+1,res ++ [printf "%d) %s" num (show x)])
 
 getReader :: SymExec -> R
 getReader (SymExec r) = r
@@ -138,12 +95,12 @@ data ExecutionResult =
     ER_Expr SymExpr
   | ER_Key {key :: String}
   | ER_MapEntry {key :: String, val :: SymExpr}
-  | ER_Void deriving (Eq, Show)
+  | ER_Void
+  deriving Show
 
 data SymExpr =
 -- | A (tiny) symbolic expression language
-    SymVar    String              -- ^ symbolic variable, e.g. "x" or "tmp1"
-  | SymNum    Float
+    SymNum    Float
   | SymInt    Integer             -- ^ concrete integer literal
   | SymDouble Double              -- ^ concrete double literal
   | SymFloat  Float               -- ^ concrete float literal
@@ -151,8 +108,35 @@ data SymExpr =
   | SBin    SymBinOp SymExpr SymExpr  -- ^ binary operation
   | SNot    SymExpr               -- ^ logical negation
   | SIte    SymExpr SymExpr SymExpr   -- ^ if-then-else (cond, then, else)
-  | SymNull                       -- ^ value of an unassigned variable
-  deriving (Eq, Show)
+  | SymNull SymType               -- ^ value of an unassigned variable
+  deriving Show
+
+data SymType = Int | Double | Float | Bool | Void deriving Show
+
+toSymType :: AST.Type AST.Types -> SymType
+toSymType (AST.BuiltInType t) = case t of
+  AST.Int     -> Int
+  AST.Void    -> Void
+  AST.Char    -> undefined
+  AST.String  -> undefined
+  AST.Boolean -> Bool
+  AST.Double  -> Double
+  AST.Short   -> undefined
+  AST.Float   -> Float
+  AST.Long    -> undefined
+  AST.Byte    -> undefined
+
+-- getBinSymExpr :: (SymExpr, SymExpr) -> AST.BinOp -> SymExpr
+-- data BinOp = Plus | Mult | Minus | Div | Mod | Less | LessEq | Greater | GreaterEq | Eq | Neq | And | Or
+cast :: SymType -> SymExpr -> SymExpr
+cast symType symExpr = case symExpr of
+  SymNum _ -> case symType of
+                Int    -> getBinSymExpr (symExpr, SymInt 0) AST.Plus
+                Double -> getBinSymExpr (symExpr, SymDouble 0) AST.Plus
+                Float  -> getBinSymExpr (symExpr, SymFloat 0) AST.Plus
+                Bool   -> error "won't happen"
+                Void   -> error "won't happen"
+  _ -> error "won't happen"
 
 instance MonadFail (Either String) where
   fail = Left
