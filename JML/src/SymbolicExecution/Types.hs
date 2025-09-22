@@ -45,14 +45,13 @@ getBinSymExpr (SymFloat num1, SymFloat num2) op =
 getBinSymExpr (SymNum num1, SymInt num2) op =
   SymInt (getIntegralArithBinOp op (round num1) num2)
 getBinSymExpr (SymNum num1, SymDouble num2) op =
-  --error $ (show num1) ++ " ::: " ++ (show num2) ++ " ::: " ++ (show $ SymDouble (getFractionalArithBinOp op (realToFrac num1) num2))
   SymDouble (getFractionalArithBinOp op (toDouble num1) num2)
 getBinSymExpr (SymNum num1, SymFloat num2) op =
   SymFloat (getFractionalArithBinOp op num1 num2)
 getBinSymExpr (symExpr, SymNum num2) op = getBinSymExpr (SymNum num2, symExpr) op
 
 toDouble :: Float -> Double
-toDouble = undefined
+toDouble = read . show
 
 getIntegralArithBinOp :: Integral a => AST.BinOp -> (a -> a -> a)
 getIntegralArithBinOp = \case

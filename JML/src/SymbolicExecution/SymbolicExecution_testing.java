@@ -622,10 +622,19 @@ public int boo33_2(){
 
 ///////////////////////////////////////////////////
 
-//TODO
+//SymState {env = fromList [("return",SymDouble 1.1),("x",SymDouble 1.1)], pc = []}
 public double boo33_3(){
   double x = 1;
   x+=0.1;
+  return x;
+}
+
+///////////////////////////////////////////////////
+
+//SymState {env = fromList [("return",SymDouble 1.1),("x",SymDouble 1.1)], pc = []}
+public double boo33_4(){
+  double x = 1;
+  x = x + 0.1;
   return x;
 }
 

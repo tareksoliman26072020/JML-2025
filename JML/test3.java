@@ -89,7 +89,7 @@ public int boo23_11(){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
 public double boo33_3(){
   double x = 1;
   x+=0.1;
@@ -98,7 +98,7 @@ public double boo33_3(){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
 public double boo33_4(){
   double x = 1;
   x = x + 0.1;
