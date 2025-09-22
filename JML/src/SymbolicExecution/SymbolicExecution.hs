@@ -78,7 +78,7 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
   er <- visitExpr expr
   let symExpr = case er of
         ER_Expr symExpr_ -> symExpr_ 
-        er@ER_MapEntry{} -> val er
+        er@ER_SymStateMapEntry{} -> symStateVal er
         x                -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show x
   modify $ \symState ->
     SymState {
@@ -151,8 +151,8 @@ visitExpr expr@AST.BinOpExpr{} = do
   two <- visitExpr (AST.expr2 expr)
   case (one,two) of
     (ER_Expr operand1,ER_Expr operand2) -> f operand1 operand2
-    (ER_MapEntry _ operand1, ER_Expr operand2) -> f operand1 operand2
-    (ER_Expr operand1, ER_MapEntry _ operand2) -> f operand1 operand2
+    (ER_SymStateMapEntry _ operand1, ER_Expr operand2) -> f operand1 operand2
+    (ER_Expr operand1, ER_SymStateMapEntry _ operand2) -> f operand1 operand2
     _ -> throwError $ "visitExpr ~~> BinOpExpr: " ++ show (one,two)
   where
   f :: SymExpr -> SymExpr -> R
@@ -162,23 +162,15 @@ visitExpr expr@AST.BinOpExpr{} = do
 -- AssignExpr {assEleft :: Expression, assEright :: Expression}
 visitExpr expr@AST.AssignExpr{} = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> AssignExpr"]
-  ER_MapEntry svn val <- visitExpr (AST.assEleft expr)
+  ER_SymStateMapEntry svn val <- visitExpr (AST.assEleft expr)
   ER_Expr e2 <- visitExpr (AST.assEright expr)
   tell [Log.Assign svn (show e2) "visitExpr -> AssignExpr"]
   modify $ \symState ->
-    {-
-    SymState {
-      env = case val of
-              SymNull vt -> Map.insert svn (cast vt e2) (env symState)
-              _          -> Map.insert svn e2 (env symState),
-      pc = pc symState
-    }
-    -}
     SymState {
       env = Map.insert svn (cast (toSymType2 val) e2) (env symState),
       pc = pc symState
     }
-  return $ ER_MapEntry svn e2
+  return $ ER_SymStateMapEntry svn e2
 -- VarExpr {varType :: Maybe (Type Types), varObj :: [String], varName :: String}
 visitExpr expr@AST.VarExpr{} = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> VarExpr"]
@@ -188,7 +180,7 @@ visitExpr expr@AST.VarExpr{} = do
       tell [Log.UpdateVariable varName_ "visitExpr -> VarExpr -> update variable"]
       val <- (Map.! varName_) <$> env <$> get
       tell [Log.LookUpEnvTable varName_ (show val) "visitExpr -> VarExpr -> update variable"]
-      return $ ER_MapEntry varName_ val
+      return $ ER_SymStateMapEntry varName_ val
     Just t -> do
       tell [Log.NewVariable (show t) varName_ "visitExpr -> VarExpr -> new variable"]
       let sExpr = SymNull $ toSymType1 t
@@ -197,7 +189,7 @@ visitExpr expr@AST.VarExpr{} = do
           env = Map.insert varName_ sExpr (env symState),
           pc = pc symState
         }
-      return $ ER_MapEntry varName_ sExpr
+      return $ ER_SymStateMapEntry varName_ sExpr
 visitExpr expr = error $ "What this is: " ++ show expr
 
 ------------------------------

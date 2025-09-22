@@ -9,7 +9,7 @@ import Control.Monad.State
 import Control.Monad.Except
 import Control.Monad.Writer
 import qualified Parser.Types as AST
-import qualified CFG.Types as CFGT (CFG)
+import qualified CFG.Types as CFGT (CFG, NodeID)
 
 type R =
     ReaderT (Config,[CFGT.CFG])         -- solver endpoints, thresholds…
@@ -94,10 +94,27 @@ data SymBinOp
   | Or       -- ^ logical ||
   deriving (Eq, Show)
 
+{-
+ExecutionResult is used to transform data from a monadic transformer to another.
+
+visitExpr sends data to visitExpr, visitStmt, visitNode
+
+visitExpr ==> NumberLiteral: ER_Expr
+visitExpr ==> FunCallExpr: ER_Expr
+visitExpr ==> BinOpExpr: ER_Expr
+visitExpr ==> AssignExpr: ER_SymStateMapEntry
+visitExpr ==> VarExpr: ER_SymStateMapEntry
+
+visitStmt sends data to visitNode (this may change in the future so that it also sends data to visitStmt)
+
+visitStmt ==> ReturnStmt: ER_Void (this will change to ER_Node)
+visitStmt ==> AssignStmt: ER_Void (this will change to ER_Node)
+visitStmt ==> VarStmt: ER_Void (this will change to ER_Node)
+-}
 data ExecutionResult =
     ER_Expr SymExpr
-  | ER_Key {key :: String}
-  | ER_MapEntry {key :: String, val :: SymExpr}
+  | ER_Node {id :: CFGT.NodeID, nodeName :: String}
+  | ER_SymStateMapEntry {symStateKey :: String, symStateVal :: SymExpr}
   | ER_Void
   deriving Show
 
@@ -116,6 +133,7 @@ data SymExpr =
 
 data SymType = Int | Double | Float | Bool | Void deriving Show
 
+-- get SymType via AST.Type
 toSymType1 :: AST.Type AST.Types -> SymType
 toSymType1 (AST.BuiltInType t) = case t of
   AST.Int     -> Int
@@ -129,6 +147,7 @@ toSymType1 (AST.BuiltInType t) = case t of
   AST.Long    -> undefined
   AST.Byte    -> undefined
 
+-- get SymType via SymExpr
 toSymType2 :: SymExpr -> SymType
 toSymType2 (SymInt _) = Int
 toSymType2 (SymDouble _) = Double
