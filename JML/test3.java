@@ -185,6 +185,20 @@ public int boo22_i(int i){
 ////////////////////////////////////////
 
 //TODO
+public int boo22_i_2(int i){
+  return boo21_i(i+4) + 1;
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo22_i_3(int i){
+  return boo21_3_i(i+4) * 5;
+}
+
+////////////////////////////////////////
+
+//TODO
 public int boo22_2_i(int i){
   int x = boo21_i(i*2);
   return x;

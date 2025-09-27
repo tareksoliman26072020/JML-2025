@@ -98,6 +98,24 @@ public int boo22(){
 ///////////////////////////////////////////////////
 
 /*
+SymState {
+  env = fromList [
+    ("i",SymParm Int "i"),
+    ("return",SymParm Int "i")
+  ], pc = []
+}
+*/
+public int boo22_i(int i){
+  return boo21_i(i);
+}
+
+///////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////
+
+/*
 CFG {
   nodes = [
     Entry Int "boo22_2",
