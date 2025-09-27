@@ -169,8 +169,8 @@ public int boo21_2_i(int i){
 
 ////////////////////////////////////////
 
-//TODO
-public int boo21_i_3(int i){
+//DONE
+public int boo21_3_i(int i){
   i += 2;
   return i;
 }

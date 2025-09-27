@@ -166,14 +166,14 @@ visitExpr expr@AST.BinOpExpr{} = do
   one <- visitExpr (AST.expr1 expr)
   two <- visitExpr (AST.expr2 expr)
   case (one,two) of
-    (ER_Expr operand1,ER_Expr operand2) -> f operand1 operand2
-    (ER_SymStateMapEntry _ operand1, ER_Expr operand2) -> f operand1 operand2
-    (ER_Expr operand1, ER_SymStateMapEntry _ operand2) -> f operand1 operand2
+    (ER_Expr op1,ER_Expr op2) -> f op1 op2
+    (ER_SymStateMapEntry _ op1, ER_Expr op2) -> f op1 op2
+    (ER_Expr op1, ER_SymStateMapEntry _ op2) -> f op1 op2
     _ -> throwError $ "visitExpr ~~> BinOpExpr: " ++ show (one,two)
   where
   f :: SymExpr -> SymExpr -> R
-  f operand1 operand2 = case AST.binOp expr `elem` [AST.Plus, AST.Mult, AST.Minus, AST.Div] of
-      True -> return $ ER_Expr $ getBinSymExpr (operand1, operand2) (AST.binOp expr)
+  f op1 op2 = case AST.binOp expr `elem` [AST.Plus, AST.Mult, AST.Minus, AST.Div] of
+      True -> return $ ER_Expr $ getBinSymExpr (op1, op2) (AST.binOp expr)
       False -> throwError "TODO: visitExpr -> BinOpExpr"
 -- AssignExpr {assEleft :: Expression, assEright :: Expression}
 visitExpr expr@AST.AssignExpr{} = do
@@ -272,3 +272,72 @@ runCFG cfgs cfg =
                         expr
          in (logs,either error (const (SymState m2 ps)) ei)
 
+getReturnSymExpr :: SymState -> SymExpr
+getReturnSymExpr symState = case Map.lookup "return" $ env symState of
+  Just symExpr -> symExpr
+  Nothing      -> error "won't happen, because this function is only called on SymStates with a return Statement."
+
+getBinSymExpr :: (SymExpr, SymExpr) -> AST.BinOp -> SymExpr
+getBinSymExpr (SymNum num1, SymNum num2) op =
+  SymNum (getFractionalArithBinOp op num1 num2)
+getBinSymExpr (SymInt num1, SymInt num2) op =
+  SymInt (getIntegralArithBinOp op num1 num2)
+getBinSymExpr (SymDouble num1, SymDouble num2) op =
+  SymDouble (getFractionalArithBinOp op num1 num2)
+getBinSymExpr (SymFloat num1, SymFloat num2) op =
+  SymFloat (getFractionalArithBinOp op num1 num2)
+getBinSymExpr (a@(SymParm _ _), b@(SymParm _ _)) op =
+  SBin a (toSymBinOp op) b
+getBinSymExpr (a@(SymGlobalVar _ _), b@(SymGlobalVar _ _)) op =
+  SBin a (toSymBinOp op) b
+----------
+getBinSymExpr (SymNum num1, SymInt num2) op =
+  SymInt (getIntegralArithBinOp op (round num1) num2)
+getBinSymExpr (SymInt num1, SymNum num2) op =
+  SymInt (getIntegralArithBinOp op num1 (round num2))
+----------
+getBinSymExpr (SymNum num1, SymDouble num2) op =
+  SymDouble (getFractionalArithBinOp op (toDouble num1) num2)
+getBinSymExpr (SymDouble num1, SymNum num2) op =
+  SymDouble (getFractionalArithBinOp op num1 (toDouble num2))
+----------
+getBinSymExpr (SymNum num1, SymFloat num2) op =
+  SymFloat (getFractionalArithBinOp op num1 num2)
+getBinSymExpr (SymFloat num1, SymNum num2) op =
+  SymFloat (getFractionalArithBinOp op num1 num2)
+----------
+getBinSymExpr (a, b@(SymParm t _)) op = SBin (cast t a) (toSymBinOp op) b
+getBinSymExpr (a@(SymParm t _), b) op = SBin a (toSymBinOp op) (cast t b)
+----------
+getBinSymExpr (a, b@(SymGlobalVar t _)) op = SBin (cast t a) (toSymBinOp op) b
+getBinSymExpr (a@(SymGlobalVar t _), b) op = SBin a (toSymBinOp op) (cast t b)
+----------
+getBinSymExpr tu _ = error $ "getBinSymExpr: " ++ show tu
+
+-- The type of the variable in `symExpr` needs to conform to `symType`.
+-- This matters in the context of `AssignExpr`
+cast :: SymType -> SymExpr -> SymExpr
+cast symType symExpr = case symExpr of
+  SymNum _ -> case symType of
+                Int    -> getBinSymExpr (symExpr, SymInt 0) AST.Plus
+                Double -> getBinSymExpr (symExpr, SymDouble 0) AST.Plus
+                Float  -> getBinSymExpr (symExpr, SymFloat 0) AST.Plus
+                Bool   -> error "won't happen"
+                Void   -> error "won't happen"
+  a -> a
+
+toDouble :: Float -> Double
+toDouble = read . show
+
+getIntegralArithBinOp :: Integral a => AST.BinOp -> (a -> a -> a)
+getIntegralArithBinOp = \case
+    AST.Plus  -> (+)
+    AST.Mult  -> (*)
+    AST.Minus -> (-)
+
+getFractionalArithBinOp :: Fractional a => AST.BinOp -> (a -> a -> a)
+getFractionalArithBinOp = \case
+    AST.Plus  -> (+)
+    AST.Mult  -> (*)
+    AST.Minus -> (-)
+    AST.Div   -> (/)

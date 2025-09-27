@@ -27,45 +27,6 @@ data SymState = SymState
  }
  deriving Show
 
-getReturnSymExpr :: SymState -> SymExpr
-getReturnSymExpr symState = case Map.lookup "return" $ env symState of
-  Just symExpr -> symExpr
-  Nothing      -> error "won't happen, because this function is only called on SymStates with a return Statement."
-
-getBinSymExpr :: (SymExpr, SymExpr) -> AST.BinOp -> SymExpr
-getBinSymExpr (SymNum num1, SymNum num2) op =
-  SymNum (getFractionalArithBinOp op num1 num2)
---error $ show $ SymNum (getFractionalArithBinOp op num1 num2)
-getBinSymExpr (SymInt num1, SymInt num2) op =
-  SymInt (getIntegralArithBinOp op num1 num2)
-getBinSymExpr (SymDouble num1, SymDouble num2) op =
-  SymDouble (getFractionalArithBinOp op num1 num2)
-getBinSymExpr (SymFloat num1, SymFloat num2) op =
-  SymFloat (getFractionalArithBinOp op num1 num2)
-getBinSymExpr (SymNum num1, SymInt num2) op =
-  SymInt (getIntegralArithBinOp op (round num1) num2)
-getBinSymExpr (SymNum num1, SymDouble num2) op =
-  SymDouble (getFractionalArithBinOp op (toDouble num1) num2)
-getBinSymExpr (SymNum num1, SymFloat num2) op =
-  SymFloat (getFractionalArithBinOp op num1 num2)
-getBinSymExpr (symExpr, SymNum num2) op = getBinSymExpr (SymNum num2, symExpr) op
-
-toDouble :: Float -> Double
-toDouble = read . show
-
-getIntegralArithBinOp :: Integral a => AST.BinOp -> (a -> a -> a)
-getIntegralArithBinOp = \case
-    AST.Plus  -> (+)
-    AST.Mult  -> (*)
-    AST.Minus -> (-)
-
-getFractionalArithBinOp :: Fractional a => AST.BinOp -> (a -> a -> a)
-getFractionalArithBinOp = \case
-    AST.Plus  -> (+)
-    AST.Mult  -> (*)
-    AST.Minus -> (-)
-    AST.Div   -> (/)
-
 {-
 In short, every element of pc becomes a clause in your requires or loop_invariant, and every binding in your final env becomes an equation in your ensures. That’s exactly how symbolic execution wires into JML inference.
 -}
@@ -93,6 +54,13 @@ data SymBinOp
   | And      -- ^ logical &&
   | Or       -- ^ logical ||
   deriving (Eq, Show)
+
+toSymBinOp :: AST.BinOp -> SymBinOp
+toSymBinOp AST.Plus = Add
+toSymBinOp AST.Mult = Mul
+toSymBinOp AST.Minus = Sub
+toSymBinOp AST.Div = Div
+toSymBinOp _ = error "toSymBinOp ~~> TODO"
 
 {-
 ExecutionResult is used to transform data from a monadic transformer to another.
@@ -126,7 +94,7 @@ data SymExpr =
   | SymDouble Double              -- ^ concrete double literal
   | SymFloat  Float               -- ^ concrete float literal
   | SBool   Bool                  -- ^ concrete Boolean literal
-  | SBin    SymBinOp SymExpr SymExpr  -- ^ binary operation
+  | SBin    SymExpr SymBinOp SymExpr  -- ^ binary operation
   | SNot    SymExpr               -- ^ logical negation
   | SIte    SymExpr SymExpr SymExpr   -- ^ if-then-else (cond, then, else)
   | SymNull SymType               -- ^ value of an unassigned variable
@@ -135,6 +103,14 @@ data SymExpr =
   deriving Show
 
 data SymType = Int | Double | Float | Bool | Void deriving Show
+
+isFormalParameter :: SymExpr -> Bool
+isFormalParameter (SymParm _ _) = True
+isFormalParameter _ = False
+
+isGlobalVariable :: SymExpr -> Bool
+isGlobalVariable (SymGlobalVar _ _) = True
+isGlobalVariable _ = False
 
 -- get SymType via AST.Type
 toSymType1 :: AST.Type AST.Types -> SymType
@@ -159,18 +135,6 @@ toSymType2 (SBool _) = Bool
 toSymType2 (SymNull t) = t
 toSymType2 (SymParm t _) = t
 toSymType2 (SymGlobalVar t _) = t
-
--- getBinSymExpr :: (SymExpr, SymExpr) -> AST.BinOp -> SymExpr
--- data BinOp = Plus | Mult | Minus | Div | Mod | Less | LessEq | Greater | GreaterEq | Eq | Neq | And | Or
-cast :: SymType -> SymExpr -> SymExpr
-cast symType symExpr = case symExpr of
-  SymNum _ -> case symType of
-                Int    -> getBinSymExpr (symExpr, SymInt 0) AST.Plus
-                Double -> getBinSymExpr (symExpr, SymDouble 0) AST.Plus
-                Float  -> getBinSymExpr (symExpr, SymFloat 0) AST.Plus
-                Bool   -> error "won't happen"
-                Void   -> error "won't happen"
-  a -> a
 
 instance MonadFail (Either String) where
   fail = Left
