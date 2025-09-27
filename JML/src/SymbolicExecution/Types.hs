@@ -130,6 +130,8 @@ data SymExpr =
   | SNot    SymExpr               -- ^ logical negation
   | SIte    SymExpr SymExpr SymExpr   -- ^ if-then-else (cond, then, else)
   | SymNull SymType               -- ^ value of an unassigned variable
+  | SymParm SymType String        -- ^ declared variable (a formal parameter)
+  | SymGlobalVar SymType String   -- ^ variable declared outside the scope of the method
   deriving Show
 
 data SymType = Int | Double | Float | Bool | Void deriving Show

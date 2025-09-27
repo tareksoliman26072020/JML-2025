@@ -7,7 +7,7 @@ import Text.Printf(printf)
 
 type NodeID = Int
 
-data Node = Entry AST.Types String | End {
+data Node = Entry AST.Types String [AST.Expression] | End {
     id :: NodeID,
     parent :: NodeID,
     mExpr :: Maybe AST.Expression
@@ -18,7 +18,8 @@ data Node = Entry AST.Types String | End {
   } deriving Show
 
 showNode :: Node -> String
-showNode (Entry t n) = "Entry " ++ n ++ ": method type: " ++ showType (AST.BuiltInType t)
+showNode (Entry t n args) = "Entry " ++ n ++ ": method type: " ++ showType (AST.BuiltInType t)
+  ++ " " ++ show args
 showNode (end@End{}) =
   printf "End: %d -> %d:\n        %s"
     (parent end) (CFG.Types.id end) (maybe "()" (\e -> "return: " ++ showExpr e) (mExpr end))
@@ -44,20 +45,20 @@ findCFGByName name = find ((== name) . getCFGName)
 getCFGName :: CFG -> String
 getCFGName = f2 . find f1 . nodes
   where
-  f1 (Entry _ _) = True
+  f1 (Entry _ _ _) = True
   f1 _           = False
   
-  f2 (Just (Entry _ name)) = name
+  f2 (Just (Entry _ name _)) = name
   f2 Nothing               = error "Won't happen"
 
 getCFGType :: CFG -> AST.Types
 getCFGType cfg = 
   let finding = flip find (nodes cfg) $ \case
-        Entry _ _ -> True
+        Entry _ _ _ -> True
         _         -> False
   in case finding of
        Nothing -> error "won't happen"
-       Just (Entry t _)  -> t
+       Just (Entry t _ _)  -> t
 
 ------------------------------
 
@@ -212,12 +213,12 @@ findEdge_via_id cfg nodeId = flip find (edges cfg) $ \(n,_) -> n==nodeId
 
 getNodeId :: Node -> NodeID
 getNodeId = \case
-  Entry _ _ -> 0
+  Entry _ _ _ -> 0
   n@End{}  -> CFG.Types.id n
   n@Node{} -> CFG.Types.id n
 
-getPath :: CFG -> NodeID -> [Node]
-getPath cfg startId =
+getPath :: NodeID -> CFG -> [Node]
+getPath startId cfg =
   let currentNode = findNode_via_id cfg startId
       nextNodeId = case findEdge_via_id cfg startId of
         Nothing -> error "won't happen"
@@ -225,6 +226,6 @@ getPath cfg startId =
         Just _          -> error "TODO"
   in case currentNode of
        End{} -> [currentNode]
-       _     -> currentNode : getPath cfg nextNodeId
+       _     -> currentNode : getPath nextNodeId cfg
 
 -----------------------------

@@ -1,10 +1,11 @@
+{-# Language LambdaCase #-}
 module Main (main) where
 
 import Text.ParserCombinators.Parsec
 import Parser.ParseStmt
 import Data.Either (fromRight)
 import Parser.Types (Method)
-import Data.List (intercalate)
+import Data.List (intercalate, find)
 
 import qualified Parser.Types as AST
 
@@ -12,7 +13,7 @@ import qualified SymbolTable.SymbolTableCreator as ST (exec)
 import qualified SymbolTable.Types as STT (Entry,showEntry)
 
 import qualified CFG.CFG as CFG (exec)
-import qualified CFG.Types as CFGT (CFG(..), showCFG, Node(..), findCFGByName)
+import qualified CFG.Types as CFGT (CFG(..), showCFG, Node(..), findCFGByName, getPath)
 
 import qualified SymbolicExecution.Types as SYT
 import qualified SymbolicExecution.SymbolicExecution as SY (runCFG)
@@ -22,13 +23,20 @@ import Text.Printf (printf)
 
 cfg = CFGT.CFG {
   CFGT.nodes = [
-    CFGT.Entry AST.Int "boo21",
+    CFGT.Entry AST.Int "boo21" [],
     CFGT.End {CFGT.id = 1, CFGT.parent = 0, CFGT.mExpr = Just (AST.NumberLiteral 5.0)}],
     CFGT.edges = [(0,[1])]
 }
 
 main :: IO ()
 main = putStrLn "Hi"
+
+getAST :: String -> IO AST.Method
+getAST methodName = readFile "test3.java" >>=
+  (\case Just x -> return x
+         Nothing -> fail $ printf "method: %s does not exist in test3.java" methodName)
+  . find ((== methodName) . snd . AST.getMethodDecl)
+  . fromRight undefined . parse parseDeclList ""
 
 getSymbolTable :: IO STT.Entry
 getSymbolTable = readFile "test2.java" >>= return
@@ -42,10 +50,12 @@ showSymbolTable = readFile "test2.java" >>= putStrLn
 
 ------------------------------
 
-getCFG :: IO CFGT.CFG
-getCFG = readFile "test2.java" >>= return
-  . CFG.exec
-  . fromRight undefined . parse parseExtDecl ""
+getCFG :: String -> IO CFGT.CFG
+getCFG methodName = readFile "test3.java" >>=
+  (\case Just x -> return $ CFG.exec x
+         Nothing -> fail $ printf "method: %s does not exist in test3.java" methodName)
+  . find ((== methodName) . snd . AST.getMethodDecl)
+  . fromRight undefined . parse parseDeclList ""
 
 showCFG :: IO ()
 showCFG = readFile "test2.java" >>= putStrLn
@@ -76,3 +86,11 @@ getSymState funName = readFile "test3.java" >>=
   . map CFG.exec
   . fromRight undefined . parse parseDeclList ""
 
+------------------------------
+
+-- getPath "boo27" >>= mapM_ (\(num,node) -> putStr $ printf "%d>> %s\n\n" num (show node)) . zip [0 ..]
+getPath :: String -> IO [CFGT.Node]
+getPath funName = readFile "test3.java" >>= return
+  . CFGT.getPath 0
+  . CFG.exec
+  . fromRight undefined . parse parseExtDecl ""

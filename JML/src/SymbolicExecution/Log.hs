@@ -20,7 +20,10 @@ data Log = Expression_2_Handle String String
          | Assign String String String
          | LookUpEnvTable String String String
          | NextNode String
+         | MethodFormalParams String String
 
+-- Look up the usage of the function `tell` in SymbolicExecution
+-- to best relate to `Log`
 instance Show Log where
   show = \case
     MethodEnd loc               -> printf "(%s): Method End" loc
@@ -37,6 +40,7 @@ instance Show Log where
     UpdateVariable vn loc       -> printf "(%s): %s" loc vn
     Assign left right loc       -> printf "(%s): Assigning %s = %s" loc left right
     LookUpEnvTable key val loc  -> printf "(%s): Look up in environmane table (%s ~~> %s) " loc key val
+    MethodFormalParams args loc -> printf "(%s): Visiting formal parameters: %s" loc args
     NextNode nodeStr            -> "Next Node: " ++ nodeStr
 
 ppLogs :: [Log] -> [String]

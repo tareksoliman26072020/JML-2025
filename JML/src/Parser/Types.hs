@@ -100,13 +100,20 @@ data Method = FunDef {funModifier :: [Modifier],
 -- public int boo30(int z) ==> (Just BuiltInType Int, "boo30")
 getMethodDecl :: Method -> (Maybe (Type Types), String)
 getMethodDecl method = case funDecl method of
-  FunCallStmt s   -> case s of
+  FunCallStmt s -> case s of
     FunCallExpr n _ -> case n of
       --VarExpr {varType = Just (BuiltInType Void), varObj = [], varName = "boo36"}
       VarExpr mt _ mn -> (mt,mn)
       _               -> error "won't happen"
     _               -> error "won't happen"
   _               -> error "won't happen"
+
+getMethodFormalParams :: Method -> [Expression]
+getMethodFormalParams method = case funDecl method of
+  FunCallStmt s -> case s of
+    FunCallExpr _ args -> args
+    _                  -> error "won't happen"
+  _ -> error "won't happen"
 
 getFunCallName :: Statement -> String
 getFunCallName (FunCallStmt s) = case s of

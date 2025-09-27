@@ -28,6 +28,13 @@ public int boo21(){
 
 ///////////////////////////////////////////////////
 
+//SymState {env = fromList [("i",SymParm Int "i"),("return",SymParm Int "i")], pc = []}
+public int boo21_i(int i){
+  return i;
+}
+
+///////////////////////////////////////////////////
+
 /*
 CFG {
   nodes = [
@@ -634,6 +641,16 @@ public double boo33_3(){
 //SymState {env = fromList [("return",SymDouble 1.1),("x",SymDouble 1.1)], pc = []}
 public double boo33_4(){
   double x = 1;
+  x = x + 0.1;
+  return x;
+}
+
+///////////////////////////////////////////////////
+
+//SymState {env = fromList [("return",SymDouble 1.1),("x",SymDouble 1.1),("y",SymNull Int)], pc = []}
+public double boo33_5(){
+  double x = 1;
+  int y;
   x = x + 0.1;
   return x;
 }

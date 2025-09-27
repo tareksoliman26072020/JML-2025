@@ -1,5 +1,9 @@
-public int boo23_9(){
-  int x;
-  x = 3 + boo21();
-  return x;
+public int boo27(int i){
+  if(i >= 0){
+    return i;
+  }
+  else{
+    int res = -1 * i;
+    return res;
+  }
 }

@@ -37,17 +37,33 @@ data SymState = SymState
 instance CFGVisitor SymExec where
 --visitNode :: CFG.Node -> SymExec
   visitNode node = SymExec $ tell [Log.HorizontalLine "visitNode"] >> case node of
-    CFG.Entry t mn -> do
-      tell [Log.MethodStart mn "visitNode -> case node of Entry"]
+    CFG.Entry t mn args -> do
+      tell [Log.MethodStart mn "visitNode -> Entry"]
+      case null args of
+        True  -> return ()
+        False -> do
+          tell [Log.MethodFormalParams (show args) "visitNode -> Entry"]
+          mapM visitExpr args $> ()
+          mapM (\arg -> do
+                   argVisited <- visitExpr arg
+                   case argVisited of
+                     ER_SymStateMapEntry name (SymNull symType) ->
+                       modify $ \symState ->
+                         SymState {
+                           env = Map.insert name (SymParm symType name) (env symState),
+                           pc = pc symState
+                         }
+                     _ -> throwError "won't happen"
+               ) args $> ()
       ER_State <$> get
     n@CFG.End{} -> do
-      tell [Log.MethodEnd "visitNode -> case node of End"]
+      tell [Log.MethodEnd "visitNode -> End"]
       case CFG.mExpr n of
         Nothing       -> do
-          tell [Log.Void "visitNode -> case node of End -> Nothing"]
+          tell [Log.Void "visitNode -> End -> return nothing"]
           ER_State <$> get
         a@(Just expr) -> do
-          tell [Log.ReturnStatement (show expr) "visitNode -> case node of End -> Just"]
+          tell [Log.ReturnStatement (show expr) "visitNode -> End -> return something"]
           visitStmt (AST.ReturnStmt a)
 {-
 Node {
@@ -222,7 +238,7 @@ data SymState = SymState
 runCFG :: [CFG.CFG] -> CFG.CFG -> ([Log.Log],SymState)
 runCFG cfgs cfg =
   let path :: [CFG.Node]
-      path = CFG.getPath cfg 0
+      path = CFG.getPath 0 cfg
     {-
       runner :: ReaderT (Config,[CFGT.CFG])
                         (ExceptT String (WriterT [Log] (StateT SymState (Either String))))
