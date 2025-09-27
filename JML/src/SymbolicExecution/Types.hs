@@ -157,6 +157,8 @@ toSymType2 (SymDouble _) = Double
 toSymType2 (SymFloat _) = Float
 toSymType2 (SBool _) = Bool
 toSymType2 (SymNull t) = t
+toSymType2 (SymParm t _) = t
+toSymType2 (SymGlobalVar t _) = t
 
 -- getBinSymExpr :: (SymExpr, SymExpr) -> AST.BinOp -> SymExpr
 -- data BinOp = Plus | Mult | Minus | Div | Mod | Less | LessEq | Greater | GreaterEq | Eq | Neq | And | Or

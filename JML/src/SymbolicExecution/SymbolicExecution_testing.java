@@ -35,6 +35,22 @@ public int boo21_i(int i){
 
 ///////////////////////////////////////////////////
 
+//SymState {env = fromList [("i",SymNull Int),("return",SymInt 5)], pc = []}
+public int boo21_2(){
+  int i;
+  return 5;
+}
+
+///////////////////////////////////////////////////
+
+//SymState {env = fromList [("i",SymInt 5),("return",SymInt 5)], pc = []}
+public int boo21_2_i(int i){
+  i = 5;
+  return i;
+}
+
+///////////////////////////////////////////////////
+
 /*
 CFG {
   nodes = [

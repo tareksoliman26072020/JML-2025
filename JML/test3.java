@@ -6,6 +6,14 @@ public int boo21(){
 ////////////////////////////////////////
 
 //DONE
+public int boo21_2(){
+  int i;
+  return 5;
+}
+
+////////////////////////////////////////
+
+//DONE
 public int boo22(){
   return boo21();
 }
@@ -153,8 +161,8 @@ public int boo21_i(int i){
 
 ////////////////////////////////////////
 
-//TODO
-public int boo21_i_2(int i){
+//DONE
+public int boo21_2_i(int i){
   i = 5;
   return i;
 }
