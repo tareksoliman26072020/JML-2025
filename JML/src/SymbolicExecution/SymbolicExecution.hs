@@ -39,13 +39,13 @@ instance CFGVisitor SymExec where
   visitNode node = SymExec $ tell [Log.HorizontalLine "visitNode"] >> case node of
     CFG.Entry t mn -> do
       tell [Log.MethodStart mn "visitNode -> case node of Entry"]
-      return ER_Void
+      ER_State <$> get
     n@CFG.End{} -> do
       tell [Log.MethodEnd "visitNode -> case node of End"]
       case CFG.mExpr n of
         Nothing       -> do
           tell [Log.Void "visitNode -> case node of End -> Nothing"]
-          return ER_Void
+          ER_State <$> get
         a@(Just expr) -> do
           tell [Log.ReturnStatement (show expr) "visitNode -> case node of End -> Just"]
           visitStmt (AST.ReturnStmt a)
@@ -85,14 +85,14 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
       env = Map.insert "return" symExpr (env symState),
       pc = pc symState
     }
-  return ER_Void
+  ER_State <$> get
 -- AssignStmt {varModifier :: [Modifier], assign :: Expression}
 visitStmt stmt@AST.AssignStmt{} = do
   tell [Log.AssignStatement (show $ AST.assign stmt) "visitStmt -> pattern matching: AssignStmt"]
-  (visitExpr $ AST.assign stmt) $> ER_Void
+  (visitExpr $ AST.assign stmt) *> (ER_State <$> get)
 -- VarStmt {var :: Expression}
 visitStmt stmt@AST.VarStmt{} =
-  (visitExpr $ AST.var stmt) $> ER_Void
+  (visitExpr $ AST.var stmt) *> (ER_State <$> get)
 visitStmt _ = throwError "TODO -> visitStmt -> 2"
 
 {-

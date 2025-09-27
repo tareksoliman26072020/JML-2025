@@ -90,6 +90,14 @@ public int boo23_11(){
 ////////////////////////////////////////
 
 //DONE
+public int boo23_12(){
+  int x = 3 + boo21();
+  return x;
+}
+
+////////////////////////////////////////
+
+//DONE
 public double boo33_3(){
   double x = 1;
   x+=0.1;
@@ -103,4 +111,51 @@ public double boo33_4(){
   double x = 1;
   x = x + 0.1;
   return x;
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo24(){
+  int x = 3 + boo25(5);
+  return x;
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo25(int i){
+  if(i>10){
+    throw new Exception("meow");
+  }
+  else{
+    return 6;
+  }
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo26(){
+  return boo27(5);
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo26_2(){
+  return boo27(-1);
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo27(int i){
+  if(i >= 0){
+    return i;
+  }
+  else{
+    int res = -1 * i;
+    return res;
+  }
 }

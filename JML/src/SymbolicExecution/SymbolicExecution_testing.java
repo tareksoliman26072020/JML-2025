@@ -117,8 +117,8 @@ CFG {
   (1,[2])
 
 */
-//TODO
-public int boo23(){
+//SymState {env = fromList [("return",SymInt 8),("x",SymInt 8)], pc = []}
+public int boo23_12(){
   int x = 3 + boo21();
   return x;
 }

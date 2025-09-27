@@ -115,6 +115,7 @@ data ExecutionResult =
     ER_Expr SymExpr
   | ER_Node {id :: CFGT.NodeID, nodeName :: String}
   | ER_SymStateMapEntry {symStateKey :: String, symStateVal :: SymExpr}
+  | ER_State SymState
   | ER_Void
   deriving Show
 
