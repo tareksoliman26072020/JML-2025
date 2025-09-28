@@ -28,7 +28,7 @@ public int boo21(){
 
 ///////////////////////////////////////////////////
 
-//SymState {env = fromList [("i",SymParm Int "i"),("return",SymParm Int "i")], pc = []}
+//SymState {env = fromList [("i",SymFormalParam Int "i"),("return",SymFormalParam Int "i")], pc = []}
 public int boo21_i(int i){
   return i;
 }
@@ -99,10 +99,8 @@ public int boo22(){
 
 /*
 SymState {
-  env = fromList [
-    ("i",SymParm Int "i"),
-    ("return",SymParm Int "i")
-  ], pc = []
+  env = fromList [("i",SymFormalParam Int "i"),("return",SymFormalParam Int "i")],
+  pc = []
 }
 */
 public int boo22_i(int i){

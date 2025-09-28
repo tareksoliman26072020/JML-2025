@@ -11,15 +11,23 @@ import Control.Monad.Writer
 import qualified Parser.Types as AST
 import qualified CFG.Types as CFGT (CFG, NodeID)
 
-type R =
-    ReaderT (Config,[CFGT.CFG])         -- solver endpoints, thresholds…
-    (ExceptT String (WriterT [Log.Log] (StateT SymState (Either String)))) -- env :: Map Var SymExpr; pc :: [SymExpr]
+type R1 =
+    ReaderT (Config,[CFGT.CFG])
+    (ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))))
     ExecutionResult
 
-newtype SymExec = SymExec R
+type OuterSymState = SymState
+type InnerSymState = SymState
 
-getReader :: SymExec -> R
-getReader (SymExec r) = r
+type R2 =
+    ReaderT (Config,[CFGT.CFG])
+    (ExceptT String (WriterT [Log.Log] (StateT (OuterSymState,InnerSymState) (Either String))))
+    ExecutionResult
+
+newtype SymExec1 = SymExec1 R1
+
+getReader1 :: SymExec1 -> R1
+getReader1 (SymExec1 r) = r
 
 data SymState = SymState
  { env :: Map.Map String SymExpr
@@ -69,7 +77,7 @@ visitExpr sends data to visitExpr, visitStmt, visitNode
 
 visitExpr ==> NumberLiteral: ER_Expr
 visitExpr ==> FunCallExpr ==> function without parameters: ER_Expr
-visitExpr ==> FunCallExpr ==> function with parameters: ER_FunCall
+visitExpr ==> FunCallExpr ==> function with parameters: ER_RawFunCall
 visitExpr ==> BinOpExpr: ER_Expr
 visitExpr ==> AssignExpr: ER_SymStateMapEntry
 visitExpr ==> VarExpr: ER_SymStateMapEntry
@@ -85,19 +93,20 @@ visitNode ==> Entry: ER_State
 visitNode ==> End: ER_State
 visitNode ==> Node: ER_State
 
-ER_FunCall encapsulates the state of a function call which posseses actual parameters.
-visitExpr ==> FunCallExpr ==> function with parameters: ER_FunCall
-Every occurrance of ER_Funcall needs to be handled with the monadic function `visitSymExpr`.
+ER_RawFunCall encapsulates the state of a function call which posseses actual parameters.
+visitExpr ==> FunCallExpr ==> function with parameters: ER_RawFunCall
+Every occurrance of ER_RawFuncall needs to be handled with the monadic function `visitSymExpr`.
 The goal of `visitSymExpr` is to dissect and evaluate non-atomic symbolic expressions,
 such as (SBin, SymActualParam)
 
+insertActualParams ==> SymFormalParam: SymActualParam
 -}
 data ExecutionResult =
     ER_Expr SymExpr
   | ER_Node {id :: CFGT.NodeID, nodeName :: String}
   | ER_SymStateMapEntry {symStateKey :: String, symStateVal :: SymExpr}
   | ER_State SymState
-  | ER_FunCall SymState
+  | ER_RawFunCall SymState
   | ER_Void
   deriving Show
 

@@ -17,9 +17,9 @@ import Text.Printf (printf)
 import Data.Functor (($>))
 import Data.List (foldl')
 
-instance CFGVisitor SymExec where
---visitNode :: CFG.Node -> SymExec
-  visitNode node = SymExec $ tell [Log.HorizontalLine "visitNode"] >> case node of
+instance CFGVisitor SymExec1 where
+--visitNode :: CFG.Node -> SymExec1
+  visitNode node = SymExec1 $ tell [Log.HorizontalLine "visitNode"] >> case node of
     CFG.Entry t mn args -> do
       tell [Log.MethodStart mn "visitNode -> Entry"]
       case null args of
@@ -70,7 +70,7 @@ data NodeData = ForInitialization AST.Expression
       _ -> throwError
         $ "TODO -> visitNode -> Node -> nodeData -> otherwise" ++ show n
 
-visitStmt :: AST.Statement -> R
+visitStmt :: AST.Statement -> R1
 --ReturnStmt {returnS :: Maybe Expression}
 visitStmt (AST.ReturnStmt (Just expr)) = do
   tell [Log.ReturnStatement (show expr) "visitStmt -> pattern matching: ReturnStmt"]
@@ -78,10 +78,10 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
   let symExpr = case er of
         ER_Expr symExpr_ -> symExpr_ 
         er@ER_SymStateMapEntry{} -> symStateVal er
-        ER_FunCall funCallSymState -> case getReturnSymExpr funCallSymState of
+        ER_RawFunCall funCallSymState -> case getReturnSymExpr funCallSymState of
           Just symExpr -> symExpr
           Nothing -> error "visitStmt ==> ReturnStmt: TODO"
-        ER_FunCall funCallSymState -> error
+        ER_RawFunCall funCallSymState -> error
           $ "visitStmt ==> ReturnStmt: " ++ (show $ env funCallSymState)
         x                -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show x
   modify $ \symState ->
@@ -127,7 +127,7 @@ data Types
   | Long
   | Byte
 -}
-visitExpr :: AST.Expression -> R
+visitExpr :: AST.Expression -> R1
 visitExpr expr@(AST.NumberLiteral float) = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> pattern matching: NumberLiteral"]
   return $ ER_Expr (SymNum float)
@@ -165,13 +165,28 @@ visitExpr expr@AST.BinOpExpr{} = do
   one <- visitExpr (AST.expr1 expr)
   two <- visitExpr (AST.expr2 expr)
   case (one,two) of
-    (ER_Expr op1,ER_Expr op2) -> f op1 op2
-    (ER_SymStateMapEntry _ op1, ER_Expr op2) -> f op1 op2
-    (ER_Expr op1, ER_SymStateMapEntry _ op2) -> f op1 op2
+    (ER_Expr op1,ER_Expr op2) -> f1 op1 op2
+    (ER_SymStateMapEntry _ op1, ER_Expr op2) -> f1 op1 op2
+    (ER_Expr op1, ER_SymStateMapEntry _ op2) -> f1 op1 op2
+  --(ER_Expr op1, fun@(ER_RawFunCall _))     -> --f2 op1 fun
+  --(fun@(ER_RawFunCall _), ER_Expr op2)     -> --f2 fun op2
     _ -> throwError $ "visitExpr ~~> BinOpExpr: " ++ show (one,two)
+{-
+(
+ ER_RawFunCall (
+   SymState {
+     env = fromList [
+       ("i"     ,SBin (SymFormalParam Int "i") Add (SymInt 4)),
+       ("return",SBin (SymFormalParam Int "i") Add (SymInt 4))
+     ],
+     pc = []
+   }
+ ),
+ ER_Expr (SymNum 1.0))
+-}
   where
-  f :: SymExpr -> SymExpr -> R
-  f op1 op2 = case AST.binOp expr `elem` [AST.Plus, AST.Mult, AST.Minus, AST.Div] of
+  f1 :: SymExpr -> SymExpr -> R1
+  f1 op1 op2 = case AST.binOp expr `elem` [AST.Plus, AST.Mult, AST.Minus, AST.Div] of
       True -> return $ ER_Expr $ getBinSymExpr (op1, op2) (AST.binOp expr)
       False -> throwError "TODO: visitExpr -> BinOpExpr"
 -- UnOpExpr {unOp :: UnOp, expr :: Expression}
@@ -247,7 +262,7 @@ runCFG cfgs cfg =
      -}
       runner = flip mapM path $ \node -> do
         tell [Log.NextNode (show node)]
-        getReader $ visitNode node
+        getReader1 $ visitNode node
       initialSymState = SymState Map.empty []
       run_r :: ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))) ()
       run_r = runReaderT (runner $> ()) (defaultConfig,cfgs)
@@ -346,7 +361,7 @@ they are then passed to `insertActualParams` along with the state of this functi
 2) `insertActualParams` alters this state so that every presence of the formal parameters
 is replaced with actual parameters.
 
-3) In the end this function releases the ExecutionResult `ER_FunCall` which encapsulates
+3) In the end this function releases the ExecutionResult `ER_RawFunCall` which encapsulates
 the state of this funcation call after it was altered using the actual parameters
 
 4) This altered state may still have non-atomic ExecutionResults which then will processed 
@@ -374,7 +389,7 @@ using `visitSymExpr`
 ]
 -}
                      -- formalParms  actualParms
-insertActualParams :: [(String     , AST.Expression)] -> SymState -> R
+insertActualParams :: [(String     , AST.Expression)] -> SymState -> R1
 insertActualParams tus funCallState = do
   tus2 <- mapM (\(a,b) -> ((,) a) <$> visitExpr b) tus
   {-
@@ -386,13 +401,35 @@ insertActualParams tus funCallState = do
   -- that I get after I insert actual parameters
   let newFunCallEnv = flip Map.map (env funCallState) $ \case
         SymFormalParam symType formalParam -> case lookup formalParam tus2 of
-          Just er@ER_SymStateMapEntry{} -> SymActualParam symType formalParam (symStateVal er)
+          Just er@ER_SymStateMapEntry{} -> formal_to_actual (symStateVal er) formalParam--SymActualParam symType formalParam (symStateVal er)
+          Just (ER_Expr symExpr) -> formal_to_actual symExpr formalParam
+          Just er -> error $ "insertActualParams: " ++ show er
           Nothing -> error "won't happen"
         ex -> ex
-  return $ ER_FunCall $ SymState newFunCallEnv (pc funCallState)
+  return $ ER_RawFunCall $ SymState newFunCallEnv (pc funCallState)
+
+{-
+actualParam = SBin (SymFormalParam Int "i") Add (SymInt 4)
+formalParam = "i"
+return: SBin
+  (SymActualParam {
+    symActualParam = Int,
+    symFormalParamName = "i",
+    symActualParamName = SymFormalParam Int "i"
+  })
+  Add
+  (SymInt 4)
+-}
+formal_to_actual :: SymExpr -> String -> SymExpr
+formal_to_actual actualParam formalParam = case actualParam of
+  SBin symExpr1 symBinOp symExpr2 ->
+    SBin (formal_to_actual symExpr1 formalParam) symBinOp (formal_to_actual symExpr2 formalParam)
+  SymFormalParam symType _ -> actualParam
+    --SymActualParam symType formalParam actualParam
+  e@(SymInt _) -> e
 
 -----------------------------
 -----------------------------
 -----------------------------
 
---instance CFGVisitor SymExec where
+--instance CFGVisitor SymExec2 where
