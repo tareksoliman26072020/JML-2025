@@ -6,7 +6,7 @@ import SymbolicExecution.Types
 import qualified CFG.Types as CFG
 import qualified Data.Map as Map
 import Control.Monad.Reader (runReaderT)
-import Control.Monad.State (StateT, modify, runStateT, get)
+import Control.Monad.State
 import Control.Monad.Except
 import Control.Monad (forM_)
 import qualified Parser.Types as AST
@@ -15,6 +15,7 @@ import Control.Monad.Reader
 import Control.Monad.Writer
 import Text.Printf (printf)
 import Data.Functor (($>))
+import Data.List (foldl')
 
 {-
 data Node = Entry | End {
@@ -159,7 +160,14 @@ visitExpr (expr@AST.FunCallExpr{}) = do
     Nothing   -> throwError $ "Method " ++ funCallName ++ " does not exist"
     Just cfg0 ->
       let (_,funCallSymState) = runCFG cfgs cfg0
-      in return $ ER_Expr $ getReturnSymExpr funCallSymState
+      in case CFG.getCFGFormalParams cfg0 of
+        formalParms -> --throwError "visitExpr ==> FunCallExpr ==> TODO"
+              -- [(formal parameters,actual parameters)] 
+              --m = zip (map AST.getVarName args) (map AST.getVarName $ CFG.getCFGFormalParams cfg0)
+          visitFunCall (map AST.getVarName formalParms) (AST.funArgs expr)
+        []   -> case getReturnSymExpr funCallSymState of
+          Just symExpr -> return $ ER_Expr symExpr
+          Nothing      -> throwError "visitExpr ==> FunCallExpr ==> fun returns nothing ==> TODO"
 --BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
 visitExpr expr@AST.BinOpExpr{} = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> BinOpExpr"]
@@ -272,11 +280,6 @@ runCFG cfgs cfg =
                         expr
          in (logs,either error (const (SymState m2 ps)) ei)
 
-getReturnSymExpr :: SymState -> SymExpr
-getReturnSymExpr symState = case Map.lookup "return" $ env symState of
-  Just symExpr -> symExpr
-  Nothing      -> error "won't happen, because this function is only called on SymStates with a return Statement."
-
 getBinSymExpr :: (SymExpr, SymExpr) -> AST.BinOp -> SymExpr
 getBinSymExpr (SymNum num1, SymNum num2) op =
   SymNum (getFractionalArithBinOp op num1 num2)
@@ -341,3 +344,30 @@ getFractionalArithBinOp = \case
     AST.Mult  -> (*)
     AST.Minus -> (-)
     AST.Div   -> (/)
+
+-- This function will only be used within visitExpr ==> FunCallExpr
+-- upon calling a function with actual parameters.
+visitFunCall :: [String] -> [AST.Expression] -> R
+visitFunCall formalParms actualParms = do
+  actualParms_visited <- mapM visitExpr actualParms
+  let paired :: [(String,ExecutionResult)]
+      paired = zip formalParms actualParms_visited
+  state $ \state ->
+    let newState = foldl' insertActualParm state paired
+    in case getReturnSymExpr newState of
+         Just a -> (a, newState)
+         Nothing -> error "visitFunCall ==> TODO"
+  return ER_Void
+
+{-
+visitExpr ==> NumberLiteral: ER_Expr
+visitExpr ==> FunCallExpr: ER_Expr
+visitExpr ==> BinOpExpr: ER_Expr
+visitExpr ==> AssignExpr: ER_SymStateMapEntry
+visitExpr ==> VarExpr: ER_SymStateMapEntry
+-}
+-- This function updates SymState using presented actual parameters.
+insertActualParm :: SymState -> (String,ExecutionResult) -> SymState
+insertActualParm state (varName, ER_Expr symExpr) = undefined
+insertActualParm state (varName, ER_SymStateMapEntry{}) = undefined
+insertActualParm _ _ = error "won't happen"

@@ -75,9 +75,14 @@ visitExpr ==> VarExpr: ER_SymStateMapEntry
 
 visitStmt sends data to visitNode (this may change in the future so that it also sends data to visitStmt)
 
-visitStmt ==> ReturnStmt: ER_Void (this will change to ER_Node)
+visitStmt ==> ReturnStmt: ER_State
 visitStmt ==> AssignStmt: ER_Void (this will change to ER_Node)
 visitStmt ==> VarStmt: ER_Void (this will change to ER_Node)
+visitStmt ==> AssignStmt: ER_State
+
+visitNode ==> Entry: ER_State
+visitNode ==> End: ER_State
+visitNode ==> Node: ER_State
 -}
 data ExecutionResult =
     ER_Expr SymExpr
@@ -135,6 +140,9 @@ toSymType2 (SBool _) = Bool
 toSymType2 (SymNull t) = t
 toSymType2 (SymParm t _) = t
 toSymType2 (SymGlobalVar t _) = t
+
+getReturnSymExpr :: SymState -> Maybe SymExpr
+getReturnSymExpr symState = Map.lookup "return" $ env symState
 
 instance MonadFail (Either String) where
   fail = Left

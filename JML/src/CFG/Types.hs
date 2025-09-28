@@ -60,6 +60,11 @@ getCFGType cfg =
        Nothing -> error "won't happen"
        Just (Entry t _ _)  -> t
 
+getCFGFormalParams :: CFG -> [AST.Expression]
+getCFGFormalParams cfg = case getEntryNode cfg of
+  Entry _ _ args -> args
+  _              -> error "won't happen"
+
 ------------------------------
 
 data NodeData = Statement AST.Statement
@@ -210,6 +215,9 @@ findNode_via_id cfg nodeId =
 
 findEdge_via_id :: CFG -> NodeID -> Maybe (NodeID,[NodeID])
 findEdge_via_id cfg nodeId = flip find (edges cfg) $ \(n,_) -> n==nodeId
+
+getEntryNode :: CFG -> Node
+getEntryNode cfg = findNode_via_id cfg 0 
 
 getNodeId :: Node -> NodeID
 getNodeId = \case

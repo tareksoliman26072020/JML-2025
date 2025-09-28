@@ -178,6 +178,18 @@ public int boo21_3_i(int i){
 ////////////////////////////////////////
 
 //TODO
+/*
+FunCallExpr {
+  funName = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "boo22_i"},
+  funArgs = [VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}]
+}
+*/
+/*
+FunCallExpr {
+  funName = VarExpr {varType = Nothing, varObj = [], varName = "boo21_i"},
+  funArgs = [VarExpr {varType = Nothing, varObj = [], varName = "i"}]
+}
+*/
 public int boo22_i(int i){
   return boo21_i(i);
 }
@@ -207,6 +219,12 @@ public int boo22_2_i(int i){
 ////////////////////////////////////////
 
 //TODO
+/*
+FunCallExpr {
+  funName = VarExpr {varType = Nothing, varObj = [], varName = "boo21_i"},
+  funArgs = [BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}]
+}
+*/
 public int boo23_3_i(int i){
   int x = 3 + boo21_i(i+i);
   return 5;
@@ -215,6 +233,18 @@ public int boo23_3_i(int i){
 ////////////////////////////////////////
 
 //TODO
+/*
+FunCallExpr {
+  funName = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "boo23_4_i"},
+  funArgs = [VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}]
+}
+*/
+/*
+FunCallExpr {
+  funName = VarExpr {varType = Nothing, varObj = [], varName = "boo21_i"},
+  funArgs = [NumberLiteral 0.0]
+}
+*/
 public int boo23_4_i(int i){
   return 3 + boo21_i(0);
 }

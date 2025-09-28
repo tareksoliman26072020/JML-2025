@@ -124,6 +124,11 @@ getFunCallName (FunCallStmt s) = case s of
   _               -> error "won't happen"
 getFunCallName _ = error "won't happen"
 
+-- VarExpr {varType = Nothing, varObj = [], varName = "i"}
+getVarName :: Expression -> String
+getVarName expr@VarExpr{} = varName expr
+getVarName _ = error "won't happen"
+
 data Type a
   = BuiltInType a
   | AnyType {typee :: String, generic :: Maybe (Type a)}
