@@ -183,6 +183,8 @@ visitExpr expr@AST.BinOpExpr{} = do
   f op1 op2 = case AST.binOp expr `elem` [AST.Plus, AST.Mult, AST.Minus, AST.Div] of
       True -> return $ ER_Expr $ getBinSymExpr (op1, op2) (AST.binOp expr)
       False -> throwError "TODO: visitExpr -> BinOpExpr"
+-- UnOpExpr {unOp :: UnOp, expr :: Expression}
+visitExpr expr@AST.UnOpExpr{} = throwError "visitExpr ==> UnOpExpr ==> TODO"
 -- AssignExpr {assEleft :: Expression, assEright :: Expression}
 visitExpr expr@AST.AssignExpr{} = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> AssignExpr"]
@@ -368,6 +370,40 @@ visitExpr ==> VarExpr: ER_SymStateMapEntry
 -}
 -- This function updates SymState using presented actual parameters.
 insertActualParm :: SymState -> (String,ExecutionResult) -> SymState
-insertActualParm state (varName, ER_Expr symExpr) = undefined
-insertActualParm state (varName, ER_SymStateMapEntry{}) = undefined
-insertActualParm _ _ = error "won't happen"
+insertActualParm state (formalParm, ER_Expr symExpr) = SymState {
+  env = Map.mapWithKey (insertActualParmHelper1 (formalParm, symExpr)) $ env state,
+  pc = pc state
+  }
+insertActualParm state (formalParm, ER_SymStateMapEntry{}) = error "insertActualParm ==> TODO"
+insertActualParm _ (_,er) = error $ "insertActualParm: won't happen, because ExecutionResult is either ER_Expr or ER_SymStateMapEntry, but it's " ++ show er
+
+insertActualParmHelper1 :: (String, SymExpr) -> String -> SymExpr -> SymExpr
+insertActualParmHelper1 tu@(formalParm, newSymExpr) key value
+  | key == "return" = insertActualParmHelper2 tu value
+  | otherwise = error "insertActualParmHelper1 ==> TODO"
+
+{-
+data SymExpr =
+-- | A (tiny) symbolic expression language
+    SymNum    Float
+  | SymInt    Integer             -- ^ concrete integer literal
+  | SymDouble Double              -- ^ concrete double literal
+  | SymFloat  Float               -- ^ concrete float literal
+  | SBool   Bool                  -- ^ concrete Boolean literal
+  | SBin    SymExpr SymBinOp SymExpr  -- ^ binary operation
+  | SNot    SymExpr               -- ^ logical negation
+  | SIte    SymExpr SymExpr SymExpr   -- ^ if-then-else (cond, then, else)
+  | SymNull SymType               -- ^ value of an unassigned variable
+  | SymParm SymType String        -- ^ declared variable (a formal parameter)
+  | SymGlobalVar SymType String   -- ^ variable declared outside the scope of the method
+-}
+insertActualParmHelper2 :: (String, SymExpr) -> SymExpr -> SymExpr
+insertActualParmHelper2 tu@(formalParm, newSymExpr) value = case value of
+  SBin symExpr1 symBinOp symExpr2 ->
+    SBin (insertActualParmHelper2 tu symExpr1) symBinOp (insertActualParmHelper2 tu symExpr2)
+  SNot symExpr -> SNot (insertActualParmHelper2 tu symExpr)
+  SIte _ _ _ -> error "insertActualParmHelper2 ==> TODO"
+  SymParm symType varName
+    | formalParm == varName -> newSymExpr
+  _ -> value
+
