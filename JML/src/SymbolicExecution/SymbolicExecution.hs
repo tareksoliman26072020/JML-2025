@@ -17,24 +17,6 @@ import Text.Printf (printf)
 import Data.Functor (($>))
 import Data.List (foldl')
 
-{-
-data Node = Entry | End {
-    id :: NodeID,
-    parent :: NodeID,
-    mExpr :: Maybe AST.Expression
-  } | Node {
-    id :: NodeID,
-    nodeData :: NodeData,
-    parent :: NodeID
-  } deriving Show
--}
-
-{-
-data SymState = SymState
- { env :: Map.Map String SymExpr
- , pc  :: [SymExpr]          -- ^ Path‐conditions: accumulate the conditions under which each execution state is feasible.
- }
--}
 instance CFGVisitor SymExec where
 --visitNode :: CFG.Node -> SymExec
   visitNode node = SymExec $ tell [Log.HorizontalLine "visitNode"] >> case node of
@@ -51,7 +33,7 @@ instance CFGVisitor SymExec where
                      ER_SymStateMapEntry name (SymNull symType) ->
                        modify $ \symState ->
                          SymState {
-                           env = Map.insert name (SymParm symType name) (env symState),
+                           env = Map.insert name (SymFormalParam symType name) (env symState),
                            pc = pc symState
                          }
                      _ -> throwError "won't happen"
@@ -96,6 +78,11 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
   let symExpr = case er of
         ER_Expr symExpr_ -> symExpr_ 
         er@ER_SymStateMapEntry{} -> symStateVal er
+        ER_FunCall funCallSymState -> case getReturnSymExpr funCallSymState of
+          Just symExpr -> symExpr
+          Nothing -> error "visitStmt ==> ReturnStmt: TODO"
+        ER_FunCall funCallSymState -> error
+          $ "visitStmt ==> ReturnStmt: " ++ (show $ env funCallSymState)
         x                -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show x
   modify $ \symState ->
     SymState {
@@ -164,7 +151,11 @@ visitExpr (expr@AST.FunCallExpr{}) = do
         formalParms -> --throwError "visitExpr ==> FunCallExpr ==> TODO"
               -- [(formal parameters,actual parameters)] 
               --m = zip (map AST.getVarName args) (map AST.getVarName $ CFG.getCFGFormalParams cfg0)
-          visitFunCall (map AST.getVarName formalParms) (AST.funArgs expr)
+          --visitFunCall (map AST.getVarName formalParms) (AST.funArgs expr)
+          --get >>= \s -> throwError $ "visitExpr ==> FunCallExpr:\n" ++ show (env s)
+          --throwError $ "visitExpr ==> FunCallExpr:\n" ++ show funCallSymState
+          let zipped = zip (map AST.getVarName formalParms) (AST.funArgs expr)
+          in insertActualParams zipped funCallSymState
         []   -> case getReturnSymExpr funCallSymState of
           Just symExpr -> return $ ER_Expr symExpr
           Nothing      -> throwError "visitExpr ==> FunCallExpr ==> fun returns nothing ==> TODO"
@@ -291,7 +282,7 @@ getBinSymExpr (SymDouble num1, SymDouble num2) op =
   SymDouble (getFractionalArithBinOp op num1 num2)
 getBinSymExpr (SymFloat num1, SymFloat num2) op =
   SymFloat (getFractionalArithBinOp op num1 num2)
-getBinSymExpr (a@(SymParm _ _), b@(SymParm _ _)) op =
+getBinSymExpr (a@(SymFormalParam _ _), b@(SymFormalParam _ _)) op =
   SBin a (toSymBinOp op) b
 getBinSymExpr (a@(SymGlobalVar _ _), b@(SymGlobalVar _ _)) op =
   SBin a (toSymBinOp op) b
@@ -311,8 +302,8 @@ getBinSymExpr (SymNum num1, SymFloat num2) op =
 getBinSymExpr (SymFloat num1, SymNum num2) op =
   SymFloat (getFractionalArithBinOp op num1 num2)
 ----------
-getBinSymExpr (a, b@(SymParm t _)) op = SBin (cast t a) (toSymBinOp op) b
-getBinSymExpr (a@(SymParm t _), b) op = SBin a (toSymBinOp op) (cast t b)
+getBinSymExpr (a, b@(SymFormalParam t _)) op = SBin (cast t a) (toSymBinOp op) b
+getBinSymExpr (a@(SymFormalParam t _), b) op = SBin a (toSymBinOp op) (cast t b)
 ----------
 getBinSymExpr (a, b@(SymGlobalVar t _)) op = SBin (cast t a) (toSymBinOp op) b
 getBinSymExpr (a@(SymGlobalVar t _), b) op = SBin a (toSymBinOp op) (cast t b)
@@ -347,63 +338,61 @@ getFractionalArithBinOp = \case
     AST.Minus -> (-)
     AST.Div   -> (/)
 
+{-
+1) When a function call with actual parameters is passed to visitExpr ==> FunCallExpr,
+corresponding formal parameters are paired to their actual parameters,
+they are then passed to `insertActualParams` along with the state of this function call.
+
+2) `insertActualParams` alters this state so that every presence of the formal parameters
+is replaced with actual parameters.
+
+3) In the end this function releases the ExecutionResult `ER_FunCall` which encapsulates
+the state of this funcation call after it was altered using the actual parameters
+
+4) This altered state may still have non-atomic ExecutionResults which then will processed 
+using `visitSymExpr`
+-}
 -- This function will only be used within visitExpr ==> FunCallExpr
 -- upon calling a function with actual parameters.
-visitFunCall :: [String] -> [AST.Expression] -> R
-visitFunCall formalParms actualParms = do
-  actualParms_visited <- mapM visitExpr actualParms
-  let paired :: [(String,ExecutionResult)]
-      paired = zip formalParms actualParms_visited
-  state $ \state ->
-    let newState = foldl' insertActualParm state paired
-    in case getReturnSymExpr newState of
-         Just a -> (a, newState)
-         Nothing -> error "visitFunCall ==> TODO"
-  return ER_Void
-
 {-
-visitExpr ==> NumberLiteral: ER_Expr
-visitExpr ==> FunCallExpr: ER_Expr
-visitExpr ==> BinOpExpr: ER_Expr
-visitExpr ==> AssignExpr: ER_SymStateMapEntry
-visitExpr ==> VarExpr: ER_SymStateMapEntry
+("i",VarExpr {varType = Nothing, varObj = [], varName = "i"}) ==>
+("i",ER_SymStateMapEntry {symStateKey = "i", symStateVal = SymFormalParam Int "i"})
+
+[("i",SymFormalParm Int "i"),("return",SymFormalParm Int "i")] ==>
+[
+("i",SymActualParam {
+   symActualParam = Int,
+   symFormalParamName = "i",
+   symActualParamName = SymFormalParam Int "i"
+ }),
+("return",SymActualParam {
+   symActualParam = Int,
+   symFormalParamName = "i",
+   symActualParamName = SymFormalParam Int "i"
+ }
+)
+]
 -}
--- This function updates SymState using presented actual parameters.
-insertActualParm :: SymState -> (String,ExecutionResult) -> SymState
-insertActualParm state (formalParm, ER_Expr symExpr) = SymState {
-  env = Map.mapWithKey (insertActualParmHelper1 (formalParm, symExpr)) $ env state,
-  pc = pc state
-  }
-insertActualParm state (formalParm, ER_SymStateMapEntry{}) = error "insertActualParm ==> TODO"
-insertActualParm _ (_,er) = error $ "insertActualParm: won't happen, because ExecutionResult is either ER_Expr or ER_SymStateMapEntry, but it's " ++ show er
+                     -- formalParms  actualParms
+insertActualParams :: [(String     , AST.Expression)] -> SymState -> R
+insertActualParams tus funCallState = do
+  tus2 <- mapM (\(a,b) -> ((,) a) <$> visitExpr b) tus
+  {-
+  tus = [
+    ("i",ER_SymStateMapEntry {symStateKey = "i", symStateVal = SymFormalParam Int "i"})
+  ]
+  -}
+  -- `newFunCallEnv` is the new adjustment of `funCallEnv`
+  -- that I get after I insert actual parameters
+  let newFunCallEnv = flip Map.map (env funCallState) $ \case
+        SymFormalParam symType formalParam -> case lookup formalParam tus2 of
+          Just er@ER_SymStateMapEntry{} -> SymActualParam symType formalParam (symStateVal er)
+          Nothing -> error "won't happen"
+        ex -> ex
+  return $ ER_FunCall $ SymState newFunCallEnv (pc funCallState)
 
-insertActualParmHelper1 :: (String, SymExpr) -> String -> SymExpr -> SymExpr
-insertActualParmHelper1 tu@(formalParm, newSymExpr) key value
-  | key == "return" = insertActualParmHelper2 tu value
-  | otherwise = error "insertActualParmHelper1 ==> TODO"
+-----------------------------
+-----------------------------
+-----------------------------
 
-{-
-data SymExpr =
--- | A (tiny) symbolic expression language
-    SymNum    Float
-  | SymInt    Integer             -- ^ concrete integer literal
-  | SymDouble Double              -- ^ concrete double literal
-  | SymFloat  Float               -- ^ concrete float literal
-  | SBool   Bool                  -- ^ concrete Boolean literal
-  | SBin    SymExpr SymBinOp SymExpr  -- ^ binary operation
-  | SNot    SymExpr               -- ^ logical negation
-  | SIte    SymExpr SymExpr SymExpr   -- ^ if-then-else (cond, then, else)
-  | SymNull SymType               -- ^ value of an unassigned variable
-  | SymParm SymType String        -- ^ declared variable (a formal parameter)
-  | SymGlobalVar SymType String   -- ^ variable declared outside the scope of the method
--}
-insertActualParmHelper2 :: (String, SymExpr) -> SymExpr -> SymExpr
-insertActualParmHelper2 tu@(formalParm, newSymExpr) value = case value of
-  SBin symExpr1 symBinOp symExpr2 ->
-    SBin (insertActualParmHelper2 tu symExpr1) symBinOp (insertActualParmHelper2 tu symExpr2)
-  SNot symExpr -> SNot (insertActualParmHelper2 tu symExpr)
-  SIte _ _ _ -> error "insertActualParmHelper2 ==> TODO"
-  SymParm symType varName
-    | formalParm == varName -> newSymExpr
-  _ -> value
-
+--instance CFGVisitor SymExec where

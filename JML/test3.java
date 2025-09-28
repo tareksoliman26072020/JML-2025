@@ -190,6 +190,19 @@ FunCallExpr {
   funArgs = [VarExpr {varType = Nothing, varObj = [], varName = "i"}]
 }
 */
+//[("i",SymParm Int "i")]
+/*
+SymState {
+  env = fromList [
+    ("i",SymFormalParam Int "i"),
+    ("return",SymActualParam {
+                symActualParam = Int,
+                symFormalParamName = "i",
+                symActualParamName = SymFormalParam Int "i"
+              })],
+  pc = []
+}
+*/
 public int boo22_i(int i){
   return boo21_i(i);
 }

@@ -68,7 +68,8 @@ ExecutionResult is used to transform data from a monadic transformer to another.
 visitExpr sends data to visitExpr, visitStmt, visitNode
 
 visitExpr ==> NumberLiteral: ER_Expr
-visitExpr ==> FunCallExpr: ER_Expr
+visitExpr ==> FunCallExpr ==> function without parameters: ER_Expr
+visitExpr ==> FunCallExpr ==> function with parameters: ER_FunCall
 visitExpr ==> BinOpExpr: ER_Expr
 visitExpr ==> AssignExpr: ER_SymStateMapEntry
 visitExpr ==> VarExpr: ER_SymStateMapEntry
@@ -83,12 +84,20 @@ visitStmt ==> AssignStmt: ER_State
 visitNode ==> Entry: ER_State
 visitNode ==> End: ER_State
 visitNode ==> Node: ER_State
+
+ER_FunCall encapsulates the state of a function call which posseses actual parameters.
+visitExpr ==> FunCallExpr ==> function with parameters: ER_FunCall
+Every occurrance of ER_Funcall needs to be handled with the monadic function `visitSymExpr`.
+The goal of `visitSymExpr` is to dissect and evaluate non-atomic symbolic expressions,
+such as (SBin, SymActualParam)
+
 -}
 data ExecutionResult =
     ER_Expr SymExpr
   | ER_Node {id :: CFGT.NodeID, nodeName :: String}
   | ER_SymStateMapEntry {symStateKey :: String, symStateVal :: SymExpr}
   | ER_State SymState
+  | ER_FunCall SymState
   | ER_Void
   deriving Show
 
@@ -103,14 +112,19 @@ data SymExpr =
   | SNot    SymExpr               -- ^ logical negation
   | SIte    SymExpr SymExpr SymExpr   -- ^ if-then-else (cond, then, else)
   | SymNull SymType               -- ^ value of an unassigned variable
-  | SymParm SymType String        -- ^ declared variable (a formal parameter)
+  | SymFormalParam SymType String  -- ^ declared variable (a formal parameter)
+  | SymActualParam {
+      symActualParam :: SymType,
+      symFormalParamName :: String,
+      symActualParamName :: SymExpr
+    }
   | SymGlobalVar SymType String   -- ^ variable declared outside the scope of the method
   deriving Show
 
 data SymType = Int | Double | Float | Bool | Void deriving Show
 
 isFormalParameter :: SymExpr -> Bool
-isFormalParameter (SymParm _ _) = True
+isFormalParameter (SymFormalParam _ _) = True
 isFormalParameter _ = False
 
 isGlobalVariable :: SymExpr -> Bool
@@ -138,7 +152,7 @@ toSymType2 (SymDouble _) = Double
 toSymType2 (SymFloat _) = Float
 toSymType2 (SBool _) = Bool
 toSymType2 (SymNull t) = t
-toSymType2 (SymParm t _) = t
+toSymType2 (SymFormalParam t _) = t
 toSymType2 (SymGlobalVar t _) = t
 
 getReturnSymExpr :: SymState -> Maybe SymExpr
