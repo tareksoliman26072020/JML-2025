@@ -11,6 +11,7 @@ import Control.Monad.Reader
 import Control.Monad.State
 import qualified Data.Map as Map
 import Control.Monad.Except
+import Data.Functor (($>))
 
 type MethodCall_Map_R =
     ReaderT (Config,[(FormalParm, ActualParm_post_Execution)])
@@ -18,9 +19,9 @@ type MethodCall_Map_R =
     (Map.Map String ExecutionResult)
     
 instance SymStateVisitor MethodCall_SymExec where
---visitSymExpr :: SymExpr -> MethodCall_R
+--visitSymExpr :: (String,SymExpr) -> MethodCall_SymExec
   visitSymExpr = \case
-    SymFormalParam symType formalParam Nothing -> MethodCall_SymExec $ do
+    (_,SymFormalParam symType formalParam Nothing) -> MethodCall_SymExec $ do
       (_,tupels) <- ask
       let newSymExpr :: SymExpr
           newSymExpr = case lookup formalParam tupels of
@@ -30,11 +31,11 @@ instance SymStateVisitor MethodCall_SymExec where
             Nothing -> error "won't happen"
       modify $ \symState ->
         SymState {
-          env = undefined,--Map.insert k a (env symState),
+          env = Map.insert formalParam newSymExpr (env symState),
           pc  = pc symState
         }
       return $ ER_Formal_2_Actual formalParam newSymExpr
-    SymFormalParam symType formalParam _ -> MethodCall_SymExec
+    (_,SymFormalParam symType formalParam _) -> MethodCall_SymExec
       $ throwError "visitSymExpr -> SymFormalParam -> TODO"
     ex -> MethodCall_SymExec
       $ throwError "visitSymExpr -> TODO"
@@ -49,31 +50,17 @@ formal_to_actual_2 actualParam formalParam = case actualParam of
   e@(SymInt _) -> e
 
 --                         formalParms, actualParms
-runSymState :: SymState -> String -> ([Log.Log],SymState)
-runSymState symState methodCall =
+runSymState :: SymState -> String -> [(FormalParm, ActualParm_post_Execution)] -> ([Log.Log],SymState)
+runSymState symState methodCall tus =
   let -- mapM :: Monad m => (a -> m b) -> Map k a -> m (Map k b)
-      runner :: MethodCall_Map_R
-      runner = flip mapM (env symState) $ \symExpr -> do
+      runner :: Map.Map String MethodCall_R--[MethodCall_Map_R]
+      runner = flip Map.mapWithKey (env symState) $ \key symExpr -> do
         tell [Log.NextMethodCallSymExpr methodCall (show symExpr)]
-        getReader_MethodCall_R $ visitSymExpr symExpr
+        getReader_MethodCall_R $ visitSymExpr (key,symExpr)
       initialSymState :: SymState
       initialSymState = SymState Map.empty (pc symState)
-  in undefined
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-{-
       run_r :: ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))) ()
-      run_r = runReaderT (runner $> ()) (defaultConfig,cfgs)
+      run_r = runReaderT (sequence_ runner) (defaultConfig,tus)
       run_e :: WriterT [Log.Log] (StateT SymState (Either String)) (Either String ())
       run_e = runExceptT run_r
       run_w :: StateT SymState (Either String) (Either String (),[Log.Log])
@@ -82,17 +69,5 @@ runSymState symState methodCall =
       mRun_s = runStateT run_w initialSymState
   in case mRun_s of
        Left str -> error str
-       Right ((ei,logs),SymState m ps) ->
-         let returnValue = m Map.! "return"
-             m2 = flip (Map.insert "return") m $
-                    case (CFG.getCFGType cfg, returnValue) of
-                      (AST.Int, SymNum float)    ->
-                        SymInt (round float)
-                      (AST.Double, SymNum float) ->
-                        SymDouble (realToFrac float)
-                      (AST.Float, SymNum float)  ->
-                        SymFloat float
-                      (_, expr)                  ->
-                        expr
-         in (logs,either error (const (SymState m2 ps)) ei)
--}
+       Right ((ei,logs),symState2) ->
+         (logs,either error (const symState2) ei)

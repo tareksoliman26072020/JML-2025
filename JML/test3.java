@@ -192,7 +192,7 @@ FunCallExpr {
 */
 /*
 SymState {
-  env = fromList [("i",SymFormalParam Int "i"),("return",SymFormalParam Int "i")],
+  env = fromList [("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing)],
   pc = []
 }
 */

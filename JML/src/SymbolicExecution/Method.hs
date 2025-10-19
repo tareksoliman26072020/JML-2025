@@ -161,14 +161,12 @@ visitExpr (expr@AST.FunCallExpr{}) = do
     Just cfg0 ->
       let (_,funCallSymState) = runCFG cfgs cfg0
       in case CFG.getCFGFormalParams cfg0 of
-        formalParms -> --throwError "visitExpr ==> FunCallExpr ==> TODO"
-              -- [(formal parameters,actual parameters)] 
-              --m = zip (map AST.getVarName args) (map AST.getVarName $ CFG.getCFGFormalParams cfg0)
-          --visitFunCall (map AST.getVarName formalParms) (AST.funArgs expr)
-          --get >>= \s -> throwError $ "visitExpr ==> FunCallExpr:\n" ++ show (env s)
-          --throwError $ "visitExpr ==> FunCallExpr:\n" ++ show funCallSymState
+        formalParms ->
+          
           let zipped = zip (map AST.getVarName formalParms) (AST.funArgs expr)
           in insertActualParams zipped funCallSymState
+           
+        --let zipped = zip (map AST.getVarName formalParms) (map visitExpr $ AST.funArgs expr)
         []   -> case getReturnSymExpr funCallSymState of
           Just symExpr -> 
             let toReturn = ER_Expr symExpr

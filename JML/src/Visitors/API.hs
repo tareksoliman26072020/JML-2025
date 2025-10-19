@@ -12,4 +12,4 @@ class CFGVisitor v where
   visitNode :: CFG.Node -> v
 
 class SymStateVisitor v where
-  visitSymExpr :: SYM.SymExpr -> v
+  visitSymExpr :: (String,SYM.SymExpr) -> v

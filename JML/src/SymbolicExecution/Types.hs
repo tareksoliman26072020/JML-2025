@@ -89,8 +89,8 @@ visitExpr ==> VarExpr: ER_SymStateMapEntry
 visitStmt sends data to visitNode (this may change in the future so that it also sends data to visitStmt)
 
 visitStmt ==> ReturnStmt: ER_State
-visitStmt ==> AssignStmt: ER_Void (this will change to ER_Node)
-visitStmt ==> VarStmt: ER_Void (this will change to ER_Node)
+visitStmt ==> AssignStmt: ER_State
+visitStmt ==> VarStmt: ER_State
 visitStmt ==> AssignStmt: ER_State
 
 visitNode ==> Entry: ER_State
