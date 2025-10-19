@@ -21,6 +21,7 @@ data Log = Expression_2_Handle String String
          | LookUpEnvTable String String String
          | NextNode String
          | MethodFormalParams String String
+         | NextMethodCallSymExpr String String
 
 -- Look up the usage of the function `tell` in SymbolicExecution
 -- to best relate to `Log`
@@ -42,6 +43,8 @@ instance Show Log where
     LookUpEnvTable key val loc  -> printf "(%s): Look up in environmane table (%s ~~> %s) " loc key val
     MethodFormalParams args loc -> printf "(%s): Visiting formal parameters: %s" loc args
     NextNode nodeStr            -> "Next Node: " ++ nodeStr
+    NextMethodCallSymExpr
+      symExpr methodCall        -> printf "Next symExpr (%s) in Method Call: %s" symExpr methodCall
 
 ppLogs :: [Log] -> [String]
 ppLogs = snd . foldl' enumerated (1,[])

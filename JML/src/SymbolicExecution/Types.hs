@@ -11,23 +11,25 @@ import Control.Monad.Writer
 import qualified Parser.Types as AST
 import qualified CFG.Types as CFGT (CFG, NodeID)
 
-type R1 =
+type Method_R =
     ReaderT (Config,[CFGT.CFG])
     (ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))))
     ExecutionResult
 
-type OuterSymState = SymState
-type InnerSymState = SymState
-
-type R2 =
+type MethodCall_R =
     ReaderT (Config,[CFGT.CFG])
-    (ExceptT String (WriterT [Log.Log] (StateT (OuterSymState,InnerSymState) (Either String))))
+    (ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))))
     ExecutionResult
 
-newtype SymExec1 = SymExec1 R1
+newtype Method_SymExec = Method_SymExec Method_R
 
-getReader1 :: SymExec1 -> R1
-getReader1 (SymExec1 r) = r
+newtype MethodCall_SymExec = MethodCall_SymExec MethodCall_R
+
+getReader_Method_R :: Method_SymExec -> Method_R
+getReader_Method_R (Method_SymExec r) = r
+
+getReader_MethodCall_R :: MethodCall_SymExec -> MethodCall_R
+getReader_MethodCall_R (MethodCall_SymExec r) = r
 
 data SymState = SymState
  { env :: Map.Map String SymExpr
@@ -77,7 +79,7 @@ visitExpr sends data to visitExpr, visitStmt, visitNode
 
 visitExpr ==> NumberLiteral: ER_Expr
 visitExpr ==> FunCallExpr ==> function without parameters: ER_Expr
-visitExpr ==> FunCallExpr ==> function with parameters: ER_RawFunCall
+visitExpr ==> FunCallExpr ==> function with parameters: ER_FunCall
 visitExpr ==> BinOpExpr: ER_Expr
 visitExpr ==> AssignExpr: ER_SymStateMapEntry
 visitExpr ==> VarExpr: ER_SymStateMapEntry
@@ -93,8 +95,8 @@ visitNode ==> Entry: ER_State
 visitNode ==> End: ER_State
 visitNode ==> Node: ER_State
 
-ER_RawFunCall encapsulates the state of a function call which posseses actual parameters.
-visitExpr ==> FunCallExpr ==> function with parameters: ER_RawFunCall
+ER_FunCall encapsulates the state of a function call which posseses actual parameters.
+visitExpr ==> FunCallExpr ==> function with parameters: ER_FunCall
 
 insertActualParams ==> SymFormalParam: SymActualParam
 -}
@@ -103,7 +105,7 @@ data ExecutionResult =
   | ER_Node {id :: CFGT.NodeID, nodeName :: String}
   | ER_SymStateMapEntry {symStateKey :: String, symStateVal :: SymExpr}
   | ER_State SymState
-  | ER_RawFunCall SymState
+  | ER_FunCall SymState
   | ER_Void
   deriving Show
 
