@@ -16,8 +16,10 @@ type Method_R =
     (ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))))
     ExecutionResult
 
+type FormalParm = String
+type ActualParm_post_Execution = ExecutionResult
 type MethodCall_R =
-    ReaderT (Config,[CFGT.CFG])
+    ReaderT (Config,[(FormalParm, ActualParm_post_Execution)])
     (ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))))
     ExecutionResult
 
@@ -106,6 +108,8 @@ data ExecutionResult =
   | ER_SymStateMapEntry {symStateKey :: String, symStateVal :: SymExpr}
   | ER_State SymState
   | ER_FunCall SymState
+  | ER_Formal_2_Actual {formal :: String, actual :: SymExpr}
+  | ER_Formal_Unchanged SymExpr
   | ER_Void
   deriving Show
 
@@ -120,7 +124,7 @@ data SymExpr =
   | SNot    SymExpr               -- ^ logical negation
   | SIte    SymExpr SymExpr SymExpr   -- ^ if-then-else (cond, then, else)
   | SymNull SymType               -- ^ value of an unassigned variable
-  | SymFormalParam SymType String  -- ^ declared variable (a formal parameter)
+  | SymFormalParam SymType String (Maybe SymExpr) -- ^ declared variable (a formal parameter)
   | SymActualParam {
       symActualParam :: SymType,
       symFormalParamName :: String,
@@ -132,7 +136,7 @@ data SymExpr =
 data SymType = Int | Double | Float | Bool | Void deriving Show
 
 isFormalParameter :: SymExpr -> Bool
-isFormalParameter (SymFormalParam _ _) = True
+isFormalParameter (SymFormalParam _ _ _) = True
 isFormalParameter _ = False
 
 isGlobalVariable :: SymExpr -> Bool
@@ -160,7 +164,7 @@ toSymType2 (SymDouble _) = Double
 toSymType2 (SymFloat _) = Float
 toSymType2 (SBool _) = Bool
 toSymType2 (SymNull t) = t
-toSymType2 (SymFormalParam t _) = t
+toSymType2 (SymFormalParam t _ _) = t
 toSymType2 (SymGlobalVar t _) = t
 
 getReturnSymExpr :: SymState -> Maybe SymExpr

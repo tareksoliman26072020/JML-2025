@@ -34,6 +34,7 @@ library
       Parser.Types
       SymbolicExecution.Log
       SymbolicExecution.Method
+      SymbolicExecution.MethodCall
       SymbolicExecution.Types
       SymbolTable.SymbolTableCreator
       SymbolTable.Types

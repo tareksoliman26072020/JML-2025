@@ -23,31 +23,36 @@ instance CFGVisitor Method_SymExec where
     CFG.Entry t mn args -> do
       tell [Log.MethodStart mn "visitNode -> Entry"]
       case null args of
-        True  -> return ()
+        True  -> tell [Log.Return "visitNode -> Entry -> method with no args" "()"] $> ()
         False -> do
-          tell [Log.MethodFormalParams (show args) "visitNode -> Entry"]
+          tell [Log.MethodFormalParams (show args) "visitNode -> Entry -> method with args"]
           mapM visitExpr args $> ()
           mapM (\arg -> do
                    argVisited <- visitExpr arg
                    case argVisited of
-                     ER_SymStateMapEntry name (SymNull symType) ->
+                     ER_SymStateMapEntry name (SymNull symType) -> do
+                       let newVal = SymFormalParam symType name Nothing
+                       tell [Log.ModifyState "visitNode -> Entry -> method with args" (name,show newVal)]
                        modify $ \symState ->
                          SymState {
-                           env = Map.insert name (SymFormalParam symType name) (env symState),
+                           env = Map.insert name newVal (env symState),
                            pc = pc symState
                          }
                      _ -> throwError "won't happen"
                ) args $> ()
-      ER_State <$> get
+      toReturn <- ER_State <$> get
+      tell [Log.Return "visitNode -> Entry -> method has args" (show toReturn)] $> toReturn
     n@CFG.End{} -> do
       tell [Log.MethodEnd "visitNode -> End"]
       case CFG.mExpr n of
         Nothing       -> do
           tell [Log.Void "visitNode -> End -> return nothing"]
-          ER_State <$> get
+          toReturn <- ER_State <$> get
+          tell [Log.Return "visitNode -> End -> void method" (show toReturn)] $> toReturn
         a@(Just expr) -> do
           tell [Log.ReturnStatement (show expr) "visitNode -> End -> return something"]
-          visitStmt (AST.ReturnStmt a)
+          toReturn <- visitStmt (AST.ReturnStmt a)
+          tell [Log.Return "visitNode -> End -> method returns" (show toReturn)] $> toReturn
 {-
 Node {
     id :: NodeID,
@@ -66,14 +71,15 @@ data NodeData = ForInitialization AST.Expression
     n@CFG.Node{} -> case CFG.nodeData n of
       CFG.Statement stmt -> do
         tell [Log.MethodStatement "visitNode -> case nodeData of Node -> Statement"]
-        visitStmt stmt
+        toReturn <- visitStmt stmt
+        tell [Log.Return "visitNode -> Node" (show toReturn)] $> toReturn
       _ -> throwError
         $ "TODO -> visitNode -> Node -> nodeData -> otherwise" ++ show n
 
 visitStmt :: AST.Statement -> Method_R
 --ReturnStmt {returnS :: Maybe Expression}
 visitStmt (AST.ReturnStmt (Just expr)) = do
-  tell [Log.ReturnStatement (show expr) "visitStmt -> pattern matching: ReturnStmt"]
+  tell [Log.ReturnStatement (show expr) "visitStmt -> ReturnStmt"]
   er <- visitExpr expr
   let symExpr = case er of
         ER_Expr symExpr_ -> symExpr_ 
@@ -84,19 +90,25 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
         ER_FunCall funCallSymState -> error
           $ "visitStmt ==> ReturnStmt: " ++ (show $ env funCallSymState)
         x                -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show x
+  tell [Log.ModifyState "visitStmt -> ReturnStmt -> method with args" ("return",show symExpr)]
   modify $ \symState ->
     SymState {
       env = Map.insert "return" symExpr (env symState),
       pc = pc symState
     }
-  ER_State <$> get
+  toReturn <- ER_State <$> get
+  tell [Log.Return "visitStmt -> ReturnStmt" (show toReturn)] $> toReturn
 -- AssignStmt {varModifier :: [Modifier], assign :: Expression}
 visitStmt stmt@AST.AssignStmt{} = do
   tell [Log.AssignStatement (show $ AST.assign stmt) "visitStmt -> pattern matching: AssignStmt"]
-  (visitExpr $ AST.assign stmt) *> (ER_State <$> get)
+  _ <- visitExpr $ AST.assign stmt
+  toReturn <- ER_State <$> get
+  tell [Log.Return "visitStmt -> AssignStmt" (show toReturn)] $> toReturn
 -- VarStmt {var :: Expression}
-visitStmt stmt@AST.VarStmt{} =
-  (visitExpr $ AST.var stmt) *> (ER_State <$> get)
+visitStmt stmt@AST.VarStmt{} = do
+  _ <- visitExpr $ AST.var stmt
+  toReturn <- ER_State <$> get
+  tell [Log.Return "visitStmt -> VarStmt" (show toReturn)] $> toReturn
 visitStmt _ = throwError "TODO -> visitStmt -> 2"
 
 {-
@@ -130,7 +142,8 @@ data Types
 visitExpr :: AST.Expression -> Method_R
 visitExpr expr@(AST.NumberLiteral float) = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> pattern matching: NumberLiteral"]
-  return $ ER_Expr (SymNum float)
+  let toReturn = ER_Expr (SymNum float)
+  tell [Log.Return "visitExpr -> NumberLiteral" (show toReturn)] $> toReturn
 {-
 data SymState = SymState
  { env :: Map.Map String SymExpr
@@ -157,13 +170,17 @@ visitExpr (expr@AST.FunCallExpr{}) = do
           let zipped = zip (map AST.getVarName formalParms) (AST.funArgs expr)
           in insertActualParams zipped funCallSymState
         []   -> case getReturnSymExpr funCallSymState of
-          Just symExpr -> return $ ER_Expr symExpr
+          Just symExpr -> 
+            let toReturn = ER_Expr symExpr
+            in do tell [Log.Return "visitExpr -> FunCallExpr" (show toReturn)]
+                  return toReturn
           Nothing      -> throwError "visitExpr ==> FunCallExpr ==> fun returns nothing ==> TODO"
 --BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
 visitExpr expr@AST.BinOpExpr{} = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> BinOpExpr"]
   one <- visitExpr (AST.expr1 expr)
   two <- visitExpr (AST.expr2 expr)
+  tell [Log.Affected "visitExpr -> BinOpExpr" [show one,show $ AST.binOp expr,show two]]
   case (one,two) of
     (ER_Expr op1,ER_Expr op2) -> f1 op1 op2
     (ER_SymStateMapEntry _ op1, ER_Expr op2) -> f1 op1 op2
@@ -171,57 +188,64 @@ visitExpr expr@AST.BinOpExpr{} = do
   --(ER_Expr op1, fun@(ER_FunCall _))     -> --f2 op1 fun
   --(fun@(ER_FunCall _), ER_Expr op2)     -> --f2 fun op2
     _ -> throwError $ "visitExpr ~~> BinOpExpr: " ++ show (one,two)
-{-
-(
- ER_FunCall (
-   SymState {
-     env = fromList [
-       ("i"     ,SBin (SymFormalParam Int "i") Add (SymInt 4)),
-       ("return",SBin (SymFormalParam Int "i") Add (SymInt 4))
-     ],
-     pc = []
-   }
- ),
- ER_Expr (SymNum 1.0))
--}
   where
   f1 :: SymExpr -> SymExpr -> Method_R
   f1 op1 op2 = case AST.binOp expr `elem` [AST.Plus, AST.Mult, AST.Minus, AST.Div] of
-      True -> return $ ER_Expr $ getBinSymExpr (op1, op2) (AST.binOp expr)
+      True -> 
+        let toReturn = ER_Expr $ getBinSymExpr (op1, op2) (AST.binOp expr)
+        in tell [Log.Return "visitExpr -> BinOpExpr" (show toReturn)] $> toReturn
       False -> throwError "TODO: visitExpr -> BinOpExpr"
 -- UnOpExpr {unOp :: UnOp, expr :: Expression}
 visitExpr expr@AST.UnOpExpr{} = throwError "visitExpr ==> UnOpExpr ==> TODO"
 -- AssignExpr {assEleft :: Expression, assEright :: Expression}
 visitExpr expr@AST.AssignExpr{} = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> AssignExpr"]
-  ER_SymStateMapEntry svn val <- visitExpr (AST.assEleft expr)
-  ER_Expr e2 <- visitExpr (AST.assEright expr)
-  tell [Log.Assign svn (show e2) "visitExpr -> AssignExpr"]
+  one@(ER_SymStateMapEntry svn val) <- visitExpr (AST.assEleft expr)
+  two@(ER_Expr e2) <- visitExpr (AST.assEright expr)
+  tell [Log.Affected "visitExpr -> AssignExpr" [show one, show two]]
+  let newVal = case val of
+        SymFormalParam t n _ ->
+          let v = cast (toSymType2 val) e2
+          in SymFormalParam t n (Just v)
+        _ -> cast (toSymType2 val) e2
+  tell [Log.ModifyState "visitExpr -> AssignExpr" (svn,show newVal)]
   modify $ \symState ->
     SymState {
-      env = Map.insert svn (cast (toSymType2 val) e2) (env symState),
+      env = Map.insert svn newVal (env symState),
       pc = pc symState
     }
-  return $ ER_SymStateMapEntry svn e2
+    {-SymState {
+      env = case val of
+        SymFormalParam t n _ ->
+          let v = cast (toSymType2 val) e2
+          in Map.insert svn (SymFormalParam t n (Just v)) (env symState)
+        _ -> Map.insert svn (cast (toSymType2 val) e2) (env symState),
+      pc = pc symState
+    }-}
+  let toReturn = ER_SymStateMapEntry svn e2
+  tell [Log.Return "visitExpr -> AssignExpr" (show toReturn)] $> toReturn
 -- VarExpr {varType :: Maybe (Type Types), varObj :: [String], varName :: String}
 visitExpr expr@AST.VarExpr{} = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> VarExpr"]
   let varName_ = AST.varName expr
   case AST.varType expr of
     Nothing -> do
-      tell [Log.UpdateVariable varName_ "visitExpr -> VarExpr -> update variable"]
+      tell [Log.UpdateVariable varName_ "visitExpr -> VarExpr"]
       val <- (Map.! varName_) <$> env <$> get
-      tell [Log.LookUpEnvTable varName_ (show val) "visitExpr -> VarExpr -> update variable"]
-      return $ ER_SymStateMapEntry varName_ val
+      tell [Log.LookUpEnvTable varName_ (show val) "visitExpr -> VarExpr"]
+      let toReturn = ER_SymStateMapEntry varName_ val
+      tell [Log.Return "visitExpr -> VarExpr" (show toReturn)] $> toReturn
     Just t -> do
-      tell [Log.NewVariable (show t) varName_ "visitExpr -> VarExpr -> new variable"]
+      tell [Log.NewVariable (show t) varName_ "visitExpr -> VarExpr"]
       let sExpr = SymNull $ toSymType1 t
+      tell [Log.ModifyState "visitExpr -> VarExpr" (varName_,show sExpr)]
       modify $ \symState ->
         SymState {
           env = Map.insert varName_ sExpr (env symState),
           pc = pc symState
         }
-      return $ ER_SymStateMapEntry varName_ sExpr
+      let toReturn = ER_SymStateMapEntry varName_ sExpr
+      tell [Log.Return "visitExpr -> VarExpr" (show toReturn)] $> toReturn
 visitExpr expr = error $ "What this is: " ++ show expr
 
 ------------------------------
@@ -297,7 +321,7 @@ getBinSymExpr (SymDouble num1, SymDouble num2) op =
   SymDouble (getFractionalArithBinOp op num1 num2)
 getBinSymExpr (SymFloat num1, SymFloat num2) op =
   SymFloat (getFractionalArithBinOp op num1 num2)
-getBinSymExpr (a@(SymFormalParam _ _), b@(SymFormalParam _ _)) op =
+getBinSymExpr (a@(SymFormalParam _ _ _), b@(SymFormalParam _ _ _)) op =
   SBin a (toSymBinOp op) b
 getBinSymExpr (a@(SymGlobalVar _ _), b@(SymGlobalVar _ _)) op =
   SBin a (toSymBinOp op) b
@@ -317,8 +341,8 @@ getBinSymExpr (SymNum num1, SymFloat num2) op =
 getBinSymExpr (SymFloat num1, SymNum num2) op =
   SymFloat (getFractionalArithBinOp op num1 num2)
 ----------
-getBinSymExpr (a, b@(SymFormalParam t _)) op = SBin (cast t a) (toSymBinOp op) b
-getBinSymExpr (a@(SymFormalParam t _), b) op = SBin a (toSymBinOp op) (cast t b)
+getBinSymExpr (a, b@(SymFormalParam t _ _)) op = SBin (cast t a) (toSymBinOp op) b
+getBinSymExpr (a@(SymFormalParam t _ _), b) op = SBin a (toSymBinOp op) (cast t b)
 ----------
 getBinSymExpr (a, b@(SymGlobalVar t _)) op = SBin (cast t a) (toSymBinOp op) b
 getBinSymExpr (a@(SymGlobalVar t _), b) op = SBin a (toSymBinOp op) (cast t b)
@@ -399,11 +423,12 @@ insertActualParams tus funCallState = do
   -- `newFunCallEnv` is the new adjustment of `funCallEnv`
   -- that I get after I insert actual parameters
   let newFunCallEnv = flip Map.map (env funCallState) $ \case
-        SymFormalParam symType formalParam -> case lookup formalParam tus2 of
+        SymFormalParam symType formalParam Nothing -> case lookup formalParam tus2 of
           Just er@ER_SymStateMapEntry{} -> formal_to_actual (symStateVal er) formalParam
           Just (ER_Expr symExpr) -> formal_to_actual symExpr formalParam
           Just er -> error $ "insertActualParams: " ++ show er
           Nothing -> error "won't happen"
+        SymFormalParam symType formalParam _ -> error "insertActualParams ==> TODO"
         ex -> ex
   return $ ER_FunCall $ SymState newFunCallEnv (pc funCallState)
 
@@ -423,7 +448,8 @@ formal_to_actual :: SymExpr -> String -> SymExpr
 formal_to_actual actualParam formalParam = case actualParam of
   SBin symExpr1 symBinOp symExpr2 ->
     SBin (formal_to_actual symExpr1 formalParam) symBinOp (formal_to_actual symExpr2 formalParam)
-  SymFormalParam symType _ -> actualParam
+  SymFormalParam symType _ Nothing -> actualParam
+  SymFormalParam symType _ _ -> error "formal_to_actual ==> TODO"
     --SymActualParam symType formalParam actualParam
   e@(SymInt _) -> e
 
