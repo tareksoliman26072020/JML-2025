@@ -95,9 +95,6 @@ visitNode ==> Node: ER_State
 
 ER_RawFunCall encapsulates the state of a function call which posseses actual parameters.
 visitExpr ==> FunCallExpr ==> function with parameters: ER_RawFunCall
-Every occurrance of ER_RawFuncall needs to be handled with the monadic function `visitSymExpr`.
-The goal of `visitSymExpr` is to dissect and evaluate non-atomic symbolic expressions,
-such as (SBin, SymActualParam)
 
 insertActualParams ==> SymFormalParam: SymActualParam
 -}

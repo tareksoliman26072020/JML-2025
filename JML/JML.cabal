@@ -33,7 +33,7 @@ library
       Parser.Print
       Parser.Types
       SymbolicExecution.Log
-      SymbolicExecution.SymbolicExecution
+      SymbolicExecution.Method
       SymbolicExecution.Types
       SymbolTable.SymbolTableCreator
       SymbolTable.Types

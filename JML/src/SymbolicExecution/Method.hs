@@ -1,5 +1,5 @@
 {-# Language LambdaCase #-}
-module SymbolicExecution.SymbolicExecution where
+module SymbolicExecution.Method where
 
 import qualified SymbolicExecution.Log as Log
 import SymbolicExecution.Types
@@ -364,8 +364,7 @@ is replaced with actual parameters.
 3) In the end this function releases the ExecutionResult `ER_RawFunCall` which encapsulates
 the state of this funcation call after it was altered using the actual parameters
 
-4) This altered state may still have non-atomic ExecutionResults which then will processed 
-using `visitSymExpr`
+4) `formal_to_actual` is a helper for `insertActualParams`
 -}
 -- This function will only be used within visitExpr ==> FunCallExpr
 -- upon calling a function with actual parameters.
@@ -401,7 +400,7 @@ insertActualParams tus funCallState = do
   -- that I get after I insert actual parameters
   let newFunCallEnv = flip Map.map (env funCallState) $ \case
         SymFormalParam symType formalParam -> case lookup formalParam tus2 of
-          Just er@ER_SymStateMapEntry{} -> formal_to_actual (symStateVal er) formalParam--SymActualParam symType formalParam (symStateVal er)
+          Just er@ER_SymStateMapEntry{} -> formal_to_actual (symStateVal er) formalParam
           Just (ER_Expr symExpr) -> formal_to_actual symExpr formalParam
           Just er -> error $ "insertActualParams: " ++ show er
           Nothing -> error "won't happen"

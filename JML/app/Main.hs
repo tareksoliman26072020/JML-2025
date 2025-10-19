@@ -16,7 +16,7 @@ import qualified CFG.CFG as CFG (exec)
 import qualified CFG.Types as CFGT (CFG(..), showCFG, Node(..), findCFGByName, getPath)
 
 import qualified SymbolicExecution.Types as SYT
-import qualified SymbolicExecution.SymbolicExecution as SY (runCFG)
+import qualified SymbolicExecution.Method as SYM (runCFG)
 import qualified SymbolicExecution.Log as SYT.Log
 
 import Text.Printf (printf)
@@ -73,7 +73,7 @@ getSymState :: String -> IO SYT.SymState
 getSymState funName = readFile "test3.java" >>=
   (\cfgs -> case CFGT.findCFGByName funName cfgs of
               Just cfg0 ->
-                let (logs,s) = SY.runCFG cfgs cfg0
+                let (logs,s) = SYM.runCFG cfgs cfg0
                 in do putStrLn "================"
                       putStrLn "===Begin Logs==="
                       putStrLn "================"
