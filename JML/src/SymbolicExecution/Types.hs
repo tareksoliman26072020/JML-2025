@@ -125,11 +125,6 @@ data SymExpr =
   | SIte    SymExpr SymExpr SymExpr   -- ^ if-then-else (cond, then, else)
   | SymNull SymType               -- ^ value of an unassigned variable
   | SymFormalParam SymType String (Maybe SymExpr) -- ^ declared variable (a formal parameter)
-  | SymActualParam {
-      symActualParam :: SymType,
-      symFormalParamName :: String,
-      symActualParamName :: SymExpr
-    }
   | SymGlobalVar SymType String   -- ^ variable declared outside the scope of the method
   deriving Show
 

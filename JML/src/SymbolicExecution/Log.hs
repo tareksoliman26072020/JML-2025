@@ -24,6 +24,10 @@ data Log = Expression_2_Handle String String
          | Affected String [String]
          | ModifyState String (String,String)
          | Return String String
+         | RunCFGFormalMethodCall String
+         | RunSymStateActualMethodCall String
+         | Nested String Log
+         | SymExpr_2_Handle String String
 
 -- Look up the usage of the function `tell` in SymbolicExecution
 -- to best relate to `Log`
@@ -35,6 +39,8 @@ instance Show Log where
     MethodStatement loc     -> printf "(%s): %s" (cyan loc) (yellow "Method Statement")
     Expression_2_Handle
       str loc               -> printf "(%s): %s: %s" (cyan loc) (yellow "handling expression") str
+    SymExpr_2_Handle
+      str loc               -> printf "(%s): %s: %s" (cyan loc) (yellow "handling SymExpr") str
     ReturnStatement str loc -> printf "(%s): %s: %s" (cyan loc) (yellow "handling return expression") str
     AssignStatement str loc -> printf "(%s): %s: %s" (cyan loc) (yellow "handling assign statement") str
     Edge_2_Handle str loc   -> printf "(%s): %s: %s" (cyan loc) (yellow "running CFG") str
@@ -50,14 +56,22 @@ instance Show Log where
     NextMethodCallSymExpr
       symExpr methodCall    -> printf "%s (%s) in Method Call: %s" (yellow "Next symExpr") symExpr methodCall
     Affected loc exprs      -> printf "(%s): %s: %s" (cyan loc) (yellow "Affected") (intercalate ", " exprs)
-    ModifyState loc (k,v)   -> printf "(%s): %s: (%s,%s)" loc (yellow "Modifying State") (cyan k) (cyan v)
+    ModifyState loc (k,v)   -> printf "(%s): %s: (%s,%s)" (cyan loc) (yellow "Modifying State") k v
     Return loc val          -> printf "(%s): %s: %s" (cyan loc) (yellow "Returning") val
+    RunCFGFormalMethodCall
+      symState              -> printf "%s: %s" (yellow "Method Call formal SymState") symState
+    RunSymStateActualMethodCall
+      symState              -> printf "%s: %s" (yellow "Method Call actual SymState") symState
+    Nested funCallTag log   -> printf "%s ==> %s" (red funCallTag) (show log)
 
 cyan :: String -> String
 cyan = printf "\ESC[1;36m%s\ESC[m"
 
 yellow :: String -> String
 yellow = printf "\ESC[1;33m%s\ESC[m"
+
+red :: String -> String
+red = printf "\ESC[1;41m%s\ESC[m"
 
 ppLogs :: [Log] -> [String]
 ppLogs = snd . foldl' enumerated (1,[])

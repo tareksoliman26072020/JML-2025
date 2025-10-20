@@ -8,9 +8,10 @@ import qualified Data.Map as Map
 import Control.Monad.Reader (runReaderT)
 import Control.Monad.State
 import Control.Monad.Except
-import Control.Monad (forM_)
+import Control.Monad (forM_, zipWithM)
 import qualified Parser.Types as AST
 import Visitors.API
+import SymbolicExecution.MethodCall (runSymState)
 import Control.Monad.Reader
 import Control.Monad.Writer
 import Text.Printf (printf)
@@ -86,7 +87,7 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
         er@ER_SymStateMapEntry{} -> symStateVal er
         ER_FunCall funCallSymState -> case getReturnSymExpr funCallSymState of
           Just symExpr -> symExpr
-          Nothing -> error "visitStmt ==> ReturnStmt: TODO"
+          Nothing -> error $ "visitStmt ==> ReturnStmt: TODO: Nothing: \n" ++ show funCallSymState
         ER_FunCall funCallSymState -> error
           $ "visitStmt ==> ReturnStmt: " ++ (show $ env funCallSymState)
         x                -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show x
@@ -141,7 +142,7 @@ data Types
 -}
 visitExpr :: AST.Expression -> Method_R
 visitExpr expr@(AST.NumberLiteral float) = do
-  tell [Log.Expression_2_Handle (show expr) "visitExpr -> pattern matching: NumberLiteral"]
+  tell [Log.Expression_2_Handle (show expr) "visitExpr -> NumberLiteral"]
   let toReturn = ER_Expr (SymNum float)
   tell [Log.Return "visitExpr -> NumberLiteral" (show toReturn)] $> toReturn
 {-
@@ -156,22 +157,44 @@ visitExpr (expr@AST.FunCallExpr{}) = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> FunCallExpr"]
   (_,cfgs) <- ask
   let funCallName = AST.getFunCallName $ AST.FunCallStmt expr
+  -- Search for the CFG of the method call
   case CFG.findCFGByName funCallName cfgs of
+    -- CFG not found
     Nothing   -> throwError $ "Method " ++ funCallName ++ " does not exist"
-    Just cfg0 ->
-      let (_,funCallSymState) = runCFG cfgs cfg0
-      in case CFG.getCFGFormalParams cfg0 of
-        formalParms ->
-          
-          let zipped = zip (map AST.getVarName formalParms) (AST.funArgs expr)
-          in insertActualParams zipped funCallSymState
-           
-        --let zipped = zip (map AST.getVarName formalParms) (map visitExpr $ AST.funArgs expr)
-        []   -> case getReturnSymExpr funCallSymState of
+    -- CFG found
+    Just cfg0 -> do
+      -- get SymState of the formal method call
+      let (funCallLogs1,funCallSymState1) = runCFG cfgs cfg0
+      -- edit its logs
+      mapM_ (\log -> tell [Log.Nested ("formal: " ++ funCallName) log]) funCallLogs1
+      tell [Log.RunCFGFormalMethodCall (show funCallSymState1)]
+      -- See if the method call has parameters
+      case CFG.getCFGFormalParams cfg0 of
+        -- if it has parameters
+        formalParms -> do
+          -- get the ExecutionResults of the actual parameters
+          let actualParms = flip map (AST.funArgs expr) $ \exp ->
+                let logging = Log.Nested (printf "SymExec of actual parameter: %s(%s)" funCallName (AST.getActualParmName exp))
+                in censor (map logging) $ visitExpr exp
+          {-
+          let actualParms = flip map (AST.funArgs expr) (\exp -> censor (map (\log -> Log.Nested (printf "SymExec of actual parameter: %s(%s)" funCallName (show exp)) log)) $ visitExpr exp)
+          -}
+          -- tus is list of tuples that is needed for runSymState in MethodCall.hs
+          tus <- zipWithM (\f act -> (,) f <$> act)
+                  (map AST.getVarName formalParms)
+                  actualParms
+          -- get SymState due to insertion of actual parameters
+          let (funCallLogs2,funCallSymState2) = runSymState funCallSymState1 funCallName tus
+          -- edit its logs
+          mapM_ (\log -> tell [Log.Nested ("actual: " ++ funCallName) log]) funCallLogs2
+          tell [Log.RunSymStateActualMethodCall (show funCallSymState2)]
+          let toReturn = ER_FunCall funCallSymState2
+          tell [Log.Return "visitExpr -> FunCallExpr -> with parameters" (show toReturn)] $> toReturn
+        -- if it has no parameters
+        []   -> case getReturnSymExpr funCallSymState1 of
           Just symExpr -> 
             let toReturn = ER_Expr symExpr
-            in do tell [Log.Return "visitExpr -> FunCallExpr" (show toReturn)]
-                  return toReturn
+            in tell [Log.Return "visitExpr -> FunCallExpr -> no parameters" (show toReturn)] $> toReturn
           Nothing      -> throwError "visitExpr ==> FunCallExpr ==> fun returns nothing ==> TODO"
 --BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
 visitExpr expr@AST.BinOpExpr{} = do
@@ -375,84 +398,3 @@ getFractionalArithBinOp = \case
     AST.Minus -> (-)
     AST.Div   -> (/)
 
-{-
-1) When a function call with actual parameters is passed to visitExpr ==> FunCallExpr,
-corresponding formal parameters are paired to their actual parameters,
-they are then passed to `insertActualParams` along with the state of this function call.
-
-2) `insertActualParams` alters this state so that every presence of the formal parameters
-is replaced with actual parameters.
-
-3) In the end this function releases the ExecutionResult `ER_FunCall` which encapsulates
-the state of this funcation call after it was altered using the actual parameters
-
-4) `formal_to_actual` is a helper for `insertActualParams`
--}
--- This function will only be used within visitExpr ==> FunCallExpr
--- upon calling a function with actual parameters.
-{-
-("i",VarExpr {varType = Nothing, varObj = [], varName = "i"}) ==>
-("i",ER_SymStateMapEntry {symStateKey = "i", symStateVal = SymFormalParam Int "i"})
-
-[("i",SymFormalParm Int "i"),("return",SymFormalParm Int "i")] ==>
-[
-("i",SymActualParam {
-   symActualParam = Int,
-   symFormalParamName = "i",
-   symActualParamName = SymFormalParam Int "i"
- }),
-("return",SymActualParam {
-   symActualParam = Int,
-   symFormalParamName = "i",
-   symActualParamName = SymFormalParam Int "i"
- }
-)
-]
--}
-                     -- formalParms  actualParms
-insertActualParams :: [(String     , AST.Expression)] -> SymState -> Method_R
-insertActualParams tus funCallState = do
-  tus2 <- mapM (\(a,b) -> ((,) a) <$> visitExpr b) tus
-  {-
-  tus = [
-    ("i",ER_SymStateMapEntry {symStateKey = "i", symStateVal = SymFormalParam Int "i"})
-  ]
-  -}
-  -- `newFunCallEnv` is the new adjustment of `funCallEnv`
-  -- that I get after I insert actual parameters
-  let newFunCallEnv = flip Map.map (env funCallState) $ \case
-        SymFormalParam symType formalParam Nothing -> case lookup formalParam tus2 of
-          Just er@ER_SymStateMapEntry{} -> formal_to_actual (symStateVal er) formalParam
-          Just (ER_Expr symExpr) -> formal_to_actual symExpr formalParam
-          Just er -> error $ "insertActualParams: " ++ show er
-          Nothing -> error "won't happen"
-        SymFormalParam symType formalParam _ -> error "insertActualParams ==> TODO"
-        ex -> ex
-  return $ ER_FunCall $ SymState newFunCallEnv (pc funCallState)
-
-{-
-actualParam = SBin (SymFormalParam Int "i") Add (SymInt 4)
-formalParam = "i"
-return: SBin
-  (SymActualParam {
-    symActualParam = Int,
-    symFormalParamName = "i",
-    symActualParamName = SymFormalParam Int "i"
-  })
-  Add
-  (SymInt 4)
--}
-formal_to_actual :: SymExpr -> String -> SymExpr
-formal_to_actual actualParam formalParam = case actualParam of
-  SBin symExpr1 symBinOp symExpr2 ->
-    SBin (formal_to_actual symExpr1 formalParam) symBinOp (formal_to_actual symExpr2 formalParam)
-  SymFormalParam symType _ Nothing -> actualParam
-  SymFormalParam symType _ _ -> error "formal_to_actual ==> TODO"
-    --SymActualParam symType formalParam actualParam
-  e@(SymInt _) -> e
-
------------------------------
------------------------------
------------------------------
-
---instance CFGVisitor SymExec2 where

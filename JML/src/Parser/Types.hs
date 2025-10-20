@@ -129,6 +129,11 @@ getVarName :: Expression -> String
 getVarName expr@VarExpr{} = varName expr
 getVarName _ = error "won't happen"
 
+getActualParmName :: Expression -> String
+--VarExpr {varType = Nothing, varObj = [], varName = "i"}
+getActualParmName expr@VarExpr{} = varName expr
+getActualParmName expr = error $ "getActualParmName: " ++ show expr
+
 data Type a
   = BuiltInType a
   | AnyType {typee :: String, generic :: Maybe (Type a)}
