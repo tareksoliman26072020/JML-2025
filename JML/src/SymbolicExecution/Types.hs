@@ -98,8 +98,7 @@ data ExecutionResult =
   | ER_SymStateMapEntry {er_key :: String, er_val :: SymExpr}
   | ER_State SymState
   | ER_FunCall SymState
-  | ER_Formal_2_Actual {formal :: String, actual :: SymExpr}
-  | ER_Formal_Unchanged SymExpr
+  | ER_Expr_WithKey {key :: String, val :: SymExpr}
   | ER_Void
   deriving Show
 

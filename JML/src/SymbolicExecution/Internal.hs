@@ -24,6 +24,14 @@ toSymBinOp AST.Minus = Sub
 toSymBinOp AST.Div = Div
 toSymBinOp _ = error "toSymBinOp ~~> TODO"
 
+fromSymBinOp :: SymBinOp -> AST.BinOp
+fromSymBinOp = \case
+  Add -> AST.Plus
+  Mul -> AST.Mult
+  Sub -> AST.Minus
+  Div -> AST.Div
+  _   -> error "fromSymBinOp ~~> TODO"
+
 isFormalParameter :: SymExpr -> Bool
 isFormalParameter (SymFormalParam _ _ _) = True
 isFormalParameter _ = False
@@ -77,7 +85,8 @@ getReturnSymExpr :: SymState -> Maybe SymExpr
 getReturnSymExpr symState = Map.lookup "return" $ env symState
 
 getSymExpr :: ExecutionResult -> SymExpr
-getSymExpr _ = error "getSymExpr ~~> TODO"
+getSymExpr er@(ER_Expr symExpr) = symExpr
+getSymExpr er = error $ "getSymExpr ~~> TODO: " ++ show er
 
 ------------------------------
 ------------------------------
