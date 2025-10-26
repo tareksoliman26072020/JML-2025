@@ -1,16 +1,14 @@
-{-# Language LambdaCase #-}
 {-# Language FlexibleInstances #-} -- to enable instancing MonadFail (Either String)
 module SymbolicExecution.Types where
 
 import qualified SymbolicExecution.Log as Log
-import qualified Data.Map as Map
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Except
 import Control.Monad.Writer
 import qualified Parser.Types as AST
 import qualified CFG.Types as CFGT (CFG, NodeID)
-import Control.Applicative (Alternative(empty),asum)
+import qualified Data.Map as Map (Map)
 
 type Method_R =
     ReaderT (Config,[CFGT.CFG])
@@ -18,9 +16,9 @@ type Method_R =
     ExecutionResult
 
 type FormalParm = String
-type ActualParm_post_Execution = ExecutionResult
+type ActualParm_post_Visitation = ExecutionResult
 type MethodCall_R =
-    ReaderT (Config,[(FormalParm, ActualParm_post_Execution)])
+    ReaderT (Config,[(FormalParm, ActualParm_post_Visitation)])
     (ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))))
     ExecutionResult
 
@@ -68,13 +66,6 @@ data SymBinOp
   | Or       -- ^ logical ||
   deriving (Eq, Show)
 
-toSymBinOp :: AST.BinOp -> SymBinOp
-toSymBinOp AST.Plus = Add
-toSymBinOp AST.Mult = Mul
-toSymBinOp AST.Minus = Sub
-toSymBinOp AST.Div = Div
-toSymBinOp _ = error "toSymBinOp ~~> TODO"
-
 {-
 ExecutionResult is used to transform data from a monadic transformer to another.
 
@@ -104,7 +95,7 @@ visitSymExpr ==> SymFormalParam: ER_Formal_2_Actual
 data ExecutionResult =
     ER_Expr SymExpr
   | ER_Node {er_Node_id :: CFGT.NodeID, nodeName :: String}
-  | ER_SymStateMapEntry {symStateKey :: String, symStateVal :: SymExpr}
+  | ER_SymStateMapEntry {er_key :: String, er_val :: SymExpr}
   | ER_State SymState
   | ER_FunCall SymState
   | ER_Formal_2_Actual {formal :: String, actual :: SymExpr}
@@ -128,58 +119,6 @@ data SymExpr =
   deriving Show
 
 data SymType = Int | Double | Float | Bool | Void deriving Show
-
-isFormalParameter :: SymExpr -> Bool
-isFormalParameter (SymFormalParam _ _ _) = True
-isFormalParameter _ = False
-
-isGlobalVariable :: SymExpr -> Bool
-isGlobalVariable (SymGlobalVar _ _) = True
-isGlobalVariable _ = False
-
--- get SymType via AST.Type
-toSymType1 :: AST.Type AST.Types -> SymType
-toSymType1 (AST.BuiltInType t) = case t of
-  AST.Int     -> Int
-  AST.Void    -> Void
-  AST.Char    -> undefined
-  AST.String  -> undefined
-  AST.Boolean -> Bool
-  AST.Double  -> Double
-  AST.Short   -> undefined
-  AST.Float   -> Float
-  AST.Long    -> undefined
-  AST.Byte    -> undefined
-
--- get SymType via SymExpr
-toSymType2 :: SymExpr -> SymType
-toSymType2 (SymInt _) = Int
-toSymType2 (SymDouble _) = Double
-toSymType2 (SymFloat _) = Float
-toSymType2 (SBool _) = Bool
-toSymType2 (SymNull t) = t
-toSymType2 (SymFormalParam t _ _) = t
-toSymType2 (SymGlobalVar t _) = t
-
--- will be used in `sumUpSymExprs`
-toSymType3 :: SymExpr -> Maybe SymType
-toSymType3 = \case
-  SymNum _ -> empty
-  SymInt _ -> pure Int
-  SymDouble _ -> pure Double
-  SymFloat _ -> pure Float
-  SBool _ -> pure Bool
-  SBin symExpr1 _ symExpr2 -> asum $ map toSymType3 [symExpr1,symExpr2]
-  SNot symExpr -> toSymType3 symExpr
---SymFormalParam SymType String (Maybe SymExpr)
-  SymFormalParam t _ mSymExpr -> pure t
-  symExpr -> error $ "toSymType3 ~~> TODO: " ++ show symExpr
-
-findSymType :: [SymExpr] -> Maybe SymType
-findSymType = asum . map toSymType3
-
-getReturnSymExpr :: SymState -> Maybe SymExpr
-getReturnSymExpr symState = Map.lookup "return" $ env symState
 
 instance MonadFail (Either String) where
   fail = Left

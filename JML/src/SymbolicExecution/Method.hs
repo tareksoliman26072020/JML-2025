@@ -17,6 +17,7 @@ import Control.Monad.Writer
 import Text.Printf (printf)
 import Data.Functor (($>))
 import Data.List (foldl')
+import SymbolicExecution.Internal
 
 instance CFGVisitor Method_SymExec where
 --visitNode :: CFG.Node -> Method_SymExec
@@ -84,7 +85,7 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
   er <- visitExpr expr
   let symExpr = case er of
         ER_Expr symExpr_ -> symExpr_ 
-        er@ER_SymStateMapEntry{} -> symStateVal er
+        er@ER_SymStateMapEntry{} -> er_val er
         ER_FunCall funCallSymState -> case getReturnSymExpr funCallSymState of
           Just symExpr -> symExpr
           Nothing -> error $ "visitStmt ==> ReturnStmt: TODO: Nothing: \n" ++ show funCallSymState
@@ -219,7 +220,7 @@ visitExpr expr@AST.BinOpExpr{} = do
   two <- visitExpr (AST.expr2 expr)
   tell [Log.Affected "visitExpr -> BinOpExpr" [show one,show $ AST.binOp expr,show two]]
   case (one,two) of
-    (ER_Expr op1,ER_Expr op2) -> f1 op1 op2
+    (ER_Expr op1,ER_Expr op2) -> calculate op1 op2
     (ER_SymStateMapEntry _ op1, ER_Expr op2) -> calculate op1 op2
     (ER_Expr op1, ER_SymStateMapEntry _ op2) -> calculate op1 op2
     (ER_Expr op1, fun@(ER_FunCall symState)) -> calculate op1 (getReturnSymExpr symState)
@@ -278,92 +279,6 @@ visitExpr expr@AST.VarExpr{} = do
       let toReturn = ER_SymStateMapEntry varName_ sExpr
       tell [Log.Return "visitExpr -> VarExpr" (show toReturn)] $> toReturn
 visitExpr expr = error $ "What this is: " ++ show expr
-
-------------------------------
-
-sumUpSymExprs :: AST.BinOp -> (SymExpr, SymExpr) -> SymExpr
-sumUpSymExprs op = \case
-  (SymNum num1, SymNum num2) ->
-    SymNum (getFractionalArithBinOp op num1 num2)
-  (SymInt num1, SymInt num2) ->
-    SymInt (getIntegralArithBinOp op num1 num2)
-  (SymDouble num1, SymDouble num2) ->
-    SymDouble (getFractionalArithBinOp op num1 num2)
-  (SymFloat num1, SymFloat num2) ->
-    SymFloat (getFractionalArithBinOp op num1 num2)
-  (a@(SymFormalParam _ _ _), b@(SymFormalParam _ _ _)) ->
-    SBin a (toSymBinOp op) b
-  (a@(SymGlobalVar _ _), b@(SymGlobalVar _ _)) ->
-    SBin a (toSymBinOp op) b
-----------
-  (SymNum num1, SymInt num2) ->
-    SymInt (getIntegralArithBinOp op (round num1) num2)
-  (SymInt num1, SymNum num2) ->
-    SymInt (getIntegralArithBinOp op num1 (round num2))
-----------
-  (SymNum num1, SymDouble num2) ->
-    SymDouble (getFractionalArithBinOp op (toDouble num1) num2)
-  (SymDouble num1, SymNum num2) ->
-    SymDouble (getFractionalArithBinOp op num1 (toDouble num2))
-----------
-  (SymNum num1, SymFloat num2) ->
-    SymFloat (getFractionalArithBinOp op num1 num2)
-  (SymFloat num1, SymNum num2) ->
-    SymFloat (getFractionalArithBinOp op num1 num2)
-----------
-  (a, b@(SymFormalParam t _ _)) ->
-    SBin (cast t a) (toSymBinOp op) b
-  (a@(SymFormalParam t _ _), b) ->
-    SBin a (toSymBinOp op) (cast t b)
-----------
-  (a, b@(SymGlobalVar t _)) ->
-    SBin (cast t a) (toSymBinOp op) b
-  (a@(SymGlobalVar t _), b) ->
-    SBin a (toSymBinOp op) (cast t b)
-----------
--- determine SymType and cast it on the other SymExprs.
--- if not found, then java syntactical error,
---     which will not happen, because safety of type checking is assumed.
-  (a@(SBin symExpr1 op1 symExpr2), b) ->
-    let op2 = toSymBinOp op
-    in maybe (error "sumUpSymExprs ~~> won't happen 1") id $ do
-    symType <- findSymType [a,b]
-    return $ SBin (SBin (cast symType symExpr1) op1 (cast symType symExpr2)) op2 (cast symType b)
-  (a, b@(SBin symExpr1 op1 symExpr2)) ->
-    let op2 = toSymBinOp op
-    in maybe (error "sumUpSymExprs ~~> won't happen 2") id $ do
-    symType <- findSymType [a,b]
-    return $ SBin a op2 (SBin (cast symType symExpr1) op1 (cast symType symExpr2))
-----------
-  (a,b) -> error $ printf "sumUpSymExprs: %s %s %s" (show a) (show op) (show b)
-
--- The type of the variable in `symExpr` needs to conform to `symType`.
--- This matters in the context of `AssignExpr`, and `BinOpExpr`
-cast :: SymType -> SymExpr -> SymExpr
-cast symType symExpr = case symExpr of
-  SymNum _ -> case symType of
-                Int    -> sumUpSymExprs AST.Plus (symExpr, SymInt 0)
-                Double -> sumUpSymExprs AST.Plus (symExpr, SymDouble 0)
-                Float  -> sumUpSymExprs AST.Plus (symExpr, SymFloat 0)
-                Bool   -> error "cast ~~> won't happen"
-                Void   -> error "cast ~~> won't happen"
-  a -> a
-
-toDouble :: Float -> Double
-toDouble = read . show
-
-getIntegralArithBinOp :: Integral a => AST.BinOp -> (a -> a -> a)
-getIntegralArithBinOp = \case
-    AST.Plus  -> (+)
-    AST.Mult  -> (*)
-    AST.Minus -> (-)
-
-getFractionalArithBinOp :: Fractional a => AST.BinOp -> (a -> a -> a)
-getFractionalArithBinOp = \case
-    AST.Plus  -> (+)
-    AST.Mult  -> (*)
-    AST.Minus -> (-)
-    AST.Div   -> (/)
 
 ------------------------------
 
@@ -429,19 +344,3 @@ runCFG cfgs cfg =
                         expr
          in (logs,either error (const (SymState m2 ps)) ei)
 
-method_R_2_ExecutionResult ::((Config,[CFG.CFG]),SymState) -> Method_R -> ExecutionResult
-method_R_2_ExecutionResult (r,s) mo =
-  let run_r :: ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))) ExecutionResult
-      run_r = runReaderT mo r--(defaultConfig,cfgs)
-      run_e :: WriterT [Log.Log] (StateT SymState (Either String)) (Either String ExecutionResult)
-      run_e = runExceptT run_r
-      run_w :: StateT SymState (Either String) (Either String ExecutionResult,[Log.Log])
-      run_w = runWriterT run_e
-      mRun_s :: Either String ((Either String ExecutionResult,[Log.Log]),SymState)
-      mRun_s = runStateT run_w s
-  in case mRun_s of
-       Left str -> error $ "method_R_2_ExecutionResult: 1: " ++ str
-     --Right ((ei,logs),SymState m ps) ->
-       Right ((ei,_),_) -> either
-         (\e -> error $ "method_R_2_ExecutionResult: 2: " ++ e)
-         id ei

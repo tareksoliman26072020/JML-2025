@@ -170,6 +170,14 @@ public int boo21_2_i(int i){
 ////////////////////////////////////////
 
 //DONE
+/*
+SymState {
+  env = fromList [
+    ("i",SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2))))
+    ("return",SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2))))
+  ], pc = []
+}
+*/
 public int boo21_3_i(int i){
   i += 2;
   return i;
@@ -209,7 +217,21 @@ public int boo22_i_2(int i){
 
 //TODO
 public int boo22_i_3(int i){
+  return boo21_3_i(i);
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo22_i_4(int i){
   return boo21_3_i(i+4) * 5;
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo22_i_5(int i){
+  return boo21_3_i(j);
 }
 
 ////////////////////////////////////////

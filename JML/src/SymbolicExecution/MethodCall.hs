@@ -4,6 +4,7 @@ module SymbolicExecution.MethodCall where
 import Visitors.API (SymStateVisitor(..))
 import qualified CFG.Types as CFGT (CFG)
 import SymbolicExecution.Types
+import SymbolicExecution.Internal
 import qualified SymbolicExecution.Log as Log
 import Control.Monad.Writer
 import Control.Monad.Reader
@@ -11,49 +12,95 @@ import Control.Monad.State
 import qualified Data.Map as Map
 import Control.Monad.Except
 import Data.Functor (($>))
+import Text.Printf (printf)
 
 type MethodCall_Map_R =
-    ReaderT (Config,[(FormalParm, ActualParm_post_Execution)])
+    ReaderT (Config,[(FormalParm, ActualParm_post_Visitation)])
     (ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))))
     (Map.Map String ExecutionResult)
     
 instance SymStateVisitor MethodCall_SymExec where
 --visitSymExpr :: (String,SymExpr) -> MethodCall_SymExec
+  ------------------------------
+  ------------------------------
+  ------------------------------
   visitSymExpr (key,val) = MethodCall_SymExec $ do
     tell [Log.HorizontalLine "visitSymExpr"] >> case val of
-      SymFormalParam symType formalParam Nothing -> do
+      SymFormalParam _ _ Nothing -> do
         tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SymFormalParam"]
-        (_,tupels) <- ask
-        let newSymExpr :: SymExpr
-            newSymExpr = case lookup formalParam tupels of
-              Just er@ER_SymStateMapEntry{} -> formal_to_actual_2 (symStateVal er) formalParam
-              Just (ER_Expr symExpr) -> formal_to_actual_2 symExpr formalParam
-              Just er -> error $ "insertActualParams: " ++ show er
-              Nothing -> error "won't happen"
+        toReturn@(ER_Formal_2_Actual formalParam newSymExpr) <- visitSymExpr0 val
         tell [Log.ModifyState "visitSymExpr -> SymFormalParam" (formalParam,show newSymExpr)]
         modify $ \symState ->
           SymState {
             env = Map.insert key newSymExpr (env symState),
             pc  = pc symState
           }
-        let toReturn = ER_Formal_2_Actual formalParam newSymExpr
         tell [Log.Return "visitSymExpr -> SymFormalParam" (show toReturn)] $> toReturn
-      SymFormalParam symType formalParam _ ->
-        throwError "visitSymExpr -> SymFormalParam -> TODO"
+  ------------------------------
+  ------------------------------
+  ------------------------------
+      SymFormalParam _ _ (Just symExpr) -> do
+        tell [Log.SymExpr_2_Handle (show val) (printf "visitSymExpr -> SymFormalParam %s" (show symExpr))]
+        toReturn <- visitSymExpr0 val
+        throwError $ "visitSymExpr ~~> SymFormalParam " ++ show symExpr ++ " ~~> TODO"
+  ------------------------------
+  ------------------------------
+  ------------------------------
+      SBin _ _ _ -> do
+        tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SBin"]
+        throwError $ "visitSymExpr -> SBin ~~> TODO: " ++ show val
+      --tell [Log.Return "visitSymExpr -> SBin" (show toReturn)] $> toReturn
+      --throwError $ "visitSymExpr -> SBin -> " ++ show val
       ex ->
-        throwError "visitSymExpr -> TODO"
+        throwError $ "visitSymExpr -> TODO: " ++ show ex
 
-formal_to_actual_2 :: SymExpr -> String -> SymExpr
-formal_to_actual_2 actualParam formalParam = case actualParam of
-  SBin symExpr1 symBinOp symExpr2 ->
-    SBin (formal_to_actual_2 symExpr1 formalParam) symBinOp (formal_to_actual_2 symExpr2 formalParam)
-  SymFormalParam symType _ Nothing -> actualParam
-    --SymActualParam symType formalParam actualParam
-  SymFormalParam symType _ _ -> error "formal_to_actual_2 ==> TODO"
-  e@(SymInt _) -> e
+------------------------------
+------------------------------
+------------------------------
+
+visitSymExpr0 :: SymExpr -> MethodCall_R
+visitSymExpr0 = \case
+  val@(SymFormalParam symType formalParam Nothing) -> do
+    tell [Log.SymExpr_2_Handle (show val) "visitSymExpr0 -> SymFormalParam"]
+    (_,tupels) <- ask
+    let newSymExpr :: SymExpr
+        newSymExpr = case lookup formalParam tupels of
+          Just er@ER_SymStateMapEntry{} -> substitute formalParam (er_val er)
+          Just (ER_Expr symExpr) -> substitute formalParam symExpr
+          Just er -> error $ "insertActualParams: " ++ show er
+          Nothing -> error "won't happen"
+        toReturn = ER_Formal_2_Actual formalParam newSymExpr
+    tell [Log.Return "visitSymExpr0 -> SymFormalParam" (show toReturn)] $> toReturn
+  ------------------------------
+  ------------------------------
+  ------------------------------
+  val@(SymFormalParam symType formalParam (Just symExpr)) -> do
+    tell [Log.SymExpr_2_Handle (show val) (printf "visitSymExpr0 -> SymFormalParam %s" (show symExpr))]
+    toReturn <- visitSymExpr0 symExpr
+    case toReturn of
+      ER_Formal_2_Actual formalParam newSymExpr ->
+        throwError $ "visitSymExpr0 ~~> SymFormalParam _ _ Just ~~> TODO1: " ++ show val
+      _ -> throwError $ "visitSymExpr0 ~~> TODO2: " ++ show val
+  ------------------------------
+  ------------------------------
+  ------------------------------
+  val@(SBin symExpr1 symBinOp symExpr2) -> do
+    tell [Log.SymExpr_2_Handle (show val) "visitSymExpr0 -> SBin"]
+    toReturn <- (\e1 e2 -> ER_Expr $ SBin (getSymExpr e1) symBinOp (getSymExpr e2))
+      <$> (visitSymExpr0 symExpr1)
+      <*> (visitSymExpr0 symExpr2)
+  --tell [Log.Return "visitSymExpr -> SBin" (show toReturn)] $> toReturn
+  --throwError $ "visitSymExpr -> SBin -> " ++ show val
+    throwError $ "visitSymExpr0 -> SBin ~~> TODO: " ++ show val
+  ex ->
+    throwError $ "visitSymExpr0 -> TODO: " ++ show ex
+
+------------------------------
+------------------------------
+------------------------------
 
 --                         formalParms, actualParms
-runSymState :: SymState -> String -> [(FormalParm, ActualParm_post_Execution)] -> ([Log.Log],SymState)
+runSymState :: SymState -> String -> [(FormalParm, ActualParm_post_Visitation)] -> ([Log.Log],SymState)
 runSymState symState methodCall tus =
   let -- mapM :: Monad m => (a -> m b) -> Map k a -> m (Map k b)
       runner :: Map.Map String MethodCall_R--[MethodCall_Map_R]
