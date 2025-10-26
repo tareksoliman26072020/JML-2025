@@ -267,16 +267,50 @@ public int boo22_2_i(int i){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
 /*
-FunCallExpr {
-  funName = VarExpr {varType = Nothing, varObj = [], varName = "boo21_i"},
-  funArgs = [BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}]
+SymState {
+  env = fromList [
+    ("i",SymInt 9),
+    ("j",SymInt 6),
+    ("return",SymInt 33),
+    ("x",SymInt 18)
+  ],
+  pc = []
+}
+*/
+public int boo22_2_i_2(){
+  int j = 6;
+  int i = 3 + j;
+  int x = boo21_i(i*2);
+  return x + i + j;
+}
+
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SymInt 5),
+    ("x",SBin (SymNum 3.0) Add (SBin (SymFormalParam Int "i" Nothing) Add (SymFormalParam Int "i" Nothing)))
+  ], pc = []
 }
 */
 public int boo23_3_i(int i){
   int x = 3 + boo21_i(i+i);
   return 5;
+}
+
+////////////////////////////////////////
+
+//DONE
+//SymState {env = fromList [("i",SymInt 4),("return",SymInt 16),("x",SymInt 11)], pc = []}
+public int boo23_3_i_2(){
+  int i = 4;
+  int x = 3 + boo21_i(i+i);
+  return x+5;
 }
 
 ////////////////////////////////////////

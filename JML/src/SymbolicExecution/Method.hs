@@ -225,6 +225,7 @@ visitExpr expr@AST.BinOpExpr{} = do
     (ER_Expr op1, ER_SymStateMapEntry _ op2) -> calculate op1 op2
     (ER_Expr op1, fun@(ER_FunCall symState)) -> calculate op1 (getReturnSymExpr symState)
     (fun@(ER_FunCall symState), ER_Expr op2) -> calculate (getReturnSymExpr symState) op2
+    (ER_SymStateMapEntry _ op1, ER_SymStateMapEntry _ op2) -> calculate op1 op2
     _ -> throwError $ "visitExpr ~~> BinOpExpr: " ++ show (one,two)
   where
   calculate :: SymExpr -> SymExpr -> Method_R
