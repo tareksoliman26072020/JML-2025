@@ -2,6 +2,7 @@
 module Parser.Types where
 
 import qualified Control.Exception as E
+import Text.Printf (printf)
 
 data BinOp = Plus | Mult | Minus | Div | Mod | Less | LessEq | Greater | GreaterEq | Eq | Neq | And | Or deriving Eq
 instance Show BinOp where
@@ -132,6 +133,10 @@ getVarName _ = error "won't happen"
 getActualParmName :: Expression -> String
 --VarExpr {varType = Nothing, varObj = [], varName = "i"}
 getActualParmName expr@VarExpr{} = varName expr
+--BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
+getActualParmName expr@BinOpExpr{} =
+  printf "%s%s%s" (getActualParmName $ expr1 expr) (show $ binOp expr) (getActualParmName $ expr2 expr)
+getActualParmName (NumberLiteral num) = show num
 getActualParmName expr = error $ "getActualParmName: " ++ show expr
 
 data Type a

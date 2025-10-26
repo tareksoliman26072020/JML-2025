@@ -179,21 +179,11 @@ public int boo21_3_i(int i){
 
 //DONE
 /*
-FunCallExpr {
-  funName = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "boo22_i"},
-  funArgs = [VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}]
-}
-*/
-/*
-FunCallExpr {
-  funName = VarExpr {varType = Nothing, varObj = [], varName = "boo21_i"},
-  funArgs = [VarExpr {varType = Nothing, varObj = [], varName = "i"}]
-}
-*/
-/*
 SymState {
-  env = fromList [("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing)],
-  pc = []
+  env = fromList [
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SymFormalParam Int "i" Nothing)
+  ], pc = []
 }
 */
 public int boo22_i(int i){
@@ -202,17 +192,13 @@ public int boo22_i(int i){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
 /*
-FunCallExpr {
-  funName = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "boo22_i_2"},
-  funArgs = [VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}]
-}
-*/
-/*
-FunCallExpr {
-  funName = VarExpr {varType = Nothing, varObj = [], varName = "boo21_i"},
-  funArgs = [BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 4.0}]
+SymState {
+  env = fromList [
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SBin (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 4)) Add (SymInt 1))
+  ], pc = []
 }
 */
 public int boo22_i_2(int i){

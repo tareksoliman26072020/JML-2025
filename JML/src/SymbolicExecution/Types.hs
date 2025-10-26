@@ -10,6 +10,7 @@ import Control.Monad.Except
 import Control.Monad.Writer
 import qualified Parser.Types as AST
 import qualified CFG.Types as CFGT (CFG, NodeID)
+import Control.Applicative (Alternative(empty),asum)
 
 type Method_R =
     ReaderT (Config,[CFGT.CFG])
@@ -80,6 +81,7 @@ ExecutionResult is used to transform data from a monadic transformer to another.
 visitExpr sends data to visitExpr, visitStmt, visitNode
 
 visitExpr ==> NumberLiteral: ER_Expr
+ER_FunCall encapsulates the state of a function call which posseses actual parameters.
 visitExpr ==> FunCallExpr ==> function without parameters: ER_Expr
 visitExpr ==> FunCallExpr ==> function with parameters: ER_FunCall
 visitExpr ==> BinOpExpr: ER_Expr
@@ -97,14 +99,11 @@ visitNode ==> Entry: ER_State
 visitNode ==> End: ER_State
 visitNode ==> Node: ER_State
 
-ER_FunCall encapsulates the state of a function call which posseses actual parameters.
-visitExpr ==> FunCallExpr ==> function with parameters: ER_FunCall
-
-insertActualParams ==> SymFormalParam: SymActualParam
+visitSymExpr ==> SymFormalParam: ER_Formal_2_Actual
 -}
 data ExecutionResult =
     ER_Expr SymExpr
-  | ER_Node {id :: CFGT.NodeID, nodeName :: String}
+  | ER_Node {er_Node_id :: CFGT.NodeID, nodeName :: String}
   | ER_SymStateMapEntry {symStateKey :: String, symStateVal :: SymExpr}
   | ER_State SymState
   | ER_FunCall SymState
@@ -161,6 +160,23 @@ toSymType2 (SBool _) = Bool
 toSymType2 (SymNull t) = t
 toSymType2 (SymFormalParam t _ _) = t
 toSymType2 (SymGlobalVar t _) = t
+
+-- will be used in `sumUpSymExprs`
+toSymType3 :: SymExpr -> Maybe SymType
+toSymType3 = \case
+  SymNum _ -> empty
+  SymInt _ -> pure Int
+  SymDouble _ -> pure Double
+  SymFloat _ -> pure Float
+  SBool _ -> pure Bool
+  SBin symExpr1 _ symExpr2 -> asum $ map toSymType3 [symExpr1,symExpr2]
+  SNot symExpr -> toSymType3 symExpr
+--SymFormalParam SymType String (Maybe SymExpr)
+  SymFormalParam t _ mSymExpr -> pure t
+  symExpr -> error $ "toSymType3 ~~> TODO: " ++ show symExpr
+
+findSymType :: [SymExpr] -> Maybe SymType
+findSymType = asum . map toSymType3
 
 getReturnSymExpr :: SymState -> Maybe SymExpr
 getReturnSymExpr symState = Map.lookup "return" $ env symState

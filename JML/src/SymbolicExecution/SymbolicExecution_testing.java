@@ -124,7 +124,17 @@ public int boo22_i(int i){
 
 ///////////////////////////////////////////////////
 
-
+/*
+SymState {
+  env = fromList [
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SBin (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 4)) Add (SymInt 1))
+  ], pc = []
+}
+*/
+public int boo22_i_2(int i){
+  return boo21_i(i+4) + 1;
+}
 
 ///////////////////////////////////////////////////
 
