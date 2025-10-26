@@ -215,7 +215,7 @@ public int boo22_i_2(int i){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
 /*
 SymState {
   env = fromList [
@@ -229,7 +229,14 @@ public int boo22_i_3(int i){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
+/*
+SymState {
+  env = fromList [
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SBin (SymFormalParam Int "i" (Just (SBin (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 4)) Add (SymInt 2)))) Mul (SymInt 5))
+  ], pc = []}
+*/
 public int boo22_i_4(int i){
   return boo21_3_i(i+4) * 5;
 }
