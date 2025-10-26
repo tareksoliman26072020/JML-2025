@@ -250,7 +250,16 @@ public int boo22_i_5(int i){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
+/*
+SymState {
+  env = fromList [
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SBin (SymFormalParam Int "i" Nothing) Mul (SymInt 2)),
+    ("x",SBin (SymFormalParam Int "i" Nothing) Mul (SymInt 2))
+  ], pc = []
+}
+*/
 public int boo22_2_i(int i){
   int x = boo21_i(i*2);
   return x;

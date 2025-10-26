@@ -241,7 +241,14 @@ visitExpr expr@AST.UnOpExpr{} = throwError "visitExpr ==> UnOpExpr ==> TODO"
 visitExpr expr@AST.AssignExpr{} = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> AssignExpr"]
   one@(ER_SymStateMapEntry svn val) <- visitExpr (AST.assEleft expr)
-  two@(ER_Expr e2) <- visitExpr (AST.assEright expr)
+--two@(ER_Expr e2) <- visitExpr (AST.assEright expr)
+  two <- visitExpr (AST.assEright expr)
+  let e2 = case two of
+          ER_Expr e2_ -> e2_
+          ER_FunCall funCallState ->
+            case getReturnSymExpr funCallState of
+              Nothing -> error $ printf "visitExpr ~~> AssignExpr ~~> won't happen"
+              Just e2_ -> e2_
   tell [Log.Affected "visitExpr -> AssignExpr" [show one, show two]]
   let newVal = case val of
         SymFormalParam t n _ ->
@@ -256,6 +263,7 @@ visitExpr expr@AST.AssignExpr{} = do
     }
   let toReturn = ER_SymStateMapEntry svn e2
   tell [Log.Return "visitExpr -> AssignExpr" (show toReturn)] $> toReturn
+
 -- VarExpr {varType :: Maybe (Type Types), varObj :: [String], varName :: String}
 visitExpr expr@AST.VarExpr{} = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> VarExpr"]

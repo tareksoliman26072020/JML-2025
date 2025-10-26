@@ -82,7 +82,7 @@ findSymType :: [SymExpr] -> Maybe SymType
 findSymType = asum . map toSymType3
 
 getReturnSymExpr :: SymState -> Maybe SymExpr
-getReturnSymExpr symState = Map.lookup "return" $ env symState
+getReturnSymExpr = Map.lookup "return" . env
 
 getSymExpr :: ExecutionResult -> SymExpr
 getSymExpr er@(ER_Expr symExpr) = symExpr
