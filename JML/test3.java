@@ -371,6 +371,13 @@ public int boo23_4_i_4(int i){
 
 ////////////////////////////////////////
 
+//working
+public int boo23_4_i_5(int i){
+  return 15 * boo21_i(1*i+2);
+}
+
+////////////////////////////////////////
+
 //TODO
 public int boo23_5_i(int i){
   return 8;

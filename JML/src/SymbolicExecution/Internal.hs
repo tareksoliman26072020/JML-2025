@@ -63,7 +63,7 @@ toSymType2 (SBool _) = Bool
 toSymType2 (SymNull t) = t
 toSymType2 (SymFormalParam t _ _) = t
 toSymType2 (SymGlobalVar t _) = t
-toSymType2 symExpr = error "toSymType2 ~~> TODO"
+toSymType2 symExpr = error $ "toSymType2 ~~> TODO: " ++ show symExpr
 
 -- will be used in `sumUpSymExprs`
 toSymType3 :: SymExpr -> Maybe SymType
@@ -110,16 +110,6 @@ isSymFloat = \case
 
 sumUpSymExprs :: SymBinOp -> (SymExpr, SymExpr) -> SymExpr
 sumUpSymExprs op = \case
-  -- Multiplication with 0
-  (SymInt 0, _) | op == Mul -> SymInt 0
-  (_, SymInt 0) | op == Mul -> SymInt 0
-  (SymDouble 0, _) | op == Mul -> SymDouble 0
-  (_, SymDouble 0) | op == Mul -> SymDouble 0
-  (SymFloat 0, _) | op == Mul -> SymFloat 0
-  (_, SymFloat 0) | op == Mul -> SymFloat 0
-  (a@(SymNum 0), b) | op == Mul -> cast (toSymType2 b) a
-  (a, SymNum 0) | op == Mul -> SymInt 0
-  --
   (SymNum num1, SymNum num2) ->
     SymNum (getFractionalArithBinOp op num1 num2)
   (SymInt num1, SymInt num2) ->
@@ -128,6 +118,25 @@ sumUpSymExprs op = \case
     SymDouble (getFractionalArithBinOp op num1 num2)
   (SymFloat num1, SymFloat num2) ->
     SymFloat (getFractionalArithBinOp op num1 num2)
+  -- Multiplication with 0
+  (SymInt 0, _) | op == Mul -> SymInt 0
+  (_, SymInt 0) | op == Mul -> SymInt 0
+  (SymDouble 0, _) | op == Mul -> SymDouble 0
+  (_, SymDouble 0) | op == Mul -> SymDouble 0
+  (SymFloat 0, _) | op == Mul -> SymFloat 0
+  (_, SymFloat 0) | op == Mul -> SymFloat 0
+  (a@(SymNum 0), b) | op == Mul -> cast (toSymType2 b) a
+  (a, b@(SymNum 0)) | op == Mul -> cast (toSymType2 a) b
+  -- Multiplication with 1
+  (a@(SymInt 1), b) | op == Mul -> cast (toSymType2 a) b
+  (a, b@(SymInt 1)) | op == Mul -> cast (toSymType2 b) a
+  (a@(SymDouble 1), b) | op == Mul -> cast (toSymType2 a) b
+  (a, b@(SymDouble 1)) | op == Mul -> cast (toSymType2 b) a
+  (a@(SymFloat 1), b) | op == Mul -> cast (toSymType2 a) b
+  (a, b@(SymFloat 1)) | op == Mul -> cast (toSymType2 b) a
+  (a@(SymNum 1), b) | op == Mul -> cast (toSymType2 a) b
+  (a, b@(SymNum 0)) | op == Mul -> cast (toSymType2 b) a
+  --
   (a@(SymFormalParam _ _ _), b@(SymFormalParam _ _ _)) ->
     SBin a op b
   (a@(SymGlobalVar _ _), b@(SymGlobalVar _ _)) ->
