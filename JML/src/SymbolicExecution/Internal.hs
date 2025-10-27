@@ -63,6 +63,7 @@ toSymType2 (SBool _) = Bool
 toSymType2 (SymNull t) = t
 toSymType2 (SymFormalParam t _ _) = t
 toSymType2 (SymGlobalVar t _) = t
+toSymType2 symExpr = error "toSymType2 ~~> TODO"
 
 -- will be used in `sumUpSymExprs`
 toSymType3 :: SymExpr -> Maybe SymType
@@ -109,6 +110,16 @@ isSymFloat = \case
 
 sumUpSymExprs :: SymBinOp -> (SymExpr, SymExpr) -> SymExpr
 sumUpSymExprs op = \case
+  -- Multiplication with 0
+  (SymInt 0, _) | op == Mul -> SymInt 0
+  (_, SymInt 0) | op == Mul -> SymInt 0
+  (SymDouble 0, _) | op == Mul -> SymDouble 0
+  (_, SymDouble 0) | op == Mul -> SymDouble 0
+  (SymFloat 0, _) | op == Mul -> SymFloat 0
+  (_, SymFloat 0) | op == Mul -> SymFloat 0
+  (a@(SymNum 0), b) | op == Mul -> cast (toSymType2 b) a
+  (a, SymNum 0) | op == Mul -> SymInt 0
+  --
   (SymNum num1, SymNum num2) ->
     SymNum (getFractionalArithBinOp op num1 num2)
   (SymInt num1, SymInt num2) ->

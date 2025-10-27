@@ -332,7 +332,7 @@ public int boo23_4_i_2(){
 
 ////////////////////////////////////////
 
-//TODO
+//working
 /*
 SymState {
   env = fromList [
@@ -340,6 +340,8 @@ SymState {
     ("return",SBin (SymNum 5.0) Mul (SBin (SBin (SymInt 0) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 2)))
   ], pc = []
 }
+
+SymState {env = fromList [("i",SymFormalParam Int "i" Nothing),("return",SymInt 10)], pc = []}
 */
 public int boo23_4_i_3(int i){
   return 5 * boo21_i(0*i+2);
@@ -347,13 +349,27 @@ public int boo23_4_i_3(int i){
 
 ////////////////////////////////////////
 
-//TODO
+//working
+/*
+SymState {
+  env = fromList [
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SBin (SymNum 15.0) Mul (SBin (SBin (SymInt 3) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 2)))
+  ], pc = []
+}
+*/
 public int boo23_4_i_4(int i){
   return 15 * boo21_i(3*i+2);
 }
 
 ////////////////////////////////////////
 
+//working
+public int boo23_4_i_4(int i){
+  return 15 * boo21_i(3*i+2);
+}
+
+////////////////////////////////////////
 
 //TODO
 public int boo23_5_i(int i){
