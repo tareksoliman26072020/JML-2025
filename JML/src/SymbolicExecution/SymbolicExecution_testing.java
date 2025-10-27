@@ -227,6 +227,22 @@ public int boo23_3_i_2(){
 ///////////////////////////////////////////////////
 
 /*
+SymState {env = fromList [("i",SymFormalParam Int "i" Nothing),("return",SymInt 3)], pc = []}
+*/
+public int boo23_4_i(int i){
+  return 3 + boo21_i(0);
+}
+
+///////////////////////////////////////////////////
+
+//SymState {env = fromList [("return",SymInt 10)], pc = []}
+public int boo23_4_i_2(){
+  return 5 * boo21_i(0*4+2);
+}
+
+////////////////////////////////////////
+
+/*
 CFG {
   nodes = [
     Entry Int "boo22_2",

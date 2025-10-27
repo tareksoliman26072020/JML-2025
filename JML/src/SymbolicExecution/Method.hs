@@ -181,27 +181,20 @@ visitExpr (expr@AST.FunCallExpr{}) = do
         --(r,s) <- (,) <$> ask <*> get
         --throwError $ "visitExpr ==> FunCallExpr: " ++ (show $ map (method_R_2_ExecutionResult (r,s)) actualParms)
           -- tus is list of tuples that is needed for runSymState in MethodCall.hs
+          {-
           tus <- zipWithM (\f act -> (,) f <$> act)
                   (map AST.getVarName formalParms)
                   actualParms
+          -}
+          --cast :: SymType -> SymExpr -> SymExpr
+          --getSymExpr :: ExecutionResult -> SymExpr
+          
+          tus <- zipWithM (\fParm act -> (,) (let Just t = AST.varType fParm in toSymType1 t,AST.getVarName fParm) <$> act)
+                   formalParms
+                   actualParms
+          
           -- get SymState due to insertion of actual parameters
-          {- funCallSymState1 =
-          SymState {
-            env = fromList [
-              ("i",SymFormalParam Int "i" Nothing),
-              ("return",SymFormalParam Int "i" Nothing)
-            ], pc = []
-          }
-          -}
           let (funCallLogs2,funCallSymState2) = runSymState funCallSymState1 funCallName tus
-          {- funCallSymState2 =
-          SymState {
-            env = fromList [
-              ("i",SBin (SymFormalParam Int "i" Nothing) Add (SymInt 4)),
-              ("return",SBin (SymFormalParam Int "i" Nothing) Add (SymInt 4))
-            ], pc = []
-          }
-          -}
           -- edit its logs
           mapM_ (\log -> tell [Log.Nested ("actual: " ++ funCallName) log]) funCallLogs2
           tell [Log.RunSymStateActualMethodCall (show funCallSymState2)]

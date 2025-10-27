@@ -15,7 +15,7 @@ type Method_R =
     (ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))))
     ExecutionResult
 
-type FormalParm = String
+type FormalParm = (SymType,String)
 type ActualParm_post_Visitation = ExecutionResult
 type MethodCall_R =
     ReaderT (Config,[(FormalParm, ActualParm_post_Visitation)])
@@ -115,9 +115,9 @@ data SymExpr =
   | SymNull SymType               -- ^ value of an unassigned variable
   | SymFormalParam SymType String (Maybe SymExpr) -- ^ declared variable (a formal parameter)
   | SymGlobalVar SymType String   -- ^ variable declared outside the scope of the method
-  deriving Show
+  deriving (Eq,Show)
 
-data SymType = Int | Double | Float | Bool | Void deriving Show
+data SymType = Int | Double | Float | Bool | Void deriving (Show,Eq)
 
 instance MonadFail (Either String) where
   fail = Left

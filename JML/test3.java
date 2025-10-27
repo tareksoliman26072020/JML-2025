@@ -315,24 +315,45 @@ public int boo23_3_i_2(){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
 /*
-FunCallExpr {
-  funName = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "boo23_4_i"},
-  funArgs = [VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}]
-}
-*/
-/*
-FunCallExpr {
-  funName = VarExpr {varType = Nothing, varObj = [], varName = "boo21_i"},
-  funArgs = [NumberLiteral 0.0]
-}
+SymState {env = fromList [("i",SymFormalParam Int "i" Nothing),("return",SymInt 3)], pc = []}
 */
 public int boo23_4_i(int i){
   return 3 + boo21_i(0);
 }
 
 ////////////////////////////////////////
+
+//SymState {env = fromList [("return",SymInt 10)], pc = []}
+public int boo23_4_i_2(){
+  return 5 * boo21_i(0*4+2);
+}
+
+////////////////////////////////////////
+
+//TODO
+/*
+SymState {
+  env = fromList [
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SBin (SymNum 5.0) Mul (SBin (SBin (SymInt 0) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 2)))
+  ], pc = []
+}
+*/
+public int boo23_4_i_3(int i){
+  return 5 * boo21_i(0*i+2);
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo23_4_i_4(int i){
+  return 15 * boo21_i(3*i+2);
+}
+
+////////////////////////////////////////
+
 
 //TODO
 public int boo23_5_i(int i){

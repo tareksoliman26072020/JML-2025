@@ -92,6 +92,21 @@ getSymExpr er = error $ "getSymExpr ~~> TODO: " ++ show er
 ------------------------------
 ------------------------------
 
+isSymInt :: SymExpr -> Bool
+isSymInt = \case
+  SymInt _ -> True
+  _        -> False
+
+isSymDouble :: SymExpr -> Bool
+isSymDouble = \case
+  SymDouble _ -> True
+  _           -> False
+
+isSymFloat :: SymExpr -> Bool
+isSymFloat = \case
+  SymFloat _ -> True
+  _          -> False
+
 sumUpSymExprs :: AST.BinOp -> (SymExpr, SymExpr) -> SymExpr
 sumUpSymExprs op = \case
   (SymNum num1, SymNum num2) ->
@@ -139,12 +154,12 @@ sumUpSymExprs op = \case
     let op2 = toSymBinOp op
     in maybe (error "sumUpSymExprs ~~> won't happen 1") id $ do
     symType <- findSymType [a,b]
-    return $ SBin (SBin (cast symType symExpr1) op1 (cast symType symExpr2)) op2 (cast symType b)
+    return $ SBin (sumUpSymExprs (fromSymBinOp op1) (cast symType symExpr1,cast symType symExpr2)) op2 (cast symType b)
   (a, b@(SBin symExpr1 op1 symExpr2)) ->
     let op2 = toSymBinOp op
     in maybe (error "sumUpSymExprs ~~> won't happen 2") id $ do
     symType <- findSymType [a,b]
-    return $ SBin a op2 (SBin (cast symType symExpr1) op1 (cast symType symExpr2))
+    return $ SBin a op2 (sumUpSymExprs (fromSymBinOp op1) (cast symType symExpr1,cast symType symExpr2))
 ----------
   (a,b) -> error $ printf "sumUpSymExprs: %s %s %s" (show a) (show op) (show b)
 
@@ -188,8 +203,11 @@ substitute formalParam = \case
     SBin (substitute formalParam symExpr1) symBinOp (substitute formalParam symExpr2)
   actualParam@(SymFormalParam symType _ Nothing) -> actualParam
     --SymActualParam symType formalParam actualParam
-  SymFormalParam symType _ _ -> error "substitute ==> TODO"
+  SymFormalParam symType _ _ -> error "substitute ~~> TODO1"
   actualParam@(SymInt _) -> actualParam
+  --numExpr@(NumberLiteral num) -> --cast :: SymType -> SymExpr -> SymExpr
+    --cast numExpr
+  act -> error $ printf "substitute ~~> TODO2: (%s,%s)" formalParam (show act)
 
 -- Extracting ExecutionResult from the monadic type Method_R
 -- useful for debugging

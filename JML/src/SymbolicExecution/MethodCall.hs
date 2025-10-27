@@ -13,6 +13,7 @@ import qualified Data.Map as Map
 import Control.Monad.Except
 import Data.Functor (($>))
 import Text.Printf (printf)
+import Data.List (find)
 
 type MethodCall_Map_R =
     ReaderT (Config,[(FormalParm, ActualParm_post_Visitation)])
@@ -106,13 +107,19 @@ visitSymExpr0 = \case
     tell [Log.SymExpr_2_Handle (show val) "visitSymExpr0 -> SymFormalParam"]
     (_,tupels) <- ask
     let newSymExpr :: SymExpr
-        newSymExpr = case lookup formalParam tupels of
-          Just er@ER_SymStateMapEntry{} -> substitute formalParam (er_val er)
-          Just (ER_Expr symExpr) -> substitute formalParam symExpr
+        newSymExpr = case lookup_formalParam_info formalParam tupels of
+          Just (t,er@ER_SymStateMapEntry{}) -> substitute formalParam (cast t (er_val er))
+          Just (t,(ER_Expr symExpr)) -> substitute formalParam (cast t symExpr)
           Just er -> error $ "insertActualParams: " ++ show er
           Nothing -> error "won't happen"
         toReturn = ER_Expr newSymExpr
     tell [Log.Return "visitSymExpr0 -> SymFormalParam" (show toReturn)] $> toReturn
+    where
+    lookup_formalParam_info :: String -> [(FormalParm, ActualParm_post_Visitation)] -> Maybe (SymType,ActualParm_post_Visitation)
+    lookup_formalParam_info fParm list =
+      let finding = find (\((_,b),_) -> b == fParm) list
+      in fmap (\((t,_),actual) -> (t,actual)) finding
+  
   ------------------------------
   ------------------------------
   ------------------------------
