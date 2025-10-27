@@ -18,6 +18,7 @@ import qualified CFG.Types as CFGT (CFG(..), showCFG, Node(..), findCFGByName, g
 import qualified SymbolicExecution.Types as SYT
 import qualified SymbolicExecution.Method as SYM (runCFG)
 import qualified SymbolicExecution.Log as SYT.Log
+import SymbolicExecution.Internal (sumUpSymExprs)
 
 import Text.Printf (printf)
 
@@ -94,3 +95,16 @@ getPath funName = readFile "test3.java" >>= return
   . CFGT.getPath 0
   . CFG.exec
   . fromRight undefined . parse parseExtDecl ""
+
+------------------------------
+
+expr :: AST.Expression
+expr = AST.BinOpExpr {
+  AST.expr1 = AST.BinOpExpr {
+    AST.expr1 = AST.NumberLiteral 0.0,
+    AST.binOp = AST.Mult,
+    AST.expr2 = AST.VarExpr {AST.varType = Nothing, AST.varObj = [], AST.varName = "i"}
+  },
+  AST.binOp = AST.Plus,
+  AST.expr2 = AST.NumberLiteral 2.0
+}

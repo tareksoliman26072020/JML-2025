@@ -107,7 +107,7 @@ isSymFloat = \case
   SymFloat _ -> True
   _          -> False
 
-sumUpSymExprs :: AST.BinOp -> (SymExpr, SymExpr) -> SymExpr
+sumUpSymExprs :: SymBinOp -> (SymExpr, SymExpr) -> SymExpr
 sumUpSymExprs op = \case
   (SymNum num1, SymNum num2) ->
     SymNum (getFractionalArithBinOp op num1 num2)
@@ -118,9 +118,9 @@ sumUpSymExprs op = \case
   (SymFloat num1, SymFloat num2) ->
     SymFloat (getFractionalArithBinOp op num1 num2)
   (a@(SymFormalParam _ _ _), b@(SymFormalParam _ _ _)) ->
-    SBin a (toSymBinOp op) b
+    SBin a op b
   (a@(SymGlobalVar _ _), b@(SymGlobalVar _ _)) ->
-    SBin a (toSymBinOp op) b
+    SBin a op b
 ----------
   (SymNum num1, SymInt num2) ->
     SymInt (getIntegralArithBinOp op (round num1) num2)
@@ -138,28 +138,26 @@ sumUpSymExprs op = \case
     SymFloat (getFractionalArithBinOp op num1 num2)
 ----------
   (a, b@(SymFormalParam t _ _)) ->
-    SBin (cast t a) (toSymBinOp op) b
+    SBin (cast t a) op b
   (a@(SymFormalParam t _ _), b) ->
-    SBin a (toSymBinOp op) (cast t b)
+    SBin a op (cast t b)
 ----------
   (a, b@(SymGlobalVar t _)) ->
-    SBin (cast t a) (toSymBinOp op) b
+    SBin (cast t a) op b
   (a@(SymGlobalVar t _), b) ->
-    SBin a (toSymBinOp op) (cast t b)
+    SBin a op (cast t b)
 ----------
 -- determine SymType and cast it on the other SymExprs.
 -- if not found, then java syntactical error,
 --     which will not happen, because safety of type checking is assumed.
   (a@(SBin symExpr1 op1 symExpr2), b) ->
-    let op2 = toSymBinOp op
-    in maybe (error "sumUpSymExprs ~~> won't happen 1") id $ do
-    symType <- findSymType [a,b]
-    return $ SBin (sumUpSymExprs (fromSymBinOp op1) (cast symType symExpr1,cast symType symExpr2)) op2 (cast symType b)
+    maybe (error "sumUpSymExprs ~~> won't happen 1") id $ do
+      symType <- findSymType [a,b]
+      return $ SBin (sumUpSymExprs op1 (cast symType symExpr1,cast symType symExpr2)) op (cast symType b)
   (a, b@(SBin symExpr1 op1 symExpr2)) ->
-    let op2 = toSymBinOp op
-    in maybe (error "sumUpSymExprs ~~> won't happen 2") id $ do
-    symType <- findSymType [a,b]
-    return $ SBin a op2 (sumUpSymExprs (fromSymBinOp op1) (cast symType symExpr1,cast symType symExpr2))
+    maybe (error "sumUpSymExprs ~~> won't happen 2") id $ do
+      symType <- findSymType [a,b]
+      return $ SBin a op (sumUpSymExprs op1 (cast symType symExpr1,cast symType symExpr2))
 ----------
   (a,b) -> error $ printf "sumUpSymExprs: %s %s %s" (show a) (show op) (show b)
 
@@ -168,9 +166,9 @@ sumUpSymExprs op = \case
 cast :: SymType -> SymExpr -> SymExpr
 cast symType symExpr = case symExpr of
   SymNum _ -> case symType of
-                Int    -> sumUpSymExprs AST.Plus (symExpr, SymInt 0)
-                Double -> sumUpSymExprs AST.Plus (symExpr, SymDouble 0)
-                Float  -> sumUpSymExprs AST.Plus (symExpr, SymFloat 0)
+                Int    -> sumUpSymExprs Add (symExpr, SymInt 0)
+                Double -> sumUpSymExprs Add (symExpr, SymDouble 0)
+                Float  -> sumUpSymExprs Add (symExpr, SymFloat 0)
                 Bool   -> error "cast ~~> won't happen"
                 Void   -> error "cast ~~> won't happen"
   a -> a
@@ -178,18 +176,18 @@ cast symType symExpr = case symExpr of
 toDouble :: Float -> Double
 toDouble = read . show
 
-getIntegralArithBinOp :: Integral a => AST.BinOp -> (a -> a -> a)
+getIntegralArithBinOp :: Integral a => SymBinOp -> (a -> a -> a)
 getIntegralArithBinOp = \case
-    AST.Plus  -> (+)
-    AST.Mult  -> (*)
-    AST.Minus -> (-)
+    Add -> (+)
+    Mul -> (*)
+    Sub -> (-)
 
-getFractionalArithBinOp :: Fractional a => AST.BinOp -> (a -> a -> a)
+getFractionalArithBinOp :: Fractional a => SymBinOp -> (a -> a -> a)
 getFractionalArithBinOp = \case
-    AST.Plus  -> (+)
-    AST.Mult  -> (*)
-    AST.Minus -> (-)
-    AST.Div   -> (/)
+    Add -> (+)
+    Mul -> (*)
+    Sub -> (-)
+    Div -> (/)
 
 ------------------------------
 ------------------------------
