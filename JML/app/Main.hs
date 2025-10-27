@@ -108,3 +108,12 @@ expr = AST.BinOpExpr {
   AST.binOp = AST.Plus,
   AST.expr2 = AST.NumberLiteral 2.0
 }
+
+symExpr1 :: SYT.SymExpr
+symExpr1 = SYT.SBin (SYT.SymInt 0) SYT.Mul (SYT.SymFormalParam SYT.Int "i" Nothing)
+
+symExpr2 :: SYT.SymExpr
+symExpr2 = SYT.SymNum 2.0
+
+fun :: SYT.SymExpr
+fun = sumUpSymExprs SYT.Add (symExpr1,symExpr2)
