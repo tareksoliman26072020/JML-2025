@@ -139,7 +139,7 @@ visitSymExpr0 = \case
   val@(SBin symExpr1 symBinOp symExpr2) -> do
     tell [Log.SymExpr_2_Handle (show val) "visitSymExpr0 -> SBin"]
     toReturn <- (\e1 e2 -> ER_Expr
-                    $ sumUpSymExprs symBinOp (getSymExpr e1,getSymExpr e2))
+                    $ calculate symBinOp (getSymExpr e1,getSymExpr e2))
       <$> (visitSymExpr0 symExpr1)
       <*> (visitSymExpr0 symExpr2)
     tell [Log.Return "visitSymExpr -> SBin" (show toReturn)] $> toReturn

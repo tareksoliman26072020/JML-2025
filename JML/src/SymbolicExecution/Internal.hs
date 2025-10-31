@@ -12,6 +12,7 @@ import qualified Parser.Types as AST
 import Text.Printf (printf)
 import Control.Applicative (Alternative(empty),asum)
 import qualified Data.Map as Map (lookup)
+import Prelude hiding (negate)
 
 ------------------------------
 ------------------------------
@@ -65,7 +66,7 @@ toSymType2 (SymFormalParam t _ _) = t
 toSymType2 (SymGlobalVar t _) = t
 toSymType2 symExpr = error $ "toSymType2 ~~> TODO: " ++ show symExpr
 
--- will be used in `sumUpSymExprs`
+-- will be used in `calculate`
 toSymType3 :: SymExpr -> Maybe SymType
 toSymType3 = \case
   SymNum _ -> empty
@@ -108,8 +109,8 @@ isSymFloat = \case
   SymFloat _ -> True
   _          -> False
 
-sumUpSymExprs :: SymBinOp -> (SymExpr, SymExpr) -> SymExpr
-sumUpSymExprs op = \case
+calculate :: SymBinOp -> (SymExpr, SymExpr) -> SymExpr
+calculate op = \case
   (SymNum num1, SymNum num2) ->
     SymNum (getFractionalArithBinOp op num1 num2)
   (SymInt num1, SymInt num2) ->
@@ -134,8 +135,32 @@ sumUpSymExprs op = \case
   (a, b@(SymDouble 1)) | op == Mul -> cast (toSymType2 b) a
   (a@(SymFloat 1), b) | op == Mul -> cast (toSymType2 a) b
   (a, b@(SymFloat 1)) | op == Mul -> cast (toSymType2 b) a
-  (a@(SymNum 1), b) | op == Mul -> cast (toSymType2 a) b
-  (a, b@(SymNum 0)) | op == Mul -> cast (toSymType2 b) a
+  (a@(SymNum 1), b) | op == Mul -> b
+  (a, b@(SymNum 0)) | op == Mul -> a
+  -- Addition with 0
+  (SymInt 0, b) | op == Add -> cast Int b
+  (a, SymInt 0) | op == Add -> cast Int a
+  (SymDouble 0, b) | op == Add -> cast Double b
+  (a, SymDouble 0) | op == Add -> cast Double a
+  (SymFloat 0, b) | op == Add -> cast Float b
+  (a, SymFloat 0) | op == Add -> cast Double a
+  (a@(SymNum 0), b) | op == Add -> b
+  (a, b@(SymNum 0)) | op == Add -> a
+  -- Substraction with 0
+  (a@(SymInt 0), b) | op == Sub ->
+    let num = cast Int b
+    in negate num
+  (a, SymInt 0) | op == Sub -> cast Int a
+  (SymDouble 0, b) | op == Sub ->
+    let num = cast Double b
+    in negate num
+  (a, SymDouble 0) | op == Sub -> cast Double a
+  (a@(SymFloat 0), b) | op == Sub ->
+    let num = cast Float b
+    in negate num
+  (a, SymFloat 0) | op == Sub -> cast Float a
+  (a@(SymNum 0), b) | op == Sub -> negate b
+  (a, b@(SymNum 0)) | op == Sub -> a
   --
   (a@(SymFormalParam _ _ _), b@(SymFormalParam _ _ _)) ->
     SBin a op b
@@ -171,27 +196,55 @@ sumUpSymExprs op = \case
 -- if not found, then java syntactical error,
 --     which will not happen, because safety of type checking is assumed.
   (a@(SBin symExpr1 op1 symExpr2), b) ->
-    maybe (error "sumUpSymExprs ~~> won't happen 1") id $ do
+    maybe (error "calculate ~~> won't happen 1") id $ do
       symType <- findSymType [a,b]
-      return $ SBin (sumUpSymExprs op1 (cast symType symExpr1,cast symType symExpr2)) op (cast symType b)
+      let expr1 = calculate op1 (cast symType symExpr1,cast symType symExpr2)
+          expr2 = cast symType b
+      return $ (if all isAtomic [expr1,expr2] then calculate0 else id)
+             $ SBin expr1 op expr2
   (a, b@(SBin symExpr1 op1 symExpr2)) ->
-    maybe (error "sumUpSymExprs ~~> won't happen 2") id $ do
+    maybe (error "calculate ~~> won't happen 2") id $ do
       symType <- findSymType [a,b]
-      return $ SBin a op (sumUpSymExprs op1 (cast symType symExpr1,cast symType symExpr2))
+      let expr1 = cast symType a
+          expr2 = calculate op1 (cast symType symExpr1,cast symType symExpr2)
+      return $ (if all isAtomic [expr1,expr2] then calculate0 else id)
+             $ SBin expr1 op expr2
 ----------
-  (a,b) -> error $ printf "sumUpSymExprs: %s %s %s" (show a) (show op) (show b)
+  (a,b) -> error $ printf "calculate: %s %s %s" (show a) (show op) (show b)
 
+calculate0 :: SymExpr -> SymExpr
+calculate0 (SBin expr1 op expr2) = calculate op (expr1,expr2)
+
+negate :: SymExpr -> SymExpr
+negate symExpr = error $ "TODO: negate ~~> " ++ show symExpr
+
+isAtomic :: SymExpr -> Bool
+isAtomic = \case
+  SymNum _ -> True
+  SymInt _ -> True
+  SymDouble _ -> True
+  SymFloat _ -> True
+  SymFormalParam _ _ _ -> False
+  SymGlobalVar _ _ -> False
+  SBin expr1 _ expr2 -> all isAtomic [expr1,expr2]
+  expr -> error $ printf "TODO: isAtomic: %s" (show expr)
+
+{-
+Add (SymInt 0, SymNum 2) = cast Int (SymNum 2)
+                         = calculate Add (SymNum 2, SymInt 0)
+-}
 -- The type of the variable in `symExpr` needs to conform to `symType`.
 -- This matters in the context of `AssignExpr`, and `BinOpExpr`
 cast :: SymType -> SymExpr -> SymExpr
 cast symType symExpr = case symExpr of
-  SymNum _ -> case symType of
-                Int    -> sumUpSymExprs Add (symExpr, SymInt 0)
-                Double -> sumUpSymExprs Add (symExpr, SymDouble 0)
-                Float  -> sumUpSymExprs Add (symExpr, SymFloat 0)
+  SymNum num -> case symType of
+                Int    -> SymInt (round num)
+                Double -> SymDouble (toDouble num)
+                Float  -> SymFloat num
                 Bool   -> error "cast ~~> won't happen"
                 Void   -> error "cast ~~> won't happen"
   a -> a
+--a -> error $ printf "TODO ~~> cast (%s) (%s)" (show symType) (show symExpr)
 
 toDouble :: Float -> Double
 toDouble = read . show

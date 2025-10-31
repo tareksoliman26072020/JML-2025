@@ -213,18 +213,18 @@ visitExpr expr@AST.BinOpExpr{} = do
   two <- visitExpr (AST.expr2 expr)
   tell [Log.Affected "visitExpr -> BinOpExpr" [show one,show $ AST.binOp expr,show two]]
   case (one,two) of
-    (ER_Expr op1,ER_Expr op2) -> calculate op1 op2
-    (ER_SymStateMapEntry _ op1, ER_Expr op2) -> calculate op1 op2
-    (ER_Expr op1, ER_SymStateMapEntry _ op2) -> calculate op1 op2
-    (ER_Expr op1, fun@(ER_FunCall symState)) -> calculate op1 (getReturnSymExpr symState)
-    (fun@(ER_FunCall symState), ER_Expr op2) -> calculate (getReturnSymExpr symState) op2
-    (ER_SymStateMapEntry _ op1, ER_SymStateMapEntry _ op2) -> calculate op1 op2
+    (ER_Expr op1,ER_Expr op2) -> helper op1 op2
+    (ER_SymStateMapEntry _ op1, ER_Expr op2) -> helper op1 op2
+    (ER_Expr op1, ER_SymStateMapEntry _ op2) -> helper op1 op2
+    (ER_Expr op1, fun@(ER_FunCall symState)) -> helper op1 (getReturnSymExpr symState)
+    (fun@(ER_FunCall symState), ER_Expr op2) -> helper (getReturnSymExpr symState) op2
+    (ER_SymStateMapEntry _ op1, ER_SymStateMapEntry _ op2) -> helper op1 op2
     _ -> throwError $ "visitExpr ~~> BinOpExpr: " ++ show (one,two)
   where
-  calculate :: SymExpr -> SymExpr -> Method_R
-  calculate op1 op2 = case AST.binOp expr `elem` [AST.Plus, AST.Mult, AST.Minus, AST.Div] of
+  helper :: SymExpr -> SymExpr -> Method_R
+  helper op1 op2 = case AST.binOp expr `elem` [AST.Plus, AST.Mult, AST.Minus, AST.Div] of
       True -> 
-        let toReturn = ER_Expr $ sumUpSymExprs (toSymBinOp $ AST.binOp expr) (op1, op2)
+        let toReturn = ER_Expr $ calculate (toSymBinOp $ AST.binOp expr) (op1, op2)
         in tell [Log.Return "visitExpr -> BinOpExpr" (show toReturn)] $> toReturn
       False -> throwError "TODO: visitExpr -> BinOpExpr"
   getReturnSymExpr :: SymState -> SymExpr
