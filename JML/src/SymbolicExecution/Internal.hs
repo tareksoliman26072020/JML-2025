@@ -182,10 +182,14 @@ calculate op = \case
   (SymFloat num1, SymNum num2) ->
     SymFloat (getFractionalArithBinOp op num1 num2)
 ----------
-  (a, b@(SymFormalParam t _ _)) ->
+  (a, b@(SymFormalParam t _ Nothing)) ->
     SBin (cast t a) op b
-  (a@(SymFormalParam t _ _), b) ->
+  (a, b@(SymFormalParam t _ (Just symExpr))) ->
+    calculate op (cast t a,symExpr)
+  (a@(SymFormalParam t _ Nothing), b) ->
     SBin a op (cast t b)
+  (a@(SymFormalParam t _ (Just symExpr)), b) ->
+    calculate op (symExpr,cast t b)
 ----------
   (a, b@(SymGlobalVar t _)) ->
     SBin (cast t a) op b
@@ -200,15 +204,19 @@ calculate op = \case
       symType <- findSymType [a,b]
       let expr1 = calculate op1 (cast symType symExpr1,cast symType symExpr2)
           expr2 = cast symType b
-      return $ (if all isAtomic [expr1,expr2] then calculate0 else id)
-             $ SBin expr1 op expr2
+          comb = SBin expr1 op expr2
+      return $ if (a,b) == (expr1,expr2)
+                 then comb
+                 else calculate0 comb
   (a, b@(SBin symExpr1 op1 symExpr2)) ->
     maybe (error "calculate ~~> won't happen 2") id $ do
       symType <- findSymType [a,b]
       let expr1 = cast symType a
           expr2 = calculate op1 (cast symType symExpr1,cast symType symExpr2)
-      return $ (if all isAtomic [expr1,expr2] then calculate0 else id)
-             $ SBin expr1 op expr2
+          comb = SBin expr1 op expr2
+      return $ if (a,b) == (expr1,expr2)
+                 then comb
+                 else calculate0 comb
 ----------
   (a,b) -> error $ printf "calculate: %s %s %s" (show a) (show op) (show b)
 
@@ -218,20 +226,9 @@ calculate0 (SBin expr1 op expr2) = calculate op (expr1,expr2)
 negate :: SymExpr -> SymExpr
 negate symExpr = error $ "TODO: negate ~~> " ++ show symExpr
 
-isAtomic :: SymExpr -> Bool
-isAtomic = \case
-  SymNum _ -> True
-  SymInt _ -> True
-  SymDouble _ -> True
-  SymFloat _ -> True
-  SymFormalParam _ _ _ -> False
-  SymGlobalVar _ _ -> False
-  SBin expr1 _ expr2 -> all isAtomic [expr1,expr2]
-  expr -> error $ printf "TODO: isAtomic: %s" (show expr)
-
 {-
 Add (SymInt 0, SymNum 2) = cast Int (SymNum 2)
-                         = calculate Add (SymNum 2, SymInt 0)
+                         = SymInt 2
 -}
 -- The type of the variable in `symExpr` needs to conform to `symType`.
 -- This matters in the context of `AssignExpr`, and `BinOpExpr`

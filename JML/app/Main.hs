@@ -18,6 +18,7 @@ import qualified CFG.Types as CFGT (CFG(..), showCFG, Node(..), findCFGByName, g
 import qualified SymbolicExecution.Types as SYT
 import qualified SymbolicExecution.Method as SYM (runCFG)
 import qualified SymbolicExecution.Log as SYT.Log
+import SymbolicExecution.Internal --(calculate, isAtomic, findSymType, cast, calculate0, isSymExprNum)
 import SymbolicExecution.Internal (calculate)
 
 import Text.Printf (printf)
@@ -109,11 +110,11 @@ expr = AST.BinOpExpr {
   AST.expr2 = AST.NumberLiteral 2.0
 }
 
-symExpr1 :: SYT.SymExpr
-symExpr1 = SYT.SBin (SYT.SymFormalParam SYT.Int "i" Nothing) SYT.Add (SYT.SymInt 4)
+expr1 :: SYT.SymExpr
+expr1 = SYT.SBin (SYT.SBin (SYT.SymFormalParam SYT.Int "i" (Just $ SYT.SymInt 1)) SYT.Add (SYT.SymInt 4)) SYT.Add (SYT.SymInt 2)
 
-symExpr2 :: SYT.SymExpr
-symExpr2 = SYT.SymNum 1.0
+expr2 :: SYT.SymExpr
+expr2 = SYT.SymInt 5
 
 fun :: SYT.SymExpr
-fun = calculate SYT.Add (symExpr1,symExpr2)
+fun = calculate SYT.Mul (expr1, expr2)
