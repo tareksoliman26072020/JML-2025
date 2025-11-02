@@ -161,9 +161,13 @@ calculate op = \case
   (a, SymFloat 0) | op == Sub -> cast Float a
   (a@(SymNum 0), b) | op == Sub -> negate b
   (a, b@(SymNum 0)) | op == Sub -> a
-  --
+  -- arithmetics on vars
+  (a@(SymFormalParam t1 varName1 _), b@(SymFormalParam t2 varName2 _))
+    | op == Add && varName1 == varName2 -> SBin (cast t1 $ SymNum 2) Mul a
+    | op == Sub && varName1 == varName2 -> cast t1 (SymNum 0)
   (a@(SymFormalParam _ _ _), b@(SymFormalParam _ _ _)) ->
     SBin a op b
+  --
   (a@(SymGlobalVar _ _), b@(SymGlobalVar _ _)) ->
     SBin a op b
 ----------
@@ -189,7 +193,7 @@ calculate op = \case
 --
   (a@(SBin _ _ _), b@(SBin _ _ _)) ->
     error $ printf "TODO: calculate: (%s) (%s) (%s)" (show a) (show op) (show b) 
-----------
+---------- commutative events
   (a@(SBin symExpr1 op1 symExpr2), b)
     ---------- (i op1 1) op 2
     | isVar symExpr1 && all (not . isVar) [symExpr2,b]
@@ -212,10 +216,6 @@ calculate op = \case
       -- (i / 2) * 3 == i * (3 / 2)
       (Div,Mul) -> calculate0 $ SBin symExpr1 Mul (SBin b Div symExpr2)
       (opi,opii) -> error $ printf "meow: (%s) (%s) (%s)" (show a) (show op) (show b)
-      {-
-         (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 6)) (Mul) (SymInt 5)
-         (i + 6) * 5
-       -}
     ---------- (1 op1 i) op 2
     | all (not . isVar) [symExpr1,b] && isVar symExpr2
       && ((op1,op) `elem` [(Add,Add),(Sub,Sub),(Add,Sub),(Sub,Add)

@@ -185,6 +185,87 @@ public int boo21_3_i(int i){
 
 ////////////////////////////////////////
 
+//TODO
+/*
+SymState {
+  env = fromList [
+    ("i",SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2)))),
+    ("return",SBin (SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2)))) Add (SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2)))))
+  ], pc = []
+}
+*/
+public int boo21_3_i_1(int i){
+  i += 2;
+  return i+i;
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo21_3_i_2(int i){
+  i += 2;
+  int x = i + 5 + i;
+  return x + i + x;
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo21_3_i_3(int i){
+  x += i;
+  return x;
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo21_3_i_4(int i){
+  x += i + 2 + i;
+  return x;
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo21_3_i_5(int i){
+  x += i + 2 - 2*i;
+  return x;
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo21_3_i_6(int i){
+  x += 2 + 3*i - 2*i;
+  return x;
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo21_3_i_7(int i){
+  x += 2 + 3*i - 2*i - i;
+  return x;
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo21_3_i_8(int i){
+  x += i + 2 + 3*i;
+  return x;
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo21_3_i_9(int i){
+  i += i;
+  return i;
+}
+
+////////////////////////////////////////
+
 //DONE
 /*
 SymState {
@@ -289,7 +370,7 @@ public int boo22_2_i_2(){
 
 ////////////////////////////////////////
 
-//WORKING
+//TODO
 /*
 SymState {
   env = fromList [
@@ -427,7 +508,7 @@ public int boo23_8_i(int i){
 
 ////////////////////////////////////////
 
-//WORKING
+//TODO
 /*
 SymState {
   env = fromList [
