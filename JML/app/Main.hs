@@ -111,10 +111,14 @@ expr = AST.BinOpExpr {
 }
 
 expr1 :: SYT.SymExpr
-expr1 = SYT.SBin (SYT.SymFormalParam SYT.Int "i" Nothing) SYT.Add (SYT.SymInt 6)
+expr1 = SYT.SymFormalParam SYT.Int "i" Nothing
 
 expr2 :: SYT.SymExpr
-expr2 = SYT.SymNum 5.0
+expr2 = SYT.SBin (SYT.SymInt 9) SYT.Add (SYT.SymFormalParam SYT.Int "i" Nothing)
+-- i + (9+i)
+expr3 = SYT.SBin (SYT.SymFormalParam SYT.Int "i" Nothing)
+                 SYT.Add
+                 (SYT.SBin (SYT.SymInt 9) SYT.Add (SYT.SymFormalParam SYT.Int "i" Nothing))
 
 fun :: SYT.SymExpr
-fun = calculate SYT.Mul (expr1, expr2)
+fun = calculate SYT.Add (expr1, expr2)

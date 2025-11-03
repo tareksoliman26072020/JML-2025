@@ -82,6 +82,21 @@ public int boo21_3_i(int i){
 ///////////////////////////////////////////////////
 
 /*
+SymState {
+  env = fromList [
+    ("i",SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2)))),
+    ("return",SBin (SymInt 2) Mul (SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2)))))
+  ], pc = []
+}
+*/
+public int boo21_3_i_1(int i){
+  i += 2;
+  return i+i;
+}
+
+///////////////////////////////////////////////////
+
+/*
 CFG {
   nodes = [
     Entry,

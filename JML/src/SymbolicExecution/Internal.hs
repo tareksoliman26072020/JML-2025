@@ -191,6 +191,47 @@ calculate op = \case
 --     which will not happen, because safety of type checking is assumed.
 --
 --
+{-
+1)
+SBin (SymFormalParam Int "i" Nothing)
+     Add
+     (SBin (SBin (SymInt 11) Add (SymFormalParam Int "i" Nothing))
+           Add
+           (SymFormalParam Int "i" Nothing)
+     )
+
+(Add)
+
+2)
+SBin (SymFormalParam Int "i" Nothing)
+     Add
+     (SBin (SymInt 9)
+           Add
+           (SymFormalParam Int "i" Nothing)
+     )
+-}
+{-
+1) i + ((11 + i) + i)
+SBin (SymFormalParam Int "i" Nothing)
+     Add
+     (SBin (SBin (SymInt 11)
+                 Add
+                 (SymFormalParam Int "i" Nothing)
+           )
+           Add
+           (SymFormalParam Int "i" Nothing)
+     )
+
++
+
+2) i + (9 + i)
+SBin (SymFormalParam Int "i" Nothing)
+     Add
+     (SBin (SymInt 9)
+           Add
+           (SymFormalParam Int "i" Nothing)
+     )
+-}
   (a@(SBin _ _ _), b@(SBin _ _ _)) ->
     error $ printf "TODO: calculate: (%s) (%s) (%s)" (show a) (show op) (show b) 
 ---------- commutative events
@@ -215,7 +256,6 @@ calculate op = \case
       (Mul,Div) -> calculate0 $ SBin symExpr1 Mul (SBin symExpr2 Div b)
       -- (i / 2) * 3 == i * (3 / 2)
       (Div,Mul) -> calculate0 $ SBin symExpr1 Mul (SBin b Div symExpr2)
-      (opi,opii) -> error $ printf "meow: (%s) (%s) (%s)" (show a) (show op) (show b)
     ---------- (1 op1 i) op 2
     | all (not . isVar) [symExpr1,b] && isVar symExpr2
       && ((op1,op) `elem` [(Add,Add),(Sub,Sub),(Add,Sub),(Sub,Add)
@@ -238,7 +278,70 @@ calculate op = \case
       (Mul,Div) -> calculate0 $ SBin (SBin symExpr1 Div b) Mul symExpr2
       -- (2 / i) * 3 == (2 * 3) / i
       (Div,Mul) -> calculate0 $ SBin (SBin symExpr1 Mul b) Div symExpr2
-    ----------error $ printf "meow: (%s) (%s) (%s)" (show a) (show op) (show b)
+    ---------- PART 1/2 (? is not number): (x op1 ?) op x, ? = symExpr2
+    | all isVar [symExpr1,b] && getVarName symExpr1 == getVarName b
+      && ((isVar symExpr2 && getVarName symExpr2 /= getVarName symExpr1)
+          || (not $ isVar symExpr2))
+      && ((op1,op) `elem` [(Add,Add),(Sub,Sub),(Add,Sub),(Sub,Add)
+                          ,(Mul,Mul),(Div,Div),(Mul,Div),(Div,Mul)]) -> case (op1,op) of
+        -- (x + ?) + x == (x + x) + ?
+        (Add,Add) -> calculate0 $ SBin (SBin symExpr1 Add b) Add symExpr2
+        -- (x + ?) - x == (x - x) + ?
+        (Add,Sub) -> calculate0 $ SBin (SBin symExpr1 Sub b) Add symExpr2
+        -- (x - ?) + x == (x + x) - ?
+        (Sub,Add) -> calculate0 $ SBin (SBin symExpr1 Add b) Sub symExpr2
+        -- (x - ?) - x == (x - x) - ?
+        (Sub,Sub) -> calculate0 $ SBin (SBin symExpr1 Sub b) Sub symExpr2
+        -- (x * ?) * x == (x * x) * ?
+        (Mul,Mul) -> calculate0 $ SBin (SBin symExpr1 Mul b) Mul symExpr2
+        -- (x * ?) / x == (x / x) * ?
+        (Mul,Div) -> calculate0 $ SBin (SBin symExpr1 Div b) Mul symExpr2
+        -- (x / ?) * x == (x * x) / ?
+        (Div,Mul) -> calculate0 $ SBin (SBin symExpr1 Mul b) Div symExpr2
+        -- (x / ?) / x == (x / x) / ?
+        (Div,Div) -> calculate0 $ SBin (SBin symExpr1 Div b) Div symExpr2
+    ---------- PART 2/2 (? == number): (x op1 ?) op x, ? = symExpr2
+    | all isVar [symExpr1,b] && getVarName symExpr1 == getVarName b
+      && (not $ isVar symExpr2)
+      && ((op1,op) `elem` [(Mul,Add),(Mul,Sub),(Div,Add),(Div,Sub)]) -> case (op1,op) of
+        -- (x * 3) + x == (3 + 1) * x
+        (Mul,Add) -> calculate0 $ SBin (SBin symExpr2 Add (SymNum 1)) Mul symExpr1
+        -- (x * 3) - x == (3 - 1) * x
+        (Mul,Sub) -> calculate0 $ SBin (SBin symExpr2 Sub (SymNum 1)) Mul symExpr1
+        -- (x / 3) + x == (1/3 + 1) * x
+        (Div,Add) -> calculate0 $ SBin (SBin (SBin (SymNum 1) Div symExpr2) Add (SymNum 1)) Mul symExpr1
+        -- (x / 3) - x == (1/3 - 1) * x
+        (Div,Sub) -> calculate0 $ SBin (SBin (SBin (SymNum 1) Div symExpr2) Sub (SymNum 1)) Mul symExpr1
+    ---------- PART 1/2 (? is not number): (? op1 x) op x, ? = symExpr1
+    | all isVar [symExpr2,b] && getVarName symExpr2 == getVarName b
+      && ((isVar symExpr1 && getVarName symExpr1 /= getVarName symExpr2)
+          || (not $ isVar symExpr1))
+      && ((op1,op) `elem` [(Add,Add),(Sub,Sub),(Add,Sub),(Sub,Add)
+                          ,(Mul,Mul),(Div,Div),(Mul,Div),(Div,Mul)]) -> case (op1,op) of
+        -- (? + x) + x == (x + x) + ?
+        (Add,Add) -> calculate0 $ SBin (SBin b Add symExpr2) Add symExpr1
+        -- (? - x) - x == ? - (x + x)
+        (Sub,Sub) -> calculate0 $ SBin symExpr1 Sub (SBin symExpr2 Add b)
+        -- (? + x) - x == ? + (x - x)
+        (Add,Sub) -> calculate0 $ SBin symExpr1 Add (SBin symExpr2 Sub b)
+        -- (? - x) + x == ? + (x - x)
+        (Sub,Add) -> calculate0 $ SBin symExpr1 Add (SBin symExpr2 Sub b)
+        -- (? * x) * x == ? * (x * x)
+        (Mul,Mul) -> calculate0 $ SBin symExpr1 Mul (SBin symExpr2 Mul b)
+        -- (? / x) / x == ? / (x * x)
+        (Div,Div) -> calculate0 $ SBin symExpr1 Div (SBin symExpr2 Mul b)
+        -- (? * x) / x == ? * (x / x)
+        (Mul,Div) -> calculate0 $ SBin symExpr1 Mul (SBin symExpr2 Div b)
+        -- (? / x) * x == ? * (x / x)
+        (Div,Mul) -> calculate0 $ SBin symExpr1 Mul (SBin symExpr2 Div b)
+    ---------- PART 2/2 (? is number): (? op1 x) op x, ? = symExpr1
+    | all isVar [symExpr2,b] && getVarName symExpr2 == getVarName b
+      && (not $ isVar symExpr1)
+      && ((op1,op) `elem` [(Mul,Add),(Mul,Sub)]) -> case (op1,op) of
+        -- (3 * x) + x == (3 + 1) * x
+        (Mul,Add) -> calculate0 $ SBin (SBin symExpr1 Add (SymNum 1)) Mul symExpr2
+        -- (3 * x) - x == (3 - 1) * x
+        (Mul,Sub) -> calculate0 $ SBin (SBin symExpr1 Sub (SymNum 1)) Mul symExpr2
     | otherwise -> maybe (error "calculate ~~> won't happen 1") id $ do
       symType <- findSymType [a,b]
       let expr1 = calculate op1 (cast symType symExpr1,cast symType symExpr2)
@@ -286,6 +389,71 @@ calculate op = \case
       (Mul,Div) -> calculate0 $ SBin (SBin a Mul symExpr1) Div symExpr2
       -- 2 / (3 * i) == (2 / 3) / i
       (Div,Mul) -> calculate0 $ SBin (SBin a Div symExpr1) Div symExpr2
+    ---------- PART 1/2 (? is not number): X op (X op1 ?), ? = symExpr2
+    | all isVar [a,symExpr1] && getVarName a == getVarName symExpr1
+      && ((isVar symExpr2 && getVarName symExpr2 /= getVarName symExpr1)
+          || (not $ isVar symExpr2))
+      && ((op,op1) `elem` [(Add,Add),(Sub,Sub),(Add,Sub),(Sub,Add)
+                          ,(Mul,Mul),(Div,Div),(Mul,Div),(Div,Mul)]) -> case (op,op1) of
+        -- X + (X + Y) == (X + X) + Y
+        (Add,Add) -> calculate0 $ SBin (SBin a Add symExpr1) Add symExpr2
+        -- X - (X - Y) == (X - X) + Y
+        (Sub,Sub) -> calculate0 $ SBin (SBin a Sub symExpr1) Add symExpr2
+        -- X + (X - Y) == (X + X) - Y
+        (Add,Sub) -> calculate0 $ SBin (SBin a Add symExpr1) Sub symExpr2
+        -- X - (X + Y) == (X - X) - Y
+        (Sub,Add) -> calculate0 $ SBin (SBin a Sub symExpr1) Sub symExpr2
+        -- X * (X * Y) == (X * X) * Y
+        (Mul,Mul) -> calculate0 $ SBin (SBin a Mul symExpr1) Mul symExpr2
+        -- X / (X / Y) == (X / X) * Y
+        (Div,Div) -> calculate0 $ SBin (SBin a Div symExpr1) Mul symExpr2
+        -- X * (X / Y) == (X * X) / Y
+        (Mul,Div) -> calculate0 $ SBin (SBin a Mul symExpr1) Div symExpr2
+        -- X / (X * Y) == (X / X) / Y
+        (Div,Mul) -> calculate0 $ SBin (SBin a Div symExpr1) Div symExpr2
+    ---------- PART 2/2 (? is number): X op (X op1 ?), ? = symExpr2
+    | all isVar [a,symExpr1] && getVarName a == getVarName symExpr1
+      && (not $ isVar symExpr2)
+      && ((op,op1) `elem` [(Add,Mul),(Sub,Mul),(Add,Div),(Sub,Div)]) -> case (op,op1) of
+        -- X + (X * 3) == (1 + 3) * X
+        (Add,Mul) -> calculate0 $ SBin (SBin (SymNum 1) Add symExpr2) Mul a
+        -- X - (X * 3) == (1 - 3) * X
+        (Sub,Mul) -> calculate0 $ SBin (SBin (SymNum 1) Sub symExpr2) Mul a
+        -- X + (X / 3) == (1 + 1/3) * x
+        (Add,Div) -> calculate0 $ SBin (SBin (SymNum 1) Add (SBin (SymNum 1) Div symExpr2)) Mul a
+        -- X - (X / 3) == (1 - 1/3) * x
+        (Sub,Div) -> calculate0 $ SBin (SBin (SymNum 1) Sub (SBin (SymNum 1) Div symExpr2)) Mul a
+    ---------- PART 1/2 (? is not number): X op (? op1 X), ? = symExpr1
+    | all isVar [a,symExpr2] && getVarName a == getVarName symExpr2
+      && ((isVar symExpr1 && getVarName symExpr1 /= getVarName symExpr2) ||
+          (not $ isVar symExpr1)
+         )
+      && ((op,op1) `elem` [(Add,Add),(Sub,Sub),(Add,Sub),(Sub,Add)
+                          ,(Mul,Mul),(Div,Div),(Mul,Div),(Div,Mul)]) -> case (op,op1) of
+        -- X + (Y + X) == (X + X) + Y
+        (Add,Add) -> calculate0 $ SBin (SBin a Add symExpr2) Add symExpr1
+        -- X - (Y - X) == (X + X) - Y
+        (Sub,Sub) -> calculate0 $ SBin (SBin a Add symExpr2) Sub symExpr1
+        -- X + (Y - X) == (X - X) + Y
+        (Add,Sub) -> calculate0 $ SBin (SBin a Sub symExpr2) Add symExpr1
+        -- X - (Y + X) == (X - X) - Y
+        (Sub,Add) -> calculate0 $ SBin (SBin a Sub symExpr2) Sub symExpr1
+        -- X * (Y * X) == (X * X) * Y
+        (Mul,Mul) -> calculate0 $ SBin (SBin a Mul symExpr2) Mul symExpr1
+        -- X / (Y / X) == (X * X) / Y
+        (Div,Div) -> calculate0 $ SBin (SBin a Mul symExpr2) Div symExpr1
+        -- X * (Y / X) == (X / X) * Y
+        (Mul,Div) -> calculate0 $ SBin (SBin a Div symExpr2) Mul symExpr1
+        -- X / (Y * X) == (X / X) / Y
+        (Div,Mul) -> calculate0 $ SBin (SBin a Div symExpr2) Div symExpr1
+    ---------- PART 2/2 (? is number): X op (? op1 X), ? = symExpr1
+    | all isVar [a,symExpr2] && getVarName a == getVarName symExpr2
+      && (not $ isVar symExpr1)
+      && ((op,op1) `elem` [(Add,Mul),(Sub,Mul)]) -> case (op,op1) of
+        -- X + (3 * X) == (1 + 3) * X
+        (Add,Mul) -> calculate0 $ SBin (SBin (SymNum 1) Add symExpr1) Mul a
+        -- X - (3 * X) == (1 - 3) * X
+        (Sub,Mul) -> calculate0 $ SBin (SBin (SymNum 1) Sub symExpr1) Mul a
     | otherwise -> maybe (error "calculate ~~> won't happen 2") id $ do
       symType <- findSymType [a,b]
       let expr1 = cast symType a
@@ -327,6 +495,12 @@ isVar = \case
   SymFormalParam _ _ (Just expr) -> isVar expr
   SymGlobalVar _ _ -> True
   expr -> error $ "TODO: isVar: " ++ show expr
+
+getVarName :: SymExpr -> String
+getVarName = \case
+  SymFormalParam _ varName _ -> varName
+  SymGlobalVar _ varName -> varName
+  symExpr -> error $ "won't happen: getVarName: " ++ show symExpr
 
 {-
 Add (SymInt 0, SymNum 2) = cast Int (SymNum 2)
