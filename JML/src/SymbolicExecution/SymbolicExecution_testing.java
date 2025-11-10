@@ -222,7 +222,7 @@ SymState {
   env = fromList [
     ("i",SymFormalParam Int "i" Nothing),
     ("return",SymInt 5),
-    ("x",SBin (SymInt 3) Add (SBin (SymFormalParam Int "i" Nothing) Add (SymFormalParam Int "i" Nothing)))
+    ("x",SBin (SymInt 3) Add (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing)))
   ], pc = []
 }
 */

@@ -110,15 +110,34 @@ expr = AST.BinOpExpr {
   AST.expr2 = AST.NumberLiteral 2.0
 }
 
+{-
+TODO:
+BinOpExpr {
+  expr1 = BinOpExpr {
+    expr1 = NumberLiteral 3.0,
+    binOp = +,
+    expr2 = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "boo21_i"}, funArgs = [BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 2.0}]
+    }
+  },
+  binOp = -,
+  expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}
+}
+-}
 expr1 :: SYT.SymExpr
-expr1 = SYT.SymFormalParam SYT.Int "i" Nothing
+expr1 = SYT.SBin (SYT.SymNum 3)
+                 SYT.Add
+                 (SYT.SBin (SYT.SymFormalParam SYT.Int "i" Nothing)
+                           SYT.Add
+                           (SYT.SymNum 2)
+                 )
 
 expr2 :: SYT.SymExpr
-expr2 = SYT.SBin (SYT.SymInt 9) SYT.Add (SYT.SymFormalParam SYT.Int "i" Nothing)
--- i + (9+i)
-expr3 = SYT.SBin (SYT.SymFormalParam SYT.Int "i" Nothing)
-                 SYT.Add
-                 (SYT.SBin (SYT.SymInt 9) SYT.Add (SYT.SymFormalParam SYT.Int "i" Nothing))
+expr2 = SYT.SymFormalParam SYT.Int "i" Nothing
 
+{-
+SBin (SBin (SymInt 5) Add (SymFormalParam Int "i" Nothing))
+     Sub
+     (SymFormalParam Int "i" Nothing)
+-}
 fun :: SYT.SymExpr
-fun = calculate SYT.Add (expr1, expr2)
+fun = calculate SYT.Sub (expr1, expr2)

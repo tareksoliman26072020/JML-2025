@@ -536,6 +536,13 @@ getFractionalArithBinOp = \case
     Sub -> (-)
     Div -> (/)
 
+canCalculate :: SymExpr -> Bool
+canCalculate = \case
+  SBin (SBin expr1 op1 expr2) op2 expr3 -> undefined
+
+toBinSymExpr :: SymBinOp -> (SymExpr, SymExpr) -> SymExpr
+toBinSymExpr op (expr1,expr2) = SBin expr1 op expr2
+
 ------------------------------
 ------------------------------
 ------------------------------

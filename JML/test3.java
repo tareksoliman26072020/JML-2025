@@ -379,13 +379,13 @@ public int boo22_2_i_2(){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
 /*
 SymState {
   env = fromList [
     ("i",SymFormalParam Int "i" Nothing),
     ("return",SymInt 5),
-    ("x",SBin (SymInt 3) Add (SBin (SymFormalParam Int "i" Nothing) Add (SymFormalParam Int "i" Nothing)))
+    ("x",SBin (SymInt 3) Add (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing)))
   ], pc = []
 }
 */
@@ -522,8 +522,8 @@ public int boo23_8_i(int i){
 SymState {
   env = fromList [
     ("i",SymFormalParam Int "i" Nothing),
-    ("return",SBin (SBin (SymInt 5) Add (SymFormalParam Int "i" Nothing)) Sub (SymFormalParam Int "i" Nothing)),
-    ("x",SBin (SBin (SymInt 5) Add (SymFormalParam Int "i" Nothing)) Sub (SymFormalParam Int "i" Nothing))
+    ("return",SBin (SymInt 5) Add (SymInt 0)),
+    ("x",SBin (SymInt 5) Add (SymInt 0))
   ], pc = []
 }
 */
