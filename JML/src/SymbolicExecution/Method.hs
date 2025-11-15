@@ -17,7 +17,8 @@ import Control.Monad.Writer
 import Text.Printf (printf)
 import Data.Functor (($>))
 import Data.List (foldl')
-import SymbolicExecution.Internal
+import SymbolicExecution.Internal.Internal
+import SymbolicExecution.Internal.Calculator (calculate)
 
 instance CFGVisitor Method_SymExec where
 --visitNode :: CFG.Node -> Method_SymExec

@@ -97,6 +97,38 @@ public int boo21_3_i_1(int i){
 ///////////////////////////////////////////////////
 
 /*
+SymState {
+  env = fromList [
+    ("i",SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2)))),
+    ("return",SBin (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 9)),
+    ("x",SBin (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 9))
+  ], pc = []
+}
+*/
+public int boo21_3_i_2(int i){
+  i += 2;
+  int x = i + 5 + i;
+  return x;
+}
+
+///////////////////////////////////////////////////
+
+/*
+SymState {
+  env = fromList [
+    ("i",SymFormalParam Int "i" (Just (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing)))),
+    ("return",SymFormalParam Int "i" (Just (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing))))
+  ], pc = []
+}
+*/
+public int boo21_3_i_9(int i){
+  i += i;
+  return i;
+}
+
+///////////////////////////////////////////////////
+
+/*
 CFG {
   nodes = [
     Entry,
@@ -347,8 +379,8 @@ public int boo23_8_i(int i){
 SymState {
   env = fromList [
     ("i",SymFormalParam Int "i" Nothing),
-    ("return",SBin (SBin (SymInt 5) Add (SymFormalParam Int "i" Nothing)) Sub (SymFormalParam Int "i" Nothing)),
-    ("x",SBin (SBin (SymInt 5) Add (SymFormalParam Int "i" Nothing)) Sub (SymFormalParam Int "i" Nothing))
+    ("return",SymInt 5),
+    ("x",SymInt 5)
   ], pc = []
 }
 */

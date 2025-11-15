@@ -4,7 +4,8 @@ module SymbolicExecution.MethodCall where
 import Visitors.API (SymStateVisitor(..))
 import qualified CFG.Types as CFGT (CFG)
 import SymbolicExecution.Types
-import SymbolicExecution.Internal
+import SymbolicExecution.Internal.Internal
+import SymbolicExecution.Internal.Calculator (calculate)
 import qualified SymbolicExecution.Log as Log
 import Control.Monad.Writer
 import Control.Monad.Reader

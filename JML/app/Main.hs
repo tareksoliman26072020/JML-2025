@@ -18,8 +18,9 @@ import qualified CFG.Types as CFGT (CFG(..), showCFG, Node(..), findCFGByName, g
 import qualified SymbolicExecution.Types as SYT
 import qualified SymbolicExecution.Method as SYM (runCFG)
 import qualified SymbolicExecution.Log as SYT.Log
-import SymbolicExecution.Internal --(isAtomic, calculate0, isSymExprNum)
-import SymbolicExecution.Internal (calculate, findSymType, cast)
+--import SymbolicExecution.Internal --(isAtomic, calculate0, isSymExprNum)
+import SymbolicExecution.Internal.Internal (findSymType, cast)
+import SymbolicExecution.Internal.Calculator (calculate)
 
 import Text.Printf (printf)
 
@@ -110,19 +111,6 @@ expr = AST.BinOpExpr {
   AST.expr2 = AST.NumberLiteral 2.0
 }
 
-{-
-TODO:
-BinOpExpr {
-  expr1 = BinOpExpr {
-    expr1 = NumberLiteral 3.0,
-    binOp = +,
-    expr2 = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "boo21_i"}, funArgs = [BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 2.0}]
-    }
-  },
-  binOp = -,
-  expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}
-}
--}
 expr1 :: SYT.SymExpr
 expr1 = SYT.SBin (SYT.SymNum 3)
                  SYT.Add
@@ -134,10 +122,5 @@ expr1 = SYT.SBin (SYT.SymNum 3)
 expr2 :: SYT.SymExpr
 expr2 = SYT.SymFormalParam SYT.Int "i" Nothing
 
-{-
-SBin (SBin (SymInt 5) Add (SymFormalParam Int "i" Nothing))
-     Sub
-     (SymFormalParam Int "i" Nothing)
--}
 fun :: SYT.SymExpr
 fun = calculate SYT.Sub (expr1, expr2)

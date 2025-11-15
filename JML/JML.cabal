@@ -32,7 +32,8 @@ library
       Parser.ParseStmt
       Parser.Print
       Parser.Types
-      SymbolicExecution.Internal
+      SymbolicExecution.Internal.Calculator
+      SymbolicExecution.Internal.Internal
       SymbolicExecution.Log
       SymbolicExecution.Method
       SymbolicExecution.MethodCall
