@@ -132,6 +132,21 @@ expr2 = SYT.SBin (SYT.SymInt 2)
                  SYT.Mul
                  (SYT.SymFormalParam SYT.Int "i" Nothing)
 
+{-
+SBin (SBin (SBin (SymInt 3) Mul (SymFormalParam Int "i" Nothing))
+           Add
+           (SymInt 20)
+     )
+     Add
+     (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing))
+-}
+{-
+SBin (SBin (SBin (SymInt 3) Mul (SymFormalParam Int "i" Nothing))
+           Add (SymInt 20)
+     )
+     Add
+     (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing))
+-}
 fun :: SYT.SymExpr
 fun = calculate SYT.Add (expr1, expr2)
 
