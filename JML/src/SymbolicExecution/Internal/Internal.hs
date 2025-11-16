@@ -117,7 +117,7 @@ isVar = \case
   SymDouble _ -> False
   SymFloat _ -> False
   SBool _ -> False
-  SBin expr1 _ expr2 -> all isVar [expr1,expr2]
+  SBin expr1 _ expr2 -> any isVar [expr1,expr2]
   SNot expr -> isVar expr
   SymFormalParam _ _ Nothing -> True
   SymFormalParam _ _ (Just expr) -> isVar expr
@@ -128,8 +128,20 @@ getVarName :: SymExpr -> String
 getVarName = \case
   SymFormalParam _ varName _ -> varName
   SymGlobalVar _ varName -> varName
-  symExpr -> error $ "won't happen: getVarName: " ++ show symExpr
+  e@(SBin expr1 _ expr2) ->
+    let n1 = if isVar expr1 then Just $ getVarName expr1 else Nothing
+        n2 = if isVar expr2 then Just $ getVarName expr2 else Nothing
+    in case (n1,n2) of
+         (Nothing,Nothing) -> error $ "won't happen1: getVarName: " ++ show e
+         (Just n,Nothing) -> n
+         (Nothing,Just n) -> n
+         (Just x,Just y) -> error $ "TODO: getVarName: " ++ show e
+  symExpr -> error $ "won't happen2: getVarName: " ++ show symExpr
 
+simplify :: SymExpr -> SymExpr
+simplify = \case
+  SymFormalParam _ _ (Just expr) -> expr
+  e -> e
 {-
 Add (SymInt 0, SymNum 2) = cast Int (SymNum 2)
                          = SymInt 2
@@ -169,6 +181,12 @@ toBinSymExpr op (expr1,expr2) = SBin expr1 op expr2
 
 negate :: SymExpr -> SymExpr
 negate symExpr = error $ "TODO: negate ~~> " ++ show symExpr
+
+negateOp :: SymBinOp -> SymBinOp
+negateOp = \case
+  Add -> Sub
+  Sub -> Add
+  _   -> error "negateOP ==> won't happen"
 
 ------------------------------
 ------------------------------

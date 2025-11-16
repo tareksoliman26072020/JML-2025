@@ -219,20 +219,65 @@ public int boo21_3_i_2(int i){
 
 ////////////////////////////////////////
 
-//TODO
+//TODO ((2i + 9) + (i+2)) + (2i + 9)
+/*
+SBin (SBin (SBin (SymInt 2)
+                 Mul
+                 (SymFormalParam Int "i" Nothing)
+           )
+           Add
+           (SymInt 9)
+     )
+     Add
+     (SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2))))
+
+(Add)
+
+(SBin (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 9))
+*/
+/*
+SymState {
+  env = fromList [
+    ("i",SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2)))),
+    ("return",SBin (SymInt 2) Mul (SBin (SymFormalParam Int "i" Nothing) Add (SBin (SymInt 9) Add (SBin (SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2)))) Add (SBin (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 9)))))),
+    ("x",SBin (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 9))
+  ], pc = []
+}
+*/
+/*
+2 * (i + (9 + ((i+2) + ((2*i) + 9))))
+2 * (i + (9 + ((i+2) + ((2*i) + 9))))
+2 * (i+9+i+2+2i+9) == 2 * (4i+20)
+9+2i+9+2i+i = 18+5i
+SBin (SymInt 2)
+     Mul
+     (SBin (SymFormalParam Int "i" Nothing)
+           Add
+           (SBin (SymInt 9)
+                 Add
+                 (SBin (SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2))))
+                       Add
+                       (SBin (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing))
+                             Add
+                             (SymInt 9)
+                       )
+                 ))
+     )
+*/
+/*
+("x",SBin (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 9)
+*/
+/*
+x+i:
+  SBin (SBin (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 9))
+       Add
+       (SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2))))
+*/
 public int boo21_3_i_3(int i){
   i += 2;
   int x = i + 5 + i;
   return x + i + x;
 }
-
-/*
-SBin (SymFormalParam Int "i" Nothing) Add (SymInt 7)
-
-+
-
-SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2)))
- */
 
 ////////////////////////////////////////
 

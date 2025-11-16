@@ -225,7 +225,7 @@ visitExpr expr@AST.BinOpExpr{} = do
   helper :: SymExpr -> SymExpr -> Method_R
   helper op1 op2 = case AST.binOp expr `elem` [AST.Plus, AST.Mult, AST.Minus, AST.Div] of
       True -> 
-        let toReturn = ER_Expr $ calculate (toSymBinOp $ AST.binOp expr) (op1, op2)
+        let toReturn = ER_Expr $ calculate (toSymBinOp $ AST.binOp expr) (simplify op1, simplify op2)
         in tell [Log.Return "visitExpr -> BinOpExpr" (show toReturn)] $> toReturn
       False -> throwError "TODO: visitExpr -> BinOpExpr"
   getReturnSymExpr :: SymState -> SymExpr

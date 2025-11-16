@@ -19,8 +19,8 @@ import qualified SymbolicExecution.Types as SYT
 import qualified SymbolicExecution.Method as SYM (runCFG)
 import qualified SymbolicExecution.Log as SYT.Log
 --import SymbolicExecution.Internal --(isAtomic, calculate0, isSymExprNum)
-import SymbolicExecution.Internal.Internal (findSymType, cast)
-import SymbolicExecution.Internal.Calculator (calculate)
+import SymbolicExecution.Internal.Internal (findSymType, cast, simplify)
+import SymbolicExecution.Internal.Calculator (calculate, calculate2)
 
 import Text.Printf (printf)
 
@@ -110,17 +110,27 @@ expr = AST.BinOpExpr {
   AST.binOp = AST.Plus,
   AST.expr2 = AST.NumberLiteral 2.0
 }
-
+-- 2i + 9
 expr1 :: SYT.SymExpr
-expr1 = SYT.SBin (SYT.SymNum 3)
+expr1 = SYT.SBin (SYT.SBin (SYT.SymInt 3) SYT.Mul (SYT.SymFormalParam SYT.Int "i" Nothing)) 
                  SYT.Add
-                 (SYT.SBin (SYT.SymFormalParam SYT.Int "i" Nothing)
-                           SYT.Add
-                           (SYT.SymNum 2)
-                 )
-
+                 (SYT.SymInt 11)
+-- i + 2
 expr2 :: SYT.SymExpr
-expr2 = SYT.SymFormalParam SYT.Int "i" Nothing
+expr2 = SYT.SBin (SYT.SBin (SYT.SymInt 2) SYT.Mul (SYT.SymFormalParam SYT.Int "i" Nothing))
+                 SYT.Add
+                 (SYT.SymInt 9)
 
+-- 3i + 11
 fun :: SYT.SymExpr
-fun = calculate SYT.Sub (expr1, expr2)
+fun = calculate SYT.Add (expr1, expr2)
+
+{-
+3i + 11
+SBin (SBin (SymInt 3) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 11)
+
++
+
+2i + 9
+SBin (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 9)
+-}

@@ -1,4 +1,4 @@
-{-# Language FlexibleInstances #-} -- to enable instancing MonadFail (Either String)
+{-# Language FlexibleInstances, LambdaCase #-} -- to enable instancing MonadFail (Either String)
 module SymbolicExecution.Types where
 
 import qualified SymbolicExecution.Log as Log
@@ -9,6 +9,7 @@ import Control.Monad.Writer
 import qualified Parser.Types as AST
 import qualified CFG.Types as CFGT (CFG, NodeID)
 import qualified Data.Map as Map (Map)
+import Text.Printf (printf)
 
 type Method_R =
     ReaderT (Config,[CFGT.CFG])
@@ -116,6 +117,20 @@ data SymExpr =
   | SymFormalParam SymType String (Maybe SymExpr) -- ^ declared variable (a formal parameter)
   | SymGlobalVar SymType String   -- ^ variable declared outside the scope of the method
   deriving (Eq,Show)
+
+ppSymExpr :: SymExpr -> String
+ppSymExpr = \case
+  SymNum num -> show num
+  SymInt num -> show num
+  SymDouble num -> show num
+  SymFloat  num -> show num
+  SBool b -> show b
+  SBin e1 op e2 -> printf "(%s) %s (%s)" (ppSymExpr e1) (show op) (ppSymExpr e2)
+  SNot e -> printf "!(%s)" (ppSymExpr e)
+  SIte _ _ _ -> undefined
+  SymNull t -> undefined
+  SymFormalParam t s m -> maybe s ppSymExpr m
+  SymGlobalVar t s -> s
 
 data SymType = Int | Double | Float | Bool | Void deriving (Show,Eq)
 
