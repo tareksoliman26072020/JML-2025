@@ -142,6 +142,15 @@ simplify :: SymExpr -> SymExpr
 simplify = \case
   SymFormalParam _ _ (Just expr) -> expr
   e -> e
+
+multiplyOps :: SymBinOp -> SymBinOp -> SymBinOp
+multiplyOps op1 op2 = case (op1,op2) of
+  (Add,Add) -> Add
+  (Add,Sub) -> Sub
+  (Sub,Add) -> Sub
+  (Sub,Sub) -> Add
+  _ -> error "won't happen"
+
 {-
 Add (SymInt 0, SymNum 2) = cast Int (SymNum 2)
                          = SymInt 2

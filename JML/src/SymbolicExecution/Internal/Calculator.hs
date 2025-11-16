@@ -139,17 +139,79 @@ let ops = ["+","-","*","/"] in mapM_ (\(num,str) -> putStrLn (printf "%d) %s" nu
 -}
   (a@(SBin _ _ _), b@(SBin _ _ _)) ->
     --error $ printf "TODO: calculateHelper: (%s) (%s) (%s)" (show a) (show op) (show b) 
+           -- (x - e12) - (x - e22) == (x - x) - (e12 - e22)
+           -- (x + e12) - (x - e22) == (x - x) + (e12 + e22)
+           -- (x + e12) + (x - e22) == (x + x) + (e12 - e22)
+           -- (x + e12) + (x + e22) == (x + x) + (e12 + e22)
+           -- (x - e12) + (x + e22) == (x + x) - (e12 - e22)
+           -- (x - e12) - (x + e22) == (x - x) - (e12 + e22)
+           -- (x + e12) - (x + e22) == (x - x) + (e12 - e22)
+           -- (x - e12) + (x - e22) == (x + x) - (e12 + e22)
     let a2 = calculate2 a
         b2 = calculate2 b
     in case (a2,b2) of
          (SBin e11 op1 e12, SBin e21 op2 e22)
-           -- (e11 + e12) - (e21 op2 e22) == e11 + (e12 - (e21 op2 e22))
-           | op `elem` [Add,Sub] && op1 `elem` [Add,Sub]
-               -> calculate2 $ SBin e11 op1 (SBin e12 op (SBin e21 op2 e22))
-           -- (e11 op1 e12) - (e21 + e22) == ((e11 op1 e12) - e21) + e22
-           | op `elem` [Add,Sub] && op2 `elem` [Add,Sub]
-               -> calculate2 $ SBin (SBin (SBin e11 op1 e12) op e21) op2 e22
-           | op `elem` [Add,Sub] -> SBin a2 op b2
+             -- (x op1 e12) op (x op2 e22)
+           | all (`elem` [Add,Sub]) [op1,op,op2]
+             && all isVar [e11,e21] && getVarName e11 == getVarName e21 ->
+               -- (x - e12) - (x - e22) == (x - x) - (e12 - e22)
+               -- (x + e12) - (x - e22) == (x - x) + (e12 + e22)
+               -- (x + e12) + (x - e22) == (x + x) + (e12 - e22)
+               -- (x + e12) + (x + e22) == (x + x) + (e12 + e22)
+               -- (x - e12) + (x + e22) == (x + x) - (e12 - e22)
+               -- (x - e12) - (x + e22) == (x - x) - (e12 + e22)
+               -- (x + e12) - (x + e22) == (x - x) + (e12 - e22)
+               -- (x - e12) + (x - e22) == (x + x) - (e12 + e22)
+               calculate2 $ SBin (SBin e11 op e21)
+                                 op1
+                                 (SBin e12 (multiplyOps (multiplyOps op1 op) op2) e22)
+           ------------------------------------------------------
+             -- (x op1 e12) op (e21 op2 x)
+           | all (`elem` [Add,Sub]) [op1,op,op2]
+             && all isVar [e11,e22] && getVarName e11 == getVarName e22 ->
+               -- (x - e12) - (e21 - x) == (x + x) - (e21 + e12)
+               -- (x + e12) - (e21 - x) == (x + x) - (e21 - e12)
+               -- (x + e12) + (e21 - x) == (x - x) + (e21 + e12)
+               -- (x + e12) + (e21 + x) == (x + x) + (e21 + e12)
+               -- (x - e12) + (e21 + x) == (x + x) + (e21 - e12)
+               -- (x - e12) - (e21 + x) == (x - x) - (e21 + e12)
+               -- (x + e12) - (e21 + x) == (x - x) - (e21 - e12)
+               -- (x - e12) + (e21 - x) == (x - x) + (e21 - e12)
+               calculate2 $ SBin (SBin e11 (multiplyOps op op2) e22)
+                                 op
+                                 (SBin e21 (multiplyOps op1 op) e12)
+           ------------------------------------------------------
+             -- (e11 op1 x) op (x op2 e22)
+           | all (`elem` [Add,Sub]) [op1,op,op2]
+             && all isVar [e12,e21] && getVarName e12 == getVarName e21 ->
+               -- (e11 - x) - (x - e22) == (e11 + e22) - (x + x)
+               -- (e11 + x) - (x - e22) == (e11 + e22) - (x - x)
+               -- (e11 + x) + (x - e22) == (e11 - e22) + (x + x)
+               -- (e11 + x) + (x + e22) == (e11 + e22) + (x + x)
+               -- (e11 - x) + (x + e22) == (e11 + e22) + (x - x)
+               -- (e11 - x) - (x + e22) == (e11 - e22) - (x + x)
+               -- (e11 + x) - (x + e22) == (e11 - e22) - (x - x)
+               -- (e11 - x) + (x - e22) == (e11 - e22) + (x - x)
+               calculate $ SBin (SBin e11 (multiplyOps op op2) e22)
+                                op
+                                (SBin e21 (multiplyOps op1 op) e12)
+           ------------------------------------------------------
+             -- (e11 op1 x) op (e21 op2 x)
+           | all (`elem` [Add,Sub]) [op1,op,op2]
+             && all isVar [e12,e22] && getVarName e12 == getVarName e22 ->
+               -- (e11 - x) - (e21 - x) == (e11 - e21) - (x - x)
+               -- (e11 + x) - (e21 - x) == (e11 - e21) + (x + x)
+               -- (e11 + x) + (e21 - x) == (e11 + e21) + (x - x)
+               -- (e11 + x) + (e21 + x) == (e11 + e21) + (x + x)
+               -- (e11 - x) + (e21 + x) == (e11 + e21) - (x - x)
+               -- (e11 - x) - (e21 + x) == (e11 - e21) - (x + x)
+               -- (e11 + x) - (e21 + x) == (e11 - e21) + (x - x)
+               -- (e11 - x) + (e21 - x) == (e11 + e21) - (x + x)
+               calculate2 $ SBin (SBin e11 op e21)
+                                 op1
+                                 (SBin e12 (multiplyOps (multiplyOps op1 op) op2) e22)
+           | all (`elem` [Add,Sub]) [op1,op,op2] ->
+               SBin a2 op b2
            ------------------------------------------------------
            -- (e11 - e12) * (e21 + e22) == (e11 * (e21 + e22)) - (e12 * (e21 + e22))
            | op `elem` [Mul,Div] && op1 `elem` [Add,Sub] && op2 `elem` [Add,Sub] &&
