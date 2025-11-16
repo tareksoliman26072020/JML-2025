@@ -150,6 +150,7 @@ let ops = ["+","-","*","/"] in mapM_ (\(num,str) -> putStrLn (printf "%d) %s" nu
            | op `elem` [Add,Sub] && op2 `elem` [Add,Sub]
                -> calculate2 $ SBin (SBin (SBin e11 op1 e12) op e21) op2 e22
            | op `elem` [Add,Sub] -> SBin a2 op b2
+           ------------------------------------------------------
            -- (e11 - e12) * (e21 + e22) == (e11 * (e21 + e22)) - (e12 * (e21 + e22))
            | op `elem` [Mul,Div] && op1 `elem` [Add,Sub] && op2 `elem` [Add,Sub] &&
              (all (not . isVar) [e11,e21] ||
@@ -185,7 +186,7 @@ let ops = ["+","-","*","/"] in mapM_ (\(num,str) -> putStrLn (printf "%d) %s" nu
                calculate2 $ SBin (SBin (SBin e11 op1 e12) op e21)
                                  op
                                  e22
-         _ -> calculate2 $ SBin a2 op b2
+         _ -> SBin a2 op b2
 ---------- commutative events
   (a@(SBin symExpr1 op1 symExpr2), b)
     ---------- (i op1 1) op 2

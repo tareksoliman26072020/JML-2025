@@ -110,18 +110,28 @@ expr = AST.BinOpExpr {
   AST.binOp = AST.Plus,
   AST.expr2 = AST.NumberLiteral 2.0
 }
--- 2i + 9
+{-
+-- 3i + 11
 expr1 :: SYT.SymExpr
 expr1 = SYT.SBin (SYT.SBin (SYT.SymInt 3) SYT.Mul (SYT.SymFormalParam SYT.Int "i" Nothing)) 
                  SYT.Add
                  (SYT.SymInt 11)
--- i + 2
+-- 2i + 9
 expr2 :: SYT.SymExpr
 expr2 = SYT.SBin (SYT.SBin (SYT.SymInt 2) SYT.Mul (SYT.SymFormalParam SYT.Int "i" Nothing))
                  SYT.Add
                  (SYT.SymInt 9)
+-}
 
--- 3i + 11
+-- 3i+20
+expr1 = SYT.SBin (SYT.SBin (SYT.SymInt 3) SYT.Mul (SYT.SymFormalParam SYT.Int "i" Nothing)) 
+                 SYT.Add
+                 (SYT.SymInt 20)
+-- 2i
+expr2 = SYT.SBin (SYT.SymInt 2)
+                 SYT.Mul
+                 (SYT.SymFormalParam SYT.Int "i" Nothing)
+
 fun :: SYT.SymExpr
 fun = calculate SYT.Add (expr1, expr2)
 
