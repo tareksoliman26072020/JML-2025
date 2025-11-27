@@ -190,7 +190,7 @@ public int boo21_3_i(int i){
 SymState {
   env = fromList [
     ("i",SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2)))),
-    ("return",SBin (SymInt 2) Mul (SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2)))))
+    ("return",SBin (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 4))
   ], pc = []
 }
 */
@@ -219,59 +219,15 @@ public int boo21_3_i_2(int i){
 
 ////////////////////////////////////////
 
-//TODO ((2i + 9) + (i+2)) + (2i + 9)
-/*
-SBin (SBin (SBin (SymInt 2)
-                 Mul
-                 (SymFormalParam Int "i" Nothing)
-           )
-           Add
-           (SymInt 9)
-     )
-     Add
-     (SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2))))
-
-(Add)
-
-(SBin (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 9))
-*/
+//DONE
 /*
 SymState {
   env = fromList [
     ("i",SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2)))),
-    ("return",SBin (SymInt 2) Mul (SBin (SymFormalParam Int "i" Nothing) Add (SBin (SymInt 9) Add (SBin (SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2)))) Add (SBin (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 9)))))),
+    ("return",SBin (SBin (SymInt 5) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 20)),
     ("x",SBin (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 9))
   ], pc = []
 }
-*/
-/*
-2 * (i + (9 + ((i+2) + ((2*i) + 9))))
-2 * (i + (9 + ((i+2) + ((2*i) + 9))))
-2 * (i+9+i+2+2i+9) == 2 * (4i+20)
-9+2i+9+2i+i = 18+5i
-SBin (SymInt 2)
-     Mul
-     (SBin (SymFormalParam Int "i" Nothing)
-           Add
-           (SBin (SymInt 9)
-                 Add
-                 (SBin (SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2))))
-                       Add
-                       (SBin (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing))
-                             Add
-                             (SymInt 9)
-                       )
-                 ))
-     )
-*/
-/*
-("x",SBin (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 9)
-*/
-/*
-x+i:
-  SBin (SBin (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 9))
-       Add
-       (SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2))))
 */
 public int boo21_3_i_3(int i){
   i += 2;
@@ -599,7 +555,16 @@ public int boo23_9_i(int i){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
+/*
+SymState {
+  env = fromList [
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SBin (SymInt 5) Add (SBin (SymInt (-1)) Mul (SymFormalParam Int "i" Nothing))),
+    ("x",SBin (SymInt 5) Add (SBin (SymInt (-1)) Mul (SymFormalParam Int "i" Nothing)))
+  ], pc = []
+}
+*/
 public int boo23_9_i_2(int i){
   int x;
   x = 3 + boo21_i(i+2) - 2*i;

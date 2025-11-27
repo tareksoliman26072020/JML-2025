@@ -151,6 +151,13 @@ multiplyOps op1 op2 = case (op1,op2) of
   (Sub,Sub) -> Add
   _ -> error "won't happen"
 
+-- `newSymNum` is used to create either SymNum 1 or SymNum -1
+-- This comes in handy while using multiplOps in Calculator.hs
+newSymNum :: SymBinOp -> SymExpr
+newSymNum = \case
+  Add -> SymNum 1
+  Sub -> SymNum (-1)
+  _   -> error "won't happen"
 {-
 Add (SymInt 0, SymNum 2) = cast Int (SymNum 2)
                          = SymInt 2

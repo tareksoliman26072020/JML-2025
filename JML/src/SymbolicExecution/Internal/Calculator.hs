@@ -275,81 +275,151 @@ let ops = ["+","-","*","/"] in mapM_ (\(num,str) -> putStrLn (printf "%d) %s" nu
                                  e11
            ---------------------------------------------------------------
            -- (e11 * X) op (e21 - X) == ((e11 op*- 1) * X) op e21
+              {-
+                 calculate2 $ SBin (SBin (SBin e11 (multiplyOps op op2) (SymNum 1))
+                                      Mul
+                                      e12
+                                   )
+                                   op
+                                   e21
+              -}
+           -- (e11 * X) op (e21 - X) == (a (op*-) e22) op e21
            -- (2x) + (3 - x) = ((2-1) * X) + 3 = X + 3
            | op `elem` [Add,Sub] && op1 == Mul && op2 `elem` [Add,Sub]
              && all isVar [e12,e22] && getVarName e12 == getVarName e22 ->
-               calculate2 $ SBin (SBin (SBin e11 (multiplyOps op op2) (SymNum 1))
-                                       Mul
-                                       e12
-                                 )
+               calculate2 $ SBin (calculate2 $ SBin a (multiplyOps op op2) e22)
                                  op
                                  e21
-           -- (e11 * X) op (X - e22) == ((e11 op 1) * X) op*- e22
+           -- (e11 * X) op (X - e22) == ((e11 op 1) * X) (op*-) e22
+              {-
+              calculate2 $ SBin (SBin (SBin e11 op (SymNum 1)) Mul e12)
+                                (multiplyOps op op2)
+                                e22
+              -}
+           -- (e11 * X) op (X - e22) == (a op e21) (op*-) e22
            | op `elem` [Add,Sub] && op1 == Mul && op2 `elem` [Add,Sub]
              && all isVar [e12,e21] && getVarName e12 == getVarName e21 ->
-               calculate2 $ SBin (SBin (SBin e11 op (SymNum 1)) Mul e12)
+               calculate2 $ SBin (calculate2 $ SBin a op e21)
                                  (multiplyOps op op2)
                                  e22
            -- (X * e12) op (X - e22) == ((e12 op 1) * X) op*- e22
+              {-
+              calculate2 $ SBin (SBin (SBin e12 op (SymNum 1)) Mul e11)
+                                (multiplyOps op op2)
+                                e22
+              -}
+           -- (X * e12) op (X - e22) == ((e12 * e11) op e21) (op*-) e22
            | op `elem` [Add,Sub] && op1 == Mul && op2 `elem` [Add,Sub]
              && all isVar [e11,e21] && getVarName e11 == getVarName e21 ->
-               calculate2 $ SBin (SBin (SBin e12 op (SymNum 1)) Mul e11)
+               calculate2 $ SBin (calculate2 $ SBin (SBin e21 Mul e11) op e21)
                                  (multiplyOps op op2)
                                  e22
            -- (X * e12) op (e21 - X) == ((e12 op*- 1) * X) op e21
-           | op `elem` [Add,Sub] && op1 == Mul && op2 `elem` [Add,Sub]
-             && all isVar [e11,e22] && getVarName e11 == getVarName e22 ->
-               calculate2 $ SBin (SBin (SBin e12 (multiplyOps op op2) (SymNum 1))
+           {-
+           calculate2 $ SBin (SBin (SBin e12 (multiplyOps op op2) (SymNum 1))
                                        Mul
                                        e11
-                                 )
+                             )
+                             op
+                             e21
+           -}
+           -- (X * e12) op (e21 - X) == ((e12 * e11) (op*-) e22) op e21
+           | op `elem` [Add,Sub] && op1 == Mul && op2 `elem` [Add,Sub]
+             && all isVar [e11,e22] && getVarName e11 == getVarName e22 ->
+               calculate2 $ SBin (calculate2 $ SBin (SBin e12 Mul e11)
+                                                    (multiplyOps op op2)
+                                                    e22)
                                  op
                                  e21
            ---------------------------------------------------------------
            -- (e11 op1 X) op (e21 * X) == e11 op1 ((1 op1*op e21) * X)
            -- (2 + X) - (3 * X) = 2 + (X - 3X) = 2 + (1 - 3) * X = 2 - 2X
            -- (2 - X) - (3 * X) = 2 - (X + 3X) = 2 - (1 + 3) * X = 2 - 4X
+           {-
+           calculate2 $ SBin e11
+                             op1
+                             (SBin (SBin (SymNum 1)
+                                         (multiplyOps op1 op)
+                                         e21)
+                                   Mul
+                                   e12)
+           -}
+           -- (e11 op1 X) op (e21 * X) == e11 op1 (e12 op1*op b)
+           -- (e11 + X) - (e21 * X) == e11 + (X - b)
+           -- (e11 - X) - (e21 * X) == e11 - (X + b)
+           -- (e11 + X) + (e21 * X) == e11 + (X + b)
+           -- (e11 - X) + (e21 * X) == e11 - (X - b)
            | op `elem` [Add,Sub] && op2 == Mul && op1 `elem` [Add,Sub]
              && all isVar [e12,e22] && getVarName e12 == getVarName e22 ->
                calculate2 $ SBin e11
                                  op1
-                                 (SBin (SBin (SymNum 1)
-                                             (multiplyOps op1 op)
-                                             e21)
-                                       Mul
-                                       e12)
+                                 (calculate2 $ SBin e12
+                                                    (multiplyOps op1 op)
+                                                    b)
            -- (e11 op1 X) op (X * e22) == e11 op1 ((1 op1*op e22) * X)
            -- (2 + X) - (X * 3) == 2 + (X - X * 3) = 2 + ((1 - 3) * X) = 2 - 2X
            -- (2 - X) - (X * 3) == 2 - (X + X * 3) = 2 - ((1 + 3) * X) = 2 - 4X
+           {-
+           calculate2 $ SBin e11
+                             op1
+                             (SBin (SBin (SymNum 1)
+                                         (multiplyOps op1 op)
+                                         e22)
+                                   Mul
+                                   e12)
+           -}
+           -- (e11 op1 X) op (X * e22) == e11 op1 (e12 op1*op (e22 * e21))
            | op `elem` [Add,Sub] && op2 == Mul && op1 `elem` [Add,Sub]
              && all isVar [e12,e21] && getVarName e12 == getVarName e21 ->
                calculate2 $ SBin e11
                                  op1
-                                 (SBin (SBin (SymNum 1)
-                                             (multiplyOps op1 op)
-                                             e22)
-                                       Mul
-                                       e12)
+                                 (calculate2 $ SBin e12
+                                                    (multiplyOps op1 op)
+                                                    (SBin e22 Mul e21))
            -- (X op1 e12) op (X * e22) == e12 op1 ((1 op1*op e22) * X)
+           {-
+           calculate2 $ SBin e12
+                             op1
+                             (SBin (SBin (SymNum 1)
+                                         (multiplyOps op1 op)
+                                         e22)
+                                   Mul
+                                   e12)
+           -}
+           -- (X op1 e12) op (X * e22) == (op1 e12) + (e11 op (e22 * e21))
+           -- (X + e12) + (X * e22) == e12  + (X + e22*X) == (op1 e12) + (e11 op e22*e21)
+           -- (X - e12) + (X * e22) == -e12 + (X + e22*X) == (op1 e12) + 
+           -- (X + e12) - (X * e22) == e12  + (X - e22*X) == (op1 e12) + 
+           -- (X - e12) - (X * e22) == e12  + (X - e22*X) == (op1 e12) + 
            | op `elem` [Add,Sub] && op2 == Mul && op1 `elem` [Add,Sub]
              && all isVar [e11,e21] && getVarName e11 == getVarName e21 ->
-               calculate2 $ SBin e12
-                                 op1
-                                 (SBin (SBin (SymNum 1)
-                                             (multiplyOps op1 op)
-                                             e22)
-                                       Mul
-                                       e12)
+               calculate2 $ SBin (calculate2 $ SBin (newSymNum op1) Mul e12)
+                                 Add
+                                 (calculate2 $ SBin e11 op (SBin e22 Mul e21))
+           -- (3i+20) + 2i = 
            -- (X op1 e12) op (e21 * X) == e12 op1 ((1 op1*op e21) * X)
+           {-
+           calculate2 $ SBin e12
+                             op1
+                             (SBin (SBin (SymNum 1)
+                                         (multiplyOps op1 op)
+                                         e21)
+                                   Mul
+                                   e11)
+           -}
+           -- (X op1 e12) op (e21 * X) == (op1 e12) + (e11 op e21*e22)
+           -- (X + e12) + (e21 * X) == e12 + (X + e21*X) == (op1 e12) + (e11 + e21*e22)
+           -- (X - e12) + (e21 * X) == 
+           -- (X + e12) - (e21 * X) == 
+           -- (X - e12) - (e21 * X) == 
            | op `elem` [Add,Sub] && op2 == Mul && op1 `elem` [Add,Sub]
              && all isVar [e11,e22] && getVarName e11 == getVarName e22 ->
-               calculate2 $ SBin e12
-                                 op1
-                                 (SBin (SBin (SymNum 1)
-                                             (multiplyOps op1 op)
-                                             e21)
-                                       Mul
-                                       e12)
+             --error $ printf "MEOW:\n1) %s\n2) %s\n3) %s" (show a) (show op) (show b)
+               calculate2 $ SBin (calculate2 $ SBin (newSymNum op1) Mul e12)
+                                 Add
+                                 (calculate2 $ SBin e11
+                                                    op
+                                                    (SBin e21 Mul e22))
            ---------------------------------------------------------------
          _ -> SBin a2 op b2
 ---------- commutative events

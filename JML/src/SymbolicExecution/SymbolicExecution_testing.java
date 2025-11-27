@@ -85,7 +85,7 @@ public int boo21_3_i(int i){
 SymState {
   env = fromList [
     ("i",SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2)))),
-    ("return",SBin (SymInt 2) Mul (SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2)))))
+    ("return",SBin (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 4))
   ], pc = []
 }
 */
@@ -109,6 +109,23 @@ public int boo21_3_i_2(int i){
   i += 2;
   int x = i + 5 + i;
   return x;
+}
+
+///////////////////////////////////////////////////
+
+/*
+SymState {
+  env = fromList [
+    ("i",SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2)))),
+    ("return",SBin (SBin (SymInt 5) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 20)),
+    ("x",SBin (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 9))
+  ], pc = []
+}
+*/
+public int boo21_3_i_3(int i){
+  i += 2;
+  int x = i + 5 + i;
+  return x + i + x;
 }
 
 ///////////////////////////////////////////////////
@@ -387,6 +404,23 @@ SymState {
 public int boo23_9_i(int i){
   int x;
   x = 3 + boo21_i(i+2) - i;
+  return x;
+}
+
+////////////////////////////////////////
+
+/*
+SymState {
+  env = fromList [
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SBin (SymInt 5) Add (SBin (SymInt (-1)) Mul (SymFormalParam Int "i" Nothing))),
+    ("x",SBin (SymInt 5) Add (SBin (SymInt (-1)) Mul (SymFormalParam Int "i" Nothing)))
+  ], pc = []
+}
+*/
+public int boo23_9_i_2(int i){
+  int x;
+  x = 3 + boo21_i(i+2) - 2*i;
   return x;
 }
 

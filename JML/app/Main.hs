@@ -18,7 +18,6 @@ import qualified CFG.Types as CFGT (CFG(..), showCFG, Node(..), findCFGByName, g
 import qualified SymbolicExecution.Types as SYT
 import qualified SymbolicExecution.Method as SYM (runCFG)
 import qualified SymbolicExecution.Log as SYT.Log
---import SymbolicExecution.Internal --(isAtomic, calculate0, isSymExprNum)
 import SymbolicExecution.Internal.Internal (findSymType, cast, simplify)
 import SymbolicExecution.Internal.Calculator (calculate, calculate2)
 
@@ -110,7 +109,7 @@ expr = AST.BinOpExpr {
   AST.binOp = AST.Plus,
   AST.expr2 = AST.NumberLiteral 2.0
 }
-{-
+
 -- 3i + 11
 expr1 :: SYT.SymExpr
 expr1 = SYT.SBin (SYT.SBin (SYT.SymInt 3) SYT.Mul (SYT.SymFormalParam SYT.Int "i" Nothing)) 
@@ -121,41 +120,6 @@ expr2 :: SYT.SymExpr
 expr2 = SYT.SBin (SYT.SBin (SYT.SymInt 2) SYT.Mul (SYT.SymFormalParam SYT.Int "i" Nothing))
                  SYT.Add
                  (SYT.SymInt 9)
--}
 
--- 3i+20
-expr1 = SYT.SBin (SYT.SBin (SYT.SymInt 3) SYT.Mul (SYT.SymFormalParam SYT.Int "i" Nothing)) 
-                 SYT.Add
-                 (SYT.SymInt 20)
--- 2i
-expr2 = SYT.SBin (SYT.SymInt 2)
-                 SYT.Mul
-                 (SYT.SymFormalParam SYT.Int "i" Nothing)
-
-{-
-SBin (SBin (SBin (SymInt 3) Mul (SymFormalParam Int "i" Nothing))
-           Add
-           (SymInt 20)
-     )
-     Add
-     (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing))
--}
-{-
-SBin (SBin (SBin (SymInt 3) Mul (SymFormalParam Int "i" Nothing))
-           Add (SymInt 20)
-     )
-     Add
-     (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing))
--}
 fun :: SYT.SymExpr
-fun = calculate SYT.Add (expr1, expr2)
-
-{-
-3i + 11
-SBin (SBin (SymInt 3) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 11)
-
-+
-
-2i + 9
-SBin (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 9)
--}
+fun = calculate SYT.Mul (expr1, expr2)
