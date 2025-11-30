@@ -38,7 +38,7 @@ isFormalParameter (SymFormalParam _ _ _) = True
 isFormalParameter _ = False
 
 isGlobalVariable :: SymExpr -> Bool
-isGlobalVariable (SymGlobalVar _ _) = True
+isGlobalVariable (SymGlobalVar _ _ _) = True
 isGlobalVariable _ = False
 
 -- get SymType via AST.Type
@@ -63,7 +63,7 @@ toSymType2 (SymFloat _) = Float
 toSymType2 (SBool _) = Bool
 toSymType2 (SymNull t) = t
 toSymType2 (SymFormalParam t _ _) = t
-toSymType2 (SymGlobalVar t _) = t
+toSymType2 (SymGlobalVar t _ _) = t
 toSymType2 symExpr = error $ "toSymType2 ~~> TODO: " ++ show symExpr
 
 -- will be used in `calculate`
@@ -76,8 +76,8 @@ toSymType3 = \case
   SBool _ -> pure Bool
   SBin symExpr1 _ symExpr2 -> asum $ map toSymType3 [symExpr1,symExpr2]
   SNot symExpr -> toSymType3 symExpr
---SymFormalParam SymType String (Maybe SymExpr)
   SymFormalParam t _ mSymExpr -> pure t
+  SymGlobalVar t _ mSymExpr -> pure t
   symExpr -> error $ "toSymType3 ~~> TODO: " ++ show symExpr
 
 findSymType :: [SymExpr] -> Maybe SymType
@@ -121,13 +121,14 @@ isVar = \case
   SNot expr -> isVar expr
   SymFormalParam _ _ Nothing -> True
   SymFormalParam _ _ (Just expr) -> isVar expr
-  SymGlobalVar _ _ -> True
+  SymGlobalVar _ _ Nothing -> True
+  SymGlobalVar _ _ (Just expr) -> isVar expr
   expr -> error $ "TODO: isVar: " ++ show expr
 
 getVarName :: SymExpr -> String
 getVarName = \case
   SymFormalParam _ varName _ -> varName
-  SymGlobalVar _ varName -> varName
+  SymGlobalVar _ varName _ -> varName
   e@(SBin expr1 _ expr2) ->
     let n1 = if isVar expr1 then Just $ getVarName expr1 else Nothing
         n2 = if isVar expr2 then Just $ getVarName expr2 else Nothing
@@ -141,6 +142,7 @@ getVarName = \case
 simplify :: SymExpr -> SymExpr
 simplify = \case
   SymFormalParam _ _ (Just expr) -> expr
+  SymGlobalVar _ _ (Just expr) -> expr
   e -> e
 
 multiplyOps :: SymBinOp -> SymBinOp -> SymBinOp
@@ -218,8 +220,9 @@ substitute formalParam = \case
     --SymActualParam symType formalParam actualParam
   SymFormalParam symType _ _ -> error "substitute ~~> TODO1"
   actualParam@(SymInt _) -> actualParam
-  --numExpr@(NumberLiteral num) -> --cast :: SymType -> SymExpr -> SymExpr
-    --cast numExpr
+    --SymGlobalVar SymType String (Maybe SymExpr)
+  actualParam@(SymGlobalVar t n Nothing) -> actualParam
+  actualParam@(SymGlobalVar _ _ (Just expr)) -> expr
   act -> error $ printf "substitute ~~> TODO2: (%s,%s)" formalParam (show act)
 
 -- Extracting ExecutionResult from the monadic type Method_R

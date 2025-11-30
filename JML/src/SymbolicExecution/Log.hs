@@ -10,7 +10,6 @@ data Log = Expression_2_Handle String String
          | Void String
          | ReturnStatement String String
          | Edge_2_Handle String String
-         | Meow String String
          | Node_2_Handle String String
          | HorizontalLine String
          | MethodStatement String
@@ -28,6 +27,8 @@ data Log = Expression_2_Handle String String
          | RunSymStateActualMethodCall String
          | Nested String Log
          | SymExpr_2_Handle String String
+         | GlobalVar String String
+         | Meow String String
 
 -- Look up the usage of the function `tell` in SymbolicExecution
 -- to best relate to `Log`
@@ -50,6 +51,7 @@ instance Show Log where
     UpdateVariable vn loc   -> printf "(%s): %s %s" (cyan loc) (yellow "Update Variable") vn
     LookUpEnvTable
       key val loc           -> printf "(%s): %s: (%s ~~> %s) " (cyan loc) (yellow "Look up in environmane table") key val
+    GlobalVar key loc       -> printf "(%s): %s: %s " (cyan loc) (yellow "Global Variable Detected") key
     MethodFormalParams
       args loc              -> printf "(%s): %s: %s" (cyan loc) (yellow "Visiting formal parameters") args
     NextNode nodeStr        -> printf "%s: %s" (yellow "Next Node") nodeStr

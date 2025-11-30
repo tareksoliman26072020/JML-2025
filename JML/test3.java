@@ -237,7 +237,17 @@ public int boo21_3_i_3(int i){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
+/*
+SymState {
+  env = fromList [
+    ("boo21_3_i_4",SMethodType Int),
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SymGlobalVar Int "x" (Just (SBin (SymGlobalVar Int "x" Nothing) Add (SBin (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 2))))),
+    ("x",SymGlobalVar Int "x" (Just (SBin (SymGlobalVar Int "x" Nothing) Add (SBin (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 2)))))
+  ], pc = []
+}
+*/
 public int boo21_3_i_4(int i){
   x += i + 2 + i;
   return x;
@@ -245,7 +255,17 @@ public int boo21_3_i_4(int i){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
+/*
+SymState {
+  env = fromList [
+    ("boo21_3_i_5",SMethodType Int),
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SymGlobalVar Int "x" (Just (SBin (SymGlobalVar Int "x" Nothing) Add (SBin (SymInt 2) Sub (SymFormalParam Int "i" Nothing))))),
+    ("x",SymGlobalVar Int "x" (Just (SBin (SymGlobalVar Int "x" Nothing) Add (SBin (SymInt 2) Sub (SymFormalParam Int "i" Nothing)))))
+  ], pc = []
+}
+*/
 public int boo21_3_i_5(int i){
   x += i + 2 - 2*i;
   return x;
@@ -253,7 +273,17 @@ public int boo21_3_i_5(int i){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
+/*
+SymState {
+  env = fromList [
+    ("boo21_3_i_6",SMethodType Int),
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SymGlobalVar Int "x" (Just (SBin (SymGlobalVar Int "x" Nothing) Add (SBin (SymInt 2) Add (SymFormalParam Int "i" Nothing))))),
+    ("x",SymGlobalVar Int "x" (Just (SBin (SymGlobalVar Int "x" Nothing) Add (SBin (SymInt 2) Add (SymFormalParam Int "i" Nothing)))))
+  ], pc = []
+}
+*/
 public int boo21_3_i_6(int i){
   x += 2 + 3*i - 2*i;
   return x;
@@ -261,7 +291,17 @@ public int boo21_3_i_6(int i){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
+/*
+SymState {
+  env = fromList [
+    ("boo21_3_i_7",SMethodType Int),
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SymGlobalVar Int "x" (Just (SBin (SymGlobalVar Int "x" Nothing) Add (SymInt 2)))),
+    ("x",SymGlobalVar Int "x" (Just (SBin (SymGlobalVar Int "x" Nothing) Add (SymInt 2))))
+  ], pc = []
+}
+*/
 public int boo21_3_i_7(int i){
   x += 2 + 3*i - 2*i - i;
   return x;
@@ -269,7 +309,17 @@ public int boo21_3_i_7(int i){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
+/*
+SymState {
+  env = fromList [
+    ("boo21_3_i_8",SMethodType Int),
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SymGlobalVar Int "x" (Just (SBin (SymGlobalVar Int "x" Nothing) Add (SBin (SymInt 2) Add (SBin (SymInt 4) Mul (SymFormalParam Int "i" Nothing)))))),
+    ("x",SymGlobalVar Int "x" (Just (SBin (SymGlobalVar Int "x" Nothing) Add (SBin (SymInt 2) Add (SBin (SymInt 4) Mul (SymFormalParam Int "i" Nothing))))))
+  ], pc = []
+}
+*/
 public int boo21_3_i_8(int i){
   x += i + 2 + 3*i;
   return x;
@@ -352,7 +402,16 @@ public int boo22_i_4(int i){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
+/*
+SymState {
+  env = fromList [
+    ("boo22_i_5",SMethodType Int),
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SymFormalParam Int "i" (Just (SBin (SymGlobalVar Int "j" Nothing) Add (SymInt 2))))
+  ], pc = []
+}
+*/
 public int boo22_i_5(int i){
   return boo21_3_i(j);
 }

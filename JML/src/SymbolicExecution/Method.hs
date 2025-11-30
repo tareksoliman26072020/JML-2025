@@ -79,6 +79,14 @@ data NodeData = ForInitialization AST.Expression
       _ -> throwError
         $ "TODO -> visitNode -> Node -> nodeData -> otherwise" ++ show n
 
+getFunHandle :: Method_R
+getFunHandle = (\(Just t,Just k) -> ER_FunHandle t k)
+  <$> Map.foldlWithKey'
+        (\acc k -> \case
+                      SMethodType t -> (Just t,Just k)
+                      _             -> acc) (Nothing,Nothing)
+  <$> env <$> get
+
 visitStmt :: AST.Statement -> Method_R
 --ReturnStmt {returnS :: Maybe Expression}
 visitStmt (AST.ReturnStmt (Just expr)) = do
@@ -86,7 +94,7 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
   er <- visitExpr expr
   let symExpr = case er of
         ER_Expr symExpr_ -> symExpr_ 
-        er@ER_SymStateMapEntry{} -> er_val er
+        ER_SymStateMapEntry _ val -> val
         ER_FunCall funCallSymState -> case getReturnSymExpr funCallSymState of
           Just symExpr -> symExpr
           Nothing -> error $ "visitStmt ==> ReturnStmt: TODO: Nothing: \n" ++ show funCallSymState
@@ -249,6 +257,9 @@ visitExpr expr@AST.AssignExpr{} = do
         SymFormalParam t n _ ->
           let v = cast (toSymType2 val) e2
           in SymFormalParam t n (Just v)
+        SymGlobalVar t n _ ->
+          let v = cast (toSymType2 val) e2
+          in SymGlobalVar t n (Just v)
         _ -> cast (toSymType2 val) e2
   tell [Log.ModifyState "visitExpr -> AssignExpr" (svn,show newVal)]
   modify $ \symState ->
@@ -266,10 +277,17 @@ visitExpr expr@AST.VarExpr{} = do
   case AST.varType expr of
     Nothing -> do
       tell [Log.UpdateVariable varName_ "visitExpr -> VarExpr"]
-      val <- (Map.! varName_) <$> env <$> get
-      tell [Log.LookUpEnvTable varName_ (show val) "visitExpr -> VarExpr"]
-      let toReturn = ER_SymStateMapEntry varName_ val
-      tell [Log.Return "visitExpr -> VarExpr" (show toReturn)] $> toReturn
+      mVal <- (Map.!? varName_) <$> env <$> get
+      case mVal of
+        Just val -> do
+          tell [Log.LookUpEnvTable varName_ (show val) "visitExpr -> VarExpr"]
+          let toReturn = ER_SymStateMapEntry varName_ val
+          tell [Log.Return "visitExpr -> VarExpr -> Updating" (show toReturn)] $> toReturn
+        Nothing -> do
+          tell [Log.GlobalVar varName_ "visitExpr -> VarExpr"]
+          ER_FunHandle t _ <- getFunHandle
+          let toReturn = ER_SymStateMapEntry varName_ (SymGlobalVar t varName_ Nothing)
+          tell [Log.Return "visitExpr -> VarExpr -> Recording Global Variable" (show toReturn)] $> toReturn
     Just t -> do
       tell [Log.NewVariable (show t) varName_ "visitExpr -> VarExpr"]
       let sExpr = SymNull $ toSymType1 t
@@ -280,7 +298,7 @@ visitExpr expr@AST.VarExpr{} = do
           pc = pc symState
         }
       let toReturn = ER_SymStateMapEntry varName_ sExpr
-      tell [Log.Return "visitExpr -> VarExpr" (show toReturn)] $> toReturn
+      tell [Log.Return "visitExpr -> VarExpr -> Declaring Local Variable" (show toReturn)] $> toReturn
 visitExpr expr = error $ "What this is: " ++ show expr
 
 ------------------------------
@@ -322,7 +340,7 @@ runCFG cfgs cfg =
       runner = flip mapM path $ \node -> do
         tell [Log.NextNode (show node)]
         getReader_Method_R $ visitNode node
-      initialSymState = SymState Map.empty []
+      initialSymState = SymState (Map.insert (CFG.getCFGName cfg) (SMethodType $ toSymType1 $ AST.BuiltInType $ CFG.getCFGType cfg) Map.empty) []
       run_r :: ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))) ()
       run_r = runReaderT (runner $> ()) (defaultConfig,cfgs)
       run_e :: WriterT [Log.Log] (StateT SymState (Either String)) (Either String ())

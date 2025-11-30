@@ -40,7 +40,7 @@ instance SymStateVisitor MethodCall_SymExec where
             env = Map.insert key newSymExpr (env symState),
             pc  = pc symState
           }
-        let toReturn = ER_Expr_WithKey key newSymExpr
+        let toReturn = ER_SymStateMapEntry key newSymExpr
         tell [Log.Return "visitSymExpr -> SymFormalParam" (show toReturn)] $> toReturn
   ------------------------------
   ------------------------------
@@ -58,7 +58,7 @@ instance SymStateVisitor MethodCall_SymExec where
             pc  = pc symState
           }
       --throwError $ "visitSymExpr ~~> SymFormalParam " ++ show symExpr ++ " ~~> TODO"
-        let toReturn = ER_Expr_WithKey key newSymExpr
+        let toReturn = ER_SymStateMapEntry key newSymExpr
         tell [Log.Return (printf "visitSymExpr -> SymFormalParam %s" (show symExpr)) (show toReturn)] $> toReturn
   ------------------------------
   ------------------------------
@@ -76,7 +76,7 @@ instance SymStateVisitor MethodCall_SymExec where
             env = Map.insert key newSymExpr (env symState),
             pc  = pc symState
           }
-        let toReturn = ER_Expr_WithKey key newSymExpr
+        let toReturn = ER_SymStateMapEntry key newSymExpr
         tell [Log.Return "visitSymExpr -> SBin" (show toReturn)] $> toReturn
   ------------------------------
   ------------------------------
@@ -93,8 +93,22 @@ instance SymStateVisitor MethodCall_SymExec where
             env = Map.insert key newSymExpr (env symState),
             pc  = pc symState
           }
-        let toReturn = ER_Expr_WithKey key newSymExpr
+        let toReturn = ER_SymStateMapEntry key newSymExpr
         tell [Log.Return "visitSymExpr -> SymInt" (show toReturn)] $> toReturn
+      SMethodType _ -> do
+        tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SMethodType"]
+        visited <- visitSymExpr0 val
+        let newSymExpr = case visited of
+              ER_Expr res -> res
+              _ -> error $ printf "visitSymExpr ~~> SMethodType ~~> %s ~~> won't happen" (show visited)
+        tell [Log.ModifyState "visitSymExpr -> SMethodType" (key,show newSymExpr)]
+        modify $ \symState ->
+          SymState {
+            env = Map.insert key newSymExpr (env symState),
+            pc  = pc symState
+          }
+        let toReturn = ER_SymStateMapEntry key newSymExpr
+        tell [Log.Return "visitSymExpr -> SMethodType" (show toReturn)] $> toReturn
       ex ->
         throwError $ "visitSymExpr -> TODO: " ++ show ex
 
@@ -120,7 +134,6 @@ visitSymExpr0 = \case
     lookup_formalParam_info fParm list =
       let finding = find (\((_,b),_) -> b == fParm) list
       in fmap (\((t,_),actual) -> (t,actual)) finding
-  
   ------------------------------
   ------------------------------
   ------------------------------
@@ -146,11 +159,17 @@ visitSymExpr0 = \case
     tell [Log.Return "visitSymExpr -> SBin" (show toReturn)] $> toReturn
   --throwError $ "visitSymExpr -> SBin -> " ++ show val
   --throwError $ "visitSymExpr0 -> SBin ~~> TODO: " ++ show val
-    
+  ------------------------------
+  ------------------------------
+  ------------------------------
   val@(SymInt _) -> do
     tell [Log.SymExpr_2_Handle (show val) "visitSymExpr0 -> SymInt"]
     let toReturn = ER_Expr val
     tell [Log.Return "visitSymExpr0 -> SymInt" (show toReturn)] $> toReturn
+  val@(SMethodType _) -> do
+    tell [Log.SymExpr_2_Handle (show val) "visitSymExpr0 -> SMethodType"]
+    let toReturn = ER_Expr val
+    tell [Log.Return "visitSymExpr0 -> SMethodType" (show toReturn)] $> toReturn
   ex ->
     throwError $ "visitSymExpr0 -> TODO: " ++ show ex
 

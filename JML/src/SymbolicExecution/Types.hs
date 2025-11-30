@@ -91,7 +91,9 @@ visitNode ==> Entry: ER_State
 visitNode ==> End: ER_State
 visitNode ==> Node: ER_State
 
-visitSymExpr ==> SymFormalParam: ER_Formal_2_Actual
+visitSymExpr ==> SymFormalParam: ER_SymStateMapEntry
+visitSymExpr ==> SBin: ER_SymStateMapEntry
+visitSymExpr ==> SymInt: ER_SymStateMapEntry
 -}
 data ExecutionResult =
     ER_Expr SymExpr
@@ -99,13 +101,14 @@ data ExecutionResult =
   | ER_SymStateMapEntry {er_key :: String, er_val :: SymExpr}
   | ER_State SymState
   | ER_FunCall SymState
-  | ER_Expr_WithKey {key :: String, val :: SymExpr}
+  | ER_FunHandle SymType String
   | ER_Void
   deriving Show
 
 data SymExpr =
 -- | A (tiny) symbolic expression language
-    SymNum    Float
+    SMethodType SymType
+  | SymNum    Float
   | SymInt    Integer             -- ^ concrete integer literal
   | SymDouble Double              -- ^ concrete double literal
   | SymFloat  Float               -- ^ concrete float literal
@@ -115,7 +118,7 @@ data SymExpr =
   | SIte    SymExpr SymExpr SymExpr   -- ^ if-then-else (cond, then, else)
   | SymNull SymType               -- ^ value of an unassigned variable
   | SymFormalParam SymType String (Maybe SymExpr) -- ^ declared variable (a formal parameter)
-  | SymGlobalVar SymType String   -- ^ variable declared outside the scope of the method
+  | SymGlobalVar SymType String (Maybe SymExpr) -- ^ variable declared outside the scope of the method
   deriving (Eq,Show)
 
 ppSymExpr :: SymExpr -> String
@@ -130,7 +133,7 @@ ppSymExpr = \case
   SIte _ _ _ -> undefined
   SymNull t -> undefined
   SymFormalParam t s m -> maybe s ppSymExpr m
-  SymGlobalVar t s -> s
+  SymGlobalVar t s m -> maybe s ppSymExpr m
 
 data SymType = Int | Double | Float | Bool | Void deriving (Show,Eq)
 

@@ -3,7 +3,8 @@ module SymbolicExecution.Internal.Calculator (calculate, calculate2) where
 
 import SymbolicExecution.Internal.Internal-- (toSymType2, findSymType, negate, cast)
 import SymbolicExecution.Types
-import Prelude hiding (negate)
+import Prelude hiding (abs,negate)
+import qualified Prelude (abs)
 import Text.Printf (printf)
 import Data.Maybe
 import Control.Applicative ((<|>))
@@ -62,7 +63,7 @@ calculateHelper op = \case
   (a, b@(SymNum 0)) | op == Sub -> a
   -- arithmetics on vars
   (a@(SymFormalParam t1 varName1 m1), b@(SymFormalParam t2 varName2 m2))
-    | op == Add && varName1 == varName2 && all isNothing [m1,m2]
+    | op == Add && varName1 == varName2 && (isNothing $ m1 <|> m2)
         -> SBin (cast t1 $ SymNum 2) Mul a
     | op == Add && varName1 == varName2 && (isJust $ m1 <|> m2)
         -> SBin (cast t1 $ SymNum 2) Mul (fromJust $ m1 <|> m2)
@@ -70,8 +71,14 @@ calculateHelper op = \case
   (a@(SymFormalParam _ _ m1), b@(SymFormalParam _ _ m2))
     -> SBin (maybe a id m1) op (maybe b id m2)
   --
-  (a@(SymGlobalVar _ _), b@(SymGlobalVar _ _)) ->
-    SBin a op b
+  (a@(SymGlobalVar t1 varName1 m1), b@(SymGlobalVar t2 varName2 m2))
+    | op == Add && varName1 == varName2 && (isNothing $ m1 <|> m2)
+        -> SBin (cast t1 $ SymNum 2) Mul a
+    | op == Add && varName1 == varName2 && (isJust $ m1 <|> m2)
+        -> SBin (cast t1 $ SymNum 2) Mul (fromJust $ m1 <|> m2)
+    | op == Sub && varName1 == varName2 -> cast t1 (SymNum 0)
+  (a@(SymGlobalVar _ _ m1), b@(SymGlobalVar _ _ m2))
+    -> SBin (maybe a id m1) op (maybe b id m2)
 ----------
   (SymNum num1, SymInt num2) ->
     SymInt (getIntegralArithBinOp op (round num1) num2)
@@ -93,50 +100,6 @@ calculateHelper op = \case
 --     which will not happen, because safety of type checking is assumed.
 --
 --
-{-
-1)
-SBin (SymFormalParam Int "i" Nothing)
-     Add
-     (SBin (SBin (SymInt 11) Add (SymFormalParam Int "i" Nothing))
-           Add
-           (SymFormalParam Int "i" Nothing)
-     )
-
-(Add)
-
-2)
-SBin (SymFormalParam Int "i" Nothing)
-     Add
-     (SBin (SymInt 9)
-           Add
-           (SymFormalParam Int "i" Nothing)
-     )
--}
-{-
-1) i + ((11 + i) + i)
-SBin (SymFormalParam Int "i" Nothing)
-     Add
-     (SBin (SBin (SymInt 11)
-                 Add
-                 (SymFormalParam Int "i" Nothing)
-           )
-           Add
-           (SymFormalParam Int "i" Nothing)
-     )
-
-+
-
-2) i + (9 + i)
-SBin (SymFormalParam Int "i" Nothing)
-     Add
-     (SBin (SymInt 9)
-           Add
-           (SymFormalParam Int "i" Nothing)
-     )
--}
-{-
-let ops = ["+","-","*","/"] in mapM_ (\(num,str) -> putStrLn (printf "%d) %s" num str :: String)) $ zip [1 ..] $ nub [ printf "(x %s y) %s (z %s t)" op1 op2 op3 :: String | op1 <- ops, op2 <- ops, op3 <- ops]
--}
   (a@(SBin _ _ _), b@(SBin _ _ _)) ->
     --error $ printf "TODO: calculateHelper: (%s) (%s) (%s)" (show a) (show op) (show b) 
            -- (x - e12) - (x - e22) == (x - x) - (e12 - e22)
@@ -150,6 +113,11 @@ let ops = ["+","-","*","/"] in mapM_ (\(num,str) -> putStrLn (printf "%d) %s" nu
     let a2 = calculate2 a
         b2 = calculate2 b
     in case (a2,b2) of
+         (_, SBin e21 op2 e22)
+           | op == Add && op2 == Mul && (not . isVar) e21 && isNegative e21 ->
+               calculate2 $ SBin a2 Sub (SBin (abs e21) op2 e22)
+           | op == Add && op2 == Mul && (not . isVar) e22 && isNegative e22 ->
+               calculate2 $ SBin a2 Sub (SBin e21 op2 (abs e22))
          (SBin e11 op1 e12, SBin e21 op2 e22)
              -- (x op1 e12) op (x op2 e22)
            | all (`elem` [Add,Sub]) [op1,op,op2]
@@ -541,6 +509,10 @@ let ops = ["+","-","*","/"] in mapM_ (\(num,str) -> putStrLn (printf "%d) %s" nu
       return $ SBin expr1 op expr2
 ----------
   (a, b@(SBin symExpr1 op1 symExpr2))
+    | [op,op1] == [Add,Mul] && (not . isVar) symExpr1 && isNegative symExpr1 ->
+        calculate2 $ SBin a Sub (SBin (abs symExpr1) op1 symExpr2)
+    | [op,op1] == [Add,Mul] && (not . isVar) symExpr2 && isNegative symExpr2 ->
+        calculate2 $ SBin a Sub (SBin symExpr1 op1 (abs symExpr2))
     ---------- 1 op (i op1 2)
     | all (not . isVar) [a,symExpr2] && isVar symExpr1
       && ((op1,op) `elem` [(Add,Add),(Sub,Sub),(Add,Sub),(Sub,Add)
@@ -655,20 +627,38 @@ let ops = ["+","-","*","/"] in mapM_ (\(num,str) -> putStrLn (printf "%d) %s" nu
   (a, b@(SymFormalParam t _ Nothing)) ->
     SBin (cast t a) op b
   (a, SymFormalParam t _ (Just symExpr)) ->
-    --calculateHelper op (cast t a,symExpr)
     error $ "calculateHelper: won't happen because of the function `simplify`"
   (a@(SymFormalParam t _ Nothing), b) ->
     SBin a op (cast t b)
   (SymFormalParam t _ (Just symExpr), b) ->
-    --calculateHelper op (symExpr,cast t b)
     error $ "calculateHelper: won't happen because of the function `simplify`"
 ----------
-  (a, b@(SymGlobalVar t _)) ->
+  (a, b@(SymGlobalVar t _ Nothing)) ->
     SBin (cast t a) op b
-  (a@(SymGlobalVar t _), b) ->
+  (a, SymGlobalVar t _ (Just symExpr)) ->
+    error $ "calculateHelper: won't happen because of the function `simplify`"
+  (a@(SymGlobalVar t _ Nothing), b) ->
     SBin a op (cast t b)
+  (SymGlobalVar t _ (Just symExpr), b) ->
+    error $ "calculateHelper: won't happen because of the function `simplify`"
 ----------
   (a,b) -> error $ printf "calculateHelper: %s %s %s" (show a) (show op) (show b)
+
+isNegative :: SymExpr -> Bool
+isNegative = \case
+  SymNum num -> num < 0
+  SymInt num -> num < 0
+  SymDouble num -> num < 0
+  SymFloat num -> num < 0
+  _ -> error "isNegative: won't happen"
+
+abs :: SymExpr -> SymExpr
+abs = \case
+  SymNum num -> SymNum $ Prelude.abs num
+  SymInt num -> SymInt $ Prelude.abs num
+  SymDouble num -> SymDouble $ Prelude.abs num
+  SymFloat num -> SymFloat $ Prelude.abs num
+  _ -> error "isNegative: won't happen"
 
 calculate :: SymBinOp -> (SymExpr, SymExpr) -> SymExpr
 calculate op (e1,e2) =
