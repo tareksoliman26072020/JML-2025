@@ -19,7 +19,7 @@ import qualified SymbolicExecution.Types as SYT
 import qualified SymbolicExecution.Method as SYM (runCFG)
 import qualified SymbolicExecution.Log as SYT.Log
 import SymbolicExecution.Internal.Internal (findSymType, cast, simplify)
-import SymbolicExecution.Internal.Calculator (calculate, calculate2)
+import SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator)
 
 import Text.Printf (printf)
 
@@ -122,4 +122,4 @@ expr2 = SYT.SBin (SYT.SBin (SYT.SymInt 2) SYT.Mul (SYT.SymFormalParam SYT.Int "i
                  (SYT.SymInt 9)
 
 fun :: SYT.SymExpr
-fun = calculate SYT.Mul (expr1, expr2)
+fun = numericCalculator $ SYT.SBin expr1 SYT.Mul expr2

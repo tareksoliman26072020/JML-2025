@@ -12,7 +12,7 @@ data Log = Expression_2_Handle String String
          | Edge_2_Handle String String
          | Node_2_Handle String String
          | HorizontalLine String
-         | MethodStatement String
+         | MethodStatement String String
          | AssignStatement String String
          | NewVariable String String String
          | UpdateVariable String String
@@ -29,6 +29,7 @@ data Log = Expression_2_Handle String String
          | SymExpr_2_Handle String String
          | GlobalVar String String
          | Meow String String
+         | MethodStatementIfCondition String String
 
 -- Look up the usage of the function `tell` in SymbolicExecution
 -- to best relate to `Log`
@@ -37,7 +38,9 @@ instance Show Log where
     MethodEnd loc           -> printf "(%s): %s" (cyan loc) (yellow "Method End")
     Void loc                -> printf "(%s): %s" (cyan loc) (yellow "Void")
     MethodStart str loc     -> printf "(%s): %s: %s" (cyan loc) (yellow "Method Start") str
-    MethodStatement loc     -> printf "(%s): %s" (cyan loc) (yellow "Method Statement")
+    MethodStatement loc str -> printf "(%s): %s: %s" (cyan loc) (yellow "Method Statement") str
+    MethodStatementIfCondition loc str
+                            -> printf "(%s): %s: %s" (cyan loc) (yellow "If condition") str
     Expression_2_Handle
       str loc               -> printf "(%s): %s: %s" (cyan loc) (yellow "handling expression") str
     SymExpr_2_Handle

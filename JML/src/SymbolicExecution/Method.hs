@@ -18,7 +18,7 @@ import Text.Printf (printf)
 import Data.Functor (($>))
 import Data.List (foldl')
 import SymbolicExecution.Internal.Internal
-import SymbolicExecution.Internal.Calculator (calculate)
+import SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator)
 
 instance CFGVisitor Method_SymExec where
 --visitNode :: CFG.Node -> Method_SymExec
@@ -73,8 +73,13 @@ data NodeData = ForInitialization AST.Expression
 -}
     n@CFG.Node{} -> case CFG.nodeData n of
       CFG.Statement stmt -> do
-        tell [Log.MethodStatement "visitNode -> case nodeData of Node -> Statement"]
+        tell [Log.MethodStatement "visitNode -> case nodeData of Node -> Statement" (show stmt)]
         toReturn <- visitStmt stmt
+        tell [Log.Return "visitNode -> Node" (show toReturn)] $> toReturn
+      -- BooleanExpression Kind AST.Expression
+      CFG.BooleanExpression CFG.If expr -> do
+        tell [Log.MethodStatementIfCondition "visitNode -> case nodeData of Node -> BooleanExpression If" (show expr)]
+        toReturn <- visitExpr expr
         tell [Log.Return "visitNode -> Node" (show toReturn)] $> toReturn
       _ -> throwError
         $ "TODO -> visitNode -> Node -> nodeData -> otherwise" ++ show n
@@ -231,11 +236,16 @@ visitExpr expr@AST.BinOpExpr{} = do
     _ -> throwError $ "visitExpr ~~> BinOpExpr: " ++ show (one,two)
   where
   helper :: SymExpr -> SymExpr -> Method_R
-  helper op1 op2 = case AST.binOp expr `elem` [AST.Plus, AST.Mult, AST.Minus, AST.Div] of
-      True -> 
-        let toReturn = ER_Expr $ calculate (toSymBinOp $ AST.binOp expr) (simplify op1, simplify op2)
-        in tell [Log.Return "visitExpr -> BinOpExpr" (show toReturn)] $> toReturn
-      False -> throwError "TODO: visitExpr -> BinOpExpr"
+  helper op1 op2 =
+    let isNumericOp = AST.binOp expr `elem` [AST.Plus, AST.Mult, AST.Minus, AST.Div]
+        whichFun = case isNumericOp of
+          True -> numericCalculator
+          False -> booleanCalculator
+        toReturn = ER_Expr $ whichFun (SBin (simplify op1) (toSymBinOp $ AST.binOp expr) (simplify op2))
+    in tell [Log.Return (printf "visitExpr -> BinOpExpr -> %s"
+                                (if isNumericOp then "numericCalculator"
+                                 else "booleanCalculator")) (show toReturn)
+            ] $> toReturn
   getReturnSymExpr :: SymState -> SymExpr
   getReturnSymExpr = maybe (error "visitExpr ~~> BinOpExpr ~~> getReturnSymExpr ~~> no return value found") id . (Map.!? "return") . env
 -- UnOpExpr {unOp :: UnOp, expr :: Expression}

@@ -19,11 +19,20 @@ import Prelude hiding (negate)
 ------------------------------
 
 toSymBinOp :: AST.BinOp -> SymBinOp
-toSymBinOp AST.Plus = Add
-toSymBinOp AST.Mult = Mul
-toSymBinOp AST.Minus = Sub
-toSymBinOp AST.Div = Div
-toSymBinOp _ = error "toSymBinOp ~~> TODO"
+toSymBinOp = \case
+  AST.Plus -> Add
+  AST.Mult -> Mul
+  AST.Minus -> Sub
+  AST.Div -> Div
+  AST.Less -> Lt
+  AST.LessEq -> Le
+  AST.Greater -> Ge
+  AST.GreaterEq -> Gt
+  AST.Eq -> Eq
+  AST.Neq -> Neq
+  AST.And -> And
+  AST.Or -> Or
+  _ -> error "toSymBinOp ~~> TODO"
 
 fromSymBinOp :: SymBinOp -> AST.BinOp
 fromSymBinOp = \case

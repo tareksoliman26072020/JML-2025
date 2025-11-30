@@ -5,7 +5,7 @@ import Visitors.API (SymStateVisitor(..))
 import qualified CFG.Types as CFGT (CFG)
 import SymbolicExecution.Types
 import SymbolicExecution.Internal.Internal
-import SymbolicExecution.Internal.Calculator (calculate)
+import SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator)
 import qualified SymbolicExecution.Log as Log
 import Control.Monad.Writer
 import Control.Monad.Reader
@@ -152,8 +152,13 @@ visitSymExpr0 = \case
   ------------------------------
   val@(SBin symExpr1 symBinOp symExpr2) -> do
     tell [Log.SymExpr_2_Handle (show val) "visitSymExpr0 -> SBin"]
-    toReturn <- (\e1 e2 -> ER_Expr
-                    $ calculate symBinOp (simplify $ getSymExpr e1,simplify $ getSymExpr e2))
+    toReturn <- (\e1 e2 ->
+      let isNumericOp = symBinOp `elem` [Add, Mul, Sub, Div]
+          whichFun = case isNumericOp of
+            True -> numericCalculator
+            False -> booleanCalculator
+      in 
+      ER_Expr $ whichFun (SBin (simplify $ getSymExpr e1) symBinOp (simplify $ getSymExpr e2)))
       <$> (visitSymExpr0 symExpr1)
       <*> (visitSymExpr0 symExpr2)
     tell [Log.Return "visitSymExpr -> SBin" (show toReturn)] $> toReturn

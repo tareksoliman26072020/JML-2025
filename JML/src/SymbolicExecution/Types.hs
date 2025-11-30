@@ -119,6 +119,7 @@ data SymExpr =
   | SymNull SymType               -- ^ value of an unassigned variable
   | SymFormalParam SymType String (Maybe SymExpr) -- ^ declared variable (a formal parameter)
   | SymGlobalVar SymType String (Maybe SymExpr) -- ^ variable declared outside the scope of the method
+  | SymCondition SymExpr -- ^ boolean expressions found in if/for conditions. Its existance in the environment values map means that the ......
   deriving (Eq,Show)
 
 ppSymExpr :: SymExpr -> String
