@@ -116,6 +116,7 @@ public int boo21_3_i_2(int i){
 /*
 SymState {
   env = fromList [
+    ("boo21_3_i_3",SMethodType Int),
     ("i",SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2)))),
     ("return",SBin (SBin (SymInt 5) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 20)),
     ("x",SBin (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 9))

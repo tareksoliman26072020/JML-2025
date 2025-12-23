@@ -37,7 +37,7 @@ data SymState = SymState
  { env :: Map.Map String SymExpr
  , pc  :: [SymExpr]          -- ^ Path‐conditions: accumulate the conditions under which each execution state is feasible.
  }
- deriving Show
+ deriving (Eq,Show)
 
 {-
 In short, every element of pc becomes a clause in your requires or loop_invariant, and every binding in your final env becomes an equation in your ensures. That’s exactly how symbolic execution wires into JML inference.
@@ -102,6 +102,7 @@ data ExecutionResult =
   | ER_State SymState
   | ER_FunCall SymState
   | ER_FunHandle SymType String
+  | ER_IfCond SymExpr  -- ^ boolean expressions found in if conditions. Its existance in the environment values map means that the ......
   | ER_Void
   deriving Show
 
@@ -115,11 +116,10 @@ data SymExpr =
   | SBool   Bool                  -- ^ concrete Boolean literal
   | SBin    SymExpr SymBinOp SymExpr  -- ^ binary operation
   | SNot    SymExpr               -- ^ logical negation
-  | SIte    SymExpr SymExpr SymExpr   -- ^ if-then-else (cond, then, else)
+  | SIte    SymExpr (Maybe SymState) (Maybe SymState)   -- ^ if-then-else (cond, then, else)
   | SymNull SymType               -- ^ value of an unassigned variable
   | SymFormalParam SymType String (Maybe SymExpr) -- ^ declared variable (a formal parameter)
   | SymGlobalVar SymType String (Maybe SymExpr) -- ^ variable declared outside the scope of the method
-  | SymCondition SymExpr -- ^ boolean expressions found in if/for conditions. Its existance in the environment values map means that the ......
   deriving (Eq,Show)
 
 ppSymExpr :: SymExpr -> String
@@ -136,7 +136,7 @@ ppSymExpr = \case
   SymFormalParam t s m -> maybe s ppSymExpr m
   SymGlobalVar t s m -> maybe s ppSymExpr m
 
-data SymType = Int | Double | Float | Bool | Void deriving (Show,Eq)
+data SymType = Int | Double | Float | Bool | Void | Array SymType deriving (Show,Eq)
 
 instance MonadFail (Either String) where
   fail = Left

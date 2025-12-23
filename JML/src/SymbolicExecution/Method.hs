@@ -45,6 +45,9 @@ instance CFGVisitor Method_SymExec where
                ) args $> ()
       toReturn <- ER_State <$> get
       tell [Log.Return "visitNode -> Entry -> method has args" (show toReturn)] $> toReturn
+    ----------------------------------------
+    ----------------------------------------
+    ----------------------------------------
     n@CFG.End{} -> do
       tell [Log.MethodEnd "visitNode -> End"]
       case CFG.mExpr n of
@@ -56,31 +59,76 @@ instance CFGVisitor Method_SymExec where
           tell [Log.ReturnStatement (show expr) "visitNode -> End -> return something"]
           toReturn <- visitStmt (AST.ReturnStmt a)
           tell [Log.Return "visitNode -> End -> method returns" (show toReturn)] $> toReturn
-{-
-Node {
-    id :: NodeID,
-    nodeData :: NodeData,
-    parent :: NodeID
-  }
-
->>>>>>>>>> <<<<<<<<<<
-
-data NodeData = ForInitialization AST.Expression
-              | BooleanExpression Kind AST.Expression
-              | ForStep AST.Statement 
-              | TryNode | CatchNode (AST.Type AST.Exception) | FinallyNode
-              | Meet Kind
--}
+    ----------------------------------------
+    ----------------------------------------
+    ----------------------------------------
     n@CFG.Node{} -> case CFG.nodeData n of
       CFG.Statement stmt -> do
         tell [Log.MethodStatement "visitNode -> case nodeData of Node -> Statement" (show stmt)]
         toReturn <- visitStmt stmt
-        tell [Log.Return "visitNode -> Node" (show toReturn)] $> toReturn
+        tell [Log.Return "visitNode -> Node -> Statement" (show toReturn)] $> toReturn
+      ----------------------------------------
+      ----------------------------------------
+      ----------------------------------------
       -- BooleanExpression Kind AST.Expression
       CFG.BooleanExpression CFG.If expr -> do
         tell [Log.MethodStatementIfCondition "visitNode -> case nodeData of Node -> BooleanExpression If" (show expr)]
-        toReturn <- visitExpr expr
-        tell [Log.Return "visitNode -> Node" (show toReturn)] $> toReturn
+        ER_FunHandle _ funName <- getFunHandle
+        (_,cfgs) <- ask
+        let cfg = case CFG.findCFGByName funName cfgs of
+                    -- CFG not found
+                    Nothing   -> error $ "visitNode -> Node -> BooleanExpression " ++ funName ++ " does not exist"
+                    -- CFG found
+                    Just cfg0 -> cfg0
+            -- findEdge_via_id :: CFG -> NodeID -> Maybe (NodeID,[NodeID])
+            branches = case CFG.findEdge_via_id cfg (CFG.id n) of
+                      Just (_,xs) -> xs
+                      Nothing     -> error $ "visitNode -> Node -> BooleanExpression -> won't happen"
+        let branches_paths :: [[CFG.Node]]
+            branches_paths = flip map branches $ \branchStartId ->
+              let thePath = CFG.getPath branchStartId cfg
+              in flip takeWhile thePath $ \case
+                   CFG.Node _ (CFG.Meet CFG.If) _ -> False
+                   _                              -> True
+        {-
+           [
+            [End {id = 2, parent = 1, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}],
+            [Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = NumberLiteral (-1.0), binOp = *, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}}), parent = 1},
+            End {id = 4, parent = 1, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "res"})}]
+           ]
+         -}
+         
+         {-
+           [
+            [End {id = 2, parent = 1, mExpr = Just (ExcpExpr {excpName = Exception, excpmsg = Just "not found"})}]
+           ]
+          -}
+        --throwError $ "visitNode -> Node -> BooleanExpression::: " ++ show branches_paths
+        ER_Expr expr2 <- visitExpr expr
+        --let toReturn = ER_IfCond expr2
+        state <- get
+        let res = case expr2 of
+          -- runCFG :: [CFG.CFG] -> CFG.CFG -> Maybe Path -> ([Log.Log],SymState)
+              SBool b ->
+                let (_,condSymState) = runCFG cfgs cfg (Just $ branches_paths !! (if b then 0 else 1)) (Just state)
+                    ifSymState = if b then Just condSymState else Nothing
+                    elseSymState = if not b then Just condSymState else Nothing
+                in SIte expr2 ifSymState elseSymState
+              SBin _ _ _ -> --throwError $ "visitNode -> Node -> BooleanExpression:\n" ++ show cfg
+                let (_,ifSymState) = runCFG cfgs cfg (Just $ branches_paths !! 0) (Just state)
+                    (_,elseSymState) = runCFG cfgs cfg (Just $ branches_paths !! 1) (Just state)
+                in SIte expr2 (Just ifSymState) (Just elseSymState)
+        let toReturn = ER_Expr res
+        tell [Log.ModifyState "visitNode -> Node -> BooleanExpression" (show $ CFG.id n,show res)]
+        modify $ \symState ->
+          SymState {
+            env = Map.insert (show $ CFG.id n) res (env symState),
+            pc = pc symState
+          }
+        tell [Log.Return "visitNode -> Node -> BooleanExpression" (show toReturn)] $> toReturn
+      ----------------------------------------
+      ----------------------------------------
+      ----------------------------------------
       _ -> throwError
         $ "TODO -> visitNode -> Node -> nodeData -> otherwise" ++ show n
 
@@ -179,7 +227,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
     -- CFG found
     Just cfg0 -> do
       -- get SymState of the formal method call
-      let (funCallLogs1,funCallSymState1) = runCFG cfgs cfg0
+      let (funCallLogs1,funCallSymState1) = runCFG cfgs cfg0 Nothing Nothing
       -- edit its logs
       mapM_ (\log -> tell [Log.Nested ("formal: " ++ funCallName) log]) funCallLogs1
       tell [Log.RunCFGFormalMethodCall (show funCallSymState1)]
@@ -309,6 +357,7 @@ visitExpr expr@AST.VarExpr{} = do
         }
       let toReturn = ER_SymStateMapEntry varName_ sExpr
       tell [Log.Return "visitExpr -> VarExpr -> Declaring Local Variable" (show toReturn)] $> toReturn
+visitExpr expr@AST.ArrayCallExpr{} = throwError "TODO: visitExpr -> ArrayCallExpr"
 visitExpr expr = error $ "What this is: " ++ show expr
 
 ------------------------------
@@ -338,10 +387,11 @@ data SymState = SymState
  , pc  :: [SymExpr]
 -}
 
-runCFG :: [CFG.CFG] -> CFG.CFG -> ([Log.Log],SymState)
-runCFG cfgs cfg =
+type Path = [CFG.Node]
+runCFG :: [CFG.CFG] -> CFG.CFG -> Maybe Path -> Maybe SymState -> ([Log.Log],SymState)
+runCFG cfgs cfg mPath mSymState =
   let path :: [CFG.Node]
-      path = CFG.getPath 0 cfg
+      path = maybe (CFG.getPath 0 cfg) id mPath
     {-
       runner :: ReaderT (Config,[CFGT.CFG])
                         (ExceptT String (WriterT [Log] (StateT SymState (Either String))))
@@ -350,7 +400,7 @@ runCFG cfgs cfg =
       runner = flip mapM path $ \node -> do
         tell [Log.NextNode (show node)]
         getReader_Method_R $ visitNode node
-      initialSymState = SymState (Map.insert (CFG.getCFGName cfg) (SMethodType $ toSymType1 $ AST.BuiltInType $ CFG.getCFGType cfg) Map.empty) []
+      initialSymState = maybe (SymState (Map.insert (CFG.getCFGName cfg) (SMethodType $ toSymType1 $ CFG.getCFGType cfg) Map.empty) []) id mSymState
       run_r :: ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))) ()
       run_r = runReaderT (runner $> ()) (defaultConfig,cfgs)
       run_e :: WriterT [Log.Log] (StateT SymState (Either String)) (Either String ())
@@ -362,16 +412,19 @@ runCFG cfgs cfg =
   in case mRun_s of
        Left str -> error str
        Right ((ei,logs),SymState m ps) ->
-         let returnValue = m Map.! "return"
+         let mReturnValue = --m Map.! "return"
+                            m Map.!? "return"
              m2 = flip (Map.insert "return") m $
-                    case (CFG.getCFGType cfg, returnValue) of
-                      (AST.Int, SymNum float)    ->
+                    case (CFG.getCFGType cfg, mReturnValue) of
+                      (AST.BuiltInType AST.Int, Just (SymNum float))    ->
                         SymInt (round float)
-                      (AST.Double, SymNum float) ->
+                      (AST.BuiltInType AST.Double, Just (SymNum float)) ->
                         SymDouble (realToFrac float)
-                      (AST.Float, SymNum float)  ->
+                      (AST.BuiltInType AST.Float, Just (SymNum float))  ->
                         SymFloat float
-                      (_, expr)                  ->
+                      (t, Nothing) ->
+                        SymNull $ toSymType1 t
+                      (_, Just expr)                  ->
                         expr
          in (logs,either error (const (SymState m2 ps)) ei)
 

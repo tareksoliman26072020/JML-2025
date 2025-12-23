@@ -7,7 +7,7 @@ import Text.Printf(printf)
 
 type NodeID = Int
 
-data Node = Entry AST.Types String [AST.Expression] | End {
+data Node = Entry (AST.Type AST.Types) String [AST.Expression] | End {
     id :: NodeID,
     parent :: NodeID,
     mExpr :: Maybe AST.Expression
@@ -18,7 +18,7 @@ data Node = Entry AST.Types String [AST.Expression] | End {
   } deriving Show
 
 showNode :: Node -> String
-showNode (Entry t n args) = "Entry " ++ n ++ ": method type: " ++ showType (AST.BuiltInType t)
+showNode (Entry t n args) = "Entry " ++ n ++ ": method type: " ++ showType t
   ++ " " ++ show args
 showNode (end@End{}) =
   printf "End: %d -> %d:\n        %s"
@@ -51,7 +51,7 @@ getCFGName = f2 . find f1 . nodes
   f2 (Just (Entry _ name _)) = name
   f2 Nothing               = error "Won't happen"
 
-getCFGType :: CFG -> AST.Types
+getCFGType :: CFG -> AST.Type AST.Types
 getCFGType cfg = 
   let finding = flip find (nodes cfg) $ \case
         Entry _ _ _ -> True
@@ -85,6 +85,46 @@ showNodeData (CatchNode t) = "Catch Node: " ++ showTypeException t
 showNodeData FinallyNode = "Finally Node"
 showNodeData (Meet kind) = "Meet: " ++ show kind
 
+
+isIfStartNode :: Node -> Bool
+isIfStartNode = \case
+  Node _ (BooleanExpression If _) _ -> True
+  _ -> False
+
+isIfEndNode :: Node -> Bool
+isIfEndNode = \case
+  Node _ (Meet If) _ -> True
+  _ -> False
+
+isForStartNode :: Node -> Bool
+isForStartNode = \case
+  Node _ (ForInitialization _) _ -> True
+  _ -> False
+
+isForEndNode :: Node -> Bool
+isForEndNode = \case
+  Node _ (Meet For) _ -> True
+  _ -> False
+
+getEndKindNode :: CFG -> Node -> Kind -> Node
+getEndKindNode cfg node kind = case kind of
+  If
+    | isIfStartNode node -> helper cfg node 1
+  For
+    | isForStartNode node -> helper cfg node 1
+  _ -> error $ "getEndKindNode: won't happen (neither If nor For start node): " ++ show node
+  where
+  helper cfg currentNode 0 = currentNode
+  helper cfg currentNode counter = case findEdge_via_id cfg (getNodeId currentNode) of
+      Nothing -> error "getEndKindNode: won't happen"
+      Just (_,(next : _))  -> case (kind , findNode_via_id cfg next) of
+        (If,nextNode)
+          | isIfStartNode nextNode -> helper cfg nextNode (counter + 1)
+          | isIfEndNode nextNode -> helper cfg nextNode (counter - 1)
+        (For,nextNode)
+          | isForStartNode nextNode -> helper cfg nextNode (counter + 1)
+          | isForEndNode nextNode -> helper cfg nextNode (counter - 1)
+        (_,nextNode) -> helper cfg nextNode counter
 
 ------------------------------
 
@@ -229,9 +269,28 @@ getPath :: NodeID -> CFG -> [Node]
 getPath startId cfg =
   let currentNode = findNode_via_id cfg startId
       nextNodeId = case findEdge_via_id cfg startId of
-        Nothing -> error "won't happen"
-        Just (_,[next]) -> next
-        Just _          -> error "TODO"
+        Nothing -> error "getPath: won't happen 1"
+        Just (_,[]) -> error "getPath: won't happen 2"
+        Just (_,[next])
+          | not (isIfStartNode currentNode) -> next
+        {-
+        Just (_,[next])
+          | isIfStartNode currentNode ->
+              let endNode = getEndKindNode cfg currentNode If
+              in case findEdge_via_id cfg (getNodeId endNode) of
+                   Just (_,[next2]) -> next2
+                   Nothing -> error "getPath: won't happen 3"
+                   ex -> error $ "getPath: won't happen 4: " ++ show ex
+          -}
+        Just (_,(_ : _)) ->
+          let endNode
+               | isIfStartNode currentNode = getEndKindNode cfg currentNode If
+               | isForStartNode currentNode = getEndKindNode cfg currentNode For
+               | otherwise = error $ "getPath: what is this? " ++ show currentNode
+          in case findEdge_via_id cfg (getNodeId endNode) of
+               Just (_,[next2]) -> next2
+               Nothing -> error "getPath: won't happen 5"
+               ex -> error $ "getPath: won't happen 6: " ++ show ex
   in case currentNode of
        End{} -> [currentNode]
        _     -> currentNode : getPath nextNodeId cfg

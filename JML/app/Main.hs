@@ -25,7 +25,7 @@ import Text.Printf (printf)
 
 cfg = CFGT.CFG {
   CFGT.nodes = [
-    CFGT.Entry AST.Int "boo21" [],
+    CFGT.Entry (AST.BuiltInType AST.Int) "boo21" [],
     CFGT.End {CFGT.id = 1, CFGT.parent = 0, CFGT.mExpr = Just (AST.NumberLiteral 5.0)}],
     CFGT.edges = [(0,[1])]
 }
@@ -59,10 +59,13 @@ getCFG methodName = readFile "test3.java" >>=
   . find ((== methodName) . snd . AST.getMethodDecl)
   . fromRight undefined . parse parseDeclList ""
 
-showCFG :: IO ()
-showCFG = readFile "test2.java" >>= putStrLn
-  . CFGT.showCFG . CFG.exec
-  . fromRight undefined . parse parseExtDecl ""
+showCFG :: String -> IO ()
+showCFG methodName = readFile "test3.java" >>= putStrLn
+  . CFGT.showCFG
+  . (\case Just x -> CFG.exec x
+           Nothing -> error $ printf "method: %s does not exist in test3.java" methodName)
+  . find ((== methodName) . snd . AST.getMethodDecl)
+  . fromRight undefined . parse parseDeclList ""
 
 ------------------------------
 
@@ -75,7 +78,7 @@ getSymState :: String -> IO SYT.SymState
 getSymState funName = readFile "test3.java" >>=
   (\cfgs -> case CFGT.findCFGByName funName cfgs of
               Just cfg0 ->
-                let (logs,s) = SYM.runCFG cfgs cfg0
+                let (logs,s) = SYM.runCFG cfgs cfg0 Nothing Nothing
                 in do putStrLn "================"
                       putStrLn "===Begin Logs==="
                       putStrLn "================"
@@ -94,8 +97,11 @@ getSymState funName = readFile "test3.java" >>=
 getPath :: String -> IO [CFGT.Node]
 getPath funName = readFile "test3.java" >>= return
   . CFGT.getPath 0
-  . CFG.exec
-  . fromRight undefined . parse parseExtDecl ""
+  . (\cfgs -> case CFGT.findCFGByName funName cfgs of
+                Just cfg0 -> cfg0
+                Nothing   -> error $ "method " ++ funName ++ " does not exist")
+  . map CFG.exec
+  . fromRight undefined . parse parseDeclList ""
 
 ------------------------------
 

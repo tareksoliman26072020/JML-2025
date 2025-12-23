@@ -4,21 +4,27 @@ module CFG.CFG where
 import Visitors.API
 import qualified Parser.Types as AST
 import qualified CFG.Types as G
-import Data.List (foldl',nub)
+import Data.List (foldl',nub,find)
 
 data CFGCreator = Node {node :: G.Node} | Nodes {cfg :: G.CFG}
 
 instance ASTVisitor CFGCreator where
 --visitMethod :: AST.Method -> CFGCreator
   visitMethod method =
-    let (_,g) = visitStatement0 (0,0,1) (AST.funBody method)
+    let ((_,currentNodeID,nextNodeID),g) = visitStatement0 (0,0,1) (AST.funBody method)
     in case g of
-         Nodes cfg -> Nodes $ G.CFG {
-           G.nodes = case AST.getMethodDecl method of
-             (Just (AST.BuiltInType methodType),methodName) ->
-               G.Entry methodType methodName (AST.getMethodFormalParams method) : G.nodes cfg,
-           G.edges = G.edges cfg
-         }
+         Nodes cfg ->
+           let theEnd = case last (G.nodes cfg) of
+                          G.End{} -> []
+                          _       -> [G.End nextNodeID 0 Nothing]
+           in Nodes $ G.CFG {
+                G.nodes = case AST.getMethodDecl method of
+                  (Just t,methodName) ->
+                    let entry = G.Entry t methodName (AST.getMethodFormalParams method)
+                        theNodes = G.nodes cfg
+                    in entry : theNodes ++ theEnd,
+                G.edges = G.edges cfg ++ if null theEnd then [] else [(currentNodeID,[nextNodeID])]
+              }
          _ -> error "won't happen"
   visitStatement = error "visitStatement0 is a replacement for this"
 
@@ -72,7 +78,7 @@ visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.CondStmt{} =
       }
       ---------------- ifBranch
       ((_,if_currentNodeID,if_nextNodeID),if_cfg_creator) =
-        visitStatement0 (sourceNodeID,nextNodeID,nextNodeID+1) (AST.siff stmt)
+        visitStatement0 (nextNodeID,nextNodeID,nextNodeID+1) (AST.siff stmt)
       ---------------- elseBranch
       ((_,else_currentNodeID,else_nextNodeID),else_cfg_creator) =
         visitStatement0 (nextNodeID,nextNodeID,if_nextNodeID) (AST.selsee stmt)

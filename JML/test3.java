@@ -223,6 +223,7 @@ public int boo21_3_i_2(int i){
 /*
 SymState {
   env = fromList [
+    ("boo21_3_i_3",SMethodType Int),
     ("i",SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2)))),
     ("return",SBin (SBin (SymInt 5) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 20)),
     ("x",SBin (SBin (SymInt 2) Mul (SymFormalParam Int "i" Nothing)) Add (SymInt 9))
@@ -801,14 +802,29 @@ public int boo26_2(){
 /*
 CFG {
   nodes = [
-    Entry Int "boo27",
+    Entry (BuiltInType Int) "boo27" [VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}],
     Node {id = 1, nodeData = BooleanExpression If (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >=, expr2 = NumberLiteral 0.0}), parent = 0},
-    End {id = 2, parent = 0, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})},
+    End {id = 2, parent = 1, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})},
     Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = NumberLiteral (-1.0), binOp = *, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}}), parent = 1},
     End {id = 4, parent = 1, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "res"})},
-    Node {id = 5, nodeData = Meet If, parent = 0}
-  ],
-  edges = [(0,[1]),(1,[2,3]),(3,[4]),(2,[5]),(4,[5])]
+    Node {id = 5, nodeData = Meet If, parent = 0},End {id = 6, parent = 0, mExpr = Nothing}
+  ], edges = [(0,[1]),(1,[2,3]),(3,[4]),(2,[5]),(4,[5]),(5,[6])]
+}
+
+[
+ Entry (BuiltInType Int) "boo27" [VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}],
+ Node {id = 1, nodeData = BooleanExpression If (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >=, expr2 = NumberLiteral 0.0}), parent = 0},
+ End {id = 6, parent = 0, mExpr = Nothing}
+]
+*/
+/*
+SymState {
+  env = fromList [
+    ("1",SIte (SBin (SymFormalParam Int "i" Nothing) Gt (SymNum 0.0)) (Just (SymState {env = fromList [("boo27",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing)], pc = []})) (Just (SymState {env = fromList [("boo27",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("res",SBin (SymInt (-1)) Mul (SymFormalParam Int "i" Nothing)),("return",SBin (SymInt (-1)) Mul (SymFormalParam Int "i" Nothing))], pc = []}))),
+    ("boo27",SMethodType Int),
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SymNull Int)
+  ], pc = []
 }
 */
 public int boo27(int i){
@@ -818,5 +834,70 @@ public int boo27(int i){
   else{
     int res = -1 * i;
     return res;
+  }
+}
+
+////////////////////////////////////////
+
+//TODO
+/*
+CFG {
+  nodes = [
+    Entry (ArrayType {baseType = BuiltInType Int}) "elemAt" [VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "arr"},VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "pos"}],
+    Node {id = 1, nodeData = BooleanExpression If (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}, binOp = <=, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "pos"}}), parent = 0},
+    End {id = 2, parent = 1, mExpr = Just (ExcpExpr {excpName = Exception, excpmsg = Just "not found"})},
+    Node {id = 3, nodeData = Meet If, parent = 0},
+    End {id = 4, parent = 0, mExpr = Just (ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "pos"})})}
+  ], edges = [(0,[1]),(1,[2]),(2,[3]),(1,[3]),(3,[4])]
+}
+
+
+[
+ Entry (ArrayType {baseType = BuiltInType Int}) "elemAt" [VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "arr"},VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "pos"}],
+ Node {id = 1, nodeData = BooleanExpression If (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}, binOp = <=, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "pos"}}), parent = 0},
+ End {id = 4, parent = 0, mExpr = Just (ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "pos"})})}
+]
+*/
+public int[] elemAt(int[] arr, int pos){
+  if(arr.length<=pos) {
+    throw new Exception("not found");
+  }
+  return arr[pos];
+}
+
+////////////////////////////////////////
+
+//TODO
+/*
+CFG {
+  nodes = [
+    Entry (BuiltInType Int) "sqrt" [VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "y"}],
+    Node {id = 1, nodeData = ForInitialization (AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}), parent = 0},
+    Node {id = 2, nodeData = BooleanExpression For (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <=, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "y"}}), parent = 0},
+    Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "j"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = *, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}}), parent = 0},
+    Node {id = 4, nodeData = BooleanExpression If (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "j"}, binOp = ==, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "y"}}), parent = 0},
+    End {id = 5, parent = 0, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})},
+    Node {id = 6, nodeData = BooleanExpression If (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = ==, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "y"}}), parent = 4},
+    End {id = 7, parent = 4, mExpr = Just (ExcpExpr {excpName = Exception, excpmsg = Just "not found"})},
+    Node {id = 8, nodeData = Meet If, parent = 4},
+    Node {id = 9, nodeData = Meet If, parent = 0},
+    Node {id = 10, nodeData = ForStep (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}}), parent = 0},
+    Node {id = 11, nodeData = Meet For, parent = 0}
+  ],
+  edges = [(0,[1]),(1,[2]),(2,[3]),(3,[4]),(4,[5,6]),(6,[7,8]),(7,[8]),(5,[9]),(8,[9]),(9,[10]),(10,[2]),(2,[11])]
+}
+*/
+public static int sqrt(int y) throws Exception{
+  for(int i=0; i<=y; i=i+1){
+    int j = i*i;
+    if(j==y){
+      return i;
+    }
+    else{
+      if(i==y){
+	throw new Exception("not found");
+      }
+      else{}
+    }
   }
 }

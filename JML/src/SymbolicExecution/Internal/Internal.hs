@@ -52,17 +52,22 @@ isGlobalVariable _ = False
 
 -- get SymType via AST.Type
 toSymType1 :: AST.Type AST.Types -> SymType
-toSymType1 (AST.BuiltInType t) = case t of
-  AST.Int     -> Int
-  AST.Void    -> Void
-  AST.Char    -> undefined
-  AST.String  -> undefined
-  AST.Boolean -> Bool
-  AST.Double  -> Double
-  AST.Short   -> undefined
-  AST.Float   -> Float
-  AST.Long    -> undefined
-  AST.Byte    -> undefined
+toSymType1 = \case
+  AST.BuiltInType t -> case t of
+    AST.Int     -> Int
+    AST.Void    -> Void
+    AST.Char    -> undefined
+    AST.String  -> undefined
+    AST.Boolean -> Bool
+    AST.Double  -> Double
+    AST.Short   -> undefined
+    AST.Float   -> Float
+    AST.Long    -> undefined
+    AST.Byte    -> undefined
+-- ArrayType {baseType :: Type a}
+  AST.ArrayType t ->
+    let rec = toSymType1 t
+    in Array rec
 
 -- get SymType via SymExpr
 toSymType2 :: SymExpr -> SymType
@@ -202,6 +207,20 @@ getFractionalArithBinOp = \case
     Mul -> (*)
     Sub -> (-)
     Div -> (/)
+
+getArithBoolOp :: Ord a => SymBinOp -> (a -> a -> Bool)
+getArithBoolOp = \case
+  Eq -> (==)
+  Neq -> (/=)
+  Lt -> (<)
+  Le -> (<=)
+  Gt -> (>)
+  Ge -> (>=)
+
+getBoolOp :: SymBinOp -> (Bool -> Bool -> Bool)
+getBoolOp = \case
+  And -> (&&)
+  Or -> (||)
 
 toBinSymExpr :: SymBinOp -> (SymExpr, SymExpr) -> SymExpr
 toBinSymExpr op (expr1,expr2) = SBin expr1 op expr2

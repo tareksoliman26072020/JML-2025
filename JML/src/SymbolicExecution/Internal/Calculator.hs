@@ -19,6 +19,7 @@ numericCalculator = \case
          SBin e1_ op_ e2_
            | calculating == SBin e1 op e2 -> SBin e1 op e2
            | otherwise -> numericCalculator $ SBin e1_ op_ e2_
+         e -> e
   e -> e
 
 booleanCalculator :: SymExpr -> SymExpr
@@ -606,9 +607,28 @@ abs = \case
   SymFloat num -> SymFloat $ Prelude.abs num
   _ -> error "isNegative: won't happen"
 
------------------------------------
------------------------------------
------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
 
 booleanCalculator2 :: SymBinOp -> (SymExpr, SymExpr) -> SymExpr
-booleanCalculator2 = undefined
+booleanCalculator2 op = \case
+  (SymNum num1, SymNum num2) ->
+    SBool $ getArithBoolOp op num1 num2
+  (SymInt num1, SymInt num2) ->
+    SBool $ getArithBoolOp op num1 num2
+  (SymDouble num1, SymDouble num2) ->
+    SBool $ getArithBoolOp op num1 num2
+  (SymFloat num1, SymFloat num2) ->
+    SBool $ getArithBoolOp op num1 num2
+  ----------
+  (a@(SymFormalParam _ _ m1), b@(SymFormalParam _ _ m2))
+    -> SBin (maybe a id m1) op (maybe b id m2)
+  (a@(SymFormalParam _ _ m1), b)
+    -> SBin (maybe a id m1) op b
+  (a, b@(SymFormalParam _ _ m2))
+    -> SBin a op (maybe b id m2)
+  (p1,p2) -> error $ printf "booleanCalculator2: (%s, %s, %s)" (show p1) (show op) (show p2)
