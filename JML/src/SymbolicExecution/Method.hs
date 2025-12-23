@@ -72,7 +72,7 @@ instance CFGVisitor Method_SymExec where
       ----------------------------------------
       -- BooleanExpression Kind AST.Expression
       CFG.BooleanExpression CFG.If expr -> do
-        tell [Log.MethodStatementIfCondition "visitNode -> case nodeData of Node -> BooleanExpression If" (show expr)]
+        tell [Log.MethodStatementIfCondition (printf "visitNode -> case nodeData of Node -> BooleanExpression If -> Node num: %d" (CFG.id n)) (show expr)]
         ER_FunHandle _ funName <- getFunHandle
         (_,cfgs) <- ask
         let cfg = case CFG.findCFGByName funName cfgs of
@@ -90,41 +90,32 @@ instance CFGVisitor Method_SymExec where
               in flip takeWhile thePath $ \case
                    CFG.Node _ (CFG.Meet CFG.If) _ -> False
                    _                              -> True
-        {-
-           [
-            [End {id = 2, parent = 1, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}],
-            [Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = NumberLiteral (-1.0), binOp = *, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}}), parent = 1},
-            End {id = 4, parent = 1, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "res"})}]
-           ]
-         -}
-         
-         {-
-           [
-            [End {id = 2, parent = 1, mExpr = Just (ExcpExpr {excpName = Exception, excpmsg = Just "not found"})}]
-           ]
-          -}
-        --throwError $ "visitNode -> Node -> BooleanExpression::: " ++ show branches_paths
         ER_Expr expr2 <- visitExpr expr
-        --let toReturn = ER_IfCond expr2
         state <- get
-        let res = case expr2 of
-          -- runCFG :: [CFG.CFG] -> CFG.CFG -> Maybe Path -> ([Log.Log],SymState)
-              SBool b ->
-                let (_,condSymState) = runCFG cfgs cfg (Just $ branches_paths !! (if b then 0 else 1)) (Just state)
-                    ifSymState = if b then Just condSymState else Nothing
-                    elseSymState = if not b then Just condSymState else Nothing
-                in SIte expr2 ifSymState elseSymState
-              SBin _ _ _ -> --throwError $ "visitNode -> Node -> BooleanExpression:\n" ++ show cfg
-                let (_,ifSymState) = runCFG cfgs cfg (Just $ branches_paths !! 0) (Just state)
-                    (_,elseSymState) = runCFG cfgs cfg (Just $ branches_paths !! 1) (Just state)
-                in SIte expr2 (Just ifSymState) (Just elseSymState)
-        let toReturn = ER_Expr res
-        tell [Log.ModifyState "visitNode -> Node -> BooleanExpression" (show $ CFG.id n,show res)]
-        modify $ \symState ->
-          SymState {
-            env = Map.insert (show $ CFG.id n) res (env symState),
-            pc = pc symState
-          }
+        toReturn <- case expr2 of
+              SBool b -> do
+                let (logs,condSymState) = runCFG cfgs cfg (Just $ branches_paths !! (if b then 0 else 1)) (Just state)
+                flip mapM_ logs $ \log ->
+                  tell [Log.Nested (printf "%s statement" $ if b then "if" else "else") log]
+                tell [Log.ModifyState (printf "visitNode -> Node -> BooleanExpression if -> overwriting %s" $ if b then "if" else "else") ("<new state>",show condSymState)]
+                modify (const condSymState)
+                return $ ER_State condSymState
+              SBin _ _ _ -> do
+                let (ifLogs,ifSymState) = runCFG cfgs cfg (Just $ branches_paths !! 0) (Just state)
+                    (elseLogs,elseSymState) = runCFG cfgs cfg (Just $ branches_paths !! 1) (Just state)
+                flip mapM_ ifLogs $ \log ->
+                  tell [Log.Nested "if statement" log]
+                flip mapM_ elseLogs $ \log ->
+                  tell [Log.Nested "else statement" log]
+                let symExpr = SIte expr2 ifSymState elseSymState
+                tell [Log.ModifyState "visitNode -> Node -> BooleanExpression if -> recording symbolic branching" (show $ CFG.id n,show symExpr)]
+                modify $ \symState ->
+                  SymState {
+                    env = Map.insert (show $ CFG.id n) symExpr (env symState),
+                    pc = pc symState
+                  }
+                return (ER_Expr symExpr)
+        
         tell [Log.Return "visitNode -> Node -> BooleanExpression" (show toReturn)] $> toReturn
       ----------------------------------------
       ----------------------------------------
@@ -223,7 +214,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
   -- Search for the CFG of the method call
   case CFG.findCFGByName funCallName cfgs of
     -- CFG not found
-    Nothing   -> throwError $ "Method " ++ funCallName ++ " does not exist"
+    Nothing   -> throwError $ "visitExpr => FunCallExpr: Method " ++ funCallName ++ " does not exist"
     -- CFG found
     Just cfg0 -> do
       -- get SymState of the formal method call
@@ -240,16 +231,6 @@ visitExpr (expr@AST.FunCallExpr{}) = do
               actualParms = flip map (AST.funArgs expr) $ \exp ->
                 let logging = Log.Nested (printf "SymExec of actual parameter: %s(%s)" funCallName (AST.getActualParmName exp))
                 in censor (map logging) $ visitExpr exp
-        --(r,s) <- (,) <$> ask <*> get
-        --throwError $ "visitExpr ==> FunCallExpr: " ++ (show $ map (method_R_2_ExecutionResult (r,s)) actualParms)
-          -- tus is list of tuples that is needed for runSymState in MethodCall.hs
-          {-
-          tus <- zipWithM (\f act -> (,) f <$> act)
-                  (map AST.getVarName formalParms)
-                  actualParms
-          -}
-          --cast :: SymType -> SymExpr -> SymExpr
-          --getSymExpr :: ExecutionResult -> SymExpr
           
           tus <- zipWithM (\fParm act -> (,) (let Just t = AST.varType fParm in toSymType1 t,AST.getVarName fParm) <$> act)
                    formalParms
