@@ -820,10 +820,11 @@ CFG {
 /*
 SymState {
   env = fromList [
-    ("1",SIte (SBin (SymFormalParam Int "i" Nothing) Gt (SymNum 0.0)) (Just (SymState {env = fromList [("boo27",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing)], pc = []})) (Just (SymState {env = fromList [("boo27",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("res",SBin (SymInt (-1)) Mul (SymFormalParam Int "i" Nothing)),("return",SBin (SymInt (-1)) Mul (SymFormalParam Int "i" Nothing))], pc = []}))),
+    ("1",SIte (SBin (SymFormalParam Int "i" Nothing) Gt (SymNum 0.0))
+              (SymState {env = fromList [("boo27",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing)], pc = []})
+              (SymState {env = fromList [("boo27",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("res",SBin (SymInt (-1)) Mul (SymFormalParam Int "i" Nothing)),("return",SBin (SymInt (-1)) Mul (SymFormalParam Int "i" Nothing))], pc = []})),
     ("boo27",SMethodType Int),
-    ("i",SymFormalParam Int "i" Nothing),
-    ("return",SymNull Int)
+    ("i",SymFormalParam Int "i" Nothing),("return",SymNull Int)
   ], pc = []
 }
 */
@@ -835,6 +836,10 @@ public int boo27(int i){
     int res = -1 * i;
     return res;
   }
+}
+
+public int boo27_2() {
+  return boo27(5);
 }
 
 ////////////////////////////////////////

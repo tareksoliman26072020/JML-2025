@@ -89,7 +89,9 @@ visitStmt ==> AssignStmt: ER_State
 
 visitNode ==> Entry: ER_State
 visitNode ==> End: ER_State
-visitNode ==> Node: ER_State
+visitNode ==> Node ==> Statement: ER_State
+visitNode ==> Node ==> BooleanExpression if ==> SBool: ER_State
+visitNode ==> Node ==> BooleanExpression if ==> SBin: ER_Expr SIte
 
 visitSymExpr ==> SymFormalParam: ER_SymStateMapEntry
 visitSymExpr ==> SBin: ER_SymStateMapEntry

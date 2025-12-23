@@ -108,7 +108,7 @@ instance CFGVisitor Method_SymExec where
                 flip mapM_ elseLogs $ \log ->
                   tell [Log.Nested "else statement" log]
                 let symExpr = SIte expr2 ifSymState elseSymState
-                tell [Log.ModifyState "visitNode -> Node -> BooleanExpression if -> recording symbolic branching" (show $ CFG.id n,show symExpr)]
+                tell [Log.ModifyState "visitNode -> Node -> BooleanExpression if -> recording symbolic branching" (printf "if node num: %d" (CFG.id n),show symExpr)]
                 modify $ \symState ->
                   SymState {
                     env = Map.insert (show $ CFG.id n) symExpr (env symState),

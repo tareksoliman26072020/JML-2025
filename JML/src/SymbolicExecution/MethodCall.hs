@@ -109,6 +109,29 @@ instance SymStateVisitor MethodCall_SymExec where
           }
         let toReturn = ER_SymStateMapEntry key newSymExpr
         tell [Log.Return "visitSymExpr -> SMethodType" (show toReturn)] $> toReturn
+  ------------------------------
+  ------------------------------
+  ------------------------------
+      SIte _ _ _{-boolSymExpr ifSymState elseSymState-} -> do
+        tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SIte"]
+        visited <- visitSymExpr0 val
+        let newSymExpr :: SymExpr
+            newSymExpr = case visited of
+              {-
+              ER_Expr res -> res
+              -}
+              _ -> error $ printf "visitSymExpr ~~> SIte ~~> %s ~~> won't happen" (show visited)
+        tell [Log.ModifyState "visitSymExpr -> SIte" (printf "Node num: %s" key,show newSymExpr)]
+        modify $ \symState ->
+          SymState {
+            env = Map.insert key newSymExpr (env symState),
+            pc  = pc symState
+          }
+        let toReturn = ER_SymStateMapEntry key newSymExpr
+        tell [Log.Return "visitSymExpr -> SIte" (show toReturn)] $> toReturn
+  ------------------------------
+  ------------------------------
+  ------------------------------
       ex ->
         throwError $ "visitSymExpr -> TODO: " ++ show ex
 
@@ -175,6 +198,14 @@ visitSymExpr0 = \case
     tell [Log.SymExpr_2_Handle (show val) "visitSymExpr0 -> SMethodType"]
     let toReturn = ER_Expr val
     tell [Log.Return "visitSymExpr0 -> SMethodType" (show toReturn)] $> toReturn
+  ------------------------------
+  ------------------------------
+  ------------------------------
+  val@(SIte boolSymExpr ifSymState elseSymState) ->
+    throwError $ "visitSymExpr0 -> SIte -> TODO: " ++ show val
+  ------------------------------
+  ------------------------------
+  ------------------------------
   ex ->
     throwError $ "visitSymExpr0 -> TODO: " ++ show ex
 
