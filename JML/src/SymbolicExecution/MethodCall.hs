@@ -112,14 +112,12 @@ instance SymStateVisitor MethodCall_SymExec where
   ------------------------------
   ------------------------------
   ------------------------------
-      SIte _ _ _{-boolSymExpr ifSymState elseSymState-} -> do
+      SIte _ _ _ -> do
         tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SIte"]
         visited <- visitSymExpr0 val
         let newSymExpr :: SymExpr
             newSymExpr = case visited of
-              {-
               ER_Expr res -> res
-              -}
               _ -> error $ printf "visitSymExpr ~~> SIte ~~> %s ~~> won't happen" (show visited)
         tell [Log.ModifyState "visitSymExpr -> SIte" (printf "Node num: %s" key,show newSymExpr)]
         modify $ \symState ->
@@ -143,7 +141,7 @@ visitSymExpr0 :: SymExpr -> MethodCall_R
 visitSymExpr0 = \case
   val@(SymFormalParam symType formalParam Nothing) -> do
     tell [Log.SymExpr_2_Handle (show val) "visitSymExpr0 -> SymFormalParam"]
-    (_,tupels) <- ask
+    (_,_,tupels) <- ask
     let newSymExpr :: SymExpr
         newSymExpr = case lookup_formalParam_info formalParam tupels of
           Just (t,er@ER_SymStateMapEntry{}) -> substitute formalParam (cast t (er_val er))
@@ -201,8 +199,20 @@ visitSymExpr0 = \case
   ------------------------------
   ------------------------------
   ------------------------------
-  val@(SIte boolSymExpr ifSymState elseSymState) ->
-    throwError $ "visitSymExpr0 -> SIte -> TODO: " ++ show val
+  val@(SIte boolSymExpr ifSymState elseSymState) -> do
+    tell [Log.SymExpr_2_Handle (show val) "visitSymExpr0 -> SIte"]
+    (_,methodName,tupels) <- ask
+    newBoolSymExpr <- visitSymExpr0 boolSymExpr
+    let (ifLogs,newIfSymState) = runSymState ifSymState methodName tupels
+        (elseLogs,newElseSymState) = runSymState elseSymState methodName tupels
+        toReturn = ER_Expr $ case newBoolSymExpr of
+          ER_Expr (SBool b) -> error $ "visitSymExpr0 -> SIte -> TODO: " ++ show newBoolSymExpr
+          ER_Expr (SIte _ _ _) -> SIte boolSymExpr newIfSymState newElseSymState
+          _ -> error $ "visitSymExpr0 -> SIte -> won't happen: " ++ show newBoolSymExpr
+    mapM_ (\log -> tell [log]) ifLogs
+    mapM_ (\log -> tell [log]) elseLogs
+    tell [Log.Return "visitSymExpr0 -> SIte" (show toReturn)] $> toReturn
+    --throwError $ "visitSymExpr0 -> SIte -> TODO: " ++ show val
   ------------------------------
   ------------------------------
   ------------------------------
@@ -224,7 +234,7 @@ runSymState symState methodCall tus =
       initialSymState :: SymState
       initialSymState = SymState Map.empty (pc symState)
       run_r :: ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))) ()
-      run_r = runReaderT (sequence_ runner) (defaultConfig,tus)
+      run_r = runReaderT (sequence_ runner) (defaultConfig,methodCall,tus)
       run_e :: WriterT [Log.Log] (StateT SymState (Either String)) (Either String ())
       run_e = runExceptT run_r
       run_w :: StateT SymState (Either String) (Either String (),[Log.Log])

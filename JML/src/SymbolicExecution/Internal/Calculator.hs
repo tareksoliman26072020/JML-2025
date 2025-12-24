@@ -24,7 +24,13 @@ numericCalculator = \case
 
 booleanCalculator :: SymExpr -> SymExpr
 booleanCalculator = \case
-  SBin e1 op e2 -> booleanCalculator2 op (e1,e2)
+  SBin e1 op e2 ->
+    let calculating = booleanCalculator2 op (e1,e2)
+    in case calculating of
+         SBin e1_ op_ e2_
+           | calculating == SBin e1 op e2 -> SBin e1 op e2
+           | otherwise -> booleanCalculator $ SBin e1_ op_ e2_
+         e -> e
   e -> e
 
 -------------------------------------------------------------------
@@ -627,8 +633,8 @@ booleanCalculator2 op = \case
   ----------
   (a@(SymFormalParam _ _ m1), b@(SymFormalParam _ _ m2))
     -> SBin (maybe a id m1) op (maybe b id m2)
-  (a@(SymFormalParam _ _ m1), b)
-    -> SBin (maybe a id m1) op b
-  (a, b@(SymFormalParam _ _ m2))
-    -> SBin a op (maybe b id m2)
+  (a@(SymFormalParam t _ m1), b)
+    -> SBin (maybe a id m1) op (cast t b)
+  (a, b@(SymFormalParam t _ m2))
+    -> SBin (cast t a) op (maybe b id m2)
   (p1,p2) -> error $ printf "booleanCalculator2: (%s, %s, %s)" (show p1) (show op) (show p2)

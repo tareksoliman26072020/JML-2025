@@ -18,8 +18,9 @@ type Method_R =
 
 type FormalParm = (SymType,String)
 type ActualParm_post_Visitation = ExecutionResult
+type MethodName = String
 type MethodCall_R =
-    ReaderT (Config,[(FormalParm, ActualParm_post_Visitation)])
+    ReaderT (Config,MethodName,[(FormalParm, ActualParm_post_Visitation)])
     (ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))))
     ExecutionResult
 
