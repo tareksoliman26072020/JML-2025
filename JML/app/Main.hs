@@ -94,9 +94,9 @@ getSymState funName = readFile "test3.java" >>=
 ------------------------------
 
 -- getPath "boo27" >>= mapM_ (\(num,node) -> putStr $ printf "%d>> %s\n\n" num (show node)) . zip [0 ..]
-getPath :: String -> IO [CFGT.Node]
-getPath funName = readFile "test3.java" >>= return
-  . CFGT.getPath 0
+getPath :: String -> Int -> IO [CFGT.Node]
+getPath funName startNodeId = readFile "test3.java" >>= return
+  . CFGT.getPath startNodeId
   . (\cfgs -> case CFGT.findCFGByName funName cfgs of
                 Just cfg0 -> cfg0
                 Nothing   -> error $ "method " ++ funName ++ " does not exist")

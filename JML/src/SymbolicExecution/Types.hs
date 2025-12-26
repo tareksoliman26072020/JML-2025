@@ -119,7 +119,7 @@ data SymExpr =
   | SBool   Bool                  -- ^ concrete Boolean literal
   | SBin    SymExpr SymBinOp SymExpr  -- ^ binary operation
   | SNot    SymExpr               -- ^ logical negation
-  | SIte    SymExpr SymState SymState   -- ^ if-then-else (cond, then, else)
+  | SIte    SymExpr SymState (Maybe SymState)   -- ^ if-then-else (cond, then, else)
   | SymNull SymType               -- ^ value of an unassigned variable
   | SymFormalParam SymType String (Maybe SymExpr) -- ^ declared variable (a formal parameter)
   | SymGlobalVar SymType String (Maybe SymExpr) -- ^ variable declared outside the scope of the method

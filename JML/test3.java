@@ -811,11 +811,8 @@ CFG {
   ], edges = [(0,[1]),(1,[2,3]),(3,[4]),(2,[5]),(4,[5]),(5,[6])]
 }
 
-[
- Entry (BuiltInType Int) "boo27" [VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}],
- Node {id = 1, nodeData = BooleanExpression If (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >=, expr2 = NumberLiteral 0.0}), parent = 0},
- End {id = 6, parent = 0, mExpr = Nothing}
-]
+////////////////////////////////////////
+
 */
 /*
 SymState {
@@ -840,6 +837,59 @@ public int boo27(int i){
 
 public int boo27_2() {
   return boo27(5);
+}
+
+/*
+CFG {
+  nodes = [
+    Entry (BuiltInType Int) "boo28" [VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}],
+    Node {id = 1, nodeData = BooleanExpression If (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >=, expr2 = NumberLiteral 0.0}), parent = 0},
+    End {id = 2, parent = 1, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})},
+    Node {id = 3, nodeData = Meet If, parent = 0},
+    End {id = 4, parent = 0, mExpr = Just (NumberLiteral 5.0)}
+  ], edges = [(0,[1]),(1,[2]),(2,[3]),(1,[3]),(3,[4])]
+}
+*/
+/*
+SymState {
+  env = fromList [
+    ("2",SIte (SBin (SymFormalParam Int "i" Nothing) Gt (SymInt 0))
+              (SymState {env = fromList [("boo28",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing),("x",SymInt 2)], pc = []}) Nothing),
+    ("boo28",SMethodType Int),
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SymInt 5),
+    ("x",SymInt 1)
+  ], pc = []
+}
+*/
+public int boo28(int i){
+  int x = 1;
+  if(i >= 0){
+    x++;
+    return i;
+  }
+  return 5;
+}
+
+/*
+SymState {
+  env = fromList [
+    ("2",SIte (SBin (SymFormalParam Int "i" Nothing) Gt (SymInt 0)) (SymState {env = fromList [("boo28_2",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing),("x",SymInt 2),("y",SymInt 0)], pc = []}) Nothing),
+    ("boo28_2",SMethodType Int),
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SymInt 5),
+    ("x",SymInt 1)
+  ], pc = []
+}
+*/
+public int boo28_2(int i){
+  int x = 1;
+  if(i >= 0){
+    x++;
+    int y = 0;
+    return i;
+  }
+  return 5;
 }
 
 ////////////////////////////////////////

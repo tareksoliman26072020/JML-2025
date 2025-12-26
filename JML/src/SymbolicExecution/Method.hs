@@ -80,7 +80,9 @@ instance CFGVisitor Method_SymExec where
                     Nothing   -> error $ "visitNode -> Node -> BooleanExpression " ++ funName ++ " does not exist"
                     -- CFG found
                     Just cfg0 -> cfg0
-            -- findEdge_via_id :: CFG -> NodeID -> Maybe (NodeID,[NodeID])
+            -- branches: start id for the if branch, and the else branch if it exists.
+            --           return is a list of one or two ints.
+            --           if there is no else branch, then the list has only one int.
             branches = case CFG.findEdge_via_id cfg (CFG.id n) of
                       Just (_,xs) -> xs
                       Nothing     -> error $ "visitNode -> Node -> BooleanExpression -> won't happen"
@@ -90,6 +92,7 @@ instance CFGVisitor Method_SymExec where
               in flip takeWhile thePath $ \case
                    CFG.Node _ (CFG.Meet CFG.If) _ -> False
                    _                              -> True
+        --throwError $ "visitNode ==> Node ==> BooleanExpression ==> " ++ show branches_paths
         ER_Expr expr2 <- visitExpr expr
         state <- get
         toReturn <- case expr2 of
@@ -102,12 +105,15 @@ instance CFGVisitor Method_SymExec where
                 return $ ER_State condSymState
               SBin _ _ _ -> do
                 let (ifLogs,ifSymState) = runCFG cfgs cfg (Just $ branches_paths !! 0) (Just state)
-                    (elseLogs,elseSymState) = runCFG cfgs cfg (Just $ branches_paths !! 1) (Just state)
                 flip mapM_ ifLogs $ \log ->
                   tell [Log.Nested "if statement" log]
-                flip mapM_ elseLogs $ \log ->
-                  tell [Log.Nested "else statement" log]
-                let symExpr = SIte expr2 ifSymState elseSymState
+                symExpr <- case branches_paths of
+                  [_] -> return $ SIte expr2 ifSymState Nothing
+                  [_,pElse] -> do
+                    let (elseLogs,elseSymState) = runCFG cfgs cfg (Just pElse) (Just state)
+                    flip mapM_ elseLogs $ \log ->
+                      tell [Log.Nested "else statement" log]
+                    return $ SIte expr2 ifSymState (Just elseSymState)
                 tell [Log.ModifyState "visitNode -> Node -> BooleanExpression if -> recording symbolic branching" (printf "if node num: %d" (CFG.id n),show symExpr)]
                 modify $ \symState ->
                   SymState {

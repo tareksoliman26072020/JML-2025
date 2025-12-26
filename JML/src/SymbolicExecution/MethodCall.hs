@@ -199,18 +199,19 @@ visitSymExpr0 = \case
   ------------------------------
   ------------------------------
   ------------------------------
-  val@(SIte boolSymExpr ifSymState elseSymState) -> do
+  val@(SIte boolSymExpr ifSymState maybeElseSymState) -> do
     tell [Log.SymExpr_2_Handle (show val) "visitSymExpr0 -> SIte"]
     (_,methodName,tupels) <- ask
     newBoolSymExpr <- visitSymExpr0 boolSymExpr
     let (ifLogs,newIfSymState) = runSymState ifSymState methodName tupels
-        (elseLogs,newElseSymState) = runSymState elseSymState methodName tupels
+        --(elseLogs,newElseSymState) = runSymState elseSymState methodName tupels
         toReturn = ER_Expr $ case newBoolSymExpr of
-          ER_Expr (SBool b) -> error $ "visitSymExpr0 -> SIte -> TODO: " ++ show newBoolSymExpr
-          ER_Expr (SIte _ _ _) -> SIte boolSymExpr newIfSymState newElseSymState
+          ER_Expr (SBool b) -> error $ "visitSymExpr0 -> SIte -> TODO1: " ++ show newBoolSymExpr
+          --ER_Expr (SIte _ _ _) -> SIte boolSymExpr newIfSymState newElseSymState
+          ER_Expr (SIte _ _ _) -> error $ "visitSymExpr0 -> SIte -> TODO2: " ++ show newBoolSymExpr
           _ -> error $ "visitSymExpr0 -> SIte -> won't happen: " ++ show newBoolSymExpr
     mapM_ (\log -> tell [log]) ifLogs
-    mapM_ (\log -> tell [log]) elseLogs
+    --mapM_ (\log -> tell [log]) elseLogs
     tell [Log.Return "visitSymExpr0 -> SIte" (show toReturn)] $> toReturn
     --throwError $ "visitSymExpr0 -> SIte -> TODO: " ++ show val
   ------------------------------
