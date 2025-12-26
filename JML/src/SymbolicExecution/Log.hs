@@ -22,6 +22,7 @@ data Log = Expression_2_Handle String String
          | NextMethodCallSymExpr String String
          | Affected String [String]
          | ModifyState String (String,String)
+         | StateNotModified String
          | Return String String
          | RunCFGFormalMethodCall String
          | RunSymStateActualMethodCall String
@@ -62,6 +63,7 @@ instance Show Log where
       symExpr methodCall    -> printf "%s (%s) in Method Call: %s" (yellow "Next symExpr") symExpr methodCall
     Affected loc exprs      -> printf "(%s): %s: %s" (cyan loc) (yellow "Affected") (intercalate ", " exprs)
     ModifyState loc (k,v)   -> printf "(%s): %s: (%s,%s)" (cyan loc) (yellow "Modifying State") k v
+    StateNotModified loc    -> printf "(%s): %s" (cyan loc) (yellow "State Not Modified")
     Return loc val          -> printf "(%s): %s: %s" (cyan loc) (yellow "Returning") val
     RunCFGFormalMethodCall
       symState              -> printf "%s: %s" (yellow "Method Call formal SymState") symState

@@ -112,21 +112,59 @@ instance SymStateVisitor MethodCall_SymExec where
   ------------------------------
   ------------------------------
   ------------------------------
-      SIte _ _ _ -> do
+      val@(SIte boolSymExpr ifSymState maybeElseSymState) -> do
         tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SIte"]
-        visited <- visitSymExpr0 val
-        let newSymExpr :: SymExpr
-            newSymExpr = case visited of
-              ER_Expr res -> res
-              _ -> error $ printf "visitSymExpr ~~> SIte ~~> %s ~~> won't happen" (show visited)
-        tell [Log.ModifyState "visitSymExpr -> SIte" (printf "Node num: %s" key,show newSymExpr)]
-        modify $ \symState ->
-          SymState {
-            env = Map.insert key newSymExpr (env symState),
-            pc  = pc symState
-          }
-        let toReturn = ER_SymStateMapEntry key newSymExpr
-        tell [Log.Return "visitSymExpr -> SIte" (show toReturn)] $> toReturn
+        condVisited <- visitSymExpr0 boolSymExpr
+        {-
+          the condition is examined,
+          then either (ER_Expr SBin) or (ER_Expr SBool) is returned
+          
+          (ER_Expr SBin) means that SIte remains in if and else unchanged, but the condition is adjusted
+          (ER_Expr SBool) means:
+            1) that either the if branch or the else branch will be taken,
+            2) and instead of returning SIte, the actual state is to be replaced with that of the if or else branch
+            3) return in the end (ER_Expr SBool) to denote the picked branch
+         -}
+        (_,methodCall,tus) <- ask
+        case condVisited of
+          ----------
+          ER_Expr a@(SBin _ _ _) -> do
+            let (ifLogs,newIfSymState) = runSymState ifSymState methodCall tus
+                maybeElse = flip fmap maybeElseSymState $ \e -> runSymState e methodCall tus
+            -- logs
+            mapM_ (\log -> tell [log]) ifLogs
+            flip mapM_ maybeElse $
+              \(elseLogs,_) -> mapM_ (\log -> tell [log]) elseLogs
+            --modify state
+            let newSymExpr = SIte a newIfSymState $ fmap (\(_,newElseSymState) -> newElseSymState) maybeElse
+            tell [Log.ModifyState "visitSymExpr -> SIte -> unresolved condition" (key,show newSymExpr)]
+            modify $ \symState ->
+              SymState {
+                env = Map.insert key newSymExpr (env symState),
+                pc  = pc symState
+              }
+            let toReturn = ER_SymStateMapEntry key newSymExpr
+            tell [Log.Return "visitSymExpr -> SIte -> unresolved condition" (show toReturn)] $> toReturn
+          ----------
+          ER_Expr a@(SBool True) -> do
+            let (ifLogs,newIfSymState) = runSymState ifSymState methodCall tus
+            mapM_ (\log -> tell [log]) ifLogs
+            tell [Log.ModifyState "visitSymExpr -> SIte -> resolved condition is True -> else body exists" ("<no key>","<whole state is updated>: " ++ show newIfSymState)]
+            modify (const newIfSymState)
+            return $ ER_Expr a
+          ----------
+          ER_Expr a@(SBool False) -> do
+            -- pattern matching for logs and recording state
+            case maybeElseSymState of
+              Just elseSymState -> do
+                let (elseLogs,newElseSymState) = runSymState elseSymState methodCall tus
+                mapM_ (\log -> tell [log]) elseLogs
+                tell [Log.ModifyState "visitSymExpr -> SIte -> resolved condition is False" ("<no key>","<whole state is updated>: " ++ show newElseSymState)]
+                modify (const newElseSymState)
+              Nothing -> do
+                tell [Log.StateNotModified "visitSymExpr -> SIte -> resolved condition is False -> no else body"]
+            -- return expr
+            return $ ER_Expr a
   ------------------------------
   ------------------------------
   ------------------------------
@@ -199,6 +237,7 @@ visitSymExpr0 = \case
   ------------------------------
   ------------------------------
   ------------------------------
+{-
   val@(SIte boolSymExpr ifSymState maybeElseSymState) -> do
     tell [Log.SymExpr_2_Handle (show val) "visitSymExpr0 -> SIte"]
     (_,methodName,tupels) <- ask
@@ -214,6 +253,7 @@ visitSymExpr0 = \case
     --mapM_ (\log -> tell [log]) elseLogs
     tell [Log.Return "visitSymExpr0 -> SIte" (show toReturn)] $> toReturn
     --throwError $ "visitSymExpr0 -> SIte -> TODO: " ++ show val
+-}
   ------------------------------
   ------------------------------
   ------------------------------
