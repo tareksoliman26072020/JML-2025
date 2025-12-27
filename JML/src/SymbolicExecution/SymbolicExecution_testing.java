@@ -878,51 +878,26 @@ public int boo25(int i){
     return 6;
   }
 }
-public int boo26(){
-  return boo27(5);
-}
+
+///////////////////////////////////////////////////
+
+/*
+SymState {env = fromList [("boo26_2",SMethodType Int),("return",SymInt 5)], pc = []}
+*/
 public int boo26_2(){
-  return boo27(-1);
+  return boo27(-5);
 }
 
 ///////////////////////////////////////////////////
 
 /*
-CFG {
-  nodes = [
-    Entry,
-    Node {id = 1, nodeData = BooleanExpression If (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >=, expr2 = NumberLiteral 0.0}), parent = 0},
-    End {id = 2, parent = 1, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})},
-    Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = NumberLiteral (-1.0), binOp = *, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}}), parent = 1},
-    End {id = 4, parent = 1, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "res"})},
-    Node {id = 5, nodeData = Meet If, parent = 0}
-  ],
-  edges = [(0,[1]),(1,[2,3]),(3,[4]),(2,[5]),(4,[5])]
+SymState {
+  env = fromList [
+    ("1",SIte (SBin (SymFormalParam Int "i" Nothing) Gt (SymInt 0)) (SymState {env = fromList [("boo27",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing)], pc = []}) (Just (SymState {env = fromList [("boo27",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("res",SBin (SymInt (-1)) Mul (SymFormalParam Int "i" Nothing)),("return",SBin (SymInt (-1)) Mul (SymFormalParam Int "i" Nothing))], pc = []}))),
+    ("boo27",SMethodType Int),
+    ("i",SymFormalParam Int "i" Nothing)
+  ], pc = []
 }
-*/
-/*
-  Entry
-----------
-  0 -> 1:
-        If: i >= 0.0
-----------
-  End: 1 -> 2:
-        i
-----------
-  1 -> 3:
-        Int res = -1.0 * i
-----------
-  End: 1 -> 4:
-        res
-----------
-  0 -> 5:
-        Meet: If
-========================
-  (0,[1])
-  (1,[2,3])
-  (3,[4])
-  (2,[5])
-  (4,[5])
 */
 public int boo27(int i){
   if(i >= 0){
@@ -935,6 +910,141 @@ public int boo27(int i){
 }
 
 ///////////////////////////////////////////////////
+
+/*
+SymState {env = fromList [("boo27_2",SMethodType Int),("return",SymInt 5)], pc = []}
+*/
+public int boo27_2() {
+  return boo27(5);
+}
+
+////////////////////////////////////////
+
+/*
+SymState {
+  env = fromList [
+    ("2",SIte (SBin (SymFormalParam Int "i" Nothing) Gt (SymInt 0))
+              (SymState {env = fromList [("boo28",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing),("x",SymInt 2)], pc = []})
+              Nothing),
+    ("boo28",SMethodType Int),
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SymInt 5),
+    ("x",SymInt 1)
+  ], pc = []
+}
+*/
+public int boo28(int i){
+  int x = 1;
+  if(i >= 0){
+    x++;
+    return i;
+  }
+  return 5;
+}
+
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    ("2",SIte (SBin (SymFormalParam Int "i" Nothing) Gt (SymInt 0)) (SymState {env = fromList [("boo28_2",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing),("x",SymInt 2),("y",SymInt 0)], pc = []}) Nothing),
+    ("boo28_2",SMethodType Int),
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SymInt 5),
+    ("x",SymInt 1)
+  ], pc = []
+}
+*/
+public int boo28_2(int i){
+  int x = 1;
+  if(i >= 0){
+    x++;
+    int y = 0;
+    return i;
+  }
+  return 5;
+}
+
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    ("2",SIte (SBin (SymFormalParam Int "i" Nothing) Gt (SymInt 0)) (SymState {env = fromList [("boo28_3",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing),("x",SymInt 1),("y",SymInt 0)], pc = []}) Nothing),
+    ("boo28_3",SMethodType Int),
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SymInt 5),
+    ("x",SymInt 1)
+  ], pc = []
+}
+*/
+public int boo28_3(int i){
+  int x = 1;
+  if(i >= 0){
+    int y = 0;
+    return i;
+  }
+  return 5;
+}
+
+////////////////////////////////////////
+
+/*
+SymState {
+  env = fromList [
+    ("2",SIte (SBin (SymFormalParam Int "i" Nothing) Ge (SymInt 0))
+                    (SymState {env = fromList [("boo28_4",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing),("x",SymInt 1),("y",SymInt 0)], pc = []})
+                    (Just (SymState {env = fromList [("boo28_4",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("x",SymInt 2)], pc = []}))),
+    ("boo28_4",SMethodType Int),
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SymInt 5),
+    ("x",SymInt 1)
+  ], pc = []
+}
+*/
+public int boo28_4(int i){
+  int x = 1;
+  if(i >= 0){
+    int y = 0;
+    return i;
+  }
+  else {
+   x++;
+  }
+  return 5;
+}
+
+////////////////////////////////////////
+
+/*
+SymState {
+  env = fromList [
+    ("2",SIte (SBin (SymFormalParam Int "i" Nothing) Ge (SymInt 0))
+              (SymState {env = fromList [("boo28_5",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SBin (SymFormalParam Int "i" Nothing) Add (SymInt 1)),("x",SymInt 1),("y",SymInt 1)], pc = []})
+              (Just (SymState {env = fromList [("boo28_5",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("x",SymInt 2)], pc = []}))),
+    ("boo28_5",SMethodType Int),
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SymInt 5),
+    ("x",SymInt 1)
+  ], pc = []
+}
+*/
+public int boo28_5(int i){
+  int x = 1;
+  if(i >= 0){
+    int y = 0;
+    y++;
+    return i+y;
+  }
+  else {
+   x++;
+  }
+  return 5;
+}
+
+////////////////////////////////////////
 
 /*
 CFG {
@@ -987,7 +1097,7 @@ CFG {
   (6,[7])
   (7,[8])
 */
-public int boo28(){
+public int boo29(){
   try{
     int x = 3;
     if(x == 3){
@@ -1004,7 +1114,7 @@ public int boo28(){
 
 ///////////////////////////////////////////////////
 
-public int boo28_2(){
+public int boo29_2(){
   try{
     int x = 0;
     if(x == 3){

@@ -399,19 +399,13 @@ runCFG cfgs cfg mPath mSymState =
   in case mRun_s of
        Left str -> error str
        Right ((ei,logs),SymState m ps) ->
-         let mReturnValue = --m Map.! "return"
-                            m Map.!? "return"
-             m2 = flip (Map.insert "return") m $
-                    case (CFG.getCFGType cfg, mReturnValue) of
-                      (AST.BuiltInType AST.Int, Just (SymNum float))    ->
+         let m2 = flip Map.mapWithKey m $ \k v -> case (CFG.getCFGType cfg,k,v) of
+                    (AST.BuiltInType AST.Int, "return", SymNum float)    ->
                         SymInt (round float)
-                      (AST.BuiltInType AST.Double, Just (SymNum float)) ->
+                    (AST.BuiltInType AST.Double, "return", SymNum float) ->
                         SymDouble (realToFrac float)
-                      (AST.BuiltInType AST.Float, Just (SymNum float))  ->
+                    (AST.BuiltInType AST.Float, "return", SymNum float)  ->
                         SymFloat float
-                      (t, Nothing) ->
-                        SymNull $ toSymType1 t
-                      (_, Just expr)                  ->
-                        expr
+                    (_,_,v) -> v
          in (logs,either error (const (SymState m2 ps)) ei)
 

@@ -26,8 +26,8 @@ toSymBinOp = \case
   AST.Div -> Div
   AST.Less -> Lt
   AST.LessEq -> Le
-  AST.Greater -> Ge
-  AST.GreaterEq -> Gt
+  AST.Greater -> Gt
+  AST.GreaterEq -> Ge
   AST.Eq -> Eq
   AST.Neq -> Neq
   AST.And -> And

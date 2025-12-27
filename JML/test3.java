@@ -784,54 +784,23 @@ public int boo25(int i){
 
 ////////////////////////////////////////
 
-//TODO
-public int boo26(){
-  return boo27(5);
-}
-
-////////////////////////////////////////
-
-//TODO
+//DONE
+/*
+SymState {env = fromList [("boo26_2",SMethodType Int),("return",SymInt 5)], pc = []}
+*/
 public int boo26_2(){
-  return boo27(-1);
+  return boo27(-5);
 }
 
 ////////////////////////////////////////
 
-//TODO
-/*
-CFG {
-  nodes = [
-    Entry (BuiltInType Int) "boo27" [VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}],
-    Node {id = 1, nodeData = BooleanExpression If (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >=, expr2 = NumberLiteral 0.0}), parent = 0},
-    End {id = 2, parent = 1, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})},
-    Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = NumberLiteral (-1.0), binOp = *, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}}), parent = 1},
-    End {id = 4, parent = 1, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "res"})},
-    Node {id = 5, nodeData = Meet If, parent = 0},End {id = 6, parent = 0, mExpr = Nothing}
-  ], edges = [(0,[1]),(1,[2,3]),(3,[4]),(2,[5]),(4,[5]),(5,[6])]
-}
-
-////////////////////////////////////////
-
-*/
-/*
-SymState {
-  env = fromList [
-    ("1",SIte (SBin (SymFormalParam Int "i" Nothing) Gt (SymNum 0.0))
-              (SymState {env = fromList [("boo27",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing)], pc = []})
-              (SymState {env = fromList [("boo27",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("res",SBin (SymInt (-1)) Mul (SymFormalParam Int "i" Nothing)),("return",SBin (SymInt (-1)) Mul (SymFormalParam Int "i" Nothing))], pc = []})),
-    ("boo27",SMethodType Int),
-    ("i",SymFormalParam Int "i" Nothing),("return",SymNull Int)
-  ], pc = []
-}
-*/
+//DONE
 /*
 SymState {
   env = fromList [
     ("1",SIte (SBin (SymFormalParam Int "i" Nothing) Gt (SymInt 0)) (SymState {env = fromList [("boo27",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing)], pc = []}) (Just (SymState {env = fromList [("boo27",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("res",SBin (SymInt (-1)) Mul (SymFormalParam Int "i" Nothing)),("return",SBin (SymInt (-1)) Mul (SymFormalParam Int "i" Nothing))], pc = []}))),
     ("boo27",SMethodType Int),
-    ("i",SymFormalParam Int "i" Nothing),
-    ("return",SymNull Int)
+    ("i",SymFormalParam Int "i" Nothing)
   ], pc = []
 }
 */
@@ -845,26 +814,25 @@ public int boo27(int i){
   }
 }
 
-/*
-SymState {
-  env = fromList [
-    ("1",SIte (SBin (SymFormalParam Int "i" Nothing) Gt (SymNum 0.0))
-              (SymState {env = fromList [("boo27",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing)], pc = []})
-              (SymState {env = fromList [("boo27",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("res",SBin (SymInt (-1)) Mul (SymFormalParam Int "i" Nothing)),("return",SBin (SymInt (-1)) Mul (SymFormalParam Int "i" Nothing))], pc = []})),
-    ("boo27",SMethodType Int),
-    ("i",SymFormalParam Int "i" Nothing),("return",SymNull Int)
-  ], pc = []
-}
+////////////////////////////////////////
 
+//DONE
+/*
+SymState {env = fromList [("boo27_2",SMethodType Int),("return",SymInt 5)], pc = []}
 */
 public int boo27_2() {
   return boo27(5);
 }
 
+////////////////////////////////////////
+
+//DONE
 /*
 SymState {
   env = fromList [
-    ("2",SIte (SBin (SymFormalParam Int "i" Nothing) Gt (SymInt 0)) (SymState {env = fromList [("boo28",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing),("x",SymInt 2)], pc = []}) Nothing),
+    ("2",SIte (SBin (SymFormalParam Int "i" Nothing) Gt (SymInt 0))
+              (SymState {env = fromList [("boo28",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing),("x",SymInt 2)], pc = []})
+              Nothing),
     ("boo28",SMethodType Int),
     ("i",SymFormalParam Int "i" Nothing),
     ("return",SymInt 5),
@@ -881,6 +849,9 @@ public int boo28(int i){
   return 5;
 }
 
+////////////////////////////////////////
+
+//DONE
 /*
 SymState {
   env = fromList [
@@ -902,6 +873,9 @@ public int boo28_2(int i){
   return 5;
 }
 
+////////////////////////////////////////
+
+//DONE
 /*
 SymState {
   env = fromList [
@@ -922,6 +896,22 @@ public int boo28_3(int i){
   return 5;
 }
 
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    ("2",SIte (SBin (SymFormalParam Int "i" Nothing) Ge (SymInt 0))
+                    (SymState {env = fromList [("boo28_4",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing),("x",SymInt 1),("y",SymInt 0)], pc = []})
+                    (Just (SymState {env = fromList [("boo28_4",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("x",SymInt 2)], pc = []}))),
+    ("boo28_4",SMethodType Int),
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SymInt 5),
+    ("x",SymInt 1)
+  ], pc = []
+}
+*/
 public int boo28_4(int i){
   int x = 1;
   if(i >= 0){
@@ -934,6 +924,22 @@ public int boo28_4(int i){
   return 5;
 }
 
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    ("2",SIte (SBin (SymFormalParam Int "i" Nothing) Ge (SymInt 0))
+              (SymState {env = fromList [("boo28_5",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SBin (SymFormalParam Int "i" Nothing) Add (SymInt 1)),("x",SymInt 1),("y",SymInt 1)], pc = []})
+              (Just (SymState {env = fromList [("boo28_5",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("x",SymInt 2)], pc = []}))),
+    ("boo28_5",SMethodType Int),
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SymInt 5),
+    ("x",SymInt 1)
+  ], pc = []
+}
+*/
 public int boo28_5(int i){
   int x = 1;
   if(i >= 0){
