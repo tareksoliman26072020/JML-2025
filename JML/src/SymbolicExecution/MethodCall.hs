@@ -168,6 +168,19 @@ instance SymStateVisitor MethodCall_SymExec where
   ------------------------------
   ------------------------------
   ------------------------------
+      SymNull _ -> do
+        tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SymNull"]
+        tell [Log.ModifyState "visitSymExpr -> SymNull" (key,show val)]
+        modify $ \symState ->
+          SymState {
+            env = Map.insert key val (env symState),
+            pc  = pc symState
+          }
+        let toReturn = ER_SymStateMapEntry key val
+        tell [Log.Return "visitSymExpr -> SymNull" (show toReturn)] $> toReturn
+  ------------------------------
+  ------------------------------
+  ------------------------------
       ex ->
         throwError $ "visitSymExpr -> TODO: " ++ show ex
 
