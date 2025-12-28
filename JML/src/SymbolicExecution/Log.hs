@@ -19,10 +19,13 @@ data Log = Expression_2_Handle String String
          | LookUpEnvTable String String String
          | NextNode String
          | MethodFormalParams String String
-         | NextMethodCallSymExpr String String
+         | NextMethodCallSymExpr String (String,String)
          | Affected String [String]
          | ModifyState String (String,String)
          | StateNotModified String
+         | NoElseBranch String
+         | ReportTheState String
+         | Skip String
          | Return String String
          | RunCFGFormalMethodCall String
          | RunSymStateActualMethodCall String
@@ -59,11 +62,14 @@ instance Show Log where
     MethodFormalParams
       args loc              -> printf "(%s): %s: %s" (cyan loc) (yellow "Visiting formal parameters") args
     NextNode nodeStr        -> printf "%s: %s" (yellow "Next Node") nodeStr
-    NextMethodCallSymExpr
-      symExpr methodCall    -> printf "%s (%s) in Method Call: %s" (yellow "Next symExpr") symExpr methodCall
+    NextMethodCallSymExpr methodCall (key,symExpr)
+                            -> printf "%s (%s ==> %s) in Method Call: %s" (yellow "Next symExpr") key symExpr methodCall
     Affected loc exprs      -> printf "(%s): %s: %s" (cyan loc) (yellow "Affected") (intercalate ", " exprs)
     ModifyState loc (k,v)   -> printf "(%s): %s: (%s,%s)" (cyan loc) (yellow "Modifying State") k v
     StateNotModified loc    -> printf "(%s): %s" (cyan loc) (yellow "State Not Modified")
+    NoElseBranch loc        -> printf "(%s): %s" (cyan loc) (yellow "No Else Branch")
+    ReportTheState s        -> printf "(%s):\n%s" (yellow "Reporting The State") (show s)
+    Skip thing              -> printf "(%s):\n%s" (yellow "Skip") (show thing)
     Return loc val          -> printf "(%s): %s: %s" (cyan loc) (yellow "Returning") val
     RunCFGFormalMethodCall
       symState              -> printf "%s: %s" (yellow "Method Call formal SymState") symState

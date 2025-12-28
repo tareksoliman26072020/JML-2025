@@ -855,7 +855,74 @@ public int boo28(int i){
 /*
 SymState {
   env = fromList [
-    ("2",SIte (SBin (SymFormalParam Int "i" Nothing) Gt (SymInt 0)) (SymState {env = fromList [("boo28_2",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing),("x",SymInt 2),("y",SymInt 0)], pc = []}) Nothing),
+    ("boo282",SMethodType Int),
+    ("return",SymInt 2),
+    ("x",SymInt 2)
+  ], pc = []
+}
+*/
+public int boo282(){
+  int x = 1;
+  if(x >= 0){
+    x++;
+    return x;
+  }
+  return 5;
+}
+
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    ("boo283",SMethodType Int),
+    ("return",SymInt 5),
+    ("x",SymInt 1)
+  ], pc = []
+}
+*/
+public int boo283(){
+  int x = 1;
+  if(x < 0){
+    x++;
+    return x;
+  }
+  return 5;
+}
+
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [("boo28_p",SMethodType Int),("return",SymInt 10)], pc = []
+}
+*/
+public int boo28_p() {
+  return boo28(10);
+}
+
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {env = fromList [("boo28_m",SMethodType Int),("return",SymInt 5)], pc = []}
+*/
+public int boo28_m() {
+  return boo28(-10);
+}
+
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    ("2",SIte (SBin (SymFormalParam Int "i" Nothing) Ge (SymInt 0))
+              (SymState {env = fromList [("boo28_2",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing),("x",SymInt 2),("y",SymInt 0)], pc = []}) 
+              Nothing
+    ),
     ("boo28_2",SMethodType Int),
     ("i",SymFormalParam Int "i" Nothing),
     ("return",SymInt 5),
@@ -879,19 +946,19 @@ public int boo28_2(int i){
 /*
 SymState {
   env = fromList [
-    ("2",SIte (SBin (SymFormalParam Int "i" Nothing) Gt (SymInt 0)) (SymState {env = fromList [("boo28_3",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing),("x",SymInt 1),("y",SymInt 0)], pc = []}) Nothing),
-    ("boo28_3",SMethodType Int),
-    ("i",SymFormalParam Int "i" Nothing),
-    ("return",SymInt 5),
-    ("x",SymInt 1)
+    ("boo28_2_1",SMethodType Int),
+    ("return",SymInt 4),
+    ("x",SymInt 2),
+    ("y",SymInt 0)
   ], pc = []
 }
 */
-public int boo28_3(int i){
+public int boo28_2_1(){
   int x = 1;
-  if(i >= 0){
+  if(x >= 0){
+    x++;
     int y = 0;
-    return i;
+    return 1+x+1;
   }
   return 5;
 }
@@ -926,6 +993,61 @@ public int boo28_4(int i){
 
 ////////////////////////////////////////
 
+//TODO
+/*
+SymState {
+  env = fromList [
+    ("boo28_4_1",SMethodType Int),
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SymFormalParam Int "i" Nothing),
+    ("x",SymInt 1),
+    ("y",SymInt 0)
+  ], pc = []
+}
+*/
+public int boo28_4_1(int i){
+  int x = 1;
+  if(true){
+    int y = 0;
+    return i;
+  }
+  else {
+   x++;
+  }
+  return 5;
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo28_4_2(int i){
+  int x = 1;
+  if(false){
+    int y = 0;
+    return i;
+  }
+  else {
+   x++;
+  }
+  return 5;
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo28_4_p() {
+  return boo28_4(10);
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo28_4_m() {
+  return boo28_4(-10);
+}
+
+////////////////////////////////////////
+
 //DONE
 /*
 SymState {
@@ -953,11 +1075,22 @@ public int boo28_5(int i){
   return 5;
 }
 
-// boo28_p, boo28_m
-// boo28_2_p, boo28_2_m
-// boo28_3_p, boo28_3_m
-// boo28_4_p, boo28_4_m
-// boo28_5_p, boo28_5_m
+////////////////////////////////////////
+
+//TODO
+public static int boo28_6(int i){
+  int x = 1;
+  if(i >= 0){
+    int y = 0;
+    y++;
+    return i+y;
+  }
+  else {
+    x++;
+  }
+  int y = 2;
+  return 5+y;
+}
 
 ////////////////////////////////////////
 

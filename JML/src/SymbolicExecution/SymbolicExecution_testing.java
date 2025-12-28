@@ -944,7 +944,66 @@ public int boo28(int i){
 
 ////////////////////////////////////////
 
-//DONE
+/*
+SymState {
+  env = fromList [
+    ("boo282",SMethodType Int),
+    ("return",SymInt 2),
+    ("x",SymInt 2)
+  ], pc = []
+}
+*/
+public int boo282(){
+  int x = 1;
+  if(x >= 0){
+    x++;
+    return x;
+  }
+  return 5;
+}
+
+////////////////////////////////////////
+
+/*
+SymState {
+  env = fromList [
+    ("boo283",SMethodType Int),
+    ("return",SymInt 5),
+    ("x",SymInt 1)
+  ], pc = []
+}
+*/
+public int boo283(){
+  int x = 1;
+  if(x < 0){
+    x++;
+    return x;
+  }
+  return 5;
+}
+
+////////////////////////////////////////
+
+/*
+SymState {
+  env = fromList [("boo28_p",SMethodType Int),("return",SymInt 10)], pc = []
+}
+*/
+public int boo28_p() {
+  return boo28(10);
+}
+
+////////////////////////////////////////
+
+/*
+SymState {env = fromList [("boo28_m",SMethodType Int),("return",SymInt 5)], pc = []}
+*/
+public int boo28_m() {
+  return boo28(-10);
+}
+
+////////////////////////////////////////
+
 /*
 SymState {
   env = fromList [
@@ -968,7 +1027,28 @@ public int boo28_2(int i){
 
 ////////////////////////////////////////
 
-//DONE
+/*
+SymState {
+  env = fromList [
+    ("boo28_2_1",SMethodType Int),
+    ("return",SymInt 4),
+    ("x",SymInt 2),
+    ("y",SymInt 0)
+  ], pc = []
+}
+*/
+public int boo28_2_1(){
+  int x = 1;
+  if(x >= 0){
+    x++;
+    int y = 0;
+    return 1+x+1;
+  }
+  return 5;
+}
+
+////////////////////////////////////////
+
 /*
 SymState {
   env = fromList [
@@ -1004,6 +1084,19 @@ SymState {
   ], pc = []
 }
 */
+/*
+SymState {
+  env = fromList [
+    ("2",SIte (SBin (SymFormalParam Int "i" Nothing) Ge (SymInt 0))
+              (SymState {env = fromList [("boo28_4",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing),("x",SymInt 1),("y",SymInt 0)], pc = []}) 
+              (Just (SymState {env = fromList [("boo28_4",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("x",SymInt 2)], pc = []}))),
+    ("boo28_4",SMethodType Int),
+    ("i",SymFormalParam Int "i" Nothing),
+    ("return",SymInt 5),
+    ("x",SymInt 1)
+  ], pc = []
+}
+*/
 public int boo28_4(int i){
   int x = 1;
   if(i >= 0){
@@ -1014,6 +1107,50 @@ public int boo28_4(int i){
    x++;
   }
   return 5;
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo28_4_1(int i){
+  int x = 1;
+  if(true){
+    int y = 0;
+    return i;
+  }
+  else {
+   x++;
+  }
+  return 5;
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo28_4_2(int i){
+  int x = 1;
+  if(false){
+    int y = 0;
+    return i;
+  }
+  else {
+   x++;
+  }
+  return 5;
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo28_4_p() {
+  return boo28_4(10);
+}
+
+////////////////////////////////////////
+
+//TODO
+public int boo28_4_m() {
+  return boo28_4(-10);
 }
 
 ////////////////////////////////////////

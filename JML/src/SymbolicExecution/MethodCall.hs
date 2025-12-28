@@ -12,7 +12,7 @@ import Control.Monad.Reader
 import Control.Monad.State
 import qualified Data.Map as Map
 import Control.Monad.Except
-import Data.Functor (($>))
+import Data.Functor (($>), void)
 import Text.Printf (printf)
 import Data.List (find)
 
@@ -83,31 +83,26 @@ instance SymStateVisitor MethodCall_SymExec where
   ------------------------------
       SymInt _ -> do
         tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SymInt"]
-        visited <- visitSymExpr0 val
-        let newSymExpr = case visited of
-              ER_Expr res -> res
-              _ -> error $ printf "visitSymExpr ~~> SymInt ~~> %s ~~> won't happen" (show visited)
-        tell [Log.ModifyState "visitSymExpr -> SymInt" (key,show newSymExpr)]
+        tell [Log.ModifyState "visitSymExpr -> SymInt" (key,show val)]
         modify $ \symState ->
           SymState {
-            env = Map.insert key newSymExpr (env symState),
+            env = Map.insert key val (env symState),
             pc  = pc symState
           }
-        let toReturn = ER_SymStateMapEntry key newSymExpr
+        let toReturn = ER_SymStateMapEntry key val
         tell [Log.Return "visitSymExpr -> SymInt" (show toReturn)] $> toReturn
+  ------------------------------
+  ------------------------------
+  ------------------------------
       SMethodType _ -> do
         tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SMethodType"]
-        visited <- visitSymExpr0 val
-        let newSymExpr = case visited of
-              ER_Expr res -> res
-              _ -> error $ printf "visitSymExpr ~~> SMethodType ~~> %s ~~> won't happen" (show visited)
-        tell [Log.ModifyState "visitSymExpr -> SMethodType" (key,show newSymExpr)]
+        tell [Log.ModifyState "visitSymExpr -> SMethodType" (key,show val)]
         modify $ \symState ->
           SymState {
-            env = Map.insert key newSymExpr (env symState),
+            env = Map.insert key val (env symState),
             pc  = pc symState
           }
-        let toReturn = ER_SymStateMapEntry key newSymExpr
+        let toReturn = ER_SymStateMapEntry key val
         tell [Log.Return "visitSymExpr -> SMethodType" (show toReturn)] $> toReturn
   ------------------------------
   ------------------------------
@@ -129,14 +124,14 @@ instance SymStateVisitor MethodCall_SymExec where
         case condVisited of
           ----------
           ER_Expr a@(SBin _ _ _) -> do
-            let (ifLogs,newIfSymState) = runSymState ifSymState methodCall tus
-                maybeElse = flip fmap maybeElseSymState $ \e -> runSymState e methodCall tus
+            let (ifLogs,newIfSymState) = runSymState ifSymState methodCall tus True
+                maybeElse = flip fmap maybeElseSymState $ \e -> runSymState e methodCall tus True
             -- logs
             mapM_ (\log -> tell [log]) ifLogs
             flip mapM_ maybeElse $
               \(elseLogs,_) -> mapM_ (\log -> tell [log]) elseLogs
             --modify state
-            let newSymExpr = SIte a newIfSymState $ fmap (\(_,newElseSymState) -> newElseSymState) maybeElse
+            let newSymExpr = SIte a newIfSymState $ fmap snd maybeElse
             tell [Log.ModifyState "visitSymExpr -> SIte -> unresolved condition" (key,show newSymExpr)]
             modify $ \symState ->
               SymState {
@@ -147,7 +142,7 @@ instance SymStateVisitor MethodCall_SymExec where
             tell [Log.Return "visitSymExpr -> SIte -> unresolved condition" (show toReturn)] $> toReturn
           ----------
           ER_Expr a@(SBool True) -> do
-            let (ifLogs,newIfSymState) = runSymState ifSymState methodCall tus
+            let (ifLogs,newIfSymState) = runSymState ifSymState methodCall tus True
             mapM_ (\log -> tell [log]) ifLogs
             tell [Log.ModifyState "visitSymExpr -> SIte -> resolved condition is True -> else body exists" ("<no key>","<whole state is updated>: " ++ show newIfSymState)]
             modify (const newIfSymState)
@@ -157,7 +152,7 @@ instance SymStateVisitor MethodCall_SymExec where
             -- pattern matching for logs and recording state
             case maybeElseSymState of
               Just elseSymState -> do
-                let (elseLogs,newElseSymState) = runSymState elseSymState methodCall tus
+                let (elseLogs,newElseSymState) = runSymState elseSymState methodCall tus True
                 mapM_ (\log -> tell [log]) elseLogs
                 tell [Log.ModifyState "visitSymExpr -> SIte -> resolved condition is False" ("<no key>","<whole state is updated>: " ++ show newElseSymState)]
                 modify (const newElseSymState)
@@ -250,26 +245,6 @@ visitSymExpr0 = \case
   ------------------------------
   ------------------------------
   ------------------------------
-{-
-  val@(SIte boolSymExpr ifSymState maybeElseSymState) -> do
-    tell [Log.SymExpr_2_Handle (show val) "visitSymExpr0 -> SIte"]
-    (_,methodName,tupels) <- ask
-    newBoolSymExpr <- visitSymExpr0 boolSymExpr
-    let (ifLogs,newIfSymState) = runSymState ifSymState methodName tupels
-        --(elseLogs,newElseSymState) = runSymState elseSymState methodName tupels
-        toReturn = ER_Expr $ case newBoolSymExpr of
-          ER_Expr (SBool b) -> error $ "visitSymExpr0 -> SIte -> TODO1: " ++ show newBoolSymExpr
-          --ER_Expr (SIte _ _ _) -> SIte boolSymExpr newIfSymState newElseSymState
-          ER_Expr (SIte _ _ _) -> error $ "visitSymExpr0 -> SIte -> TODO2: " ++ show newBoolSymExpr
-          _ -> error $ "visitSymExpr0 -> SIte -> won't happen: " ++ show newBoolSymExpr
-    mapM_ (\log -> tell [log]) ifLogs
-    --mapM_ (\log -> tell [log]) elseLogs
-    tell [Log.Return "visitSymExpr0 -> SIte" (show toReturn)] $> toReturn
-    --throwError $ "visitSymExpr0 -> SIte -> TODO: " ++ show val
--}
-  ------------------------------
-  ------------------------------
-  ------------------------------
   ex ->
     throwError $ "visitSymExpr0 -> TODO: " ++ show ex
 
@@ -278,13 +253,32 @@ visitSymExpr0 = \case
 ------------------------------
 
 --                                     formalParms, actualParms
-runSymState :: SymState -> String -> [(FormalParm, ActualParm_post_Visitation)] -> ([Log.Log],SymState)
-runSymState symState methodCall tus =
+runSymState :: SymState -> String -> [(FormalParm, ActualParm_post_Visitation)] -> Bool -> ([Log.Log],SymState)
+runSymState symState methodCall tus isInNestedScope =
   let -- mapM :: Monad m => (a -> m b) -> Map k a -> m (Map k b)
-      runner :: Map.Map String MethodCall_R--[MethodCall_Map_R]
+      {-
+      runner :: [(String,SymExpr)] -> MethodCall_R
+      runner = \case
+        [] -> return ER_Void
+        ((key, symExpr) : rest) -> (>> runner rest) $ do
+          state <- get
+          case getReturnSymExpr state of
+            Just _
+              | not isInNestedScope -> return ER_Void
+            _ -> do
+              tell [Log.NextMethodCallSymExpr methodCall (key,show symExpr)]
+              --tell [Log.ReportTheState (show state)]
+              getReader_MethodCall_R $ visitSymExpr (key,symExpr)
+      -}
+      runner :: Map.Map String MethodCall_R
       runner = flip Map.mapWithKey (env symState) $ \key symExpr -> do
-        tell [Log.NextMethodCallSymExpr methodCall (show symExpr)]
-        getReader_MethodCall_R $ visitSymExpr (key,symExpr)
+        tell [Log.NextMethodCallSymExpr methodCall (key,show symExpr)]
+        state <- get
+        case getReturnSymExpr state of
+          Just _
+            | not isInNestedScope -> tell [Log.Skip $ printf "(%s,%s)" key (show symExpr)]
+                $> ER_Void
+          _ -> getReader_MethodCall_R $ visitSymExpr (key,symExpr)
       initialSymState :: SymState
       initialSymState = SymState Map.empty (pc symState)
       run_r :: ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))) ()

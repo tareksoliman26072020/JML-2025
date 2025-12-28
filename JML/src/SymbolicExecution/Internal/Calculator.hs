@@ -630,6 +630,8 @@ booleanCalculator2 op = \case
     SBool $ getArithBoolOp op num1 num2
   (SymFloat num1, SymFloat num2) ->
     SBool $ getArithBoolOp op num1 num2
+  (a, b@(SymNum _)) ->
+    SBin a op (cast (toSymType2 a) b)
   ----------
   (a@(SymFormalParam _ _ m1), b@(SymFormalParam _ _ m2))
     -> SBin (maybe a id m1) op (maybe b id m2)

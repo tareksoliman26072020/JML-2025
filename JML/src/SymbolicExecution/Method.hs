@@ -5,14 +5,13 @@ import qualified SymbolicExecution.Log as Log
 import SymbolicExecution.Types
 import qualified CFG.Types as CFG
 import qualified Data.Map as Map
-import Control.Monad.Reader (runReaderT)
+import Control.Monad.Reader (runReaderT,ask)
 import Control.Monad.State
 import Control.Monad.Except
 import Control.Monad (forM_, zipWithM)
 import qualified Parser.Types as AST
 import Visitors.API
 import SymbolicExecution.MethodCall (runSymState)
-import Control.Monad.Reader
 import Control.Monad.Writer
 import Text.Printf (printf)
 import Data.Functor (($>))
@@ -97,12 +96,24 @@ instance CFGVisitor Method_SymExec where
         state <- get
         toReturn <- case expr2 of
               SBool b -> do
-                let (logs,condSymState) = runCFG cfgs cfg (Just $ branches_paths !! (if b then 0 else 1)) (Just state)
-                flip mapM_ logs $ \log ->
-                  tell [Log.Nested (printf "%s statement" $ if b then "if" else "else") log]
-                tell [Log.ModifyState (printf "visitNode -> Node -> BooleanExpression if -> overwriting %s" $ if b then "if" else "else") ("<new state>",show condSymState)]
-                modify (const condSymState)
-                return $ ER_State condSymState
+                case branches_paths of
+                  [ifB] | b -> do
+                    let (logs,condSymState) = runCFG cfgs cfg (Just ifB) (Just state)
+                    flip mapM_ logs $ \log ->
+                      tell [Log.Nested "if statement" log]
+                    tell [Log.ModifyState (printf "visitNode -> Node -> BooleanExpression if -> overwriting if") ("<new state>",show condSymState)]
+                    modify (const condSymState)
+                    return $ ER_State condSymState
+                  [ifB] | not b -> do
+                    tell [Log.NoElseBranch "visitNode -> Node -> BooleanExpression if"]
+                    return $ ER_Void
+                  [ifB,elseB] -> do
+                    let (logs,condSymState) = runCFG cfgs cfg (Just $ if b then ifB else elseB) (Just state)
+                    flip mapM_ logs $ \log ->
+                      tell [Log.Nested (printf "%s statement" $ if b then "if" else "else") log]
+                    tell [Log.ModifyState (printf "visitNode -> Node -> BooleanExpression if -> overwriting %s" $ if b then "if" else "else") ("<new state>",show condSymState)]
+                    modify (const condSymState)
+                    return $ ER_State condSymState
               SBin _ _ _ -> do
                 let (ifLogs,ifSymState) = runCFG cfgs cfg (Just $ branches_paths !! 0) (Just state)
                 flip mapM_ ifLogs $ \log ->
@@ -243,7 +254,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                    actualParms
           
           -- get SymState due to insertion of actual parameters
-          let (funCallLogs2,funCallSymState2) = runSymState funCallSymState1 funCallName tus
+          let (funCallLogs2,funCallSymState2) = runSymState funCallSymState1 funCallName tus False
           -- edit its logs
           mapM_ (\log -> tell [Log.Nested ("actual: " ++ funCallName) log]) funCallLogs2
           tell [Log.RunSymStateActualMethodCall (show funCallSymState2)]
@@ -345,6 +356,10 @@ visitExpr expr@AST.VarExpr{} = do
       let toReturn = ER_SymStateMapEntry varName_ sExpr
       tell [Log.Return "visitExpr -> VarExpr -> Declaring Local Variable" (show toReturn)] $> toReturn
 visitExpr expr@AST.ArrayCallExpr{} = throwError "TODO: visitExpr -> ArrayCallExpr"
+visitExpr expr@(AST.BoolLiteral b) = do
+  tell [Log.Expression_2_Handle (show expr) "visitExpr -> BoolLiteral"]
+  let toReturn = ER_Expr (SBool b)
+  tell [Log.Return "visitExpr -> BoolLiteral" (show toReturn)] $> toReturn
 visitExpr expr = error $ "What this is: " ++ show expr
 
 ------------------------------
@@ -379,17 +394,15 @@ runCFG :: [CFG.CFG] -> CFG.CFG -> Maybe Path -> Maybe SymState -> ([Log.Log],Sym
 runCFG cfgs cfg mPath mSymState =
   let path :: [CFG.Node]
       path = maybe (CFG.getPath 0 cfg) id mPath
-    {-
-      runner :: ReaderT (Config,[CFGT.CFG])
-                        (ExceptT String (WriterT [Log] (StateT SymState (Either String))))
-                        [ExecutionResult]
-     -}
-      runner = flip mapM path $ \node -> do
+      runner = flip mapM_ path $ \node -> do
         tell [Log.NextNode (show node)]
-        getReader_Method_R $ visitNode node
+        state <- get
+        case getReturnSymExpr state of
+          Just _ -> tell [Log.Skip $ printf "%s" (show node)] $> ER_Void
+          Nothing -> getReader_Method_R $ visitNode node
       initialSymState = maybe (SymState (Map.insert (CFG.getCFGName cfg) (SMethodType $ toSymType1 $ CFG.getCFGType cfg) Map.empty) []) id mSymState
       run_r :: ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))) ()
-      run_r = runReaderT (runner $> ()) (defaultConfig,cfgs)
+      run_r = runReaderT runner (defaultConfig,cfgs)
       run_e :: WriterT [Log.Log] (StateT SymState (Either String)) (Either String ())
       run_e = runExceptT run_r
       run_w :: StateT SymState (Either String) (Either String (),[Log.Log])
@@ -406,6 +419,6 @@ runCFG cfgs cfg mPath mSymState =
                         SymDouble (realToFrac float)
                     (AST.BuiltInType AST.Float, "return", SymNum float)  ->
                         SymFloat float
-                    (_,_,v) -> v
+                    (_,_,_) -> v
          in (logs,either error (const (SymState m2 ps)) ei)
 
