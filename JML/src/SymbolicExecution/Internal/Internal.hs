@@ -11,7 +11,7 @@ import qualified CFG.Types as CFG
 import qualified Parser.Types as AST
 import Text.Printf (printf)
 import Control.Applicative (Alternative(empty),asum)
-import qualified Data.Map as Map (lookup)
+import qualified Data.Map as Map (lookup,empty,Map)
 import Prelude hiding (negate)
 
 ------------------------------
@@ -238,10 +238,10 @@ negateOp = \case
 ------------------------------
 ------------------------------
 
-getVarBindings :: SymState -> [(String,VarBinding)]
+getVarBindings :: SymState -> Map.Map String VarBinding
 getVarBindings symState = case Map.lookup "Var Bindings" (env symState) of
-  Nothing -> []
-  Just (VarBindings li) -> li
+  Nothing -> Map.empty
+  Just (SVarBindings li) -> li
 
 getNewVarBinding :: Int -> Int -> AST.Statement -> Maybe (String,VarBinding)
 getNewVarBinding nodeId branchId = \case

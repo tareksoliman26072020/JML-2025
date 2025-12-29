@@ -34,6 +34,9 @@ getReader_Method_R (Method_SymExec r) = r
 getReader_MethodCall_R :: MethodCall_SymExec -> MethodCall_R
 getReader_MethodCall_R (MethodCall_SymExec r) = r
 
+data SymStateKey = NodeNr Int | VarName String | VarBindings | Return | MethodName
+                 deriving (Eq,Show)
+
 data SymState = SymState
  { env :: Map.Map String SymExpr
  , pc  :: [SymExpr]          -- ^ Path‐conditions: accumulate the conditions under which each execution state is feasible.
@@ -123,7 +126,7 @@ data SymExpr =
   | SymNull SymType               -- ^ value of an unassigned variable
   | SymFormalParam SymType String (Maybe SymExpr) -- ^ declared variable (a formal parameter)
   | SymGlobalVar SymType String (Maybe SymExpr) -- ^ variable declared outside the scope of the method
-  | VarBindings [(String,VarBinding)]
+  | SVarBindings (Map.Map String VarBinding)
   deriving (Eq,Show)
 
 data VarBinding = VarBinding

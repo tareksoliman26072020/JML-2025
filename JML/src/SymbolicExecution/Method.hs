@@ -18,50 +18,7 @@ import Data.Functor (($>))
 import Data.List (foldl')
 import SymbolicExecution.Internal.Internal
 import SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator)
-{-
-addVarBinding :: Int -> Int -> AST.Statement -> Method_SymExec
-addVarBinding nodeId parentId = \case
-  -- AssignStmt {varModifier :: [Modifier], assign :: Expression}
-  AST.AssignStmt _ expr -> case expr of --throwError $ "MEOW::: " ++ show stmt
-    --AssignExpr {assEleft :: Expression, assEright :: Expression}
-    AST.AssignExpr left _ -> case left of
-      AST.VarExpr{} -> case AST.varType left of
-        Just _ -> do
-          st <- get
-          let oldVarBindings = case Map.lookup "Var Bindings" (env st) of
-                Nothing -> []
-                Just (VarBindings li) -> li
-              newVarBinding = oldVarBindings ++ 
-                [(AST.varName left,VarBinding (CFG.id n) (CFG.parent n))]
-          
-          modify $ \state ->
-            SymState {
-              env = Map.insert "Var Bindings" (VarBindings newVarBinding) (env state),
-              pc = pc state
-            }
-          return ER_Void
-        Nothing -> return ER_Void
-      _ -> throwError "visitNode -> Node -> Statement -> won't happen"
-    _ -> throwError "visitNode -> Node -> Statement -> won't happen"
-  --VarStmt {var = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "y"}}
-  stmt@AST.VarStmt{} -> case AST.var stmt of
-    Just _ -> do
-      st <- get
-      let oldVarBindings = case Map.lookup "Var Bindings" (env st) of
-            Nothing -> []
-            Just (VarBindings li) -> li
-          newVarBinding = oldVarBindings ++ 
-            [(AST.varName stmt,VarBinding (CFG.id n) (CFG.parent n))]
-      tell [Log.AddVarBinding "visitNode -> Node -> Statement" (show newVarBinding)]
-      modify $ \state ->
-        SymState {
-          env = Map.insert "Var Bindings" (VarBindings newVarBinding) (env state),
-          pc = pc state
-        }
-      return ER_Void
-    Nothing -> return ER_Void
-  _ -> return ER_Void
--}
+
 instance CFGVisitor Method_SymExec where
 --visitNode :: CFG.Node -> Method_SymExec
   visitNode node = Method_SymExec $ tell [Log.HorizontalLine "visitNode"] >> case node of
@@ -117,7 +74,7 @@ instance CFGVisitor Method_SymExec where
             tell [Log.AddVarBinding "visitNode -> Node -> Statement" (show new)]
             modify $ \state2 ->
               SymState {
-                env = Map.insert "Var Bindings" (VarBindings $ old ++ [new]) (env state2),
+                env = Map.insert "Var Bindings" (SVarBindings $ Map.insert (fst new) (snd new) old) (env state2),
                 pc = pc state2
               }
             return ER_Void
@@ -158,6 +115,10 @@ instance CFGVisitor Method_SymExec where
                     let (logs,condSymState) = runCFG cfgs cfg (Just ifB) (Just state)
                     flip mapM_ logs $ \log ->
                       tell [Log.Nested "if statement" log]
+                    -- TODO: remove vars declared in that scope
+                    -- use vars bindings to do so
+                    -- let varBindings = getVarBindings condSymState
+                    --let condSymStateFiltered = SymState (env condSymState) (pc condSymState)
                     tell [Log.ModifyState (printf "visitNode -> Node -> BooleanExpression if -> overwriting if") ("<new state>",show condSymState)]
                     modify (const condSymState)
                     return $ ER_State condSymState

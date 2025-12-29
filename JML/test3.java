@@ -947,8 +947,10 @@ public int boo28_m() {
 /*
 SymState {
   env = fromList [
-    ("2",SIte (SBin (SymFormalParam Int "i" Nothing) Ge (SymInt 0)) (SymState {env = fromList [("Var Bindings",VarBindings [("x",VarBinding {varDeclAt = 1, varFrame = 0}),("y",VarBinding {varDeclAt = 4, varFrame = 2})]),("boo28_2",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing),("x",SymInt 2),("y",SymInt 0)], pc = []}) Nothing),
-    ("Var Bindings",VarBindings [("x",VarBinding {varDeclAt = 1, varFrame = 0})]),
+    ("2",SIte (SBin (SymFormalParam Int "i" Nothing) Ge (SymInt 0))
+              (SymState {env = fromList [("Var Bindings",SVarBindings (fromList [("x",VarBinding {varDeclAt = 1, varFrame = 0}),("y",VarBinding {varDeclAt = 4, varFrame = 2})])),("boo28_2",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing),("x",SymInt 2),("y",SymInt 0)], pc = []})
+              Nothing),
+    ("Var Bindings",SVarBindings (fromList [("x",VarBinding {varDeclAt = 1, varFrame = 0})])),
     ("boo28_2",SMethodType Int),
     ("i",SymFormalParam Int "i" Nothing),
     ("return",SymInt 5),
