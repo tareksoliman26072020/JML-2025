@@ -29,6 +29,16 @@ public int boo22_2(){
 ////////////////////////////////////////
 
 //DONE
+/*
+SymState {
+  env = fromList [
+    ("Var Bindings",VarBindings [("x",VarBinding {varDeclAt = 1, varFrame = 0})]),
+    ("boo23_3",SMethodType Int),
+    ("return",SymInt 5),
+    ("x",SymInt 8)
+  ], pc = []
+}
+*/
 public int boo23_3(){
   int x = 3 + boo21();
   return 5;
@@ -124,6 +134,18 @@ public double boo33_4(){
 ////////////////////////////////////////
 
 //DONE
+/*
+SymState {
+  env = fromList [
+    ("Var Bindings",VarBindings [("x",VarBinding {varDeclAt = 1, varFrame = 0}),
+                                 ("y",VarBinding {varDeclAt = 2, varFrame = 0})]),
+    ("boo33_5",SMethodType Double),
+    ("return",SymDouble 1.1),
+    ("x",SymDouble 1.1),
+    ("y",SymNull Int)
+  ], pc = []
+}
+*/
 public double boo33_5(){
   double x = 1;
   int y;
@@ -440,12 +462,16 @@ public int boo22_2_i(int i){
 /*
 SymState {
   env = fromList [
+    ("Var Bindings",VarBindings [
+        ("j",VarBinding {varDeclAt = 1, varFrame = 0}),
+        ("i",VarBinding {varDeclAt = 2, varFrame = 0}),
+        ("x",VarBinding {varDeclAt = 3, varFrame = 0})]),
+    ("boo22_2_i_2",SMethodType Int),
     ("i",SymInt 9),
     ("j",SymInt 6),
     ("return",SymInt 33),
     ("x",SymInt 18)
-  ],
-  pc = []
+  ], pc = []
 }
 */
 public int boo22_2_i_2(){
@@ -798,7 +824,9 @@ public int boo26_2(){
 /*
 SymState {
   env = fromList [
-    ("1",SIte (SBin (SymFormalParam Int "i" Nothing) Gt (SymInt 0)) (SymState {env = fromList [("boo27",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing)], pc = []}) (Just (SymState {env = fromList [("boo27",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("res",SBin (SymInt (-1)) Mul (SymFormalParam Int "i" Nothing)),("return",SBin (SymInt (-1)) Mul (SymFormalParam Int "i" Nothing))], pc = []}))),
+    ("1",SIte (SBin (SymFormalParam Int "i" Nothing) Ge (SymInt 0))
+              (SymState {env = fromList [("boo27",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing)], pc = []})
+              (Just (SymState {env = fromList [("Var Bindings",VarBindings [("res",VarBinding {varDeclAt = 3, varFrame = 1})]),("boo27",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("res",SBin (SymInt (-1)) Mul (SymFormalParam Int "i" Nothing)),("return",SBin (SymInt (-1)) Mul (SymFormalParam Int "i" Nothing))], pc = []}))),
     ("boo27",SMethodType Int),
     ("i",SymFormalParam Int "i" Nothing)
   ], pc = []
@@ -830,9 +858,8 @@ public int boo27_2() {
 /*
 SymState {
   env = fromList [
-    ("2",SIte (SBin (SymFormalParam Int "i" Nothing) Gt (SymInt 0))
-              (SymState {env = fromList [("boo28",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing),("x",SymInt 2)], pc = []})
-              Nothing),
+    ("2",SIte (SBin (SymFormalParam Int "i" Nothing) Ge (SymInt 0)) (SymState {env = fromList [("Var Bindings",VarBindings [("x",VarBinding {varDeclAt = 1, varFrame = 0})]),("boo28",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing),("x",SymInt 2)], pc = []}) Nothing),
+    ("Var Bindings",VarBindings [("x",VarBinding {varDeclAt = 1, varFrame = 0})]),
     ("boo28",SMethodType Int),
     ("i",SymFormalParam Int "i" Nothing),
     ("return",SymInt 5),
@@ -855,6 +882,7 @@ public int boo28(int i){
 /*
 SymState {
   env = fromList [
+    ("Var Bindings",VarBindings [("x",VarBinding {varDeclAt = 1, varFrame = 0})]),
     ("boo282",SMethodType Int),
     ("return",SymInt 2),
     ("x",SymInt 2)
@@ -919,10 +947,8 @@ public int boo28_m() {
 /*
 SymState {
   env = fromList [
-    ("2",SIte (SBin (SymFormalParam Int "i" Nothing) Ge (SymInt 0))
-              (SymState {env = fromList [("boo28_2",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing),("x",SymInt 2),("y",SymInt 0)], pc = []}) 
-              Nothing
-    ),
+    ("2",SIte (SBin (SymFormalParam Int "i" Nothing) Ge (SymInt 0)) (SymState {env = fromList [("Var Bindings",VarBindings [("x",VarBinding {varDeclAt = 1, varFrame = 0}),("y",VarBinding {varDeclAt = 4, varFrame = 2})]),("boo28_2",SMethodType Int),("i",SymFormalParam Int "i" Nothing),("return",SymFormalParam Int "i" Nothing),("x",SymInt 2),("y",SymInt 0)], pc = []}) Nothing),
+    ("Var Bindings",VarBindings [("x",VarBinding {varDeclAt = 1, varFrame = 0})]),
     ("boo28_2",SMethodType Int),
     ("i",SymFormalParam Int "i" Nothing),
     ("return",SymInt 5),
@@ -942,7 +968,7 @@ public int boo28_2(int i){
 
 ////////////////////////////////////////
 
-//DONE
+//TODO
 /*
 SymState {
   env = fromList [

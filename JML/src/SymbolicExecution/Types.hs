@@ -123,7 +123,13 @@ data SymExpr =
   | SymNull SymType               -- ^ value of an unassigned variable
   | SymFormalParam SymType String (Maybe SymExpr) -- ^ declared variable (a formal parameter)
   | SymGlobalVar SymType String (Maybe SymExpr) -- ^ variable declared outside the scope of the method
+  | VarBindings [(String,VarBinding)]
   deriving (Eq,Show)
+
+data VarBinding = VarBinding
+  { varDeclAt :: Int
+  , varFrame  :: Int
+  } deriving (Eq,Show)
 
 ppSymExpr :: SymExpr -> String
 ppSymExpr = \case

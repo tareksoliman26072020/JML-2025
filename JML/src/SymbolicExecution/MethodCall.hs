@@ -176,6 +176,7 @@ instance SymStateVisitor MethodCall_SymExec where
   ------------------------------
   ------------------------------
   ------------------------------
+      VarBindings _ -> return ER_Void
       ex ->
         throwError $ "visitSymExpr -> TODO: " ++ show ex
 

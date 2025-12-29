@@ -238,6 +238,34 @@ negateOp = \case
 ------------------------------
 ------------------------------
 
+getVarBindings :: SymState -> [(String,VarBinding)]
+getVarBindings symState = case Map.lookup "Var Bindings" (env symState) of
+  Nothing -> []
+  Just (VarBindings li) -> li
+
+getNewVarBinding :: Int -> Int -> AST.Statement -> Maybe (String,VarBinding)
+getNewVarBinding nodeId branchId = \case
+  -- AssignStmt {varModifier :: [Modifier], assign :: Expression}
+  AST.AssignStmt _ expr -> case expr of --throwError $ "MEOW::: " ++ show stmt
+    --AssignExpr {assEleft :: Expression, assEright :: Expression}
+    AST.AssignExpr left _ -> case left of
+      AST.VarExpr{} -> case AST.varType left of
+        Just _ ->
+          Just (AST.varName left,VarBinding nodeId branchId)
+        Nothing -> Nothing
+      _ -> error "getNewVarBinding -> won't happen1"
+    _ -> error "getNewVarBinding -> won't happen2"
+  --VarStmt {var = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "y"}}
+  stmt@AST.VarStmt{} -> case AST.var stmt of
+    AST.VarExpr varType _ varName -> case varType of
+      Just _ -> Just (varName,VarBinding nodeId branchId)
+      Nothing -> Nothing
+    _ -> error "getNewVarBinding -> won't happen3"
+  _ -> Nothing
+------------------------------
+------------------------------
+------------------------------
+
 -- replaces an occurrance of formalParam with the given actualParam
 -- useful in MethodCall.hs
 substitute :: String -> SymExpr -> SymExpr
