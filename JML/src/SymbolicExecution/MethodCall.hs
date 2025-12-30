@@ -34,7 +34,7 @@ instance SymStateVisitor MethodCall_SymExec where
         let newSymExpr = case visited of
               ER_Expr symExpr -> symExpr
               _ -> error $ printf "visitSymExpr ~~> SymFormalParam ~~> %s ~~> won't happen" (show visited)
-        tell [Log.ModifyState "visitSymExpr -> SymFormalParam" (key,show newSymExpr)]
+        tell [Log.ModifyState "visitSymExpr -> SymFormalParam" (show key,show newSymExpr)]
         modify $ \symState ->
           SymState {
             env = Map.insert key newSymExpr (env symState),
@@ -51,7 +51,7 @@ instance SymStateVisitor MethodCall_SymExec where
         let newSymExpr = case visited of
               ER_Expr symExpr2 -> symExpr2
               _ -> error $ printf "visitSymExpr ~~> SymFormalParam %s ~~> %s ~~> won't happen" (show symExpr) (show visited)
-        tell [Log.ModifyState (printf "visitSymExpr -> SymFormalParam %s" (show symExpr)) (key,show newSymExpr)]
+        tell [Log.ModifyState (printf "visitSymExpr -> SymFormalParam %s" (show symExpr)) (show key,show newSymExpr)]
         modify $ \symState ->
           SymState {
             env = Map.insert key newSymExpr (env symState),
@@ -70,7 +70,7 @@ instance SymStateVisitor MethodCall_SymExec where
         let newSymExpr = case visited of
               ER_Expr res -> res
               _ -> error $ printf "visitSymExpr ~~> SBin ~~> %s ~~> won't happen" (show visited)
-        tell [Log.ModifyState "visitSymExpr -> SBin" (key,show newSymExpr)]
+        tell [Log.ModifyState "visitSymExpr -> SBin" (show key,show newSymExpr)]
         modify $ \symState ->
           SymState {
             env = Map.insert key newSymExpr (env symState),
@@ -83,7 +83,7 @@ instance SymStateVisitor MethodCall_SymExec where
   ------------------------------
       SymInt _ -> do
         tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SymInt"]
-        tell [Log.ModifyState "visitSymExpr -> SymInt" (key,show val)]
+        tell [Log.ModifyState "visitSymExpr -> SymInt" (show key,show val)]
         modify $ \symState ->
           SymState {
             env = Map.insert key val (env symState),
@@ -96,7 +96,7 @@ instance SymStateVisitor MethodCall_SymExec where
   ------------------------------
       SMethodType _ -> do
         tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SMethodType"]
-        tell [Log.ModifyState "visitSymExpr -> SMethodType" (key,show val)]
+        tell [Log.ModifyState "visitSymExpr -> SMethodType" (show key,show val)]
         modify $ \symState ->
           SymState {
             env = Map.insert key val (env symState),
@@ -110,16 +110,6 @@ instance SymStateVisitor MethodCall_SymExec where
       val@(SIte boolSymExpr ifSymState maybeElseSymState) -> do
         tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SIte"]
         condVisited <- visitSymExpr0 boolSymExpr
-        {-
-          the condition is examined,
-          then either (ER_Expr SBin) or (ER_Expr SBool) is returned
-          
-          (ER_Expr SBin) means that SIte remains in if and else unchanged, but the condition is adjusted
-          (ER_Expr SBool) means:
-            1) that either the if branch or the else branch will be taken,
-            2) and instead of returning SIte, the actual state is to be replaced with that of the if or else branch
-            3) return in the end (ER_Expr SBool) to denote the picked branch
-         -}
         (_,methodCall,tus) <- ask
         case condVisited of
           ----------
@@ -132,7 +122,7 @@ instance SymStateVisitor MethodCall_SymExec where
               \(elseLogs,_) -> mapM_ (\log -> tell [log]) elseLogs
             --modify state
             let newSymExpr = SIte a newIfSymState $ fmap snd maybeElse
-            tell [Log.ModifyState "visitSymExpr -> SIte -> unresolved condition" (key,show newSymExpr)]
+            tell [Log.ModifyState "visitSymExpr -> SIte -> unresolved condition" (show key,show newSymExpr)]
             modify $ \symState ->
               SymState {
                 env = Map.insert key newSymExpr (env symState),
@@ -165,7 +155,7 @@ instance SymStateVisitor MethodCall_SymExec where
   ------------------------------
       SymNull _ -> do
         tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SymNull"]
-        tell [Log.ModifyState "visitSymExpr -> SymNull" (key,show val)]
+        tell [Log.ModifyState "visitSymExpr -> SymNull" (show key,show val)]
         modify $ \symState ->
           SymState {
             env = Map.insert key val (env symState),
@@ -257,27 +247,13 @@ visitSymExpr0 = \case
 runSymState :: SymState -> String -> [(FormalParm, ActualParm_post_Visitation)] -> Bool -> ([Log.Log],SymState)
 runSymState symState methodCall tus isInNestedScope =
   let -- mapM :: Monad m => (a -> m b) -> Map k a -> m (Map k b)
-      {-
-      runner :: [(String,SymExpr)] -> MethodCall_R
-      runner = \case
-        [] -> return ER_Void
-        ((key, symExpr) : rest) -> (>> runner rest) $ do
-          state <- get
-          case getReturnSymExpr state of
-            Just _
-              | not isInNestedScope -> return ER_Void
-            _ -> do
-              tell [Log.NextMethodCallSymExpr methodCall (key,show symExpr)]
-              --tell [Log.ReportTheState (show state)]
-              getReader_MethodCall_R $ visitSymExpr (key,symExpr)
-      -}
-      runner :: Map.Map String MethodCall_R
+      runner :: Map.Map SymStateKey MethodCall_R
       runner = flip Map.mapWithKey (env symState) $ \key symExpr -> do
-        tell [Log.NextMethodCallSymExpr methodCall (key,show symExpr)]
+        tell [Log.NextMethodCallSymExpr methodCall (show key,show symExpr)]
         state <- get
         case getReturnSymExpr state of
           Just _
-            | not isInNestedScope -> tell [Log.Skip $ printf "(%s,%s)" key (show symExpr)]
+            | not isInNestedScope -> tell [Log.Skip $ printf "(%s,%s)" (show key) (show symExpr)]
                 $> ER_Void
           _ -> getReader_MethodCall_R $ visitSymExpr (key,symExpr)
       initialSymState :: SymState

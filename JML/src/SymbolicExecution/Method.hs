@@ -32,12 +32,12 @@ instance CFGVisitor Method_SymExec where
           mapM (\arg -> do
                    argVisited <- visitExpr arg
                    case argVisited of
-                     ER_SymStateMapEntry name (SymNull symType) -> do
+                     ER_SymStateMapEntry (VarName name) (SymNull symType) -> do
                        let newVal = SymFormalParam symType name Nothing
                        tell [Log.ModifyState "visitNode -> Entry -> method with args" (name,show newVal)]
                        modify $ \symState ->
                          SymState {
-                           env = Map.insert name newVal (env symState),
+                           env = Map.insert (VarName name) newVal (env symState),
                            pc = pc symState
                          }
                      _ -> throwError "won't happen"
@@ -74,7 +74,7 @@ instance CFGVisitor Method_SymExec where
             tell [Log.AddVarBinding "visitNode -> Node -> Statement" (show new)]
             modify $ \state2 ->
               SymState {
-                env = Map.insert "Var Bindings" (SVarBindings $ Map.insert (fst new) (snd new) old) (env state2),
+                env = Map.insert VarBindings (SVarBindings $ Map.insert (fst new) (snd new) old) (env state2),
                 pc = pc state2
               }
             return ER_Void
@@ -115,13 +115,12 @@ instance CFGVisitor Method_SymExec where
                     let (logs,condSymState) = runCFG cfgs cfg (Just ifB) (Just state)
                     flip mapM_ logs $ \log ->
                       tell [Log.Nested "if statement" log]
-                    -- TODO: remove vars declared in that scope
+                    -- remove vars declared in that scope
                     -- use vars bindings to do so
-                    -- let varBindings = getVarBindings condSymState
-                    --let condSymStateFiltered = SymState (env condSymState) (pc condSymState)
-                    tell [Log.ModifyState (printf "visitNode -> Node -> BooleanExpression if -> overwriting if") ("<new state>",show condSymState)]
-                    modify (const condSymState)
-                    return $ ER_State condSymState
+                    let newCondSymState = removeDeletedVars state condSymState
+                    tell [Log.ModifyState (printf "visitNode -> Node -> BooleanExpression if -> overwriting if") ("<new state>",show newCondSymState)]
+                    modify (const newCondSymState)
+                    return $ ER_State newCondSymState
                   [ifB] | not b -> do
                     tell [Log.NoElseBranch "visitNode -> Node -> BooleanExpression if"]
                     return $ ER_Void
@@ -129,9 +128,12 @@ instance CFGVisitor Method_SymExec where
                     let (logs,condSymState) = runCFG cfgs cfg (Just $ if b then ifB else elseB) (Just state)
                     flip mapM_ logs $ \log ->
                       tell [Log.Nested (printf "%s statement" $ if b then "if" else "else") log]
-                    tell [Log.ModifyState (printf "visitNode -> Node -> BooleanExpression if -> overwriting %s" $ if b then "if" else "else") ("<new state>",show condSymState)]
-                    modify (const condSymState)
-                    return $ ER_State condSymState
+                    -- remove vars declared in that scope
+                    -- use vars bindings to do so
+                    let newCondSymState = removeDeletedVars state condSymState
+                    tell [Log.ModifyState (printf "visitNode -> Node -> BooleanExpression if -> overwriting %s" $ if b then "if" else "else") ("<new state>",show newCondSymState)]
+                    modify (const newCondSymState)
+                    return $ ER_State newCondSymState
               SBin _ _ _ -> do
                 let (ifLogs,ifSymState) = runCFG cfgs cfg (Just $ branches_paths !! 0) (Just state)
                 flip mapM_ ifLogs $ \log ->
@@ -146,7 +148,7 @@ instance CFGVisitor Method_SymExec where
                 tell [Log.ModifyState "visitNode -> Node -> BooleanExpression if -> recording symbolic branching" (printf "if node num: %d" (CFG.id n),show symExpr)]
                 modify $ \symState ->
                   SymState {
-                    env = Map.insert (show $ CFG.id n) symExpr (env symState),
+                    env = Map.insert (NodeNr $ CFG.id n) symExpr (env symState),
                     pc = pc symState
                   }
                 return (ER_Expr symExpr)
@@ -157,9 +159,26 @@ instance CFGVisitor Method_SymExec where
       ----------------------------------------
       _ -> throwError
         $ "TODO -> visitNode -> Node -> nodeData -> otherwise" ++ show n
+      where
+      removeDeletedVars :: SymState -> SymState -> SymState
+      removeDeletedVars state condSymState =
+        let outerVarBindings = getVarBindings state
+            condVarBindings = getVarBindings condSymState
+            varsToDelete = condVarBindings Map.\\ outerVarBindings
+            newCondSymStateEnv = flip Map.foldMapWithKey (env condSymState) $
+              \key val -> case (key,val) of
+                 (VarName varName,_)
+                    | varName `Map.member` varsToDelete -> Map.empty
+                    | otherwise -> Map.singleton key val
+                 (VarBindings,_) -> Map.singleton VarBindings (SVarBindings outerVarBindings)
+                 (_,_) -> Map.singleton key val
+            newCondSymState = SymState newCondSymStateEnv (pc condSymState)
+        in newCondSymState
 
 getFunHandle :: Method_R
-getFunHandle = (\(Just t,Just k) -> ER_FunHandle t k)
+getFunHandle = (\(Just t,Just k) -> case k of
+                    MethodName k2 -> ER_FunHandle t k2
+                    _ -> error "getFunHandle ==> won't happen")
   <$> Map.foldlWithKey'
         (\acc k -> \case
                       SMethodType t -> (Just t,Just k)
@@ -183,7 +202,7 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
   tell [Log.ModifyState "visitStmt -> ReturnStmt -> method with args" ("return",show symExpr)]
   modify $ \symState ->
     SymState {
-      env = Map.insert "return" symExpr (env symState),
+      env = Map.insert Return symExpr (env symState),
       pc = pc symState
     }
   toReturn <- ER_State <$> get
@@ -311,7 +330,7 @@ visitExpr expr@AST.BinOpExpr{} = do
                                  else "booleanCalculator")) (show toReturn)
             ] $> toReturn
   getReturnSymExpr :: SymState -> SymExpr
-  getReturnSymExpr = maybe (error "visitExpr ~~> BinOpExpr ~~> getReturnSymExpr ~~> no return value found") id . (Map.!? "return") . env
+  getReturnSymExpr = maybe (error "visitExpr ~~> BinOpExpr ~~> getReturnSymExpr ~~> no return value found") id . (Map.!? Return) . env
 -- UnOpExpr {unOp :: UnOp, expr :: Expression}
 visitExpr expr@AST.UnOpExpr{} = throwError "visitExpr ==> UnOpExpr ==> TODO"
 -- AssignExpr {assEleft :: Expression, assEright :: Expression}
@@ -335,7 +354,7 @@ visitExpr expr@AST.AssignExpr{} = do
           let v = cast (toSymType2 val) e2
           in SymGlobalVar t n (Just v)
         _ -> cast (toSymType2 val) e2
-  tell [Log.ModifyState "visitExpr -> AssignExpr" (svn,show newVal)]
+  tell [Log.ModifyState "visitExpr -> AssignExpr" (show svn,show newVal)]
   modify $ \symState ->
     SymState {
       env = Map.insert svn newVal (env symState),
@@ -351,16 +370,16 @@ visitExpr expr@AST.VarExpr{} = do
   case AST.varType expr of
     Nothing -> do
       tell [Log.UpdateVariable varName_ "visitExpr -> VarExpr"]
-      mVal <- (Map.!? varName_) <$> env <$> get
+      mVal <- (Map.!? VarName varName_) <$> env <$> get
       case mVal of
         Just val -> do
           tell [Log.LookUpEnvTable varName_ (show val) "visitExpr -> VarExpr"]
-          let toReturn = ER_SymStateMapEntry varName_ val
+          let toReturn = ER_SymStateMapEntry (VarName varName_) val
           tell [Log.Return "visitExpr -> VarExpr -> Updating" (show toReturn)] $> toReturn
         Nothing -> do
           tell [Log.GlobalVar varName_ "visitExpr -> VarExpr"]
           ER_FunHandle t _ <- getFunHandle
-          let toReturn = ER_SymStateMapEntry varName_ (SymGlobalVar t varName_ Nothing)
+          let toReturn = ER_SymStateMapEntry (VarName varName_) (SymGlobalVar t varName_ Nothing)
           tell [Log.Return "visitExpr -> VarExpr -> Recording Global Variable" (show toReturn)] $> toReturn
     Just t -> do
       tell [Log.NewVariable (show t) varName_ "visitExpr -> VarExpr"]
@@ -368,10 +387,10 @@ visitExpr expr@AST.VarExpr{} = do
       tell [Log.ModifyState "visitExpr -> VarExpr" (varName_,show sExpr)]
       modify $ \symState ->
         SymState {
-          env = Map.insert varName_ sExpr (env symState),
+          env = Map.insert (VarName varName_) sExpr (env symState),
           pc = pc symState
         }
-      let toReturn = ER_SymStateMapEntry varName_ sExpr
+      let toReturn = ER_SymStateMapEntry (VarName varName_) sExpr
       tell [Log.Return "visitExpr -> VarExpr -> Declaring Local Variable" (show toReturn)] $> toReturn
 visitExpr expr@AST.ArrayCallExpr{} = throwError "TODO: visitExpr -> ArrayCallExpr"
 visitExpr expr@(AST.BoolLiteral b) = do
@@ -418,7 +437,7 @@ runCFG cfgs cfg mPath mSymState =
         case getReturnSymExpr state of
           Just _ -> tell [Log.Skip $ printf "%s" (show node)] $> ER_Void
           Nothing -> getReader_Method_R $ visitNode node
-      initialSymState = maybe (SymState (Map.insert (CFG.getCFGName cfg) (SMethodType $ toSymType1 $ CFG.getCFGType cfg) Map.empty) []) id mSymState
+      initialSymState = maybe (SymState (Map.insert (MethodName $ CFG.getCFGName cfg) (SMethodType $ toSymType1 $ CFG.getCFGType cfg) Map.empty) []) id mSymState
       run_r :: ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))) ()
       run_r = runReaderT runner (defaultConfig,cfgs)
       run_e :: WriterT [Log.Log] (StateT SymState (Either String)) (Either String ())
@@ -431,11 +450,11 @@ runCFG cfgs cfg mPath mSymState =
        Left str -> error str
        Right ((ei,logs),SymState m ps) ->
          let m2 = flip Map.mapWithKey m $ \k v -> case (CFG.getCFGType cfg,k,v) of
-                    (AST.BuiltInType AST.Int, "return", SymNum float)    ->
+                    (AST.BuiltInType AST.Int, Return, SymNum float)    ->
                         SymInt (round float)
-                    (AST.BuiltInType AST.Double, "return", SymNum float) ->
+                    (AST.BuiltInType AST.Double, Return, SymNum float) ->
                         SymDouble (realToFrac float)
-                    (AST.BuiltInType AST.Float, "return", SymNum float)  ->
+                    (AST.BuiltInType AST.Float, Return, SymNum float)  ->
                         SymFloat float
                     (_,_,_) -> v
          in (logs,either error (const (SymState m2 ps)) ei)

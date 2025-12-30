@@ -98,7 +98,7 @@ findSymType :: [SymExpr] -> Maybe SymType
 findSymType = asum . map toSymType3
 
 getReturnSymExpr :: SymState -> Maybe SymExpr
-getReturnSymExpr = Map.lookup "return" . env
+getReturnSymExpr = Map.lookup Return . env
 
 getSymExpr :: ExecutionResult -> SymExpr
 getSymExpr er@(ER_Expr symExpr) = symExpr
@@ -239,7 +239,7 @@ negateOp = \case
 ------------------------------
 
 getVarBindings :: SymState -> Map.Map String VarBinding
-getVarBindings symState = case Map.lookup "Var Bindings" (env symState) of
+getVarBindings symState = case Map.lookup VarBindings (env symState) of
   Nothing -> Map.empty
   Just (SVarBindings li) -> li
 
