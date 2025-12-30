@@ -1167,7 +1167,7 @@ public static int boo28_6(int i){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
 /*
 SymState {
   env = fromList [
@@ -1195,7 +1195,43 @@ public static int boo28_6_2(int i){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "boo28_6_3",SMethodType Int),
+    (VarBindings,SVarBindings (fromList [("x",VarBinding {varDeclAt = 1, varFrame = 0}),("y",VarBinding {varDeclAt = 7, varFrame = 0})])),
+    (VarName "i",SymFormalParam Int "i" Nothing),
+    (VarName "x",SymInt 1),
+    (VarName "y",SymInt 2),
+    (Return,SymInt 7)
+  ], pc = []
+}
+*/
+public static int boo28_6_3(int i){
+  int x = 1;
+  if(x >= 0){
+    int y = 0;
+    y++;
+  }
+  else {
+    x++;
+  }
+  int y = 2;
+  return 5+y;
+}
+
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "boo28_6_p",SMethodType Int),
+    (Return,SymInt 11)
+  ], pc = []
+}
+*/
 public int boo28_6_p() {
   return boo28_6(10);
 }
