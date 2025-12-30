@@ -345,6 +345,7 @@ visitExpr expr@AST.AssignExpr{} = do
             case getReturnSymExpr funCallState of
               Nothing -> error $ printf "visitExpr ~~> AssignExpr ~~> won't happen"
               Just e2_ -> e2_
+          ER_SymStateMapEntry _ e2_ -> e2_
   tell [Log.Affected "visitExpr -> AssignExpr" [show one, show two]]
   let newVal = case val of
         SymFormalParam t n _ ->

@@ -1238,6 +1238,119 @@ public int boo28_6_p() {
 
 ////////////////////////////////////////
 
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "boo29",SMethodType Bool),
+    (Return,SBool False)
+  ], pc = []
+}
+*/
+public boolean boo29(){
+  if(true){
+    return false;
+  }
+  else{
+    return true;
+  }
+}
+
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "boo30",SMethodType Int),
+    (VarBindings,SVarBindings (fromList [("x1",VarBinding {varDeclAt = 1, varFrame = 0}),("x2",VarBinding {varDeclAt = 2, varFrame = 0})])),
+    (VarName "x1",SymInt 0),
+    (VarName "x2",SymInt 0),
+    (VarName "y",SymGlobalVar Int "y" (Just (SymInt 0))),
+    (VarName "y1",SymGlobalVar Int "y1" (Just (SymInt 0))),
+    (VarName "y2",SymGlobalVar Int "y2" (Just (SymInt 0))),
+    (VarName "z",SymFormalParam Int "z" Nothing),
+    (NodeNr 6,SIte (SBin (SymFormalParam Int "z" Nothing) Ge (SymInt 0))
+                   (SymState {env = fromList [(MethodName "boo30",SMethodType Int),(VarBindings,SVarBindings (fromList [("x1",VarBinding {varDeclAt = 1, varFrame = 0}),("x2",VarBinding {varDeclAt = 2, varFrame = 0})])),(VarName "t1",SymGlobalVar Int "t1" (Just (SymInt 7))),(VarName "x1",SymInt 0),(VarName "x2",SymInt 0),(VarName "y",SymGlobalVar Int "y" (Just (SymInt 0))),(VarName "y1",SymGlobalVar Int "y1" (Just (SymInt 0))),(VarName "y2",SymGlobalVar Int "y2" (Just (SymInt 0))),(VarName "z",SymFormalParam Int "z" Nothing),(Return,SymGlobalVar Int "t1" (Just (SymInt 7)))], pc = []})
+                   (Just (SymState {env = fromList [(MethodName "boo30",SMethodType Int),(VarBindings,SVarBindings (fromList [("x1",VarBinding {varDeclAt = 1, varFrame = 0}),("x2",VarBinding {varDeclAt = 2, varFrame = 0})])),(VarName "t2",SymGlobalVar Int "t2" (Just (SymInt 17))),(VarName "x1",SymInt 0),(VarName "x2",SymInt 0),(VarName "y",SymGlobalVar Int "y" (Just (SymInt 0))),(VarName "y1",SymGlobalVar Int "y1" (Just (SymInt 0))),(VarName "y2",SymGlobalVar Int "y2" (Just (SymInt 0))),(VarName "z",SymFormalParam Int "z" Nothing),(Return,SymGlobalVar Int "t2" (Just (SymInt 17)))], pc = []})))
+  ], pc = []
+}
+*/
+public int boo30(int z){
+  int x1 = 0;
+  int x2 = 0;
+  y = 0;
+  y1 = 0;
+  y2 = 0;
+  if(z>=0){
+    t1 = 7;
+    return t1;
+  }
+  else{
+    t2 = 17;
+    return t2;
+  }
+}
+
+////////////////////////////////////////
+
+/*
+SymState {
+  env = fromList [
+    (MethodName "boo31",SMethodType Int),
+    (VarBindings,SVarBindings (fromList [("x",VarBinding {varDeclAt = 2, varFrame = 0})])),
+    (VarName "x",SymGlobalVar Int "z" (Just (SymInt 0))),
+    (VarName "z",SymGlobalVar Int "z" (Just (SymInt 0))),
+    (Return,SymGlobalVar Int "z" (Just (SymInt 0)))
+  ], pc = []
+}
+*/
+public int boo31(){
+  z = 0;
+  int x = z;
+  return x;
+}
+
+///////////////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "boo31_2",SMethodType Int),
+    (VarBindings,SVarBindings (fromList [("x",VarBinding {varDeclAt = 2, varFrame = 0})])),
+    (VarName "x",SymGlobalVar Int "z" (Just (SymInt 0))),
+    (VarName "z",SymGlobalVar Int "z" (Just (SymInt 0))),
+    (Return,SymInt 7)
+  ], pc = []
+}
+*/
+public int boo31_2(){
+  z = 0;
+  int x = z;
+  return boo30(1);
+}
+
+///////////////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "boo32",SMethodType Int),
+    (VarBindings,SVarBindings (fromList [("x",VarBinding {varDeclAt = 1, varFrame = 0})])),
+    (VarName "x",SBin (SBin (SymGlobalVar Int "y1" Nothing) Add (SymGlobalVar Int "y2" Nothing)) Add (SymGlobalVar Int "y3" Nothing)),
+    (Return,SBin (SBin (SymGlobalVar Int "y1" Nothing) Add (SymGlobalVar Int "y2" Nothing)) Add (SymGlobalVar Int "y3" Nothing))
+  ], pc = []
+}
+*/
+public int boo32(){
+  int x = y1 + y2 + y3;
+  return x;
+}
+
+///////////////////////////////////////////////////
+
 //TODO
 /*
 CFG {

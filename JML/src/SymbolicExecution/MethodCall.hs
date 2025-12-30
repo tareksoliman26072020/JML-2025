@@ -166,7 +166,30 @@ instance SymStateVisitor MethodCall_SymExec where
   ------------------------------
   ------------------------------
   ------------------------------
+      SymGlobalVar t varName mExpr -> do
+        tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SymGlobalVar"]
+        ER_Expr newSymExpr <- case mExpr of
+          Nothing -> return ER_Void
+          Just expr -> do
+            visited <- visitSymExpr0 expr
+            case visited of
+              a@(ER_Expr symExpr) -> return a
+              _ -> error $ printf "visitSymExpr ~~> SymGlobalVar ~~> %s ~~> %s ~~> won't happen" (show val) (show visited)
+        tell [Log.ModifyState "visitSymExpr -> SymGlobalVar" (show key,show newSymExpr)]
+        modify $ \symState ->
+          SymState {
+            env = Map.insert key newSymExpr (env symState),
+            pc  = pc symState
+          }
+        let toReturn = ER_SymStateMapEntry key newSymExpr
+        tell [Log.Return (printf "visitSymExpr -> SymGlobalVar -> %s" (show newSymExpr)) (show toReturn)] $> toReturn
+  ------------------------------
+  ------------------------------
+  ------------------------------
       SVarBindings _ -> return ER_Void
+  ------------------------------
+  ------------------------------
+  ------------------------------      
       ex ->
         throwError $ "visitSymExpr -> TODO: " ++ show ex
 
@@ -220,8 +243,6 @@ visitSymExpr0 = \case
       <$> (visitSymExpr0 symExpr1)
       <*> (visitSymExpr0 symExpr2)
     tell [Log.Return "visitSymExpr -> SBin" (show toReturn)] $> toReturn
-  --throwError $ "visitSymExpr -> SBin -> " ++ show val
-  --throwError $ "visitSymExpr0 -> SBin ~~> TODO: " ++ show val
   ------------------------------
   ------------------------------
   ------------------------------
@@ -238,7 +259,6 @@ visitSymExpr0 = \case
   ------------------------------
   ex ->
     throwError $ "visitSymExpr0 -> TODO: " ++ show ex
-
 ------------------------------
 ------------------------------
 ------------------------------

@@ -1412,6 +1412,17 @@ public int boo29_2(){
     return boo27(-5);
   }
 }
+
+///////////////////////////////////////////////////
+
+/*
+SymState {
+  env = fromList [
+    (MethodName "boo29",SMethodType Bool),
+    (Return,SBool False)
+  ], pc = []
+}
+*/
 public boolean boo29(){
   if(true){
     return false;
@@ -1424,55 +1435,21 @@ public boolean boo29(){
 ///////////////////////////////////////////////////
 
 /*
-CFG {nodes = [Entry,Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x1"}, assEright = NumberLiteral 0.0}}), parent = 0},Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x2"}, assEright = NumberLiteral 0.0}}), parent = 0},Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "y"}, assEright = NumberLiteral 0.0}}), parent = 0},Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "y1"}, assEright = NumberLiteral 0.0}}), parent = 0},Node {id = 5, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "y2"}, assEright = NumberLiteral 0.0}}), parent = 0},Node {id = 6, nodeData = BooleanExpression If (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "z"}, binOp = >=, expr2 = NumberLiteral 0.0}), parent = 0},Node {id = 7, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "t1"}, assEright = NumberLiteral 7.0}}), parent = 0},End {id = 8, parent = 0, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "t1"})},Node {id = 9, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "t2"}, assEright = NumberLiteral 17.0}}), parent = 6},End {id = 10, parent = 6, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "t2"})},Node {id = 11, nodeData = Meet If, parent = 0}], edges = [(0,[1]),(1,[2]),(2,[3]),(3,[4]),(4,[5]),(5,[6]),(6,[7,9]),(7,[8]),(9,[10]),(8,[11]),(10,[11])]}
-*/
-/*
-  Entry
-----------
-  0 -> 1:
-        Int x1 = 0.0
-----------
-  0 -> 2:
-        Int x2 = 0.0
-----------
-  0 -> 3:
-        y = 0.0
-----------
-  0 -> 4:
-        y1 = 0.0
-----------
-  0 -> 5:
-        y2 = 0.0
-----------
-  0 -> 6:
-        If: cond: z >= 0.0
-----------
-  0 -> 7:
-        t1 = 7.0
-----------
-  End: 0 -> 8:
-        return: t1
-----------
-  6 -> 9:
-        t2 = 17.0
-----------
-  End: 6 -> 10:
-        return: t2
-----------
-  0 -> 11:
-        Meet: If
-========================
-  (0,[1])
-  (1,[2])
-  (2,[3])
-  (3,[4])
-  (4,[5])
-  (5,[6])
-  (6,[7,9])
-  (7,[8])
-  (9,[10])
-  (8,[11])
-  (10,[11])
+SymState {
+  env = fromList [
+    (MethodName "boo30",SMethodType Int),
+    (VarBindings,SVarBindings (fromList [("x1",VarBinding {varDeclAt = 1, varFrame = 0}),("x2",VarBinding {varDeclAt = 2, varFrame = 0})])),
+    (VarName "x1",SymInt 0),
+    (VarName "x2",SymInt 0),
+    (VarName "y",SymGlobalVar Int "y" (Just (SymInt 0))),
+    (VarName "y1",SymGlobalVar Int "y1" (Just (SymInt 0))),
+    (VarName "y2",SymGlobalVar Int "y2" (Just (SymInt 0))),
+    (VarName "z",SymFormalParam Int "z" Nothing),
+    (NodeNr 6,SIte (SBin (SymFormalParam Int "z" Nothing) Ge (SymInt 0))
+                   (SymState {env = fromList [(MethodName "boo30",SMethodType Int),(VarBindings,SVarBindings (fromList [("x1",VarBinding {varDeclAt = 1, varFrame = 0}),("x2",VarBinding {varDeclAt = 2, varFrame = 0})])),(VarName "t1",SymGlobalVar Int "t1" (Just (SymInt 7))),(VarName "x1",SymInt 0),(VarName "x2",SymInt 0),(VarName "y",SymGlobalVar Int "y" (Just (SymInt 0))),(VarName "y1",SymGlobalVar Int "y1" (Just (SymInt 0))),(VarName "y2",SymGlobalVar Int "y2" (Just (SymInt 0))),(VarName "z",SymFormalParam Int "z" Nothing),(Return,SymGlobalVar Int "t1" (Just (SymInt 7)))], pc = []})
+                   (Just (SymState {env = fromList [(MethodName "boo30",SMethodType Int),(VarBindings,SVarBindings (fromList [("x1",VarBinding {varDeclAt = 1, varFrame = 0}),("x2",VarBinding {varDeclAt = 2, varFrame = 0})])),(VarName "t2",SymGlobalVar Int "t2" (Just (SymInt 17))),(VarName "x1",SymInt 0),(VarName "x2",SymInt 0),(VarName "y",SymGlobalVar Int "y" (Just (SymInt 0))),(VarName "y1",SymGlobalVar Int "y1" (Just (SymInt 0))),(VarName "y2",SymGlobalVar Int "y2" (Just (SymInt 0))),(VarName "z",SymFormalParam Int "z" Nothing),(Return,SymGlobalVar Int "t2" (Just (SymInt 17)))], pc = []})))
+  ], pc = []
+}
 */
 public int boo30(int z){
   int x1 = 0;
@@ -1492,6 +1469,17 @@ public int boo30(int z){
 
 ///////////////////////////////////////////////////
 
+/*
+SymState {
+  env = fromList [
+    (MethodName "boo31",SMethodType Int),
+    (VarBindings,SVarBindings (fromList [("x",VarBinding {varDeclAt = 2, varFrame = 0})])),
+    (VarName "x",SymGlobalVar Int "z" (Just (SymInt 0))),
+    (VarName "z",SymGlobalVar Int "z" (Just (SymInt 0))),
+    (Return,SymGlobalVar Int "z" (Just (SymInt 0)))
+  ], pc = []
+}
+*/
 public int boo31(){
   z = 0;
   int x = z;
@@ -1500,6 +1488,17 @@ public int boo31(){
 
 ///////////////////////////////////////////////////
 
+/*
+SymState {
+  env = fromList [
+    (MethodName "boo31_2",SMethodType Int),
+    (VarBindings,SVarBindings (fromList [("x",VarBinding {varDeclAt = 2, varFrame = 0})])),
+    (VarName "x",SymGlobalVar Int "z" (Just (SymInt 0))),
+    (VarName "z",SymGlobalVar Int "z" (Just (SymInt 0))),
+    (Return,SymInt 7)
+  ], pc = []
+}
+*/
 public int boo31_2(){
   z = 0;
   int x = z;
@@ -1509,28 +1508,14 @@ public int boo31_2(){
 ///////////////////////////////////////////////////
 
 /*
-CFG {nodes = [Entry,Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x"}, assEright = BinOpExpr {expr1 = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "y1"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "y2"}}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "y3"}}}}), parent = 0},End {id = 2, parent = 0, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "x"})}], edges = [(0,[1]),(1,[2])]}
-*/
-/*
-  Entry
-----------
-  0 -> 1:
-        Int x = y1 + y2 + y3
-----------
-  End: 0 -> 2:
-        return: x
-========================
-  (0,[1])
-  (1,[2])
-*/
-/*
-env_final = 
-  { "y1" ↦ SVar "y1₀"
-  , "y2" ↦ SVar "y2₀"
-  , "y3" ↦ SVar "y3₀"
-  , "x"  ↦ SBin Add (SBin Add (SVar "y1₀") (SVar "y2₀")) (SVar "y3₀")
-  }
-pc_final = []
+SymState {
+  env = fromList [
+    (MethodName "boo32",SMethodType Int),
+    (VarBindings,SVarBindings (fromList [("x",VarBinding {varDeclAt = 1, varFrame = 0})])),
+    (VarName "x",SBin (SBin (SymGlobalVar Int "y1" Nothing) Add (SymGlobalVar Int "y2" Nothing)) Add (SymGlobalVar Int "y3" Nothing)),
+    (Return,SBin (SBin (SymGlobalVar Int "y1" Nothing) Add (SymGlobalVar Int "y2" Nothing)) Add (SymGlobalVar Int "y3" Nothing))
+  ], pc = []
+}
 */
 public int boo32(){
   int x = y1 + y2 + y3;
