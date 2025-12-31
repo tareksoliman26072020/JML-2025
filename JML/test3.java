@@ -1443,7 +1443,19 @@ public void voidFun3() {
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "voidFun4",SMethodType Void),
+    (VarBindings,SVarBindings (fromList [("x",VarBinding {varDeclAt = 1, varFrame = 0}),("y",VarBinding {varDeclAt = 2, varFrame = 0}),("z",VarBinding {varDeclAt = 5, varFrame = 0})])),
+    (VarName "x",SymInt 1),
+    (VarName "y",SymString "is one"),
+    (VarName "z",SymString "1 is one"),
+    (Actions,SActions ["1 is one\n"])
+  ], pc = []
+}
+*/
 public void voidFun4() {
   int x;
   String y;
@@ -1451,6 +1463,23 @@ public void voidFun4() {
   y = "is one";
   String z = toString(x) + " " + y;
   println(z);
+}
+
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "voidFun5",SMethodType Void),
+    (Actions,SActions ["Before\n","1 is one\n","After\n"])
+  ], pc = []
+}
+*/
+public void voidFun5() {
+  println("Before");
+  voidFun4();
+  println("After");
 }
 
 ////////////////////////////////////////

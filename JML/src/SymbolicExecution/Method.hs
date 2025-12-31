@@ -108,6 +108,7 @@ instance CFGVisitor Method_SymExec where
         --throwError $ "visitNode ==> Node ==> BooleanExpression ==> " ++ show branches_paths
         ER_Expr expr2 <- visitExpr expr
         state <- get
+        let mainActions = getActions state
         toReturn <- case expr2 of
               SBool b -> do
                 case branches_paths of
@@ -117,7 +118,14 @@ instance CFGVisitor Method_SymExec where
                       tell [Log.Nested "if statement" log]
                     -- remove vars declared in that scope
                     -- use vars bindings to do so
-                    let newCondSymState = removeDeletedVars state condSymState
+                    let s = removeDeletedVars state condSymState
+                        newCondSymState = SymState {
+                          env = Map.alter (\case
+                            Nothing -> Just $ SActions mainActions
+                            Just (SActions li) -> Just $ SActions $ mainActions ++ li) Actions
+                              $ env s,
+                          pc = pc s
+                        }
                     tell [Log.ModifyState (printf "visitNode -> Node -> BooleanExpression if -> overwriting if") ("<new state>",show newCondSymState)]
                     modify (const newCondSymState)
                     return $ ER_State newCondSymState
@@ -130,7 +138,14 @@ instance CFGVisitor Method_SymExec where
                       tell [Log.Nested (printf "%s statement" $ if b then "if" else "else") log]
                     -- remove vars declared in that scope
                     -- use vars bindings to do so
-                    let newCondSymState = removeDeletedVars state condSymState
+                    let s = removeDeletedVars state condSymState
+                        newCondSymState = SymState {
+                          env = Map.alter (\case
+                            Nothing -> Just $ SActions mainActions
+                            Just (SActions li) -> Just $ SActions $ mainActions ++ li) Actions
+                              $ env s,
+                          pc = pc s
+                        }
                     tell [Log.ModifyState (printf "visitNode -> Node -> BooleanExpression if -> overwriting %s" $ if b then "if" else "else") ("<new state>",show newCondSymState)]
                     modify (const newCondSymState)
                     return $ ER_State newCondSymState
@@ -218,9 +233,36 @@ visitStmt stmt@AST.VarStmt{} = do
   _ <- visitExpr $ AST.var stmt
   toReturn <- ER_State <$> get
   tell [Log.Return "visitStmt -> VarStmt" (show toReturn)] $> toReturn
-visitStmt (AST.FunCallStmt expr) = case expr of
-  exp@AST.FunCallExpr{} -> undefined
-  _ -> throwError $ "visitStmt ==> FunCallStmt ==> won't happen: " ++ show expr
+visitStmt stmt@(AST.FunCallStmt expr) = case expr of
+  AST.FunCallExpr{} -> do
+    toReturn <- visitExpr expr
+    case toReturn of
+      ER_Print str -> do 
+        tell [Log.ModifyState "visitStmt -> FunCallStmt" ("SActions",str)]
+        modify $ \symState ->
+          SymState {
+            -- alter :: Ord k => (Maybe a -> Maybe a) -> k -> Map k a -> Map k a 
+            env = Map.alter (\case
+                    Nothing -> Just $ SActions [str]
+                    Just (SActions li) -> Just $ SActions $ li ++ [str]) Actions (env symState),
+            pc = pc symState
+          }
+        tell [Log.Return "visitStmt -> FunCallStmt" (show toReturn)] $> toReturn
+      ER_FunCall state -> do
+        {-
+        let actions = getActions state
+        tell [Log.ModifyState "visitStmt -> FunCallStmt -> inheriting actions" ("Actions",show actions)]
+        modify $ \symState ->
+          SymState {
+            env = Map.alter (\case
+                    Nothing -> Just $ SActions actions
+                    Just (SActions li) -> Just $ SActions $ li ++ actions) Actions (env symState),
+            pc = pc symState
+          }
+         -}
+        return ER_Void
+      _ -> throwError $ "visitStmt ==> FunCallStmt ==> won't happen 1: " ++ show toReturn
+  _ -> throwError $ "visitStmt ==> FunCallStmt ==> won't happen 2: " ++ show expr
 visitStmt stmt = throwError $ "TODO -> visitStmt -> " ++ show stmt
 
 {-
@@ -298,16 +340,38 @@ visitExpr (expr@AST.FunCallExpr{}) = do
           
           -- get SymState due to insertion of actual parameters
           let (funCallLogs2,funCallSymState2) = runSymState funCallSymState1 funCallName tus False
+              actions = getActions funCallSymState2
+          if null actions
+            then return ER_Void
+            else do
+              tell [Log.ModifyState "visitExpr -> FunCallExpr -> inheriting actions" ("Actions",show actions)]
+              modify $ \symState ->
+                SymState {
+                  env = Map.alter (\case
+                          Nothing -> Just $ SActions actions
+                          Just (SActions li) -> Just $ SActions $ li ++ actions) Actions (env symState),
+                  pc = pc symState
+                }
+              return ER_Void
           -- edit its logs
           mapM_ (\log -> tell [Log.Nested ("actual: " ++ funCallName) log]) funCallLogs2
           tell [Log.RunSymStateActualMethodCall (show funCallSymState2)]
           let toReturn = ER_FunCall funCallSymState2
           tell [Log.Return "visitExpr -> FunCallExpr -> with parameters" (show toReturn)] $> toReturn
         -- if it has no parameters
-        []   -> case getReturnSymExpr funCallSymState1 of
-          Just symExpr -> 
+        []   ->
+          let actions = getActions funCallSymState1
+          in case getReturnSymExpr funCallSymState1 of
+          Just symExpr -> do
             let toReturn = ER_Expr symExpr
-            in tell [Log.Return "visitExpr -> FunCallExpr -> no parameters" (show toReturn)] $> toReturn
+            modify $ \symState ->
+              SymState {
+                env = Map.alter (\case
+                        Nothing -> Just $ SActions actions
+                        Just (SActions li) -> Just $ SActions $ li ++ actions) Actions (env symState),
+                pc = pc symState
+              }
+            tell [Log.Return "visitExpr -> FunCallExpr -> no parameters" (show toReturn)] $> toReturn
           Nothing      -> throwError "visitExpr ==> FunCallExpr ==> fun returns nothing ==> TODO"
     -- CFG not found
     Nothing
@@ -315,12 +379,14 @@ visitExpr (expr@AST.FunCallExpr{}) = do
           tell [Log.ProcessPredefinedFunCall "visitExpr ==> FunCallExpr" (show $ AST.funName expr) (show $ AST.funArgs expr)]
           -- get SymExprs of args
           funArgsExprs <- mapM (\ex -> do
-            ER_SymStateMapEntry _ val <- visitExpr ex
-            return val) $ AST.funArgs expr
-          --throwError $ printf "continue: visitExpr ==> FunCallExpr: %s" (show funArgsExprs)
-          let toReturn@(ER_Expr ex) = case funCallCalculator (AST.getFunCallName $ AST.FunCallStmt expr,funArgsExprs) of
-                e@(SymString _) -> ER_Expr e
-                _ -> error $ printf "TODO: visitExpr => FunCallExpr:\n%s\n%s" (AST.getFunCallName $ AST.FunCallStmt expr) (show funArgsExprs)
+            --ER_SymStateMapEntry _ val <- visitExpr ex
+            v <- visitExpr ex
+            case v of
+              ER_SymStateMapEntry _ val -> return val
+              ER_Expr expr -> return expr
+            --throwError $ "MEOW:::" ++ show v
+            ) $ AST.funArgs expr
+          let toReturn = funCallCalculator (AST.getFunCallName $ AST.FunCallStmt expr,funArgsExprs)
           tell [Log.Return "visitExpr ==> FunCallExpr" (show toReturn)] $> toReturn
       | otherwise -> throwError $ "visitExpr => FunCallExpr: Method " ++ funCallName ++ " does not exist"
 --BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}

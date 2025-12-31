@@ -34,7 +34,7 @@ getReader_Method_R (Method_SymExec r) = r
 getReader_MethodCall_R :: MethodCall_SymExec -> MethodCall_R
 getReader_MethodCall_R (MethodCall_SymExec r) = r
 
-data SymStateKey = NodeNr Int | VarName String | VarBindings | Return | MethodName String | Exception
+data SymStateKey = NodeNr Int | VarName String | VarBindings | Return | MethodName String | Exception | Actions
                  deriving (Eq,Show)
 
 instance Ord SymStateKey where
@@ -45,36 +45,49 @@ instance Ord SymStateKey where
     (NodeNr _,Return) -> True
     (NodeNr _,MethodName _) -> False
     (NodeNr _,Exception) -> True
+    (NodeNr _,Actions) -> True
     (VarName _,NodeNr _) -> True
     (VarName q,VarName w) -> q <= w
     (VarName _,VarBindings) -> False
     (VarName _,Return) -> True
     (VarName _,MethodName _) -> False
     (VarName _,Exception) -> True
+    (VarName _, Actions) -> True
     (VarBindings,NodeNr _) -> True
     (VarBindings,VarName _) -> True
     (VarBindings,VarBindings) -> True
     (VarBindings,Return) -> True
     (VarBindings,MethodName _) -> False
     (VarBindings,Exception) -> True
+    (VarBindings,Actions) -> True
     (Return,NodeNr _) -> False
     (Return,VarName _) -> False
     (Return,VarBindings) -> False
     (Return,Return) -> True
     (Return,MethodName _) -> False
     (Return,Exception) -> True
+    (Return,Actions) -> True
     (MethodName _,NodeNr _) -> True
     (MethodName _,VarName _) -> True
     (MethodName _,VarBindings) -> True
     (MethodName _,Return) -> True
     (MethodName q,MethodName w) -> q <= w
     (MethodName _,Exception) -> True
+    (MethodName _,Actions) -> True
     (Exception,NodeNr _) -> False
     (Exception,VarName _) -> False
     (Exception,VarBindings) -> False
     (Exception,Return) -> True
     (Exception,MethodName _) -> False
     (Exception,Exception) -> True
+    (Exception,Actions) -> True
+    (Actions,NodeNr _) -> False
+    (Actions,VarName _) -> False
+    (Actions,VarBindings) -> False
+    (Actions,Return) -> False
+    (Actions,MethodName _) -> False
+    (Actions,Exception) -> False
+    (Actions,Actions) -> True
 
 data SymState = SymState
  { env :: Map.Map SymStateKey SymExpr
@@ -132,6 +145,7 @@ visitStmt ==> ReturnStmt: ER_State
 visitStmt ==> AssignStmt: ER_State
 visitStmt ==> VarStmt: ER_State
 visitStmt ==> AssignStmt: ER_State
+visitStmt ==> FunCallStmt: ER_Print
 
 visitNode ==> Entry: ER_State
 visitNode ==> End: ER_State
@@ -151,6 +165,7 @@ data ExecutionResult =
   | ER_FunCall SymState
   | ER_FunHandle SymType String
   | ER_IfCond SymExpr  -- ^ boolean expressions found in if conditions. Its existance in the environment values map means that the ......
+  | ER_Print String
   | ER_Void
   deriving Show
 
@@ -172,7 +187,7 @@ data SymExpr =
   | SymGlobalVar SymType String (Maybe SymExpr) -- ^ variable declared outside the scope of the method
   | SVarBindings (Map.Map String VarBinding)
   | SException String String
-  | SPrint String
+  | SActions [String]
 {-
 1) return arr[pos];
 ArrayCallExpr {

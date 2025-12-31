@@ -691,9 +691,14 @@ stringCalculator = \case
 {-
 toString ==> returns SymString
 -}
-funCallCalculator :: (String,[SymExpr]) -> SymExpr
+funCallCalculator :: (String,[SymExpr]) -> ExecutionResult
 funCallCalculator = \case
   ("toString",[argExpr]) -> case argExpr of
-     SymInt num -> SymString $ show num
+     SymInt num -> ER_Expr $ SymString $ show num
+     SymString _ -> ER_Expr $ argExpr
      _ -> error $ "TODO1: funCallCalculator ==> " ++ show argExpr
+  (funName,[argExpr])
+    | funName `elem` ["print","println"] ->
+        let ER_Expr (SymString str) = funCallCalculator ("toString",[argExpr])
+        in ER_Print $ str ++ if funName == "print" then "" else "\n"
   tu@(funName,argsExprs) -> error $ "TODO2: funCallCalculator ==> " ++ show tu

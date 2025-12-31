@@ -281,6 +281,9 @@ getVarNames symState = flip Map.filterWithKey (env symState) $ \k _ -> case k of
   VarName _ -> True
   _ -> False
 
+getActions :: SymState -> [String]
+getActions = maybe [] (\(SActions li) -> li) . Map.lookup Actions . env
+
 ------------------------------
 ------------------------------
 ------------------------------
