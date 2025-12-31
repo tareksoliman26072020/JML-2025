@@ -1,5 +1,5 @@
 {-# Language LambdaCase #-}
-module SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator) where
+module SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator, objAccCalculator) where
 
 import SymbolicExecution.Types
 import Data.Maybe
@@ -10,6 +10,7 @@ import Prelude hiding (abs,negate)
 import qualified Prelude (abs)
 import SymbolicExecution.Internal.Internal
 import SymbolicExecution.Types
+import qualified Data.Map as Map (Map,lookup)
 
 numericCalculator :: SymExpr -> SymExpr
 numericCalculator = \case
@@ -640,3 +641,30 @@ booleanCalculator2 op = \case
   (a, b@(SymFormalParam t _ m2))
     -> SBin (cast t a) op (maybe b id m2)
   (p1,p2) -> error $ printf "booleanCalculator2: (%s, %s, %s)" (show p1) (show op) (show p2)
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+
+objAccCalculator :: Map.Map SymStateKey SymExpr -> SymExpr -> SymExpr
+objAccCalculator varNames = \case
+  SObjAcc names
+    | length names >= 3 -> error $ "objAccCalculator ==> won't happen1 ==> " ++ show names
+    | length names <= 1 -> error $ "objAccCalculator ==> won't happen2 ==> " ++ show names
+  expr@(SObjAcc [varName,_]) ->
+    let Just varNameVal = Map.lookup (VarName varName) varNames
+    in objAccCalculator2 expr varNameVal
+  e -> error $ "objAccCalculator ==> won't happen3 ==> " ++ show e
+
+objAccCalculator2 :: SymExpr -> SymExpr -> SymExpr
+objAccCalculator2 expr@(SObjAcc [varName,methodCall]) = \case
+  SymFormalParam _ _ Nothing -> expr
+  SymFormalParam _ _ (Just expr2) -> objAccCalculator2 expr expr2
+  SymGlobalVar _ _ Nothing -> expr
+  SymGlobalVar _ _ (Just expr2) -> objAccCalculator2 expr expr2
+  SymArray _ elems
+    | methodCall == "length" -> SymInt $ fromIntegral $ length elems
+    | otherwise -> error "TODO: objAccCalculator2"

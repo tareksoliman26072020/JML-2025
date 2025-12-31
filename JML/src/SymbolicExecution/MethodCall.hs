@@ -270,8 +270,8 @@ runSymState symState methodCall tus isInNestedScope =
       runner :: Map.Map SymStateKey MethodCall_R
       runner = flip Map.mapWithKey (env symState) $ \key symExpr -> do
         tell [Log.NextMethodCallSymExpr methodCall (show key,show symExpr)]
-        state <- get
-        case getReturnSymExpr state of
+        st <- get
+        case getReturnSymExpr st of
           Just _
             | not isInNestedScope -> tell [Log.Skip $ printf "(%s,%s)" (show key) (show symExpr)]
                 $> ER_Void

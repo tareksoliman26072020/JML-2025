@@ -11,7 +11,7 @@ import qualified CFG.Types as CFG
 import qualified Parser.Types as AST
 import Text.Printf (printf)
 import Control.Applicative (Alternative(empty),asum)
-import qualified Data.Map as Map (lookup,empty,Map)
+import qualified Data.Map as Map (lookup,empty,Map,filterWithKey)
 import Prelude hiding (negate)
 
 ------------------------------
@@ -49,6 +49,43 @@ isFormalParameter _ = False
 isGlobalVariable :: SymExpr -> Bool
 isGlobalVariable (SymGlobalVar _ _ _) = True
 isGlobalVariable _ = False
+
+isSymInt :: SymExpr -> Bool
+isSymInt = \case
+  SymInt _ -> True
+  _        -> False
+
+isSymDouble :: SymExpr -> Bool
+isSymDouble = \case
+  SymDouble _ -> True
+  _           -> False
+
+isSymFloat :: SymExpr -> Bool
+isSymFloat = \case
+  SymFloat _ -> True
+  _          -> False
+
+isVar :: SymExpr -> Bool
+isVar = \case
+  SymNum _ -> False
+  SymInt _ -> False             -- ^ concrete integer literal
+  SymDouble _ -> False
+  SymFloat _ -> False
+  SBool _ -> False
+  SBin expr1 _ expr2 -> any isVar [expr1,expr2]
+  SNot expr -> isVar expr
+  SymFormalParam _ _ Nothing -> True
+  SymFormalParam _ _ (Just expr) -> isVar expr
+  SymGlobalVar _ _ Nothing -> True
+  SymGlobalVar _ _ (Just expr) -> isVar expr
+  expr -> error $ "TODO: isVar: " ++ show expr
+
+isArray :: SymExpr -> Bool
+isArray = \case
+  SymArray _ _ -> True
+  SymFormalParam (Array _) _ _ -> True
+  SymGlobalVar (Array _) _ _ -> True
+  _ -> False
 
 -- get SymType via AST.Type
 toSymType1 :: AST.Type AST.Types -> SymType
@@ -107,37 +144,6 @@ getSymExpr er = error $ "getSymExpr ~~> TODO: " ++ show er
 ------------------------------
 ------------------------------
 ------------------------------
-
-isSymInt :: SymExpr -> Bool
-isSymInt = \case
-  SymInt _ -> True
-  _        -> False
-
-isSymDouble :: SymExpr -> Bool
-isSymDouble = \case
-  SymDouble _ -> True
-  _           -> False
-
-isSymFloat :: SymExpr -> Bool
-isSymFloat = \case
-  SymFloat _ -> True
-  _          -> False
-
-
-isVar :: SymExpr -> Bool
-isVar = \case
-  SymNum _ -> False
-  SymInt _ -> False             -- ^ concrete integer literal
-  SymDouble _ -> False
-  SymFloat _ -> False
-  SBool _ -> False
-  SBin expr1 _ expr2 -> any isVar [expr1,expr2]
-  SNot expr -> isVar expr
-  SymFormalParam _ _ Nothing -> True
-  SymFormalParam _ _ (Just expr) -> isVar expr
-  SymGlobalVar _ _ Nothing -> True
-  SymGlobalVar _ _ (Just expr) -> isVar expr
-  expr -> error $ "TODO: isVar: " ++ show expr
 
 getVarName :: SymExpr -> String
 getVarName = \case
@@ -262,6 +268,12 @@ getNewVarBinding nodeId branchId = \case
       Nothing -> Nothing
     _ -> error "getNewVarBinding -> won't happen3"
   _ -> Nothing
+
+getVarNames :: SymState -> Map.Map SymStateKey SymExpr
+getVarNames symState = flip Map.filterWithKey (env symState) $ \k _ -> case k of
+  VarName _ -> True
+  _ -> False
+
 ------------------------------
 ------------------------------
 ------------------------------

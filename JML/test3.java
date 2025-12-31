@@ -1351,24 +1351,19 @@ public int boo32(){
 
 ///////////////////////////////////////////////////
 
-//TODO
+//DONE
 /*
-CFG {
-  nodes = [
-    Entry (ArrayType {baseType = BuiltInType Int}) "elemAt" [VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "arr"},VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "pos"}],
-    Node {id = 1, nodeData = BooleanExpression If (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}, binOp = <=, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "pos"}}), parent = 0},
-    End {id = 2, parent = 1, mExpr = Just (ExcpExpr {excpName = Exception, excpmsg = Just "not found"})},
-    Node {id = 3, nodeData = Meet If, parent = 0},
-    End {id = 4, parent = 0, mExpr = Just (ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "pos"})})}
-  ], edges = [(0,[1]),(1,[2]),(2,[3]),(1,[3]),(3,[4])]
+SymState {
+  env = fromList [
+    (MethodName "elemAt",SMethodType (Array Int)),
+    (VarName "arr",SymFormalParam (Array Int) "arr" Nothing),
+    (VarName "pos",SymFormalParam Int "pos" Nothing),
+    (NodeNr 1,SIte (SBin (SObjAcc ["arr","length"]) Le (SymFormalParam Int "pos" Nothing)) 
+                   (SymState {env = fromList [(MethodName "elemAt",SMethodType (Array Int)),(VarName "arr",SymFormalParam (Array Int) "arr" Nothing),(VarName "pos",SymFormalParam Int "pos" Nothing),(Return,SException "Exception" "not found")], pc = []})
+                   Nothing),
+    (Return,SArrayIndexAccess "arr" (SymFormalParam Int "pos" Nothing))
+  ], pc = []
 }
-
-
-[
- Entry (ArrayType {baseType = BuiltInType Int}) "elemAt" [VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "arr"},VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "pos"}],
- Node {id = 1, nodeData = BooleanExpression If (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}, binOp = <=, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "pos"}}), parent = 0},
- End {id = 4, parent = 0, mExpr = Just (ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "pos"})})}
-]
 */
 public int[] elemAt(int[] arr, int pos){
   if(arr.length<=pos) {
@@ -1376,6 +1371,94 @@ public int[] elemAt(int[] arr, int pos){
   }
   return arr[pos];
 }
+
+////////////////////////////////////////
+
+//TODO
+/*
+CFG {
+  nodes = [
+    Entry (AnyType {typee = "String", generic = Nothing}) "strFun" [],
+    Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (AnyType {typee = "String", generic = Nothing}), varObj = [], varName = "firstName"}, assEright = StringLiteral "Tarek"}}), parent = 0},
+    Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (AnyType {typee = "String", generic = Nothing}), varObj = [], varName = "lastName"}, assEright = StringLiteral "Soliman"}}), parent = 0},
+    End {id = 3, parent = 0, mExpr = Just (BinOpExpr {expr1 = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "firstName"}, binOp = +, expr2 = StringLiteral " "}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "lastName"}})}
+  ], edges = [(0,[1]),(1,[2]),(2,[3])]
+}
+*/
+public String strFun() {
+  String firstName = "Tarek";
+  String lastName = "Soliman";
+  return firstName + " " + lastName;
+}
+////////////////////////////////////////
+
+//TODO
+/*
+FunDef {funModifier = [Public], isPureFlag = False, funDecl = FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Just (BuiltInType Void), varObj = [], varName = "manyArrs"}, funArgs = []}}, throws = Nothing, funBody = CompStmt {statements = [AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "numbers1"}, assEright = ArrayInstantiationExpr {arrType = Just (ArrayType {baseType = BuiltInType Int}), arrSize = Just (NumberLiteral 7.0), arrElems = []}}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "numbers2"}, assEright = ArrayInstantiationExpr {arrType = Nothing, arrSize = Nothing, arrElems = [NumberLiteral 40.0,NumberLiteral 55.0,NumberLiteral 63.0,NumberLiteral 17.0,NumberLiteral 22.0]}}},VarStmt {var = VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "numbers3"}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "numbers3"}, assEright = ArrayInstantiationExpr {arrType = Just (ArrayType {baseType = BuiltInType Int}), arrSize = Just (NumberLiteral 5.0), arrElems = []}}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (ArrayType {baseType = AnyType {typee = "String", generic = Nothing}}), varObj = [], varName = "brand"}, assEright = ArrayInstantiationExpr {arrType = Just (ArrayType {baseType = BuiltInType String}), arrSize = Nothing, arrElems = [StringLiteral "Toyota",StringLiteral "Mercedes",StringLiteral "BMW",StringLiteral "Volkswagen",StringLiteral "Skoda"]}}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "numbers1"}, index = Just (NumberLiteral 0.0)}, assEright = NumberLiteral 86.0}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "numbers1"}, index = Just (NumberLiteral 2.0)}, assEright = NumberLiteral 80.0}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "numbers1"}, index = Just (NumberLiteral 1.0)}, assEright = NumberLiteral 57.0}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "numbers1"}, index = Just (NumberLiteral 3.0)}, assEright = NumberLiteral 34.0}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "numbers1"}, index = Just (NumberLiteral 4.0)}, assEright = NumberLiteral 50.0}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "numbers1"}, index = Just (NumberLiteral 5.0)}, assEright = NumberLiteral 48.0}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "numbers1"}, index = Just (NumberLiteral 6.0)}, assEright = NumberLiteral 94.0}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "numbers2"}, index = Just (NumberLiteral 0.0)}, assEright = NumberLiteral 51.0}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "numbers2"}, index = Just (NumberLiteral 1.0)}, assEright = NumberLiteral 84.0}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "numbers2"}, index = Just (NumberLiteral 2.0)}, assEright = NumberLiteral 92.0}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "numbers2"}, index = Just (NumberLiteral 3.0)}, assEright = NumberLiteral 87.0}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "numbers2"}, index = Just (NumberLiteral 4.0)}, assEright = NumberLiteral 81.0}}]}}
+*/
+public void manyArrs() {
+  int[] numbers1 = new int[7];
+  int[] numbers2 = {40, 55, 63, 17, 22};
+  int[] numbers3;
+  numbers3 = new int[5];
+  String[] brand = new String[] {"Toyota","Mercedes","BMW","Volkswagen","Skoda"};
+  numbers1[0] = 86;
+  numbers1[2] = 80;
+  numbers1[1] = 57;
+  numbers1[3] = 34;
+  numbers1[4] = 50;
+  numbers1[5] = 48;
+  numbers1[6] = 94;
+  numbers2[0] = 51;
+  numbers2[1] = 84;
+  numbers2[2] = 92;
+  numbers2[3] = 87;
+  numbers2[4] = 81;
+}
+
+///////////////////////////////////////////////////
+
+//TODO
+public int processArray1(int[] arr) {
+  int sum = 0;
+  for (int i = 0; i < arr.length; i++) {
+    if (arr[i] % 2 == 0) {
+      sum += arr[i];
+    } else {
+      sum -= arr[i];
+    }
+  }
+  return sum;
+}
+
+////////////////////////////////////////
+
+//TODO
+public boolean isEmpty(int[] arr) {
+  return arr.length == 0;
+}
+
+////////////////////////////////////////
+
+//TODO
+public boolean callIsEmpty() {
+  return isEmpty(new int[]{});
+}
+
+////////////////////////////////////////
+
+//TODO
+public int[] fillArray(int size, int elem) {
+  int[] arr = new int[size];
+  for(int i=0; i<size; i++) {
+    arr[i] = elem;
+  }
+  return arr;
+}
+
+////////////////////////////////////////
+
+
 
 ////////////////////////////////////////
 

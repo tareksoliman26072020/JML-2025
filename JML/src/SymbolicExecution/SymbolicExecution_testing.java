@@ -1609,34 +1609,46 @@ public double boo33_5(){
 ///////////////////////////////////////////////////
 
 /*
-CFG {nodes = [Entry,Node {id = 1, nodeData = BooleanExpression If (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}, binOp = <=, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "pos"}}), parent = 0},End {id = 2, parent = 0, mExpr = Just (ExcpExpr {excpName = Exception, excpmsg = Just "not found"})},Node {id = 3, nodeData = Meet If, parent = 0},End {id = 4, parent = 0, mExpr = Just (ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "pos"})})}], edges = [(0,[1]),(1,[2]),(2,[3]),(1,[3]),(3,[4])]}
-*/
-/*
-  Entry
-----------
-  0 -> 1:
-        If: cond: arr.length <= pos
-----------
-  End: 0 -> 2:
-        return: Exception(not found)
-----------
-  0 -> 3:
-        Meet: If
-----------
-  End: 0 -> 4:
-        return: arr[pos]
-========================
-  (0,[1])
-  (1,[2])
-  (2,[3])
-  (1,[3])
-  (3,[4])
+SymState {
+  env = fromList [
+    (MethodName "elemAt",SMethodType (Array Int)),
+    (VarName "arr",SymFormalParam (Array Int) "arr" Nothing),
+    (VarName "pos",SymFormalParam Int "pos" Nothing),
+    (NodeNr 1,SIte (SBin (SObjAcc ["arr","length"]) Le (SymFormalParam Int "pos" Nothing)) 
+                   (SymState {env = fromList [(MethodName "elemAt",SMethodType (Array Int)),(VarName "arr",SymFormalParam (Array Int) "arr" Nothing),(VarName "pos",SymFormalParam Int "pos" Nothing),(Return,SException "Exception" "not found")], pc = []})
+                   Nothing),
+    (Return,SArrayIndexAccess "arr" (SymFormalParam Int "pos" Nothing))
+  ], pc = []
+}
 */
 public int[] elemAt(int[] arr, int pos){
   if(arr.length<=pos) {
     throw new Exception("not found");
   }
   return arr[pos];
+}
+
+///////////////////////////////////////////////////
+
+//TODO
+public void manyArrs() {
+  int[] numbers1 = new int[7];
+  int[] numbers2 = {40, 55, 63, 17, 22};
+  int[] numbers3;
+  numbers3 = new int[5];
+  String[] brand = new String[] {"Toyota","Mercedes","BMW","Volkswagen","Skoda"};
+  numbers1[0] = 86;
+  numbers1[2] = 80;
+  numbers1[1] = 57;
+  numbers1[3] = 34;
+  numbers1[4] = 50;
+  numbers1[5] = 48;
+  numbers1[6] = 94;
+  numbers2[0] = 51;
+  numbers2[1] = 84;
+  numbers2[2] = 92;
+  numbers2[3] = 87;
+  numbers2[4] = 81;
 }
 
 ///////////////////////////////////////////////////

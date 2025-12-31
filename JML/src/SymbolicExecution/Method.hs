@@ -17,7 +17,7 @@ import Text.Printf (printf)
 import Data.Functor (($>))
 import Data.List (foldl')
 import SymbolicExecution.Internal.Internal
-import SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator)
+import SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator, objAccCalculator)
 
 instance CFGVisitor Method_SymExec where
 --visitNode :: CFG.Node -> Method_SymExec
@@ -367,37 +367,106 @@ visitExpr expr@AST.AssignExpr{} = do
 -- VarExpr {varType :: Maybe (Type Types), varObj :: [String], varName :: String}
 visitExpr expr@AST.VarExpr{} = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> VarExpr"]
-  let varName_ = AST.varName expr
-  case AST.varType expr of
-    Nothing -> do
-      tell [Log.UpdateVariable varName_ "visitExpr -> VarExpr"]
-      mVal <- (Map.!? VarName varName_) <$> env <$> get
-      case mVal of
-        Just val -> do
-          tell [Log.LookUpEnvTable varName_ (show val) "visitExpr -> VarExpr"]
-          let toReturn = ER_SymStateMapEntry (VarName varName_) val
-          tell [Log.Return "visitExpr -> VarExpr -> Updating" (show toReturn)] $> toReturn
+  case AST.varObj expr of
+    [] -> do
+      let varName_ = AST.varName expr
+      case AST.varType expr of
         Nothing -> do
-          tell [Log.GlobalVar varName_ "visitExpr -> VarExpr"]
-          ER_FunHandle t _ <- getFunHandle
-          let toReturn = ER_SymStateMapEntry (VarName varName_) (SymGlobalVar t varName_ Nothing)
-          tell [Log.Return "visitExpr -> VarExpr -> Recording Global Variable" (show toReturn)] $> toReturn
-    Just t -> do
-      tell [Log.NewVariable (show t) varName_ "visitExpr -> VarExpr"]
-      let sExpr = SymNull $ toSymType1 t
-      tell [Log.ModifyState "visitExpr -> VarExpr" (varName_,show sExpr)]
-      modify $ \symState ->
-        SymState {
-          env = Map.insert (VarName varName_) sExpr (env symState),
-          pc = pc symState
-        }
-      let toReturn = ER_SymStateMapEntry (VarName varName_) sExpr
-      tell [Log.Return "visitExpr -> VarExpr -> Declaring Local Variable" (show toReturn)] $> toReturn
-visitExpr expr@AST.ArrayCallExpr{} = throwError "TODO: visitExpr -> ArrayCallExpr"
+          tell [Log.UpdateVariable varName_ "visitExpr -> VarExpr"]
+          mVal <- (Map.!? VarName varName_) <$> env <$> get
+          case mVal of
+            Just val -> do
+              tell [Log.LookUpEnvTable varName_ (show val) "visitExpr -> VarExpr"]
+              let toReturn = ER_SymStateMapEntry (VarName varName_) val
+              tell [Log.Return "visitExpr -> VarExpr -> Updating" (show toReturn)] $> toReturn
+            Nothing -> do
+              tell [Log.GlobalVar varName_ "visitExpr -> VarExpr"]
+              ER_FunHandle t _ <- getFunHandle
+              let toReturn = ER_SymStateMapEntry (VarName varName_) (SymGlobalVar t varName_ Nothing)
+              tell [Log.Return "visitExpr -> VarExpr -> Recording Global Variable" (show toReturn)] $> toReturn
+        Just t -> do
+          tell [Log.NewVariable (show t) varName_ "visitExpr -> VarExpr"]
+          let sExpr = SymNull $ toSymType1 t
+          tell [Log.ModifyState "visitExpr -> VarExpr" (varName_,show sExpr)]
+          modify $ \symState ->
+            SymState {
+              env = Map.insert (VarName varName_) sExpr (env symState),
+              pc = pc symState
+            }
+          let toReturn = ER_SymStateMapEntry (VarName varName_) sExpr
+          tell [Log.Return "visitExpr -> VarExpr -> Declaring Local Variable" (show toReturn)] $> toReturn
+    li -> do
+      state <- get
+      --throwError $ "TODO: visitExpr ==> VarExpr ==> object access ==> " ++ (show $ li ++ [AST.varName expr]) ++ " ,,, " ++ show expr
+      let symExpr0@(SObjAcc exprs) = SObjAcc $ li ++ [AST.varName expr]
+      let toReturn = ER_SymStateMapEntry (VarName $ last $ init exprs) (objAccCalculator (getVarNames state) symExpr0)
+      tell [Log.Return "visitExpr ==> VarExpr" (show toReturn)] $> toReturn
+
+-- ArrayCallExpr {arrName :: Expression, index :: Maybe Expression}
+{-
+ArrayCallExpr {
+  arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"},
+  index = Just (VarExpr {varType = Nothing, varObj = [], varName = "pos"})
+}
+-}
+visitExpr expr@AST.ArrayCallExpr{} = do--throwError $ "TODO: visitExpr -> ArrayCallExpr -> " ++ show expr
+  -- Array name
+  ER_SymStateMapEntry (VarName arrName) _ <- visitExpr $ AST.arrName expr
+  -- Array index
+  index_er <- case AST.index expr of
+    Nothing -> throwError "visitExpr ==> ArrayCallExpr ==> won't happen"
+    Just expr_ -> do
+      indexExpr <- visitExpr expr_
+      case indexExpr of
+        ER_SymStateMapEntry _ indexExpr2 -> return $ ER_Expr $ SArrayIndexAccess arrName indexExpr2
+        e -> throwError $ "TODO: visitExpr ==> ArrayCallExpr ==> " ++ show e
+  case index_er of
+    ER_Expr symExpr -> do
+      let toReturn = ER_Expr symExpr
+      tell [Log.Return "visitExpr ==> ArrayCallExpr" (show toReturn)] $> toReturn
+    _ -> throwError $ "TODO: visitExpr ==> ArrayCallExpr ==> " ++ show index_er
+      
 visitExpr expr@(AST.BoolLiteral b) = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> BoolLiteral"]
   let toReturn = ER_Expr (SBool b)
   tell [Log.Return "visitExpr -> BoolLiteral" (show toReturn)] $> toReturn
+--ExcpExpr {excpName :: Exception, excpmsg :: Maybe String}
+visitExpr expr@AST.ExcpExpr{} = do
+  tell [Log.Expression_2_Handle (show expr) "visitStmt -> ExcpExpr"]
+  tell [Log.ModifyState "visitExpr -> ExcpExpr" ("Exception",show expr)]
+  let symExpr = SException
+        (case AST.excpName expr of
+           AST.Exception str -> str
+           _ -> error "visitExpr -> ExcpExpr -> won't happen")
+        (case AST.excpmsg expr of
+           Nothing -> ""
+           Just str -> str)
+  let toReturn = ER_Expr symExpr
+  tell [Log.Return "visitExpr -> ExcpExpr" (show toReturn)] $> toReturn
+  
+{-
+--ReturnStmt {returnS :: Maybe Expression}
+visitStmt (AST.ReturnStmt (Just expr)) = do
+  tell [Log.ReturnStatement (show expr) "visitStmt -> ReturnStmt"]
+  er <- visitExpr expr
+  let symExpr = case er of
+        ER_Expr symExpr_ -> symExpr_ 
+        ER_SymStateMapEntry _ val -> val
+        ER_FunCall funCallSymState -> case getReturnSymExpr funCallSymState of
+          Just symExpr -> symExpr
+          Nothing -> error $ "visitStmt ==> ReturnStmt: TODO: Nothing: \n" ++ show funCallSymState
+        ER_FunCall funCallSymState -> error
+          $ "visitStmt ==> ReturnStmt: " ++ (show $ env funCallSymState)
+        x                -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show x
+  tell [Log.ModifyState "visitStmt -> ReturnStmt -> method with args" ("return",show symExpr)]
+  modify $ \symState ->
+    SymState {
+      env = Map.insert Return symExpr (env symState),
+      pc = pc symState
+    }
+  toReturn <- ER_State <$> get
+  tell [Log.Return "visitStmt -> ReturnStmt" (show toReturn)] $> toReturn
+-}
 visitExpr expr = error $ "What this is: " ++ show expr
 
 ------------------------------
