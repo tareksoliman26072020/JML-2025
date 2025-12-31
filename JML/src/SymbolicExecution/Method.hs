@@ -17,7 +17,7 @@ import Text.Printf (printf)
 import Data.Functor (($>))
 import Data.List (foldl')
 import SymbolicExecution.Internal.Internal
-import SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator, objAccCalculator)
+import SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator, objAccCalculator, stringCalculator)
 
 instance CFGVisitor Method_SymExec where
 --visitNode :: CFG.Node -> Method_SymExec
@@ -253,6 +253,11 @@ visitExpr expr@(AST.NumberLiteral float) = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> NumberLiteral"]
   let toReturn = ER_Expr (SymNum float)
   tell [Log.Return "visitExpr -> NumberLiteral" (show toReturn)] $> toReturn
+-- StringLiteral String
+visitExpr expr@(AST.StringLiteral str) = do
+  tell [Log.Expression_2_Handle (show expr) "visitExpr -> StringLiteral"]
+  let toReturn = ER_Expr (SymString str)
+  tell [Log.Return "visitExpr -> StringLiteral" (show toReturn)] $> toReturn
 {-
 data SymState = SymState
  { env :: Map.Map String SymExpr
@@ -322,7 +327,8 @@ visitExpr expr@AST.BinOpExpr{} = do
   helper op1 op2 =
     let isNumericOp = AST.binOp expr `elem` [AST.Plus, AST.Mult, AST.Minus, AST.Div]
         whichFun = case isNumericOp of
-          True -> numericCalculator
+          True | all isSymString [op1,op2] -> stringCalculator
+               | otherwise -> numericCalculator
           False -> booleanCalculator
         toReturn = ER_Expr $ whichFun (SBin (simplify op1) (toSymBinOp $ AST.binOp expr) (simplify op2))
     in tell [Log.Return (printf "visitExpr -> BinOpExpr -> %s"
@@ -442,31 +448,7 @@ visitExpr expr@AST.ExcpExpr{} = do
            Nothing -> ""
            Just str -> str)
   let toReturn = ER_Expr symExpr
-  tell [Log.Return "visitExpr -> ExcpExpr" (show toReturn)] $> toReturn
-  
-{-
---ReturnStmt {returnS :: Maybe Expression}
-visitStmt (AST.ReturnStmt (Just expr)) = do
-  tell [Log.ReturnStatement (show expr) "visitStmt -> ReturnStmt"]
-  er <- visitExpr expr
-  let symExpr = case er of
-        ER_Expr symExpr_ -> symExpr_ 
-        ER_SymStateMapEntry _ val -> val
-        ER_FunCall funCallSymState -> case getReturnSymExpr funCallSymState of
-          Just symExpr -> symExpr
-          Nothing -> error $ "visitStmt ==> ReturnStmt: TODO: Nothing: \n" ++ show funCallSymState
-        ER_FunCall funCallSymState -> error
-          $ "visitStmt ==> ReturnStmt: " ++ (show $ env funCallSymState)
-        x                -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show x
-  tell [Log.ModifyState "visitStmt -> ReturnStmt -> method with args" ("return",show symExpr)]
-  modify $ \symState ->
-    SymState {
-      env = Map.insert Return symExpr (env symState),
-      pc = pc symState
-    }
-  toReturn <- ER_State <$> get
-  tell [Log.Return "visitStmt -> ReturnStmt" (show toReturn)] $> toReturn
--}
+  tell [Log.Return "visitExpr -> ExcpExpr" (show toReturn)] $> toReturn  
 visitExpr expr = error $ "What this is: " ++ show expr
 
 ------------------------------

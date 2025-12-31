@@ -1,5 +1,5 @@
 {-# Language LambdaCase #-}
-module SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator, objAccCalculator) where
+module SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator, objAccCalculator, stringCalculator) where
 
 import SymbolicExecution.Types
 import Data.Maybe
@@ -596,7 +596,7 @@ numericCalculator2 op = \case
   (SymGlobalVar t _ (Just symExpr), b) ->
     error $ "numericCalculator: won't happen because of the function `simplify`"
 ----------
-  (a,b) -> error $ printf "numericCalculator: %s %s %s" (show a) (show op) (show b)
+  (a,b) -> error $ printf "numericCalculator: (%s ,, %s ,, %s)" (show a) (show op) (show b)
 
 isNegative :: SymExpr -> Bool
 isNegative = \case
@@ -668,3 +668,15 @@ objAccCalculator2 expr@(SObjAcc [varName,methodCall]) = \case
   SymArray _ elems
     | methodCall == "length" -> SymInt $ fromIntegral $ length elems
     | otherwise -> error "TODO: objAccCalculator2"
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+
+stringCalculator :: SymExpr -> SymExpr
+stringCalculator = \case
+  SBin (SymString str1) Add (SymString str2) -> SymString $ str1 ++ str2
+  expr -> error $ "TODO: stringCalculator: " ++ show expr

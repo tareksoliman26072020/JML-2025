@@ -1630,6 +1630,24 @@ public int[] elemAt(int[] arr, int pos){
 
 ///////////////////////////////////////////////////
 
+/*
+SymState {
+  env = fromList [
+    (MethodName "strFun",SMethodType String),
+    (VarBindings,SVarBindings (fromList [("firstName",VarBinding {varDeclAt = 1, varFrame = 0}),("lastName",VarBinding {varDeclAt = 2, varFrame = 0})])),
+    (VarName "firstName",SymString "Tarek"),
+    (VarName "lastName",SymString "Soliman"),
+    (Return,SymString "Tarek Soliman")
+  ], pc = []
+}
+*/
+public String strFun() {
+  String firstName = "Tarek";
+  String lastName = "Soliman";
+  return firstName + " " + lastName;
+}
+////////////////////////////////////////
+
 //TODO
 public void manyArrs() {
   int[] numbers1 = new int[7];

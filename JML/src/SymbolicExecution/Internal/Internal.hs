@@ -65,6 +65,11 @@ isSymFloat = \case
   SymFloat _ -> True
   _          -> False
 
+isSymString :: SymExpr -> Bool
+isSymString = \case
+  SymString _ -> True
+  _ -> False
+
 isVar :: SymExpr -> Bool
 isVar = \case
   SymNum _ -> False
@@ -94,7 +99,7 @@ toSymType1 = \case
     AST.Int     -> Int
     AST.Void    -> Void
     AST.Char    -> undefined
-    AST.String  -> undefined
+    AST.String  -> String
     AST.Boolean -> Bool
     AST.Double  -> Double
     AST.Short   -> undefined
@@ -105,6 +110,8 @@ toSymType1 = \case
   AST.ArrayType t ->
     let rec = toSymType1 t
     in Array rec
+  AST.AnyType "String" _ -> String
+  e -> error $ "TODO: toSymType1: " ++ show e
 
 -- get SymType via SymExpr
 toSymType2 :: SymExpr -> SymType

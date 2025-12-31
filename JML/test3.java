@@ -1374,15 +1374,16 @@ public int[] elemAt(int[] arr, int pos){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
 /*
-CFG {
-  nodes = [
-    Entry (AnyType {typee = "String", generic = Nothing}) "strFun" [],
-    Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (AnyType {typee = "String", generic = Nothing}), varObj = [], varName = "firstName"}, assEright = StringLiteral "Tarek"}}), parent = 0},
-    Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (AnyType {typee = "String", generic = Nothing}), varObj = [], varName = "lastName"}, assEright = StringLiteral "Soliman"}}), parent = 0},
-    End {id = 3, parent = 0, mExpr = Just (BinOpExpr {expr1 = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "firstName"}, binOp = +, expr2 = StringLiteral " "}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "lastName"}})}
-  ], edges = [(0,[1]),(1,[2]),(2,[3])]
+SymState {
+  env = fromList [
+    (MethodName "strFun",SMethodType String),
+    (VarBindings,SVarBindings (fromList [("firstName",VarBinding {varDeclAt = 1, varFrame = 0}),("lastName",VarBinding {varDeclAt = 2, varFrame = 0})])),
+    (VarName "firstName",SymString "Tarek"),
+    (VarName "lastName",SymString "Soliman"),
+    (Return,SymString "Tarek Soliman")
+  ], pc = []
 }
 */
 public String strFun() {
@@ -1402,6 +1403,8 @@ public void manyArrs() {
   int[] numbers3;
   numbers3 = new int[5];
   String[] brand = new String[] {"Toyota","Mercedes","BMW","Volkswagen","Skoda"};
+  String[] strs = new String[3];
+  strs[1] = "meow";
   numbers1[0] = 86;
   numbers1[2] = 80;
   numbers1[1] = 57;
@@ -1414,6 +1417,15 @@ public void manyArrs() {
   numbers2[2] = 92;
   numbers2[3] = 87;
   numbers2[4] = 81;
+  numbers3[4] = 43;
+  numbers3[3] = 10;
+  numbers3[2] = 34;
+  numbers3[1] = 75;
+  numbers3[4] = 6;
+  numbers3[0] = 5;
+  println(numbers1);
+  println(numbers2);
+  println(numbers3);
 }
 
 ///////////////////////////////////////////////////

@@ -116,6 +116,7 @@ ExecutionResult is used to transform data from a monadic transformer to another.
 visitExpr sends data to visitExpr, visitStmt, visitNode
 
 visitExpr ==> NumberLiteral: ER_Expr
+visitExpr ==> StringLiteral: ER_Expr
 ER_FunCall encapsulates the state of a function call which posseses actual parameters.
 visitExpr ==> FunCallExpr ==> function without parameters: ER_Expr
 visitExpr ==> FunCallExpr ==> function with parameters: ER_FunCall
@@ -161,6 +162,7 @@ data SymExpr =
   | SymDouble Double              -- ^ concrete double literal
   | SymFloat  Float               -- ^ concrete float literal
   | SBool   Bool                  -- ^ concrete Boolean literal
+  | SymString String
   | SObjAcc [String]
   | SBin    SymExpr SymBinOp SymExpr  -- ^ binary operation
   | SNot    SymExpr               -- ^ logical negation
@@ -237,7 +239,7 @@ ppSymExpr = \case
   SymFormalParam t s m -> maybe s ppSymExpr m
   SymGlobalVar t s m -> maybe s ppSymExpr m
 
-data SymType = Int | Double | Float | Bool | Void | Array SymType deriving (Show,Eq)
+data SymType = Int | Double | Float | Bool | Void | Array SymType | String deriving (Show,Eq)
 
 instance MonadFail (Either String) where
   fail = Left

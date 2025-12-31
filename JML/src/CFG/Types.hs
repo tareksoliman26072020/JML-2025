@@ -19,7 +19,9 @@ data Node = Entry (AST.Type AST.Types) String [AST.Expression] | End {
 
 showNode :: Node -> String
 showNode (Entry t n args) = "Entry " ++ n ++ ": method type: " ++ showType t
-  ++ " " ++ show args
+  ++ case null args of
+       True -> ""
+       False -> ", args: (" ++ intercalate ", " (map showExpr args) ++ ")"
 showNode (end@End{}) =
   printf "End: %d -> %d:\n        %s"
     (parent end) (CFG.Types.id end) (maybe "()" (\e -> "return: " ++ showExpr e) (mExpr end))
@@ -201,6 +203,9 @@ showType (AST.BuiltInType t) = case t of
   AST.Float   -> "Float"
   AST.Long    -> "Long"
   AST.Byte    -> "Byte"
+  _ -> error $ "TODO1: showType ==> " ++ show t
+showType (AST.AnyType "String" _) = "String"
+--showType t = error $ "TODO2: showType ==> " ++ show t
 -- This will be called by `showExpr VarExpr`:
 showType (t@AST.ArrayType{}) = showType (AST.baseType t) ++ "[]"
 showType _ = error "TODO"
