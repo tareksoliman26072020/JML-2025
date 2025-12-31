@@ -172,6 +172,7 @@ data SymExpr =
   | SymGlobalVar SymType String (Maybe SymExpr) -- ^ variable declared outside the scope of the method
   | SVarBindings (Map.Map String VarBinding)
   | SException String String
+  | SPrint String
 {-
 1) return arr[pos];
 ArrayCallExpr {
@@ -243,3 +244,6 @@ data SymType = Int | Double | Float | Bool | Void | Array SymType | String deriv
 
 instance MonadFail (Either String) where
   fail = Left
+
+predefinedFuns :: [String]
+predefinedFuns = ["toString","print","println"]

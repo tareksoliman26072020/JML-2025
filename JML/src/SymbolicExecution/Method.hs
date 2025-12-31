@@ -17,7 +17,7 @@ import Text.Printf (printf)
 import Data.Functor (($>))
 import Data.List (foldl')
 import SymbolicExecution.Internal.Internal
-import SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator, objAccCalculator, stringCalculator)
+import SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator, objAccCalculator, stringCalculator, funCallCalculator)
 
 instance CFGVisitor Method_SymExec where
 --visitNode :: CFG.Node -> Method_SymExec
@@ -218,7 +218,10 @@ visitStmt stmt@AST.VarStmt{} = do
   _ <- visitExpr $ AST.var stmt
   toReturn <- ER_State <$> get
   tell [Log.Return "visitStmt -> VarStmt" (show toReturn)] $> toReturn
-visitStmt _ = throwError "TODO -> visitStmt -> 2"
+visitStmt (AST.FunCallStmt expr) = case expr of
+  exp@AST.FunCallExpr{} -> undefined
+  _ -> throwError $ "visitStmt ==> FunCallStmt ==> won't happen: " ++ show expr
+visitStmt stmt = throwError $ "TODO -> visitStmt -> " ++ show stmt
 
 {-
 data Expression
@@ -272,8 +275,6 @@ visitExpr (expr@AST.FunCallExpr{}) = do
   let funCallName = AST.getFunCallName $ AST.FunCallStmt expr
   -- Search for the CFG of the method call
   case CFG.findCFGByName funCallName cfgs of
-    -- CFG not found
-    Nothing   -> throwError $ "visitExpr => FunCallExpr: Method " ++ funCallName ++ " does not exist"
     -- CFG found
     Just cfg0 -> do
       -- get SymState of the formal method call
@@ -308,6 +309,20 @@ visitExpr (expr@AST.FunCallExpr{}) = do
             let toReturn = ER_Expr symExpr
             in tell [Log.Return "visitExpr -> FunCallExpr -> no parameters" (show toReturn)] $> toReturn
           Nothing      -> throwError "visitExpr ==> FunCallExpr ==> fun returns nothing ==> TODO"
+    -- CFG not found
+    Nothing
+      | funCallName `elem` predefinedFuns -> do
+          tell [Log.ProcessPredefinedFunCall "visitExpr ==> FunCallExpr" (show $ AST.funName expr) (show $ AST.funArgs expr)]
+          -- get SymExprs of args
+          funArgsExprs <- mapM (\ex -> do
+            ER_SymStateMapEntry _ val <- visitExpr ex
+            return val) $ AST.funArgs expr
+          --throwError $ printf "continue: visitExpr ==> FunCallExpr: %s" (show funArgsExprs)
+          let toReturn@(ER_Expr ex) = case funCallCalculator (AST.getFunCallName $ AST.FunCallStmt expr,funArgsExprs) of
+                e@(SymString _) -> ER_Expr e
+                _ -> error $ printf "TODO: visitExpr => FunCallExpr:\n%s\n%s" (AST.getFunCallName $ AST.FunCallStmt expr) (show funArgsExprs)
+          tell [Log.Return "visitExpr ==> FunCallExpr" (show toReturn)] $> toReturn
+      | otherwise -> throwError $ "visitExpr => FunCallExpr: Method " ++ funCallName ++ " does not exist"
 --BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
 visitExpr expr@AST.BinOpExpr{} = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> BinOpExpr"]

@@ -1391,6 +1391,68 @@ public String strFun() {
   String lastName = "Soliman";
   return firstName + " " + lastName;
 }
+
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "voidFun1",SMethodType Void)
+  ], pc = []
+}
+*/
+public void voidFun1() {
+  return;
+}
+
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "voidFun2",SMethodType Void)
+  ], pc = []
+}
+*/
+public void voidFun2() {
+}
+
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "voidFun3",SMethodType Void),
+    (VarBindings,SVarBindings (fromList [("x",VarBinding {varDeclAt = 1, varFrame = 0}),("y",VarBinding {varDeclAt = 2, varFrame = 0}),("z",VarBinding {varDeclAt = 5, varFrame = 0})])),
+    (VarName "x",SymInt 1),
+    (VarName "y",SymString "is one"),
+    (VarName "z",SymString "1 is one")
+  ], pc = []
+}
+*/
+public void voidFun3() {
+  int x;
+  String y;
+  x = 1;
+  y = "is one";
+  String z = toString(x) + " " + y;
+}
+
+////////////////////////////////////////
+
+//TODO
+public void voidFun4() {
+  int x;
+  String y;
+  x = 1;
+  y = "is one";
+  String z = toString(x) + " " + y;
+  println(z);
+}
+
 ////////////////////////////////////////
 
 //TODO

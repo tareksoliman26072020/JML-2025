@@ -35,6 +35,7 @@ data Log = Expression_2_Handle String String
          | GlobalVar String String
          | Meow String String
          | MethodStatementIfCondition String String
+         | ProcessPredefinedFunCall String String String
 
 -- Look up the usage of the function `tell` in SymbolicExecution
 -- to best relate to `Log`
@@ -66,6 +67,8 @@ instance Show Log where
     NextMethodCallSymExpr methodCall (key,symExpr)
                             -> printf "%s (%s ==> %s) in Method Call: %s" (yellow "Next symExpr") key symExpr methodCall
     Affected loc exprs      -> printf "(%s): %s: %s" (cyan loc) (yellow "Affected") (intercalate ", " exprs)
+    ProcessPredefinedFunCall
+      loc funName funArgs   -> printf "(%s): %s: %s%s" (cyan loc) (yellow "Processing Predefined FunCall") funName funArgs
     ModifyState loc (k,v)   -> printf "(%s): %s: (%s,%s)" (cyan loc) (yellow "Modifying State") k v
     StateNotModified loc    -> printf "(%s): %s" (cyan loc) (yellow "State Not Modified")
     NoElseBranch loc        -> printf "(%s): %s" (cyan loc) (yellow "No Else Branch")

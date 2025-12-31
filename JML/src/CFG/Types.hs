@@ -273,11 +273,12 @@ getNodeId = \case
 getPath :: NodeID -> CFG -> [Node]
 getPath startId cfg =
   let currentNode = findNode_via_id cfg startId
-      nextNodeId = case findEdge_via_id cfg startId of
-        Nothing -> error "getPath: won't happen 1"
+      mNextNodeId = case findEdge_via_id cfg startId of
+         -- there's no next node. This happens in an empty method with no edges
+        Nothing -> Nothing
         Just (_,[]) -> error "getPath: won't happen 2"
         Just (_,[next])
-          | not (isIfStartNode currentNode) -> next
+          | not (isIfStartNode currentNode) -> Just next
         {-
         Just (_,[next])
           | isIfStartNode currentNode ->
@@ -293,11 +294,13 @@ getPath startId cfg =
                | isForStartNode currentNode = getEndKindNode cfg currentNode For
                | otherwise = error $ "getPath: what is this? " ++ show currentNode
           in case findEdge_via_id cfg (getNodeId endNode) of
-               Just (_,[next2]) -> next2
+               Just (_,[next2]) -> Just next2
                Nothing -> error "getPath: won't happen 5"
                ex -> error $ "getPath: won't happen 6: " ++ show ex
   in case currentNode of
        End{} -> [currentNode]
-       _     -> currentNode : getPath nextNodeId cfg
+       _     -> currentNode : case mNextNodeId of
+                  Nothing -> []
+                  Just nextNodeId -> getPath nextNodeId cfg
 
 -----------------------------

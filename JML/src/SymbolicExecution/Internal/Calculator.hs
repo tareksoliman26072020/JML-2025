@@ -1,5 +1,5 @@
 {-# Language LambdaCase #-}
-module SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator, objAccCalculator, stringCalculator) where
+module SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator, objAccCalculator, stringCalculator, funCallCalculator) where
 
 import SymbolicExecution.Types
 import Data.Maybe
@@ -680,3 +680,20 @@ stringCalculator :: SymExpr -> SymExpr
 stringCalculator = \case
   SBin (SymString str1) Add (SymString str2) -> SymString $ str1 ++ str2
   expr -> error $ "TODO: stringCalculator: " ++ show expr
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+
+{-
+toString ==> returns SymString
+-}
+funCallCalculator :: (String,[SymExpr]) -> SymExpr
+funCallCalculator = \case
+  ("toString",[argExpr]) -> case argExpr of
+     SymInt num -> SymString $ show num
+     _ -> error $ "TODO1: funCallCalculator ==> " ++ show argExpr
+  tu@(funName,argsExprs) -> error $ "TODO2: funCallCalculator ==> " ++ show tu

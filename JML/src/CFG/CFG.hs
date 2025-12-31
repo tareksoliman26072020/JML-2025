@@ -13,6 +13,17 @@ instance ASTVisitor CFGCreator where
   visitMethod method =
     let ((_,currentNodeID,nextNodeID),g) = visitStatement0 (0,0,1) (AST.funBody method)
     in case g of
+    {-
+         Node cfg
+           | null (G.nodes cfg) ->
+               Nodes $ G.CFG {
+                 G.nodes = case AST.getMethodDecl method of
+                   (Just t,methodName) ->
+                     let entry = G.Entry t methodName (AST.getMethodFormalParams method)
+                     in [entry],
+                 G.edges = []
+              }
+     -}
          Nodes cfg ->
            let theEnd = case last (G.nodes cfg) of
                           G.End{} -> []
@@ -22,8 +33,12 @@ instance ASTVisitor CFGCreator where
                   (Just t,methodName) ->
                     let entry = G.Entry t methodName (AST.getMethodFormalParams method)
                         theNodes = G.nodes cfg
-                    in entry : theNodes ++ theEnd,
-                G.edges = G.edges cfg ++ if null theEnd then [] else [(currentNodeID,[nextNodeID])]
+                    in case null (G.nodes cfg) of
+                         True -> [entry]
+                         False -> entry : theNodes ++ theEnd,
+                G.edges = case null (G.nodes cfg) of
+                            True -> []
+                            False -> G.edges cfg ++ if null theEnd then [] else [(currentNodeID,[nextNodeID])]
               }
          _ -> error "won't happen"
   visitStatement = error "visitStatement0 is a replacement for this"

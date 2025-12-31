@@ -128,7 +128,7 @@ getFunCallName _ = error "won't happen"
 -- VarExpr {varType = Nothing, varObj = [], varName = "i"}
 getVarName :: Expression -> String
 getVarName expr@VarExpr{} = varName expr
-getVarName _ = error "won't happen"
+getVarName expr = error $ "won't happen: " ++ show expr
 
 getActualParmName :: Expression -> String
 --VarExpr {varType = Nothing, varObj = [], varName = "i"}
