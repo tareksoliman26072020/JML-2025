@@ -1593,11 +1593,42 @@ public void voidFun5() {
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
 /*
-FunDef {funModifier = [Public], isPureFlag = False, funDecl = FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Just (BuiltInType Void), varObj = [], varName = "manyArrs"}, funArgs = []}}, throws = Nothing, funBody = CompStmt {statements = [AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "numbers1"}, assEright = ArrayInstantiationExpr {arrType = Just (ArrayType {baseType = BuiltInType Int}), arrSize = Just (NumberLiteral 7.0), arrElems = []}}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "numbers2"}, assEright = ArrayInstantiationExpr {arrType = Nothing, arrSize = Nothing, arrElems = [NumberLiteral 40.0,NumberLiteral 55.0,NumberLiteral 63.0,NumberLiteral 17.0,NumberLiteral 22.0]}}},VarStmt {var = VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "numbers3"}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "numbers3"}, assEright = ArrayInstantiationExpr {arrType = Just (ArrayType {baseType = BuiltInType Int}), arrSize = Just (NumberLiteral 5.0), arrElems = []}}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (ArrayType {baseType = AnyType {typee = "String", generic = Nothing}}), varObj = [], varName = "brand"}, assEright = ArrayInstantiationExpr {arrType = Just (ArrayType {baseType = BuiltInType String}), arrSize = Nothing, arrElems = [StringLiteral "Toyota",StringLiteral "Mercedes",StringLiteral "BMW",StringLiteral "Volkswagen",StringLiteral "Skoda"]}}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "numbers1"}, index = Just (NumberLiteral 0.0)}, assEright = NumberLiteral 86.0}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "numbers1"}, index = Just (NumberLiteral 2.0)}, assEright = NumberLiteral 80.0}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "numbers1"}, index = Just (NumberLiteral 1.0)}, assEright = NumberLiteral 57.0}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "numbers1"}, index = Just (NumberLiteral 3.0)}, assEright = NumberLiteral 34.0}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "numbers1"}, index = Just (NumberLiteral 4.0)}, assEright = NumberLiteral 50.0}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "numbers1"}, index = Just (NumberLiteral 5.0)}, assEright = NumberLiteral 48.0}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "numbers1"}, index = Just (NumberLiteral 6.0)}, assEright = NumberLiteral 94.0}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "numbers2"}, index = Just (NumberLiteral 0.0)}, assEright = NumberLiteral 51.0}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "numbers2"}, index = Just (NumberLiteral 1.0)}, assEright = NumberLiteral 84.0}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "numbers2"}, index = Just (NumberLiteral 2.0)}, assEright = NumberLiteral 92.0}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "numbers2"}, index = Just (NumberLiteral 3.0)}, assEright = NumberLiteral 87.0}},AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "numbers2"}, index = Just (NumberLiteral 4.0)}, assEright = NumberLiteral 81.0}}]}}
+SymState {
+  env = fromList [
+    (MethodName "manyArrs",SMethodType Void),
+    (VarBindings,SVarBindings (fromList [("numbers",VarBinding {varDeclAt = 1, varFrame = 0})])),
+    (VarName "numbers",SymArray (Just (Array Int)) (Just 2) [SymInt 99,SymInt 5]),
+    (Actions,SActions ["[99, 5]\n"])
+  ], pc = []
+}
 */
 public void manyArrs() {
+  int[] numbers = new int[2];
+  numbers[0] = 99;
+  numbers[1] = 5;
+  println(numbers);
+}
+
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "manyArrs2",SMethodType Void),
+    (VarBindings,SVarBindings (fromList [("brand",VarBinding {varDeclAt = 5, varFrame = 0}),("numbers1",VarBinding {varDeclAt = 1, varFrame = 0}),("numbers2",VarBinding {varDeclAt = 2, varFrame = 0}),("numbers3",VarBinding {varDeclAt = 3, varFrame = 0}),("strs",VarBinding {varDeclAt = 6, varFrame = 0})])),
+    (VarName "brand",SymArray (Just (Array String)) (Just 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"]),
+    (VarName "numbers1",SymArray (Just (Array Int)) (Just 7) [SymInt 86,SymInt 57,SymInt 80,SymInt 34,SymInt 50,SymInt 48,SymInt 94]),
+    (VarName "numbers2",SymArray (Just (Array Int)) (Just 5) [SymInt 51,SymInt 84,SymInt 92,SymInt 87,SymInt 81]),
+    (VarName "numbers3",SymArray (Just (Array Int)) (Just 5) [SymInt 5,SymInt 75,SymInt 34,SymInt 10,SymInt 6]),
+    (VarName "strs",SymArray (Just (Array String)) (Just 3) [SymNull String,SymString "meow",SymNull String]),
+    (Actions,SActions ["[86, 57, 80, 34, 50, 48, 94]\n","[51, 84, 92, 87, 81]\n","[5, 75, 34, 10, 6]\n"])
+  ], pc = []
+}
+*/
+public void manyArrs2() {
   int[] numbers1 = new int[7];
   int[] numbers2 = {40, 55, 63, 17, 22};
   int[] numbers3;

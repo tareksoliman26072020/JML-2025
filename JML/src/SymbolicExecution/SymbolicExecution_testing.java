@@ -1838,13 +1838,47 @@ public void voidFun5() {
 
 ////////////////////////////////////////
 
-//TODO
+/*
+SymState {
+  env = fromList [
+    (MethodName "manyArrs",SMethodType Void),
+    (VarBindings,SVarBindings (fromList [("numbers",VarBinding {varDeclAt = 1, varFrame = 0})])),
+    (VarName "numbers",SymArray (Just (Array Int)) (Just 2) [SymInt 99,SymInt 5]),
+    (Actions,SActions ["[99, 5]\n"])
+  ], pc = []
+}
+*/
 public void manyArrs() {
+  int[] numbers = new int[2];
+  numbers[0] = 99;
+  numbers[1] = 5;
+  println(numbers);
+}
+
+////////////////////////////////////////
+
+/*
+SymState {
+  env = fromList [
+    (MethodName "manyArrs2",SMethodType Void),
+    (VarBindings,SVarBindings (fromList [("brand",VarBinding {varDeclAt = 5, varFrame = 0}),("numbers1",VarBinding {varDeclAt = 1, varFrame = 0}),("numbers2",VarBinding {varDeclAt = 2, varFrame = 0}),("numbers3",VarBinding {varDeclAt = 3, varFrame = 0}),("strs",VarBinding {varDeclAt = 6, varFrame = 0})])),
+    (VarName "brand",SymArray (Just (Array String)) (Just 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"]),
+    (VarName "numbers1",SymArray (Just (Array Int)) (Just 7) [SymInt 86,SymInt 57,SymInt 80,SymInt 34,SymInt 50,SymInt 48,SymInt 94]),
+    (VarName "numbers2",SymArray (Just (Array Int)) (Just 5) [SymInt 51,SymInt 84,SymInt 92,SymInt 87,SymInt 81]),
+    (VarName "numbers3",SymArray (Just (Array Int)) (Just 5) [SymInt 5,SymInt 75,SymInt 34,SymInt 10,SymInt 6]),
+    (VarName "strs",SymArray (Just (Array String)) (Just 3) [SymNull String,SymString "meow",SymNull String]),
+    (Actions,SActions ["[86, 57, 80, 34, 50, 48, 94]\n","[51, 84, 92, 87, 81]\n","[5, 75, 34, 10, 6]\n"])
+  ], pc = []
+}
+*/
+public void manyArrs2() {
   int[] numbers1 = new int[7];
   int[] numbers2 = {40, 55, 63, 17, 22};
   int[] numbers3;
   numbers3 = new int[5];
   String[] brand = new String[] {"Toyota","Mercedes","BMW","Volkswagen","Skoda"};
+  String[] strs = new String[3];
+  strs[1] = "meow";
   numbers1[0] = 86;
   numbers1[2] = 80;
   numbers1[1] = 57;
@@ -1857,6 +1891,15 @@ public void manyArrs() {
   numbers2[2] = 92;
   numbers2[3] = 87;
   numbers2[4] = 81;
+  numbers3[4] = 43;
+  numbers3[3] = 10;
+  numbers3[2] = 34;
+  numbers3[1] = 75;
+  numbers3[4] = 6;
+  numbers3[0] = 5;
+  println(numbers1);
+  println(numbers2);
+  println(numbers3);
 }
 
 ///////////////////////////////////////////////////

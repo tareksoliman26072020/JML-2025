@@ -10,6 +10,7 @@ import qualified Parser.Types as AST
 import qualified CFG.Types as CFGT (CFG, NodeID)
 import qualified Data.Map as Map (Map)
 import Text.Printf (printf)
+import Data.List (intercalate)
 
 type Method_R =
     ReaderT (Config,[CFGT.CFG])
@@ -139,6 +140,7 @@ visitExpr ==> VarExpr ==> no object access: ER_SymStateMapEntry
 visitExpr ==> VarExpr ==> object access: ER_Expr
 visitExpr ==> ExcpExpr: ER_Expr SException
 visitExpr ==> ArrayInstantiationExpr: ER_Expr 
+visitExpr ==> ArrayCallExpr: ER_ArrayCallExpr
 
 visitStmt sends data to visitNode (this may change in the future so that it also sends data to visitStmt)
 
@@ -162,6 +164,7 @@ data ExecutionResult =
     ER_Expr SymExpr
   | ER_Node {er_Node_id :: CFGT.NodeID, nodeName :: String}
   | ER_SymStateMapEntry {er_key :: SymStateKey, er_val :: SymExpr}
+  | ER_ArrayCallExpr {arrayIndexCall :: SymExpr, arrayIndexCallValue :: SymExpr}
   | ER_State SymState
   | ER_FunCall SymState
   | ER_FunHandle SymType String
@@ -255,6 +258,7 @@ ppSymExpr = \case
   SymNull t -> undefined
   SymFormalParam t s m -> maybe s ppSymExpr m
   SymGlobalVar t s m -> maybe s ppSymExpr m
+  SymArray _ _ elems -> printf "[%s]" $ intercalate ", " (map ppSymExpr elems)
 
 data SymType = Int | Double | Float | Bool | Void | Array SymType | String deriving (Show,Eq)
 

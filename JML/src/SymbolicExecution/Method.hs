@@ -379,12 +379,10 @@ visitExpr (expr@AST.FunCallExpr{}) = do
           tell [Log.ProcessPredefinedFunCall "visitExpr ==> FunCallExpr" (show $ AST.funName expr) (show $ AST.funArgs expr)]
           -- get SymExprs of args
           funArgsExprs <- mapM (\ex -> do
-            --ER_SymStateMapEntry _ val <- visitExpr ex
             v <- visitExpr ex
             case v of
               ER_SymStateMapEntry _ val -> return val
               ER_Expr expr -> return expr
-            --throwError $ "MEOW:::" ++ show v
             ) $ AST.funArgs expr
           let toReturn = funCallCalculator (AST.getFunCallName $ AST.FunCallStmt expr,funArgsExprs)
           tell [Log.Return "visitExpr ==> FunCallExpr" (show toReturn)] $> toReturn
@@ -423,36 +421,49 @@ visitExpr expr@AST.UnOpExpr{} = throwError "visitExpr ==> UnOpExpr ==> TODO"
 -- AssignExpr {assEleft :: Expression, assEright :: Expression}
 visitExpr expr@AST.AssignExpr{} = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> AssignExpr"]
-  one@(ER_SymStateMapEntry svn val) <- visitExpr (AST.assEleft expr)
-  --throwError $ printf "WOF:: (%s,%s)" (show svn) (show val)
-  --                     WOF:: (VarName "arr",SymNull (Array Int))
---two@(ER_Expr e2) <- visitExpr (AST.assEright expr)
+  one <- visitExpr (AST.assEleft expr)
+  -- one_val's sole purpose is its type
+  -- one_svn is important to find key in the map
+  let (one_svn,one_val) = case one of
+       ER_SymStateMapEntry svn val -> (svn,val)
+       ER_ArrayCallExpr (SArrayIndexAccess arrName _) val ->
+         --call = SArrayIndexAccess "strs" (SymInt 1)
+         --val = SymNull String
+         (VarName arrName,val)
+       ER_Expr ex -> error $ printf "visitExpr ==> AssignExpr: (%s,%s,%s)" (show expr) (show ex) (show $ AST.assEleft expr)
+  {-case one of
+    ER_SymStateMapEntry svn val -> return ER_Void
+    _ -> throwError $ "Meow: " ++ show one-}
+  --let ER_SymStateMapEntry svn val = one
   two <- visitExpr (AST.assEright expr)
-  --throwError $ "WOF:: " ++ show two
-  --WOF:: ER_Expr (SymArray Nothing (Just 5) [SymNum 6.0,SymNum 5.0,SymNum 4.0,SymNum 7.0,SymNum 8.0])
   let e2 = case two of
-          ER_Expr e2_ -> cast (toSymType2 val) e2_
+          ER_Expr e2_ -> cast (toSymType2 one_val) e2_
           ER_FunCall funCallState ->
             case getReturnSymExpr funCallState of
               Nothing -> error $ printf "visitExpr ~~> AssignExpr ~~> won't happen"
               Just e2_ -> e2_
           ER_SymStateMapEntry _ e2_ -> e2_
   tell [Log.Affected "visitExpr -> AssignExpr" [show one, show two]]
-  let newVal = case val of
-        SymFormalParam t n _ ->
-          let v = cast (toSymType2 val) e2
-          in SymFormalParam t n (Just v)
-        SymGlobalVar t n _ ->
-          let v = cast (toSymType2 val) e2
-          in SymGlobalVar t n (Just v)
-        _ -> cast (toSymType2 val) e2
-  tell [Log.ModifyState "visitExpr -> AssignExpr" (show svn,show newVal)]
+  -- newVal is a transformation of e2. it's the new value
+  -- inside of newVal, casting is done
+  varNames <- getVarNames <$> get
+  let newVal = case one of
+        ER_ArrayCallExpr (SArrayIndexAccess arrName index) _ ->
+          let Just theArray@(SymArray mt ml elems) = Map.lookup (VarName arrName) varNames
+          in case index of
+               SymInt num ->
+                 let int = fromIntegral num
+                 in SymArray mt ml (take int elems ++ [cast (toSymType2 one_val) e2] ++ drop (int+1) elems)
+               _ -> error $ "TODO: visitExpr ==> AssignExpr: " ++ show index
+        _ -> cast (toSymType2 one_val) e2
+  -- inserting new value in map
+  tell [Log.ModifyState "visitExpr -> AssignExpr" (show one_svn,show newVal)]
   modify $ \symState ->
     SymState {
-      env = Map.insert svn newVal (env symState),
+      env = Map.insert one_svn newVal (env symState),
       pc = pc symState
     }
-  let toReturn = ER_SymStateMapEntry svn e2
+  let toReturn = ER_SymStateMapEntry one_svn e2
   tell [Log.Return "visitExpr -> AssignExpr" (show toReturn)] $> toReturn
 
 -- VarExpr {varType :: Maybe (Type Types), varObj :: [String], varName :: String}
@@ -500,7 +511,7 @@ ArrayCallExpr {
   index = Just (VarExpr {varType = Nothing, varObj = [], varName = "pos"})
 }
 -}
-visitExpr expr@AST.ArrayCallExpr{} = do--throwError $ "TODO: visitExpr -> ArrayCallExpr -> " ++ show expr
+visitExpr expr@AST.ArrayCallExpr{} = do
   -- Array name
   ER_SymStateMapEntry (VarName arrName) _ <- visitExpr $ AST.arrName expr
   -- Array index
@@ -513,8 +524,9 @@ visitExpr expr@AST.ArrayCallExpr{} = do--throwError $ "TODO: visitExpr -> ArrayC
         ER_Expr indexExpr2 -> cast Int indexExpr2
         e -> error $ "TODO1: visitExpr ==> ArrayCallExpr ==> " ++ show e
   varNames <- getVarNames <$> get
-  let symExpr = objAccCalculator varNames $ SArrayIndexAccess arrName index_er
-      toReturn = ER_Expr symExpr
+  let symExprCall = SArrayIndexAccess arrName index_er
+      symExprVal = objAccCalculator varNames symExprCall
+      toReturn = ER_ArrayCallExpr symExprCall symExprVal
   tell [Log.Return "visitExpr ==> ArrayCallExpr" (show toReturn)] $> toReturn
 
 visitExpr expr@(AST.BoolLiteral b) = do
@@ -544,17 +556,36 @@ ArrayInstantiationExpr {
 -- SymArray SymType (Maybe Int) [SymExpr]
 visitExpr expr@AST.ArrayInstantiationExpr{} = do
   tell [Log.Expression_2_Handle (show expr) "visitStmt -> ArrayInstantiationExpr"]
+  let mArrType = fmap toSymType1 $ AST.arrType expr
+  -- process elements in the array, if they exist
   exprs <- flip mapM (AST.arrElems expr) $ \ex -> do
     er <- visitExpr ex
-    case er of
-      ER_Expr expr2 -> return $ expr2
-      er -> throwError $ "visitExpr ==> ArrayInstantiationExpr: " ++ show er
-  let mArrType = fmap toSymType1 $ AST.arrType expr
+    case (er,mArrType) of
+      (ER_Expr expr2,Nothing) -> return $ expr2
+      (ER_Expr expr2,Just t) -> return $ cast t expr2
+      _ -> throwError $ "visitExpr ==> ArrayInstantiationExpr: " ++ show er
+  -- get array size
+  m_arr_size <- case (AST.arrSize expr,length exprs) of
+        (Nothing,l) -> return $ Just l
+        (Just ex,l)
+          | l > 0 -> return $ Just l
+          | otherwise -> do
+              er <- visitExpr ex
+              case er of
+                ER_Expr (SymNum num) -> return $ Just $ round num
+                _ -> throwError $ "visitExpr ==> ArrayInstantiationExpr: " ++ show (expr,er)
+        (Nothing,0) -> return Nothing
+  -- potentially add nulls as elements if size is present, but no elements are present.
+  let exprs_ = case (m_arr_size,exprs) of
+        (Nothing,[]) -> []
+        (Nothing,_) -> exprs
+        (Just num,[]) -> replicate num (SymNull $ maybe (error "visitExpr ==> ArrayInstantiationExpr") (\(Array t) -> t) mArrType)
+        (Just num,_) -> exprs
   let symExpr = SymArray
         mArrType
-        (Just $ length exprs)
-        (maybe exprs (\(Array symType) ->
-                         flip map exprs $ \expr -> cast symType expr) mArrType)
+        m_arr_size
+        exprs_
+  --throwError $ "visitExpr ==> ArrayInstantiationExpr ==> " ++ show symExpr
   return $ ER_Expr symExpr
 visitExpr expr = error $ "What this is: " ++ show expr
 

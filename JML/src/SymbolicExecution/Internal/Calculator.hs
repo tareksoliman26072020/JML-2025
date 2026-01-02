@@ -702,6 +702,7 @@ funCallCalculator = \case
   ("toString",[argExpr]) -> case argExpr of
      SymInt num -> ER_Expr $ SymString $ show num
      SymString _ -> ER_Expr $ argExpr
+     SymArray _ _ _ -> ER_Expr $ SymString $ ppSymExpr argExpr
      _ -> error $ "TODO1: funCallCalculator ==> " ++ show argExpr
   (funName,[argExpr])
     | funName `elem` ["print","println"] ->

@@ -270,7 +270,8 @@ getNewVarBinding nodeId branchId = \case
         Just _ ->
           Just (AST.varName left,VarBinding nodeId branchId)
         Nothing -> Nothing
-      _ -> error "getNewVarBinding -> won't happen1"
+      AST.ArrayCallExpr{} -> Nothing
+      _ -> error $ "getNewVarBinding -> won't happen1: " ++ show left
     _ -> error "getNewVarBinding -> won't happen2"
   --VarStmt {var = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "y"}}
   stmt@AST.VarStmt{} -> case AST.var stmt of
