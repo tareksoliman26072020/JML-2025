@@ -205,6 +205,7 @@ visitStmt :: AST.Statement -> Method_R
 visitStmt (AST.ReturnStmt (Just expr)) = do
   tell [Log.ReturnStatement (show expr) "visitStmt -> ReturnStmt"]
   er <- visitExpr expr
+  varNames <- getVarNames <$> get
   let symExpr = case er of
         ER_Expr symExpr_ -> symExpr_ 
         ER_SymStateMapEntry _ val -> val
@@ -213,6 +214,11 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
           Nothing -> error $ "visitStmt ==> ReturnStmt: TODO: Nothing: \n" ++ show funCallSymState
         ER_FunCall funCallSymState -> error
           $ "visitStmt ==> ReturnStmt: " ++ (show $ env funCallSymState)
+        --ER_ArrayCallExpr {
+        --  arrayIndexCall = SArrayIndexAccess "arr" (SymFormalParam Int "pos" Nothing), 
+        --  arrayIndexCallValue = SArrayIndexAccess "arr" (SymFormalParam Int "pos" Nothing)
+        --}
+        ER_ArrayCallExpr _ val -> val
         x                -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show x
   tell [Log.ModifyState "visitStmt -> ReturnStmt -> method with args" ("return",show symExpr)]
   modify $ \symState ->
