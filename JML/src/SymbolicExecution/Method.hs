@@ -333,7 +333,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
               actualParms = flip map (AST.funArgs expr) $ \exp ->
                 let logging = Log.Nested (printf "SymExec of actual parameter: %s(%s)" funCallName (AST.getActualParmName exp))
                 in censor (map logging) $ visitExpr exp
-          
+               
           tus <- zipWithM (\fParm act -> (,) (let Just t = AST.varType fParm in toSymType1 t,AST.getVarName fParm) <$> act)
                    formalParms
                    actualParms
@@ -424,10 +424,14 @@ visitExpr expr@AST.UnOpExpr{} = throwError "visitExpr ==> UnOpExpr ==> TODO"
 visitExpr expr@AST.AssignExpr{} = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> AssignExpr"]
   one@(ER_SymStateMapEntry svn val) <- visitExpr (AST.assEleft expr)
+  --throwError $ printf "WOF:: (%s,%s)" (show svn) (show val)
+  --                     WOF:: (VarName "arr",SymNull (Array Int))
 --two@(ER_Expr e2) <- visitExpr (AST.assEright expr)
   two <- visitExpr (AST.assEright expr)
+  --throwError $ "WOF:: " ++ show two
+  --WOF:: ER_Expr (SymArray Nothing (Just 5) [SymNum 6.0,SymNum 5.0,SymNum 4.0,SymNum 7.0,SymNum 8.0])
   let e2 = case two of
-          ER_Expr e2_ -> e2_
+          ER_Expr e2_ -> cast (toSymType2 val) e2_
           ER_FunCall funCallState ->
             case getReturnSymExpr funCallState of
               Nothing -> error $ printf "visitExpr ~~> AssignExpr ~~> won't happen"
@@ -504,15 +508,15 @@ visitExpr expr@AST.ArrayCallExpr{} = do--throwError $ "TODO: visitExpr -> ArrayC
     Nothing -> throwError "visitExpr ==> ArrayCallExpr ==> won't happen"
     Just expr_ -> do
       indexExpr <- visitExpr expr_
-      case indexExpr of
-        ER_SymStateMapEntry _ indexExpr2 -> return $ ER_Expr $ SArrayIndexAccess arrName indexExpr2
-        e -> throwError $ "TODO: visitExpr ==> ArrayCallExpr ==> " ++ show e
-  case index_er of
-    ER_Expr symExpr -> do
-      let toReturn = ER_Expr symExpr
-      tell [Log.Return "visitExpr ==> ArrayCallExpr" (show toReturn)] $> toReturn
-    _ -> throwError $ "TODO: visitExpr ==> ArrayCallExpr ==> " ++ show index_er
-      
+      return $ case indexExpr of
+        ER_SymStateMapEntry _ indexExpr2 -> indexExpr2
+        ER_Expr indexExpr2 -> cast Int indexExpr2
+        e -> error $ "TODO1: visitExpr ==> ArrayCallExpr ==> " ++ show e
+  varNames <- getVarNames <$> get
+  let symExpr = objAccCalculator varNames $ SArrayIndexAccess arrName index_er
+      toReturn = ER_Expr symExpr
+  tell [Log.Return "visitExpr ==> ArrayCallExpr" (show toReturn)] $> toReturn
+
 visitExpr expr@(AST.BoolLiteral b) = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> BoolLiteral"]
   let toReturn = ER_Expr (SBool b)
@@ -530,6 +534,28 @@ visitExpr expr@AST.ExcpExpr{} = do
            Just str -> str)
   let toReturn = ER_Expr symExpr
   tell [Log.Return "visitExpr -> ExcpExpr" (show toReturn)] $> toReturn  
+{-
+ArrayInstantiationExpr {
+  arrType = Just (ArrayType {baseType = BuiltInType Int}),
+  arrSize = Nothing,
+  arrElems = [NumberLiteral 6.0,NumberLiteral 5.0,NumberLiteral 4.0,NumberLiteral 7.0,NumberLiteral 8.0]
+}
+-}
+-- SymArray SymType (Maybe Int) [SymExpr]
+visitExpr expr@AST.ArrayInstantiationExpr{} = do
+  tell [Log.Expression_2_Handle (show expr) "visitStmt -> ArrayInstantiationExpr"]
+  exprs <- flip mapM (AST.arrElems expr) $ \ex -> do
+    er <- visitExpr ex
+    case er of
+      ER_Expr expr2 -> return $ expr2
+      er -> throwError $ "visitExpr ==> ArrayInstantiationExpr: " ++ show er
+  let mArrType = fmap toSymType1 $ AST.arrType expr
+  let symExpr = SymArray
+        mArrType
+        (Just $ length exprs)
+        (maybe exprs (\(Array symType) ->
+                         flip map exprs $ \expr -> cast symType expr) mArrType)
+  return $ ER_Expr symExpr
 visitExpr expr = error $ "What this is: " ++ show expr
 
 ------------------------------

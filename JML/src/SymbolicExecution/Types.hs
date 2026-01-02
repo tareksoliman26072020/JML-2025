@@ -138,6 +138,7 @@ visitExpr ==> AssignExpr: ER_SymStateMapEntry
 visitExpr ==> VarExpr ==> no object access: ER_SymStateMapEntry
 visitExpr ==> VarExpr ==> object access: ER_Expr
 visitExpr ==> ExcpExpr: ER_Expr SException
+visitExpr ==> ArrayInstantiationExpr: ER_Expr 
 
 visitStmt sends data to visitNode (this may change in the future so that it also sends data to visitStmt)
 
@@ -233,7 +234,7 @@ VarExpr {
 }
 -}
   | SArrayIndexAccess String SymExpr
-  | SymArray (Maybe Int) [SymExpr]
+  | SymArray (Maybe SymType) (Maybe Int) [SymExpr]
   deriving (Eq,Show)
 
 data VarBinding = VarBinding

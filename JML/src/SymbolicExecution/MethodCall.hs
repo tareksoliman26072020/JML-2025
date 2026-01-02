@@ -15,6 +15,7 @@ import Control.Monad.Except
 import Data.Functor (($>), void)
 import Text.Printf (printf)
 import Data.List (find)
+import SymbolicExecution.Internal.Calculator (objAccCalculator)
 
 type MethodCall_Map_R =
     ReaderT (Config,[(FormalParm, ActualParm_post_Visitation)])
@@ -216,6 +217,51 @@ instance SymStateVisitor MethodCall_SymExec where
   ------------------------------
   ------------------------------
   ------------------------------
+      SymArray one two elems -> do
+        tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SymArray"]
+        elems_ <- mapM (\elem -> (\(ER_Expr symExpr) -> symExpr) <$> visitSymExpr0 elem) elems
+        tell [Log.ModifyState "visitSymExpr -> SymArray" (show key,show val)]
+        modify $ \symState ->
+          SymState {
+            env = Map.insert key (SymArray one two elems_) (env symState),
+            pc  = pc symState
+          }
+        let toReturn = ER_SymStateMapEntry key (SymArray one two elems_)
+        tell [Log.Return "visitSymExpr -> SymArray" (show toReturn)] $> toReturn
+  ------------------------------
+  ------------------------------
+  ------------------------------
+      SArrayIndexAccess arrName symExprIndex -> do
+        s <- get
+        let varNames = getVarNames s
+            Just arrNameSymExpr = Map.lookup (VarName arrName) varNames
+        ER_Expr symExprIndex2 <- visitSymExpr0 symExprIndex
+        let newSArrayIndexAccess = objAccCalculator varNames (SArrayIndexAccess arrName symExprIndex2)
+        tell [Log.ModifyState "visitSymExpr -> SArrayIndexAccess" (show key,show newSArrayIndexAccess)]
+        modify $ \symState ->
+          SymState {
+            env = Map.insert key newSArrayIndexAccess (env symState),
+            pc  = pc symState
+          }
+        let toReturn = ER_SymStateMapEntry key newSArrayIndexAccess
+        tell [Log.Return "visitSymExpr -> SArrayIndexAccess" (show toReturn)] $> toReturn
+        --throwError $ printf "TODO: visitSymExpr ==> SArrayIndexAccess ==>\n%s\n%s" (show arrNameSymExpr) (show symExprIndex2)
+  ------------------------------
+  ------------------------------
+  ------------------------------
+      SException _ _ -> do
+        tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SException"]
+        tell [Log.ModifyState "visitSymExpr -> SException" (show key,show val)]
+        modify $ \symState ->
+          SymState {
+            env = Map.insert key val (env symState),
+            pc  = pc symState
+          }
+        let toReturn = ER_SymStateMapEntry key val
+        tell [Log.Return "visitSymExpr -> SException" (show toReturn)] $> toReturn
+  ------------------------------
+  ------------------------------
+  ------------------------------
       ex ->
         throwError $ "visitSymExpr -> TODO: " ++ show ex
 
@@ -264,7 +310,7 @@ visitSymExpr0 = \case
           whichFun = case isNumericOp of
             True -> numericCalculator
             False -> booleanCalculator
-      in 
+      in --error $ printf "Meow in Method Call: (%s,%s)" (show e1) (show e2)
       ER_Expr $ whichFun (SBin (simplify $ getSymExpr e1) symBinOp (simplify $ getSymExpr e2)))
       <$> (visitSymExpr0 symExpr1)
       <*> (visitSymExpr0 symExpr2)
@@ -280,6 +326,13 @@ visitSymExpr0 = \case
     tell [Log.SymExpr_2_Handle (show val) "visitSymExpr0 -> SMethodType"]
     let toReturn = ER_Expr val
     tell [Log.Return "visitSymExpr0 -> SMethodType" (show toReturn)] $> toReturn
+  val@(SObjAcc _) -> do
+    tell [Log.SymExpr_2_Handle (show val) "visitSymExpr0 -> SObjAcc"]
+    state <- get
+    let varNames = getVarNames state
+    let newSymExpr = objAccCalculator varNames val
+    let toReturn = ER_Expr newSymExpr
+    tell [Log.Return "visitSymExpr0 -> SObjAcc" (show toReturn)] $> toReturn
   ------------------------------
   ------------------------------
   ------------------------------

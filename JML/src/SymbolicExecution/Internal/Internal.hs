@@ -87,7 +87,7 @@ isVar = \case
 
 isArray :: SymExpr -> Bool
 isArray = \case
-  SymArray _ _ -> True
+  SymArray _ _ _ -> True
   SymFormalParam (Array _) _ _ -> True
   SymGlobalVar (Array _) _ _ -> True
   _ -> False
@@ -201,7 +201,11 @@ cast symType symExpr = case symExpr of
                 Float  -> SymFloat num
                 Bool   -> error "cast ~~> won't happen"
                 Void   -> error "cast ~~> won't happen"
+                Array t -> cast t (SymNum num)
+                _ -> error $ "TODO: cast ==> " ++ show symType
   SBin expr1 op expr2 -> SBin (cast symType expr1) op (cast symType expr2)
+  --SymArray (Maybe SymType) (Maybe Int) [SymExpr]
+  SymArray _ mInt symExprs -> SymArray (Just symType) mInt (map (cast symType) symExprs)
   a -> a
 --a -> error $ printf "TODO ~~> cast (%s) (%s)" (show symType) (show symExpr)
 
@@ -301,6 +305,7 @@ substitute formalParam = \case
     --SymGlobalVar SymType String (Maybe SymExpr)
   actualParam@(SymGlobalVar t n Nothing) -> actualParam
   actualParam@(SymGlobalVar _ _ (Just expr)) -> expr
+  actualParam@(SymArray _ _ _) -> actualParam
   act -> error $ printf "substitute ~~> TODO2: (%s,%s)" formalParam (show act)
 
 -- Extracting ExecutionResult from the monadic type Method_R

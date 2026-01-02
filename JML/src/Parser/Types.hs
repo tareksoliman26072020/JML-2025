@@ -3,6 +3,7 @@ module Parser.Types where
 
 import qualified Control.Exception as E
 import Text.Printf (printf)
+import Data.List (intercalate)
 
 data BinOp = Plus | Mult | Minus | Div | Mod | Less | LessEq | Greater | GreaterEq | Eq | Neq | And | Or deriving Eq
 instance Show BinOp where
@@ -131,13 +132,16 @@ getVarName expr@VarExpr{} = varName expr
 getVarName expr = error $ "won't happen: " ++ show expr
 
 getActualParmName :: Expression -> String
---VarExpr {varType = Nothing, varObj = [], varName = "i"}
-getActualParmName expr@VarExpr{} = varName expr
---BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
-getActualParmName expr@BinOpExpr{} =
-  printf "%s%s%s" (getActualParmName $ expr1 expr) (show $ binOp expr) (getActualParmName $ expr2 expr)
-getActualParmName (NumberLiteral num) = show num
-getActualParmName expr = error $ "getActualParmName: " ++ show expr
+getActualParmName = \case
+  --VarExpr {varType = Nothing, varObj = [], varName = "i"}
+  expr@VarExpr{} -> varName expr
+  --BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
+  expr@BinOpExpr{} ->
+    printf "%s%s%s" (getActualParmName $ expr1 expr) (show $ binOp expr) (getActualParmName $ expr2 expr)
+  NumberLiteral num -> show num
+  ArrayInstantiationExpr _ _ arrElems -> printf "{%s}"
+    $ intercalate ", " $ map getActualParmName arrElems
+  expr -> error $ "TODO: getActualParmName: " ++ show expr
 
 data Type a
   = BuiltInType a

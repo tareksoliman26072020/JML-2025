@@ -657,6 +657,11 @@ objAccCalculator varNames = \case
   expr@(SObjAcc [varName,_]) ->
     let Just varNameVal = Map.lookup (VarName varName) varNames
     in objAccCalculator2 expr varNameVal
+  arr@(SArrayIndexAccess arrName arrIndexSymExpr) ->
+    let Just varSymExpr = Map.lookup (VarName arrName) varNames
+    in case (varSymExpr,arrIndexSymExpr) of
+         (SymArray _ _ elems,SymInt index) -> elems !! fromIntegral index
+         _ -> arr
   e -> error $ "objAccCalculator ==> won't happen3 ==> " ++ show e
 
 objAccCalculator2 :: SymExpr -> SymExpr -> SymExpr
@@ -665,8 +670,9 @@ objAccCalculator2 expr@(SObjAcc [varName,methodCall]) = \case
   SymFormalParam _ _ (Just expr2) -> objAccCalculator2 expr expr2
   SymGlobalVar _ _ Nothing -> expr
   SymGlobalVar _ _ (Just expr2) -> objAccCalculator2 expr expr2
-  SymArray _ elems
-    | methodCall == "length" -> SymInt $ fromIntegral $ length elems
+  SymArray _ mLength elems
+    | methodCall == "length" -> SymInt
+        $ maybe (fromIntegral $ length elems) fromIntegral $ mLength
     | otherwise -> error "TODO: objAccCalculator2"
 
 ----------------------------------------------------------------------

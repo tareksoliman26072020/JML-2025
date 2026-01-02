@@ -1355,21 +1355,130 @@ public int boo32(){
 /*
 SymState {
   env = fromList [
-    (MethodName "elemAt",SMethodType (Array Int)),
+    (MethodName "elemAt",SMethodType Int),
     (VarName "arr",SymFormalParam (Array Int) "arr" Nothing),
     (VarName "pos",SymFormalParam Int "pos" Nothing),
-    (NodeNr 1,SIte (SBin (SObjAcc ["arr","length"]) Le (SymFormalParam Int "pos" Nothing)) 
-                   (SymState {env = fromList [(MethodName "elemAt",SMethodType (Array Int)),(VarName "arr",SymFormalParam (Array Int) "arr" Nothing),(VarName "pos",SymFormalParam Int "pos" Nothing),(Return,SException "Exception" "not found")], pc = []})
+    (NodeNr 1,SIte (SBin (SObjAcc ["arr","length"]) Le (SymFormalParam Int "pos" Nothing)) (SymState {env = fromList [(MethodName "elemAt",SMethodType Int),(VarName "arr",SymFormalParam (Array Int) "arr" Nothing),(VarName "pos",SymFormalParam Int "pos" Nothing),(Return,SException "Exception" "not found")], pc = []}) Nothing),
+    (Return,SArrayIndexAccess "arr" (SymFormalParam Int "pos" Nothing))
+  ], pc = []
+}
+*/
+public int elemAt(int[] arr, int pos) throws Exception {
+  if(arr.length<=pos) {
+    throw new Exception("not found");
+  }
+  return arr[pos];
+}
+
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "elemAtCall",SMethodType Int),
+    (Return,SymInt 4)
+  ], pc = []
+}
+*/
+public int elemAtCall() throws Exception {
+  return elemAt(new int[]{6,5,4,7,8},2);
+}
+
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "elemAt2",SMethodType Int),
+    (VarBindings,SVarBindings (fromList [("arr",VarBinding {varDeclAt = 1, varFrame = 0})])),
+    (VarName "arr",SymArray (Just (Array Int)) (Just 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),
+    (VarName "pos",SymFormalParam Int "pos" Nothing),
+    (NodeNr 2,SIte (SBin (SymInt 5) Le (SymFormalParam Int "pos" Nothing)) (SymState {env = fromList [(MethodName "elemAt2",SMethodType Int),(VarBindings,SVarBindings (fromList [("arr",VarBinding {varDeclAt = 1, varFrame = 0})])),(VarName "arr",SymArray (Just (Array Int)) (Just 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),(VarName "pos",SymFormalParam Int "pos" Nothing),(Return,SException "Exception" "not found")], pc = []}) Nothing),
+    (Return,SArrayIndexAccess "arr" (SymFormalParam Int "pos" Nothing))
+  ], pc = []
+}
+*/
+public int elemAt2(int pos) throws Exception {
+  int[] arr = new int[]{6,5,4,7,8};
+  if(arr.length<=pos) {
+    throw new Exception("not found");
+  }
+  return arr[pos];
+}
+
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "elemAt2call",SMethodType Int),
+    (Return,SymInt 4)
+  ], pc = []
+}
+*/
+public int elemAt2call() {
+  return elemAt2(2);
+}
+
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "elemAt2call2",SMethodType Int),
+    (Return,SException "Exception" "not found")
+  ], pc = []
+}
+*/
+public int elemAt2call2() {
+  return elemAt2(5);
+}
+
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "elemAt3",SMethodType Int),
+    (VarBindings,SVarBindings (fromList [("arr",VarBinding {varDeclAt = 1, varFrame = 0})])),
+    (VarName "arr",SymArray (Just (Array Int)) (Just 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),
+    (VarName "pos",SymFormalParam Int "pos" Nothing),
+    (NodeNr 2,SIte (SBin (SymInt 5) Le (SymFormalParam Int "pos" Nothing))
+                   (SymState {env = fromList [(MethodName "elemAt3",SMethodType Int),(VarBindings,SVarBindings (fromList [("arr",VarBinding {varDeclAt = 1, varFrame = 0})])),(VarName "arr",SymArray (Just (Array Int)) (Just 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),(VarName "pos",SymFormalParam Int "pos" Nothing),(Return,SException "Exception" "not found")], pc = []})
                    Nothing),
     (Return,SArrayIndexAccess "arr" (SymFormalParam Int "pos" Nothing))
   ], pc = []
 }
 */
-public int[] elemAt(int[] arr, int pos){
+public static int elemAt3(int pos) throws Exception {
+  int[] arr = {6,5,4,7,8};
   if(arr.length<=pos) {
     throw new Exception("not found");
   }
   return arr[pos];
+}
+
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "elemAt4",SMethodType Int),
+    (VarBindings,SVarBindings (fromList [("arr",VarBinding {varDeclAt = 1, varFrame = 0})])),
+    (VarName "arr",SymArray (Just (Array Int)) (Just 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),
+    (Return,SymInt 7)
+  ], pc = []
+}
+*/
+public int elemAt4() {
+  int[] arr = {6,5,4,7,8};
+  return arr[3];
 }
 
 ////////////////////////////////////////
