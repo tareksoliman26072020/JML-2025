@@ -205,30 +205,35 @@ instance CFGVisitor Method_SymExec where
           -- yes accumulation variable
           Just accumulationVar -> do
             -- variable will be added to a new state, custom-made for the for body
-            let (accLogs,accState) = runCFG cfgs cfg (Just [CFG.Node 0 (CFG.Statement $ AST.AssignStmt [] accumulationVar) 0]) (Just originalState)
+            let (accLogs,accState) = runCFG cfgs cfg (Just [CFG.Node (CFG.id n) (CFG.Statement $ AST.AssignStmt [] accumulationVar) 0]) (Just originalState)
             return $ ER_Tupel (ER_Logs accLogs,ER_State accState)
         -- process SymState of for body
         -- branches: start id for the for body branch.
         --           return is a list of one int.
-        let branches = case CFG.findEdge_via_id cfg (CFG.id n + 1) of
-                  Just (_,xs) -> xs
+        let forCondNodeId = CFG.id n + 1
+        let forCondNode = CFG.findNode_via_id cfg forCondNodeId
+        let forBodyBranch = case CFG.findEdge_via_id cfg forCondNodeId of
+                  Just (_,(x : _)) -> x
                   Nothing     -> error $ "visitNode -> Node -> ForInitialization -> won't happen"
-        throwError $ "MEOW::: " ++ show branches
-        let branches_paths :: [[CFG.Node]]
-            branches_paths = flip map branches $ \branchStartId ->
-              let thePath = CFG.getPath branchStartId cfg
-              in flip takeWhile thePath $ \case
-                   CFG.Node _ (CFG.Meet CFG.For) _ -> False
-                   _                               -> True
+
+        let forBody_forStep_path :: [CFG.Node]
+            forBody_forStep_path = flip takeWhile (CFG.getPath forBodyBranch cfg) $ \case
+              CFG.Entry _ _ _ -> error "won't happen"
+              CFG.End _ _ _ -> error "won't happen"
+              CFG.Node theId _ _ -> theId /= forCondNodeId
         -- implement a helper that takes as input `(accLogs,accState)`
-        -- call it `visitFor`
-        case accumulationVar_visited of
-          ER_Tupel (_,ER_State s) -> throwError $ "visitNode -> Node -> ForInitializaion: " ++ show originalState ++ "\n-_--_--_-\n" ++ show s
+        -- call it `visitForLoop`
+        visitForLoop (case accumulationVar_visited of
+          ER_Void -> Nothing
+          ER_Tupel tu -> Just tu) forBody_forStep_path forCondNode
       ----------------------------------------
       ----------------------------------------
       ----------------------------------------
       _ -> throwError
         $ "TODO -> visitNode -> Node -> nodeData -> otherwise" ++ show n
+      ----------------------------------------
+      ----------------------------------------
+      ----------------------------------------
       where
       removeDeletedVars :: SymState -> SymState -> SymState
       removeDeletedVars state condSymState =
@@ -244,6 +249,14 @@ instance CFGVisitor Method_SymExec where
                  (_,_) -> Map.singleton key val
             newCondSymState = SymState newCondSymStateEnv (pc condSymState)
         in newCondSymState
+      
+      visitForLoop :: Maybe (ExecutionResult,ExecutionResult) -> [CFG.Node] -> CFG.Node -> Method_R
+      visitForLoop m_Log_State forBody_forStep_path forCondNode = do
+        undefined
+
+----------------------------------------
+----------------------------------------
+----------------------------------------
 
 getFunHandle :: Method_R
 getFunHandle = (\(Just t,Just k) -> case k of

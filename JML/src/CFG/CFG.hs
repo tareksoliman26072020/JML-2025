@@ -128,16 +128,16 @@ visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.ForStmt{} =
       condNode = G.Node {
         G.id       = G.id initializationNode + 1,
         G.nodeData = G.BooleanExpression G.For $ AST.mCond stmt,
-        G.parent   = sourceNodeID
+        G.parent   = G.id initializationNode
       }
       ---------------- trueBranch
       ((_,trueCurrentID,trueNextID),true_cfg_creator0) =
-        visitStatement0 (sourceNodeID,G.id condNode,G.id condNode+1) (AST.forBody stmt)
+        visitStatement0 (G.id initializationNode,G.id condNode,G.id condNode+1) (AST.forBody stmt)
       ---------------- step node
       stepNode = G.Node {
         G.id       = trueNextID,
         G.nodeData = G.ForStep $ AST.mStep stmt,
-        G.parent   = sourceNodeID
+        G.parent   = G.id initializationNode
       }
       ---------------- add step node to true branch
       ---------------- add edge from step node to cond node

@@ -189,6 +189,7 @@ data SymExpr =
   | SBin    SymExpr SymBinOp SymExpr  -- ^ binary operation
   | SNot    SymExpr               -- ^ logical negation
   | SIte    SymExpr SymState (Maybe SymState)   -- ^ if-then-else (cond, then, else)
+  | SLoop   CFG.Node [CFG.Node]   -- Loop condition, and loop body. the loop step is the last node in the body
   | SymNull SymType               -- ^ value of an unassigned variable
   | SymFormalParam SymType String (Maybe SymExpr) -- ^ declared variable (a formal parameter)
   | SymGlobalVar SymType String (Maybe SymExpr) -- ^ variable declared outside the scope of the method

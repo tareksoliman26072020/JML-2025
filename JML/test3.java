@@ -1764,14 +1764,7 @@ FunDef {
 }
 */
 /*
-CFG {
-  nodes = [
-    Entry (BuiltInType Int) "sum1" [VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "n"}],
-    Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "res"}, assEright = NumberLiteral 0.0}}), parent = 0},
-    Node {id = 2, nodeData = ForInitialization (Just (AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}})), parent = 0},
-    Node {id = 3, nodeData = BooleanExpression For (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >, expr2 = NumberLiteral 0.0})), parent = 0},Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}}), parent = 0},Node {id = 5, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = -, expr2 = NumberLiteral 1.0}}})), parent = 0},Node {id = 6, nodeData = Meet For, parent = 0},End {id = 7, parent = 0, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "res"})}
-  ], edges = [(0,[1]),(1,[2]),(2,[3]),(3,[4,6]),(4,[5]),(5,[3]),(6,[7])]
-}
+CFG {nodes = [Entry (BuiltInType Int) "sum1" [VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "n"}],Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "res"}, assEright = NumberLiteral 0.0}}), parent = 0},Node {id = 2, nodeData = ForInitialization (Just (AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}})), parent = 0},Node {id = 3, nodeData = BooleanExpression For (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >, expr2 = NumberLiteral 0.0})), parent = 2},Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}}), parent = 2},Node {id = 5, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = -, expr2 = NumberLiteral 1.0}}})), parent = 2},Node {id = 6, nodeData = Meet For, parent = 0},End {id = 7, parent = 0, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "res"})}], edges = [(0,[1]),(1,[2]),(2,[3]),(3,[4,6]),(4,[5]),(5,[3]),(6,[7])]}
 */
 /*
   Entry sum1: method type: Int, args: (Int n)
@@ -1782,13 +1775,13 @@ CFG {
   0 -> 2:
         For: init: Just Int i = n
 ----------
-  0 -> 3:
+  2 -> 3:
         For: cond: i > 0.0
 ----------
-  0 -> 4:
+  2 -> 4:
         res = res + i
 ----------
-  0 -> 5:
+  2 -> 5:
         For: step: i = i - 1.0
 ----------
   0 -> 6:
