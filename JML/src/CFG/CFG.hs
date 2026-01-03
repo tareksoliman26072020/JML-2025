@@ -88,7 +88,7 @@ visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.CondStmt{} =
   let ---------------- condNode
       condNode = G.Node {
         G.id = nextNodeID,
-        G.nodeData = G.BooleanExpression G.If (AST.condition stmt),
+        G.nodeData = G.BooleanExpression G.If (Just $ AST.condition stmt),
         G.parent = sourceNodeID
       }
       ---------------- ifBranch
@@ -119,7 +119,7 @@ visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.ForStmt{} =
   let ---------------- initializationNode
       initializationNode = G.Node {
         G.id       = nextNodeID,
-        G.nodeData = G.ForInitialization $ case AST.acc stmt of
+        G.nodeData = G.ForInitialization $ flip fmap (AST.mAcc stmt) $ \case
                        a@AST.AssignStmt{} -> AST.assign a
                        _                  -> error "won't happen",
         G.parent   = sourceNodeID
@@ -127,7 +127,7 @@ visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.ForStmt{} =
       ---------------- condNode
       condNode = G.Node {
         G.id       = G.id initializationNode + 1,
-        G.nodeData = G.BooleanExpression G.For $ AST.cond stmt,
+        G.nodeData = G.BooleanExpression G.For $ AST.mCond stmt,
         G.parent   = sourceNodeID
       }
       ---------------- trueBranch
@@ -136,7 +136,7 @@ visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.ForStmt{} =
       ---------------- step node
       stepNode = G.Node {
         G.id       = trueNextID,
-        G.nodeData = G.ForStep $ AST.step stmt,
+        G.nodeData = G.ForStep $ AST.mStep stmt,
         G.parent   = sourceNodeID
       }
       ---------------- add step node to true branch
@@ -168,7 +168,7 @@ visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.ForStmt{} =
 visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.WhileStmt{} =
   let condNode = G.Node {
         G.id       = nextNodeID,
-        G.nodeData = G.BooleanExpression G.While (AST.condition stmt),
+        G.nodeData = G.BooleanExpression G.While (AST.mCondition stmt),
         G.parent   = sourceNodeID
       }
       ((_,trueCurrentID,trueNextID),true_cfg_creator0) =

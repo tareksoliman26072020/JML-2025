@@ -84,8 +84,8 @@ data Statement
   | VarStmt {var :: Expression}
   | AssignStmt {varModifier :: [Modifier], assign :: Expression}
   | CondStmt {condition :: Expression, siff :: Statement, selsee :: Statement}
-  | ForStmt {acc :: Statement, cond :: Expression, step :: Statement, forBody :: Statement}
-  | WhileStmt {condition :: Expression, whileBody :: Statement}
+  | ForStmt {mAcc :: Maybe Statement, mCond :: Maybe Expression, mStep :: Maybe Statement, forBody :: Statement}
+  | WhileStmt {mCondition :: Maybe Expression, whileBody :: Statement}
   | FunCallStmt {funCall :: Expression}
   | TryCatchStmt {tryBody :: Statement,
                   catchExcp :: Type Exception, catchBody :: Statement,

@@ -70,18 +70,24 @@ getCFGFormalParams cfg = case getEntryNode cfg of
 ------------------------------
 
 data NodeData = Statement AST.Statement
-              | ForInitialization AST.Expression
-              | BooleanExpression Kind AST.Expression
-              | ForStep AST.Statement 
+              | ForInitialization (Maybe AST.Expression)
+              | BooleanExpression Kind (Maybe AST.Expression)
+              | ForStep (Maybe AST.Statement) 
               | TryNode | CatchNode (AST.Type AST.Exception) | FinallyNode
               | Meet Kind
               deriving Show
 
 showNodeData :: NodeData -> String
 showNodeData (Statement stmt) = showStatement stmt
-showNodeData (ForInitialization expr) = "For: init: " ++ showExpr expr
-showNodeData (BooleanExpression kind expr) = show kind ++ ": " ++ "cond: " ++ showExpr expr
-showNodeData (ForStep stmt) = "For: step: " ++ showStatement stmt
+showNodeData (ForInitialization mExpr) = "For: init: " ++ case fmap showExpr mExpr of
+  Nothing -> "Nothing"
+  Just str -> "Just " ++ str
+showNodeData (BooleanExpression kind mExpr) = show kind ++ ": " ++ case mExpr of
+  Nothing -> "no condition"
+  Just expr -> "cond: " ++ showExpr expr
+showNodeData (ForStep mStmt) = case mStmt of
+  Just stmt -> "For: step: " ++ showStatement stmt
+  Nothing -> "For: no step"
 showNodeData TryNode = "Try Node"
 showNodeData (CatchNode t) = "Catch Node: " ++ showTypeException t
 showNodeData FinallyNode = "Finally Node"

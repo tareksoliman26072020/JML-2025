@@ -66,15 +66,15 @@ parseIf = do
 
 parseFor :: Parser Statement
 parseFor = do
-  i <- keyword "for" *> skipChar '(' *> parseStmt <* skipChar ';'
-  c <- parseExpr <* skipChar ';'
-  s <- parseStmt <* skipChar ')'
-  ForStmt i c s <$> parseStmt
+  mi <- keyword "for" *> skipChar '(' *> optionMaybe parseStmt <* skipChar ';'
+  mc <- optionMaybe parseExpr <* skipChar ';'
+  ms <- optionMaybe parseStmt <* skipChar ')'
+  ForStmt mi mc ms <$> parseStmt
 
 parseWhile :: Parser Statement
 parseWhile = do
-  i <- keyword "while" *> skipChar '(' *> parseExpr <* skipChar ')'
-  WhileStmt i <$> parseStmt
+  mi <- keyword "while" *> skipChar '(' *> optionMaybe parseExpr <* skipChar ')'
+  WhileStmt mi <$> parseStmt
 
 parseTry :: Parser Statement
 parseTry = do

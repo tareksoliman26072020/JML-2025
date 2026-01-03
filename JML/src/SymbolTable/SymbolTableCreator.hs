@@ -93,9 +93,9 @@ visitStatements ((pos, a@WhileStmt{}) : rest) =
   : visitStatements rest
 --ForStmt {acc :: Statement, cond :: Expression, step :: Statement, forBody :: Statement}
 visitStatements ((pos, a@ForStmt{}) : rest) =
-  (pos, ST.For (cond a),
-   add_step_to_for_scope (step a) 
-   $ add_acc_to_for_scope (acc a)
+  (pos, ST.For (mCond a),
+   add_step_to_for_scope (mStep a) 
+   $ add_acc_to_for_scope (mAcc a)
    $ symbolTable
    $ visitStatement (forBody a)
   ) : visitStatements rest
@@ -108,35 +108,39 @@ visitStatements [] = []
 visitStatements (_ : rest) = visitStatements rest
 
 -- | the accumulator in the for statement becomes an outsider variable
-add_acc_to_for_scope :: AST.Statement -> ST.Entry -> ST.Entry
-add_acc_to_for_scope a@AssignStmt{} scope_ = ST.Scope {
---outsiderVars :: [Variable],
-  outsiderVars = [symbolTable $ visitStatement a],
---size         :: Int,
-  size         = size scope_,
---vars         :: [(Pos,Variable)],
-  vars         = vars scope_,
---scopes       :: [(Pos,Kind,Scope)]
-  scopes       = scopes scope_
-}
-add_acc_to_for_scope _ _ = error "This function is only meant for AssignStmt"
+add_acc_to_for_scope :: Maybe (AST.Statement) -> ST.Entry -> ST.Entry
+add_acc_to_for_scope ma scope_ = case ma of
+  Nothing -> scope_
+  Just a@AssignStmt{} -> ST.Scope {
+    --outsiderVars :: [Variable],
+    outsiderVars = [symbolTable $ visitStatement a],
+    --size         :: Int,
+    size         = size scope_,
+    --vars         :: [(Pos,Variable)],
+    vars         = vars scope_,
+    --scopes       :: [(Pos,Kind,Scope)]
+    scopes       = scopes scope_
+  }
+  Just _ -> error "This function is only meant for AssignStmt"
 
 -- | the step in the for statement becomes an outsider variable
 -- AssignStmt {varModifier :: [Modifier], assign :: Expression}
-add_step_to_for_scope :: AST.Statement -> ST.Entry -> ST.Entry
-add_step_to_for_scope a@AssignStmt{} scope_ =
-  let newSize = size scope_ + 1
-  in Scope {
-     --outsiderVars :: [Variable],
-       outsiderVars = outsiderVars scope_,
-     --size         :: Int,
-       size         = newSize,
-     --vars         :: [(Pos,Variable)],
-       vars         = vars scope_ ++ [(newSize, symbolTable $ visitStatement a)],
-     --scopes       :: [(Pos,Kind,Scope)]
-       scopes       = scopes scope_
-  }
-add_step_to_for_scope _ _ = error "This function is only meant for AssignStmt"
+add_step_to_for_scope :: Maybe (AST.Statement) -> ST.Entry -> ST.Entry
+add_step_to_for_scope ma scope_ = case ma of
+  Nothing -> scope_
+  Just a@AssignStmt{} ->
+    let newSize = size scope_ + 1
+    in Scope {
+         --outsiderVars :: [Variable],
+         outsiderVars = outsiderVars scope_,
+         --size         :: Int,
+         size         = newSize,
+         --vars         :: [(Pos,Variable)],
+         vars         = vars scope_ ++ [(newSize, symbolTable $ visitStatement a)],
+         --scopes       :: [(Pos,Kind,Scope)]
+         scopes       = scopes scope_
+      }
+  Just _ -> error "This function is only meant for AssignStmt"
 
 -- receives method, and returns the its name
 getMethodName :: AST.Method -> String

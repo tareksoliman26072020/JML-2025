@@ -84,7 +84,9 @@ instance CFGVisitor Method_SymExec where
       ----------------------------------------
       ----------------------------------------
       -- BooleanExpression Kind AST.Expression
-      CFG.BooleanExpression CFG.If expr -> do
+      CFG.BooleanExpression CFG.If Nothing ->
+        throwError "visitNode ==> case nodeData of Node ==> BooleanExpression If ==> won't happen"
+      CFG.BooleanExpression CFG.If (Just expr) -> do
         tell [Log.MethodStatementIfCondition (printf "visitNode -> case nodeData of Node -> BooleanExpression If -> Node num: %d" (CFG.id n)) (show expr)]
         ER_FunHandle _ funName <- getFunHandle
         (_,cfgs) <- ask

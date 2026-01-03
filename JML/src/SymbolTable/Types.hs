@@ -28,7 +28,7 @@ instance Show Type where
   show Long = "Long"
   show Byte = "Byte"
 
-data Kind = For AST.Expression | While AST.Expression | Try | Catch (AST.Type AST.Exception) | Finally | If AST.Expression | Else
+data Kind = For (Maybe AST.Expression) | While AST.Expression | Try | Catch (AST.Type AST.Exception) | Finally | If AST.Expression | Else
 
 instance Show Kind where
   show (For _) = "For"
