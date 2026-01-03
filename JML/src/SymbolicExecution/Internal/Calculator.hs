@@ -596,6 +596,9 @@ numericCalculator2 op = \case
   (SymGlobalVar t _ (Just symExpr), b) ->
     error $ "numericCalculator: won't happen because of the function `simplify`"
 ----------
+  (a@(SException _ _),b) -> a
+  (a,b@(SException _ _)) -> b
+----------
   (a,b) -> error $ printf "numericCalculator: (%s ,, %s ,, %s)" (show a) (show op) (show b)
 
 isNegative :: SymExpr -> Bool
@@ -640,6 +643,8 @@ booleanCalculator2 op = \case
     -> SBin (maybe a id m1) op (cast t b)
   (a, b@(SymFormalParam t _ m2))
     -> SBin (cast t a) op (maybe b id m2)
+  (a@(SObjAcc li), b)
+    -> SBin a op (cast (toSymType2 a) b)
   (p1,p2) -> error $ printf "booleanCalculator2: (%s, %s, %s)" (show p1) (show op) (show p2)
 
 ----------------------------------------------------------------------

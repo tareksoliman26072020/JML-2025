@@ -815,7 +815,17 @@ public double boo33_4_i(double i, double j){
 
 
 
-//TODO
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "boo24",SMethodType Int),
+    (VarBindings,SVarBindings (fromList [("x",VarBinding {varDeclAt = 1, varFrame = 0})])),
+    (VarName "x",SymInt 9),
+    (Return,SymInt 9)
+  ], pc = []
+}
+*/
 public int boo24(){
   int x = 3 + boo25(5);
   return x;
@@ -823,9 +833,40 @@ public int boo24(){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "boo24_2",SMethodType Int),
+    (VarBindings,SVarBindings (fromList [("x",VarBinding {varDeclAt = 1, varFrame = 0})])),
+    (VarName "x",SException "Exception" "meow"),
+    (Return,SException "Exception" "meow"),
+    (Actions,SActions ["Oopsie\n"])
+  ], pc = []
+}
+*/
+public int boo24_2(){
+  int x = 3 + boo25(11);
+  return x;
+}
+
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "boo25",SMethodType Int),
+    (VarName "i",SymFormalParam Int "i" Nothing),
+    (NodeNr 1,SIte (SBin (SymFormalParam Int "i" Nothing) Gt (SymInt 10))
+                   (SymState {env = fromList [(MethodName "boo25",SMethodType Int),(VarName "i",SymFormalParam Int "i" Nothing),(Return,SException "Exception" "meow"),(Actions,SActions ["Oopsie\n"])], pc = []})
+                   (Just (SymState {env = fromList [(MethodName "boo25",SMethodType Int),(VarName "i",SymFormalParam Int "i" Nothing),(Return,SymInt 6)], pc = []})))
+  ], pc = []
+}
+*/
 public int boo25(int i){
   if(i>10){
+    println("Oopsie");
     throw new Exception("meow");
   }
   else{
@@ -1653,6 +1694,26 @@ public void manyArrs() {
 /*
 SymState {
   env = fromList [
+    (MethodName "manyArrs3",SMethodType (Array Int)),
+    (VarBindings,SVarBindings (fromList [("numbers",VarBinding {varDeclAt = 1, varFrame = 0})])),
+    (VarName "numbers",SymArray (Just (Array Int)) (Just 2) [SymInt 99,SymInt 5]),
+    (Return,SymArray (Just (Array Int)) (Just 2) [SymInt 99,SymInt 5])
+  ], pc = []
+}
+*/
+public int[] manyArrs3() {
+  int[] numbers = new int[2];
+  numbers[0] = 99;
+  numbers[1] = 5;
+  return numbers;
+}
+
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
     (MethodName "manyArrs2",SMethodType Void),
     (VarBindings,SVarBindings (fromList [("brand",VarBinding {varDeclAt = 5, varFrame = 0}),("numbers1",VarBinding {varDeclAt = 1, varFrame = 0}),("numbers2",VarBinding {varDeclAt = 2, varFrame = 0}),("numbers3",VarBinding {varDeclAt = 3, varFrame = 0}),("strs",VarBinding {varDeclAt = 6, varFrame = 0})])),
     (VarName "brand",SymArray (Just (Array String)) (Just 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"]),
@@ -1712,16 +1773,48 @@ public int processArray1(int[] arr) {
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "isEmpty",SMethodType Bool),
+    (VarName "arr",SymFormalParam (Array Int) "arr" Nothing),
+    (Return,SBin (SObjAcc ["arr","length"]) Eq (SymInt 0))
+  ], pc = []
+}
+*/
 public boolean isEmpty(int[] arr) {
   return arr.length == 0;
 }
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "callIsEmpty",SMethodType Bool),
+    (Return,SBool True)
+  ], pc = []
+}
+*/
 public boolean callIsEmpty() {
   return isEmpty(new int[]{});
+}
+
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "callIsNotEmpty",SMethodType Bool),
+    (Return,SBool False)
+  ], pc = []
+}
+*/
+public boolean callIsNotEmpty() {
+  return isEmpty(new int[]{1,2,3});
 }
 
 ////////////////////////////////////////
@@ -1734,10 +1827,6 @@ public int[] fillArray(int size, int elem) {
   }
   return arr;
 }
-
-////////////////////////////////////////
-
-
 
 ////////////////////////////////////////
 

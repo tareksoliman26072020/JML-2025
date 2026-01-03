@@ -847,65 +847,50 @@ public int boo23_11(){
 ///////////////////////////////////////////////////
 
 /*
-CFG {
-  nodes = [
-    Entry,
-    Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x"}, assEright = BinOpExpr {expr1 = NumberLiteral 3.0, binOp = +, expr2 = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "boo25"}, funArgs = [NumberLiteral 5.0]}}}}), parent = 0},
-    End {id = 2, parent = 0, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "x"})}
-  ],
-  edges = [(0,[1]),(1,[2])]
+SymState {
+  env = fromList [
+    (MethodName "boo24",SMethodType Int),
+    (VarBindings,SVarBindings (fromList [("x",VarBinding {varDeclAt = 1, varFrame = 0})])),
+    (VarName "x",SymInt 9),
+    (Return,SymInt 9)
+  ], pc = []
 }
-*/
-/*
-  Entry
-----------
-  0 -> 1:
-        Int x = 3.0 + boo25(5.0)
-----------
-  End: 0 -> 2:
-        x
-========================
-  (0,[1])
-  (1,[2])
 */
 public int boo24(){
   int x = 3 + boo25(5);
   return x;
 }
 
-///////////////////////////////////////////////////
+/////////////////////
 
 /*
-CFG {
-  nodes = [
-    Entry,
-    Node {id = 1, nodeData = BooleanExpression If (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >, expr2 = NumberLiteral 10.0}), parent = 0},
-    End {id = 2, parent = 1, mExpr = Just (ExcpExpr {excpName = Exception, excpmsg = Just "meow"})},
-    End {id = 3, parent = 1, mExpr = Just (NumberLiteral 6.0)},
-    Node {id = 4, nodeData = Meet If, parent = 0}
-  ],
-  edges = [(0,[1]),(1,[2,3]),(2,[4]),(3,[4])]
+SymState {
+  env = fromList [
+    (MethodName "boo24_2",SMethodType Int),
+    (VarBindings,SVarBindings (fromList [("x",VarBinding {varDeclAt = 1, varFrame = 0})])),
+    (VarName "x",SException "Exception" "meow"),
+    (Return,SException "Exception" "meow"),
+    (Actions,SActions ["Oopsie\n"])
+  ], pc = []
 }
 */
+public int boo24_2(){
+  int x = 3 + boo25(11);
+  return x;
+}
+
+/////////////////////
+
 /*
-  Entry
-----------
-  0 -> 1:
-        If: i > 10.0
-----------
-  End: 1 -> 2:
-        Exception(meow)
-----------
-  End: 1 -> 3:
-        6.0
-----------
-  0 -> 4:
-        Meet: If
-========================
-  (0,[1])
-  (1,[2,3])
-  (2,[4])
-  (3,[4])
+SymState {
+  env = fromList [
+    (MethodName "boo25",SMethodType Int),
+    (VarName "i",SymFormalParam Int "i" Nothing),
+    (NodeNr 1,SIte (SBin (SymFormalParam Int "i" Nothing) Gt (SymInt 10))
+                   (SymState {env = fromList [(MethodName "boo25",SMethodType Int),(VarName "i",SymFormalParam Int "i" Nothing),(Return,SException "Exception" "meow"),(Actions,SActions ["Oopsie\n"])], pc = []})
+                   (Just (SymState {env = fromList [(MethodName "boo25",SMethodType Int),(VarName "i",SymFormalParam Int "i" Nothing),(Return,SymInt 6)], pc = []})))
+  ], pc = []
+}
 */
 public int boo25(int i){
   if(i>10){
@@ -1919,7 +1904,26 @@ public void manyArrs2() {
   println(numbers3);
 }
 
-///////////////////////////////////////////////////
+/////////////////////
+
+/*
+SymState {
+  env = fromList [
+    (MethodName "manyArrs3",SMethodType (Array Int)),
+    (VarBindings,SVarBindings (fromList [("numbers",VarBinding {varDeclAt = 1, varFrame = 0})])),
+    (VarName "numbers",SymArray (Just (Array Int)) (Just 2) [SymInt 99,SymInt 5]),
+    (Return,SymArray (Just (Array Int)) (Just 2) [SymInt 99,SymInt 5])
+  ], pc = []
+}
+*/
+public int[] manyArrs3() {
+  int[] numbers = new int[2];
+  numbers[0] = 99;
+  numbers[1] = 5;
+  return numbers;
+}
+
+/////////////////////
 
 /*
 CFG {nodes = [Entry,Node {id = 1, nodeData = ForInitialization (AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}), parent = 0},Node {id = 2, nodeData = BooleanExpression For (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <=, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "y"}}), parent = 0},Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "j"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = *, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}}), parent = 0},Node {id = 4, nodeData = BooleanExpression If (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "j"}, binOp = ==, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "y"}}), parent = 0},End {id = 5, parent = 4, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})},Node {id = 6, nodeData = BooleanExpression If (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = ==, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "y"}}), parent = 4},End {id = 7, parent = 6, mExpr = Just (ExcpExpr {excpName = Exception, excpmsg = Just "not found"})},Node {id = 8, nodeData = Meet If, parent = 4},Node {id = 9, nodeData = Meet If, parent = 0},Node {id = 10, nodeData = ForStep (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}}), parent = 0},Node {id = 11, nodeData = Meet For, parent = 0}], edges = [(0,[1]),(1,[2]),(2,[3]),(3,[4]),(4,[5,6]),(6,[7,8]),(7,[8]),(5,[9]),(8,[9]),(9,[10]),(10,[2]),(2,[11])]}
@@ -2103,45 +2107,44 @@ public static int rest(int a, int b) {
 ////////////////////
 
 /*
-CFG {
-  nodes = [
-    Entry,
-    End {id = 1, parent = 0, mExpr = Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}, binOp = ==, expr2 = NumberLiteral 0.0})}
-  ],
-  edges = [(0,[1])]
+SymState {
+  env = fromList [
+    (MethodName "isEmpty",SMethodType Bool),
+    (VarName "arr",SymFormalParam (Array Int) "arr" Nothing),
+    (Return,SBin (SObjAcc ["arr","length"]) Eq (SymInt 0))
+  ], pc = []
 }
-*/
-/*
-  Entry
-----------
-  End: 0 -> 1:
-        arr.length == 0.0
-========================
-  (0,[1])
 */
 public boolean isEmpty(int[] arr) {
   return arr.length == 0;
 }
 
+////////////////////
+
 /*
-CFG {
-  nodes = [
-    Entry,
-    End {id = 1, parent = 0, mExpr = Just (FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "isEmpty"}, funArgs = [ArrayInstantiationExpr {arrType = Just (ArrayType {baseType = BuiltInType Int}), arrSize = Nothing, arrElems = []}]})}
-  ],
-  edges = [(0,[1])]
+SymState {
+  env = fromList [
+    (MethodName "callIsEmpty",SMethodType Bool),
+    (Return,SBool True)
+  ], pc = []
 }
-*/
-/*
-  Entry
-----------
-  End: 0 -> 1:
-        isEmpty(new Int[]{})
-========================
-  (0,[1])
 */
 public boolean callIsEmpty() {
   return isEmpty(new int[]{});
+}
+
+////////////////////
+
+/*
+SymState {
+  env = fromList [
+    (MethodName "callIsNotEmpty",SMethodType Bool),
+    (Return,SBool False)
+  ], pc = []
+}
+*/
+public boolean callIsNotEmpty() {
+  return isEmpty(new int[]{1,2,3});
 }
 
 ////////////////////

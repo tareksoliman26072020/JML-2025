@@ -122,7 +122,10 @@ toSymType2 (SBool _) = Bool
 toSymType2 (SymNull t) = t
 toSymType2 (SymFormalParam t _ _) = t
 toSymType2 (SymGlobalVar t _ _) = t
-toSymType2 symExpr = error $ "toSymType2 ~~> TODO: " ++ show symExpr
+toSymType2 (SObjAcc li) = case li of
+  [_,"length"] -> Int
+  _ -> error $ "TODO1: toSymType2 ==> " ++ show (SObjAcc li)
+toSymType2 symExpr = error $ "TODO2: toSymType2 ==> " ++ show symExpr
 
 -- will be used in `calculate`
 toSymType3 :: SymExpr -> Maybe SymType
