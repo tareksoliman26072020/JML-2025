@@ -109,30 +109,37 @@ isForStartNode = \case
   Node _ (ForInitialization _) _ -> True
   _ -> False
 
+isForCondNode :: Node -> Bool
+isForCondNode = \case
+  Node _ (BooleanExpression For _) _ -> True
+  _ -> False
+
 isForEndNode :: Node -> Bool
 isForEndNode = \case
   Node _ (Meet For) _ -> True
   _ -> False
 
-getEndKindNode :: CFG -> Node -> Kind -> Node
-getEndKindNode cfg node kind = case kind of
-  If
-    | isIfStartNode node -> helper cfg node 1
-  For
-    | isForStartNode node -> helper cfg node 1
-  _ -> error $ "getEndKindNode: won't happen (neither If nor For start node): " ++ show node
+getEndIfNode :: CFG -> Node -> Node
+getEndIfNode cfg node
+  | isIfStartNode node = helper cfg node 1
+  | otherwise = error $ "getEndIfNode: won't happen: " ++ show node
   where
   helper cfg currentNode 0 = currentNode
   helper cfg currentNode counter = case findEdge_via_id cfg (getNodeId currentNode) of
-      Nothing -> error "getEndKindNode: won't happen"
-      Just (_,(next : _))  -> case (kind , findNode_via_id cfg next) of
-        (If,nextNode)
+      Nothing -> error "getEndIfNode: won't happen"
+      Just (_,(next : _)) -> case findNode_via_id cfg next of
+        nextNode
           | isIfStartNode nextNode -> helper cfg nextNode (counter + 1)
           | isIfEndNode nextNode -> helper cfg nextNode (counter - 1)
-        (For,nextNode)
-          | isForStartNode nextNode -> helper cfg nextNode (counter + 1)
-          | isForEndNode nextNode -> helper cfg nextNode (counter - 1)
-        (_,nextNode) -> helper cfg nextNode counter
+        nextNode -> helper cfg nextNode counter
+
+getEndForNode :: CFG -> Node -> Node
+getEndForNode cfg node = case findEdge_via_id cfg (getNodeId node) of
+  Nothing -> error "getEndForNode: won't happen"
+  Just (_,[next1,next2]) ->
+    let n = findNode_via_id cfg next2
+    in if isForEndNode n then n
+       else error $ "TODO: getEndForNode ==> " ++ show [next1,next2]
 
 ------------------------------
 
@@ -285,19 +292,10 @@ getPath startId cfg =
         Just (_,[]) -> error "getPath: won't happen 2"
         Just (_,[next])
           | not (isIfStartNode currentNode) -> Just next
-        {-
-        Just (_,[next])
-          | isIfStartNode currentNode ->
-              let endNode = getEndKindNode cfg currentNode If
-              in case findEdge_via_id cfg (getNodeId endNode) of
-                   Just (_,[next2]) -> next2
-                   Nothing -> error "getPath: won't happen 3"
-                   ex -> error $ "getPath: won't happen 4: " ++ show ex
-          -}
         Just (_,(_ : _)) ->
           let endNode
-               | isIfStartNode currentNode = getEndKindNode cfg currentNode If
-               | isForStartNode currentNode = getEndKindNode cfg currentNode For
+               | isIfStartNode currentNode = getEndIfNode cfg currentNode
+               | isForCondNode currentNode = getEndForNode cfg currentNode
                | otherwise = error $ "getPath: what is this? " ++ show currentNode
           in case findEdge_via_id cfg (getNodeId endNode) of
                Just (_,[next2]) -> Just next2

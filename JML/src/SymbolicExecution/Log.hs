@@ -18,6 +18,7 @@ data Log = Expression_2_Handle String String
          | UpdateVariable String String
          | LookUpEnvTable String String String
          | NextNode String
+         | ForStatementHasNoAccumulationVariable String
          | MethodFormalParams String String
          | NextMethodCallSymExpr String (String,String)
          | Affected String [String]
@@ -70,6 +71,8 @@ instance Show Log where
     ProcessPredefinedFunCall
       loc funName funArgs   -> printf "(%s): %s: %s%s" (cyan loc) (yellow "Processing Predefined FunCall") funName funArgs
     ModifyState loc (k,v)   -> printf "(%s): %s: (%s,%s)" (cyan loc) (yellow "Modifying State") k v
+    ForStatementHasNoAccumulationVariable loc
+                            -> printf "(%s): %s" (cyan loc) (yellow "For statement has no Accumulation variable")
     StateNotModified loc    -> printf "(%s): %s" (cyan loc) (yellow "State Not Modified")
     NoElseBranch loc        -> printf "(%s): %s" (cyan loc) (yellow "No Else Branch")
     AddVarBinding loc val   -> printf "(%s): %s: %s" (cyan loc) (yellow "Adding Var Binding") val

@@ -107,12 +107,12 @@ visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.CondStmt{} =
          (sourceNodeID,G.id meetNode,G.id meetNode + 1)
          (Nodes $ G.CFG {
            G.nodes = condNode : G.nodes if_cfg ++ G.nodes else_cfg ++ [meetNode],
-           G.edges = (currentNodeID,[nextNodeID])
+           G.edges = (currentNodeID,[G.id condNode])
                       : refineEdges (G.edges if_cfg ++ G.edges else_cfg)
                        -- There's an edge between the end of the if branch, and the meet node
-                      ++ [(if_currentNodeID,[else_nextNodeID])
+                      ++ [(if_currentNodeID,[G.id meetNode])
                        -- There's an edge between the end of the else branch, and the meet node
-                         ,(else_currentNodeID,[else_nextNodeID])]
+                         ,(else_currentNodeID,[G.id meetNode])]
          })
        _ -> error "won't happen"
 visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.ForStmt{} =
@@ -160,7 +160,7 @@ visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.ForStmt{} =
        (Nodes $ G.CFG { -- add cond node, meet node
           G.nodes = initializationNode : condNode
                     : G.nodes true_cfg_creator ++ [meetNode],
-          G.edges = [(currentNodeID,[nextNodeID])]
+          G.edges = refineEdges $ [(currentNodeID,[G.id initializationNode])]
                     ++ [(G.id initializationNode,[G.id condNode])] -- init node ==> cond node
                     ++ G.edges true_cfg_creator
                     ++ [(G.id condNode,[G.id meetNode])]        -- cond node ==> meet node

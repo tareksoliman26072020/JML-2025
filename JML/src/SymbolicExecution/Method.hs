@@ -174,6 +174,59 @@ instance CFGVisitor Method_SymExec where
       ----------------------------------------
       ----------------------------------------
       ----------------------------------------
+      {-
+         Node {
+           id = 2,
+           nodeData = ForInitialization (Just (
+             AssignExpr {
+               assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, 
+               assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}
+             }))
+           , parent = 0
+         }
+       -}
+      CFG.ForInitialization mAccumulationVar -> do
+        tell [Log.MethodStatementIfCondition (printf "visitNode -> case nodeData of Node -> ForInitialization -> Accumulation Variable -> Node num: %d" (CFG.id n)) (show mAccumulationVar)]
+        ER_FunHandle _ funName <- getFunHandle
+        originalState <- get
+        (_,cfgs) <- ask
+        let varNames = getVarNames originalState
+        let cfg = case CFG.findCFGByName funName cfgs of
+              -- CFG not found
+              Nothing   -> error $ "visitNode -> Node -> ForInitialization " ++ funName ++ " does not exist"
+                    -- CFG found
+              Just cfg0 -> cfg0
+        -- process the accumulation variable, if it exists
+        accumulationVar_visited <- case mAccumulationVar of
+          -- no accumulation variable
+          Nothing -> do
+            tell [Log.ForStatementHasNoAccumulationVariable $ "visitNode -> case nodeData of Node -> ForInitialization -> Accumulation Variable -> Node num: " ++ show (CFG.id n)]
+            return ER_Void
+          -- yes accumulation variable
+          Just accumulationVar -> do
+            -- variable will be added to a new state, custom-made for the for body
+            let (accLogs,accState) = runCFG cfgs cfg (Just [CFG.Node 0 (CFG.Statement $ AST.AssignStmt [] accumulationVar) 0]) (Just originalState)
+            return $ ER_Tupel (ER_Logs accLogs,ER_State accState)
+        -- process SymState of for body
+        -- branches: start id for the for body branch.
+        --           return is a list of one int.
+        let branches = case CFG.findEdge_via_id cfg (CFG.id n + 1) of
+                  Just (_,xs) -> xs
+                  Nothing     -> error $ "visitNode -> Node -> ForInitialization -> won't happen"
+        throwError $ "MEOW::: " ++ show branches
+        let branches_paths :: [[CFG.Node]]
+            branches_paths = flip map branches $ \branchStartId ->
+              let thePath = CFG.getPath branchStartId cfg
+              in flip takeWhile thePath $ \case
+                   CFG.Node _ (CFG.Meet CFG.For) _ -> False
+                   _                               -> True
+        -- implement a helper that takes as input `(accLogs,accState)`
+        -- call it `visitFor`
+        case accumulationVar_visited of
+          ER_Tupel (_,ER_State s) -> throwError $ "visitNode -> Node -> ForInitializaion: " ++ show originalState ++ "\n-_--_--_-\n" ++ show s
+      ----------------------------------------
+      ----------------------------------------
+      ----------------------------------------
       _ -> throwError
         $ "TODO -> visitNode -> Node -> nodeData -> otherwise" ++ show n
       where
@@ -439,10 +492,6 @@ visitExpr expr@AST.AssignExpr{} = do
          --val = SymNull String
          (VarName arrName,val)
        ER_Expr ex -> error $ printf "visitExpr ==> AssignExpr: (%s,%s,%s)" (show expr) (show ex) (show $ AST.assEleft expr)
-  {-case one of
-    ER_SymStateMapEntry svn val -> return ER_Void
-    _ -> throwError $ "Meow: " ++ show one-}
-  --let ER_SymStateMapEntry svn val = one
   two <- visitExpr (AST.assEright expr)
   let e2 = case two of
           ER_Expr e2_ -> cast (toSymType2 one_val) e2_

@@ -1424,18 +1424,9 @@ SymState {
     (MethodName "elemAt",SMethodType Int),
     (VarName "arr",SymFormalParam (Array Int) "arr" Nothing),
     (VarName "pos",SymFormalParam Int "pos" Nothing),
-    (NodeNr 1,SIte (SBin (SObjAcc ["arr","length"]) Le (SymFormalParam Int "pos" Nothing)) (SymState {env = fromList [(MethodName "elemAt",SMethodType Int),(VarName "arr",SymFormalParam (Array Int) "arr" Nothing),(VarName "pos",SymFormalParam Int "pos" Nothing),(Return,SException "Exception" "not found")], pc = []}) Nothing),
-    (Return,SArrayIndexAccess "arr" (SymFormalParam Int "pos" Nothing))
-  ], pc = []
-}
-
-
-SymState {
-  env = fromList [
-    (MethodName "elemAt",SMethodType Int),
-    (VarName "arr",SymFormalParam (Array Int) "arr" Nothing),
-    (VarName "pos",SymFormalParam Int "pos" Nothing),
-    (NodeNr 1,SIte (SBin (SObjAcc ["arr","length"]) Le (SymFormalParam Int "pos" Nothing)) (SymState {env = fromList [(MethodName "elemAt",SMethodType Int),(VarName "arr",SymFormalParam (Array Int) "arr" Nothing),(VarName "pos",SymFormalParam Int "pos" Nothing),(Return,SException "Exception" "not found")], pc = []}) Nothing),
+    (NodeNr 1,SIte (SBin (SObjAcc ["arr","length"]) Le (SymFormalParam Int "pos" Nothing))
+                   (SymState {env = fromList [(MethodName "elemAt",SMethodType Int),(VarName "arr",SymFormalParam (Array Int) "arr" Nothing),(VarName "pos",SymFormalParam Int "pos" Nothing),(Return,SException "Exception" "not found")], pc = []})
+                   Nothing),
     (Return,SArrayIndexAccess "arr" (SymFormalParam Int "pos" Nothing))
   ], pc = []
 }
@@ -1772,6 +1763,48 @@ FunDef {
   }
 }
 */
+/*
+CFG {
+  nodes = [
+    Entry (BuiltInType Int) "sum1" [VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "n"}],
+    Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "res"}, assEright = NumberLiteral 0.0}}), parent = 0},
+    Node {id = 2, nodeData = ForInitialization (Just (AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}})), parent = 0},
+    Node {id = 3, nodeData = BooleanExpression For (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >, expr2 = NumberLiteral 0.0})), parent = 0},Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}}), parent = 0},Node {id = 5, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = -, expr2 = NumberLiteral 1.0}}})), parent = 0},Node {id = 6, nodeData = Meet For, parent = 0},End {id = 7, parent = 0, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "res"})}
+  ], edges = [(0,[1]),(1,[2]),(2,[3]),(3,[4,6]),(4,[5]),(5,[3]),(6,[7])]
+}
+*/
+/*
+  Entry sum1: method type: Int, args: (Int n)
+----------
+  0 -> 1:
+        Int res = 0.0
+----------
+  0 -> 2:
+        For: init: Just Int i = n
+----------
+  0 -> 3:
+        For: cond: i > 0.0
+----------
+  0 -> 4:
+        res = res + i
+----------
+  0 -> 5:
+        For: step: i = i - 1.0
+----------
+  0 -> 6:
+        Meet: For
+----------
+  End: 0 -> 7:
+        return: res
+========================
+  (0,[1])
+  (1,[2])
+  (2,[3])
+  (3,[4,6])
+  (4,[5])
+  (5,[3])
+  (6,[7])
+*/
 public int sum1(int n) {
   int res = 0;
   for(int i=n; i>0; i--) {
@@ -1784,6 +1817,43 @@ public int sum1(int n) {
 
 //TODO
 /*
+CFG {
+  nodes = [
+    Entry (BuiltInType Int) "for1" [VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "n"}],
+    Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "res"}, assEright = NumberLiteral 0.0}}), parent = 0},
+    Node {id = 2, nodeData = ForInitialization (Just (AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}})), parent = 0},
+    Node {id = 3, nodeData = BooleanExpression For (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >, expr2 = NumberLiteral 0.0})), parent = 0},
+    Node {id = 4, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = -, expr2 = NumberLiteral 1.0}}})), parent = 0},
+    Node {id = 5, nodeData = Meet For, parent = 0},
+    End {id = 6, parent = 0, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "res"})}
+  ], edges = [(0,[1]),(1,[2]),(2,[3]),(3,[4,5]),(4,[3]),(5,[6])]
+}
+*/
+public int for1(int n) {
+  int res = 0;
+  for(int i=n; i>0; i--) {
+  }
+  return res;
+}
+
+/////////////////////
+
+//TODO
+/*
+FunDef {
+  funModifier = [Public],
+  isPureFlag = False,
+  funDecl = FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "sum2"}, funArgs = [VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "n"}]}},
+  throws = Nothing,
+  funBody = CompStmt {
+    statements = [
+      AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "res"}, assEright = NumberLiteral 0.0}},
+      ForStmt {mAcc = Nothing, mCond = Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = >, expr2 = NumberLiteral 0.0}), mStep = Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "n"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = -, expr2 = NumberLiteral 1.0}}}), forBody = CompStmt {statements = [AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}}]}},
+      ReturnStmt {returnS = Just (VarExpr {varType = Nothing, varObj = [], varName = "res"})}
+    ]
+  }
+}
+*/
 public int sum2(int n) {
   int res = 0;
   for(; n>0; n--) {
@@ -1791,7 +1861,6 @@ public int sum2(int n) {
   }
   return res;
 }
-*/
 
 /////////////////////
 

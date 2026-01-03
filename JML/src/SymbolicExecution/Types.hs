@@ -155,6 +155,7 @@ visitNode ==> End: ER_State
 visitNode ==> Node ==> Statement: ER_State
 visitNode ==> Node ==> BooleanExpression if ==> SBool: ER_State
 visitNode ==> Node ==> BooleanExpression if ==> SBin: ER_Expr SIte
+visitNode ==> Node ==> ForInitialization ==> no accumulation variable ==> ER_Tupel
 
 visitSymExpr ==> SymFormalParam: ER_SymStateMapEntry
 visitSymExpr ==> SBin: ER_SymStateMapEntry
@@ -166,6 +167,8 @@ data ExecutionResult =
   | ER_SymStateMapEntry {er_key :: SymStateKey, er_val :: SymExpr}
   | ER_ArrayCallExpr {arrayIndexCall :: SymExpr, arrayIndexCallValue :: SymExpr}
   | ER_State SymState
+  | ER_Logs [Log.Log]
+  | ER_Tupel (ExecutionResult,ExecutionResult)
   | ER_FunCall SymState
   | ER_FunHandle SymType String
   | ER_IfCond SymExpr  -- ^ boolean expressions found in if conditions. Its existance in the environment values map means that the ......
