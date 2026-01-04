@@ -1,7 +1,7 @@
 {-# Language LambdaCase #-}
 module CFG.Types where
 
-import qualified Parser.Types as AST(Statement(..),Expression(..), Type(..), Types(..), Modifier(..), Exception(..))
+import qualified Parser.Types as AST(Statement(..),Expression(..), Type(..), Types(..), Modifier(..), Exception(..),getExpression,getVarName)
 import Data.List (intercalate, find)
 import Text.Printf(printf)
 
@@ -317,3 +317,8 @@ getPath startId cfg =
                   Just nextNodeId -> getPath nextNodeId cfg
 
 -----------------------------
+
+getVarName :: Node -> String
+getVarName = \case
+  Node _ (Statement stmt) _ -> AST.getVarName (AST.getExpression stmt)
+  node -> error $ "TODO:: getVarName ==> " ++ show node

@@ -1273,6 +1273,20 @@ SymState {
     (Return,SymInt 7)
   ], pc = []
 }
+
+SymState {
+  env = fromList [
+    (MethodName "boo28_6_3",SMethodType Int),
+    (FormalParms,SFormalParms ["i"]),
+    (VarBindings,SVarBindings (fromList [("x",CFG_Coor {varDeclAt = 1, varFrame = 0}),("y",CFG_Coor {varDeclAt = 7, varFrame = 0})])),
+    (VarAssignments,SVarAssignments [("x",CFG_Coor {varDeclAt = 1, varFrame = 0}),("y",CFG_Coor {varDeclAt = 7, varFrame = 0})]),
+    (VarName "i",SymFormalParam Int "i" Nothing),
+    (VarName "x",SymInt 1),
+    (VarName "y",SymInt 2),
+    (Return,SymInt 7),
+    (Actions,SActions [])
+  ], pc = []
+}
 */
 public static int boo28_6_3(int i){
   int x = 1;
@@ -1285,6 +1299,56 @@ public static int boo28_6_3(int i){
   }
   int y = 2;
   return 5+y;
+}
+
+////////////////////////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "boo28_6_4",SMethodType Int),
+    (FormalParms,SFormalParms ["i"]),
+    (VarBindings,SVarBindings (fromList [("x",CFG_Coor {varDeclAt = 1, varFrame = 0}),("y",CFG_Coor {varDeclAt = 7, varFrame = 0})])),
+    (VarAssignments,SVarAssignments [
+      ("x",CFG_Coor {varDeclAt = 1, varFrame = 0}),
+      ("x",CFG_Coor {varDeclAt = 5, varFrame = 2}),
+      ("y",CFG_Coor {varDeclAt = 7, varFrame = 0})
+    ]),
+    (VarName "i",SymFormalParam Int "i" Nothing),
+    (VarName "x",SymInt 2),
+    (VarName "y",SymInt 2),
+    (Return,SymInt 7),
+    (Actions,SActions [])
+  ], pc = []
+}
+*/
+public static int boo28_6_4(int i){
+  int x = 1;
+  if(x < 0){
+    int y = 0;
+    y++;
+  }
+  else {
+    x++;
+  }
+  int y = 2;
+  return 5+y;
+}
+
+////////////////////////////////////////
+
+//TODO
+public static int boo28_6_5(int i){
+  int x = 1;
+  if(x < 0){
+    int y = 0;
+    y++;
+  }
+  else {
+    x++;
+  }
+  return x;
 }
 
 ////////////////////////////////////////
@@ -1751,7 +1815,41 @@ public void manyArrs2() {
 
 //TODO
 /*
-SymState {env = fromList [(MethodName "ifFun",SMethodType Int),(VarBindings,SVarBindings (fromList [("res",VarBinding {varDeclAt = 1, varFrame = 0})])),(VarName "n",SymFormalParam Int "n" Nothing),(VarName "res",SymInt 0),(NodeNr 2,SIte (SBin (SymFormalParam Int "n" Nothing) Ge (SymInt 0)) (SymState {env = fromList [(MethodName "ifFun",SMethodType Int),(VarBindings,SVarBindings (fromList [("res",VarBinding {varDeclAt = 1, varFrame = 0})])),(VarName "n",SymFormalParam Int "n" Nothing),(VarName "res",SymFormalParam Int "n" Nothing)], pc = []}) Nothing),(Return,SymInt 0)], pc = []}
+SymState {
+  env = fromList [
+    (MethodName "ifFun",SMethodType Int),
+    (FormalParms,SFormalParms ["n"]),
+    (VarBindings,SVarBindings (fromList [("m",VarBinding {varDeclAt = 2, varFrame = 0}),("res",VarBinding {varDeclAt = 1, varFrame = 0})])),
+    (VarName "m",SymInt 0),
+    (VarName "n",SymFormalParam Int "n" Nothing),
+    (VarName "res",SymInt 0),
+    (NodeNr 3,SIte (SBin (SymFormalParam Int "n" Nothing) Ge (SymInt 0))
+                   (SymState {env = fromList [(MethodName "ifFun",SMethodType Int),(FormalParms,SFormalParms ["n"]),(VarBindings,SVarBindings (fromList [("m",VarBinding {varDeclAt = 2, varFrame = 0}),("res",VarBinding {varDeclAt = 1, varFrame = 0})])),(VarName "m",SBin (SymInt 2) Mul (SymFormalParam Int "n" Nothing)),(VarName "n",SymFormalParam Int "n" Nothing),(VarName "res",SymFormalParam Int "n" Nothing)], pc = []})
+                   Nothing),
+    (Return,SymInt 0)
+  ], pc = []
+}
+
+
+
+SymState {
+  env = fromList [
+    (MethodName "ifFun",SMethodType Int),
+    (FormalParms,SFormalParms ["n"]),
+    (VarBindings,SVarBindings (fromList [("m",CFG_Coor {varDeclAt = 2, varFrame = 0}),("res",CFG_Coor {varDeclAt = 1, varFrame = 0})])),
+    (VarAssignments,SVarAssignments [
+      ("res",CFG_Coor {varDeclAt = 1, varFrame = 0}),
+      ("m",CFG_Coor {varDeclAt = 2, varFrame = 0}),
+      ("res",CFG_Coor {varDeclAt = 4, varFrame = 3}),
+      ("m",CFG_Coor {varDeclAt = 5, varFrame = 3})
+    ]),
+    (NodeNr 3,SIte (SBin (SymFormalParam Int "n" Nothing) Ge (SymInt 0)) (SymState {env = fromList [(MethodName "ifFun",SMethodType Int),(FormalParms,SFormalParms ["n"]),(VarBindings,SVarBindings (fromList [("m",CFG_Coor {varDeclAt = 2, varFrame = 0}),("res",CFG_Coor {varDeclAt = 1, varFrame = 0})])),(VarAssignments,SVarAssignments [("res",CFG_Coor {varDeclAt = 1, varFrame = 0}),("m",CFG_Coor {varDeclAt = 2, varFrame = 0}),("res",CFG_Coor {varDeclAt = 4, varFrame = 3}),("m",CFG_Coor {varDeclAt = 5, varFrame = 3})]),(VarName "m",SBin (SymInt 2) Mul (SymFormalParam Int "n" Nothing)),(VarName "n",SymFormalParam Int "n" Nothing),(VarName "res",SymFormalParam Int "n" Nothing)], pc = []}) Nothing),
+    (VarName "m",SymInt 0),
+    (VarName "n",SymFormalParam Int "n" Nothing),
+    (VarName "res",SymInt 0),
+    (Return,SymInt 0)
+  ], pc = []
+}
 */
 public int ifFun(int n) {
   int res = 0;

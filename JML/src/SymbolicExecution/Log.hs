@@ -26,6 +26,7 @@ data Log = Expression_2_Handle String String
          | StateNotModified String
          | NoElseBranch String
          | AddVarBinding String String
+         | AddVarAssignment String String
          | ReportTheState String
          | Skip String
          | Return String String
@@ -77,6 +78,7 @@ instance Show Log where
     StateNotModified loc    -> printf "(%s): %s" (cyan loc) (yellow "State Not Modified")
     NoElseBranch loc        -> printf "(%s): %s" (cyan loc) (yellow "No Else Branch")
     AddVarBinding loc val   -> printf "(%s): %s: %s" (cyan loc) (yellow "Adding Var Binding") val
+    AddVarAssignment loc val-> printf "(%s): %s: %s" (cyan loc) (yellow "Adding Var Assignment") val
     ReportTheState s        -> printf "(%s):\n%s" (yellow "Reporting The State") (show s)
     Skip thing              -> printf "(%s):\n%s" (yellow "Skip") (show thing)
     Return loc val          -> printf "(%s): %s: %s" (cyan loc) (yellow "Returning") val

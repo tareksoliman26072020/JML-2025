@@ -101,8 +101,8 @@ showStmt = \case
     ++ showStmt siff ++ case selsee of
       CompStmt [] -> ""
       _ -> "\nelse" ++ showStmt selsee
-  ForStmt {acc, cond, step, forBody} ->
-    "for(" ++ showStmt acc ++ "; " ++ showExpr cond ++ "; " ++ showStmt step
+  ForStmt {mAcc, mCond, mStep, forBody} ->
+    "for(" ++ maybe "" showStmt mAcc ++ "; " ++ maybe "" showExpr mCond ++ "; " ++ maybe ""  showStmt mStep
     ++ ")" ++ showStmt forBody
   WhileStmt {} -> error "showStmt"
   FunCallStmt {funCall} -> showExpr funCall

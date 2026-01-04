@@ -35,61 +35,104 @@ getReader_Method_R (Method_SymExec r) = r
 getReader_MethodCall_R :: MethodCall_SymExec -> MethodCall_R
 getReader_MethodCall_R (MethodCall_SymExec r) = r
 
-data SymStateKey = NodeNr Int | VarName String | VarBindings | Return | MethodName String | Exception | Actions
-                 deriving (Eq,Show)
-
+data SymStateKey = MethodName String
+                 | GlobalVars | FormalParms | VarBindings | VarAssignments
+                 | NodeNr Int | VarName String
+                 | Return | Exception | Actions
+                 deriving (Eq,Ord,Show)
+{-
 instance Ord SymStateKey where
   x <= y = case (x,y) of
     (NodeNr q,NodeNr w) -> q <= w
     (NodeNr _,VarName _) -> False
     (NodeNr _,VarBindings) -> False
+    (NodeNr _,GlobalVars) -> False
+    (NodeNr _,FormalParms) -> False
     (NodeNr _,Return) -> True
     (NodeNr _,MethodName _) -> False
     (NodeNr _,Exception) -> True
     (NodeNr _,Actions) -> True
+
     (VarName _,NodeNr _) -> True
     (VarName q,VarName w) -> q <= w
     (VarName _,VarBindings) -> False
+    (VarName _,GlobalVars) -> False
+    (VarName _,FormalParms) -> False
     (VarName _,Return) -> True
     (VarName _,MethodName _) -> False
     (VarName _,Exception) -> True
     (VarName _, Actions) -> True
+
     (VarBindings,NodeNr _) -> True
     (VarBindings,VarName _) -> True
     (VarBindings,VarBindings) -> True
+    (VarBindings,GlobalVars) -> False
+    (VarBindings,FormalParms) -> False
     (VarBindings,Return) -> True
     (VarBindings,MethodName _) -> False
     (VarBindings,Exception) -> True
     (VarBindings,Actions) -> True
+
     (Return,NodeNr _) -> False
     (Return,VarName _) -> False
     (Return,VarBindings) -> False
+    (Return,GlobalVars) -> False
+    (Return,FormalParms) -> False
     (Return,Return) -> True
     (Return,MethodName _) -> False
     (Return,Exception) -> True
     (Return,Actions) -> True
+
     (MethodName _,NodeNr _) -> True
     (MethodName _,VarName _) -> True
     (MethodName _,VarBindings) -> True
+    (MethodName _,GlobalVars) -> True
+    (MethodName _,FormalParms) -> True
     (MethodName _,Return) -> True
     (MethodName q,MethodName w) -> q <= w
     (MethodName _,Exception) -> True
     (MethodName _,Actions) -> True
+
     (Exception,NodeNr _) -> False
     (Exception,VarName _) -> False
     (Exception,VarBindings) -> False
+    (Exception,GlobalVars) -> False
+    (Exception,FormalParms) -> False
     (Exception,Return) -> True
     (Exception,MethodName _) -> False
     (Exception,Exception) -> True
     (Exception,Actions) -> True
+
     (Actions,NodeNr _) -> False
     (Actions,VarName _) -> False
     (Actions,VarBindings) -> False
+    (Actions,FormalParms) -> False
+    (Actions,GlobalVars) -> False
     (Actions,Return) -> False
     (Actions,MethodName _) -> False
     (Actions,Exception) -> False
     (Actions,Actions) -> True
 
+    (GlobalVars,NodeNr _) -> True
+    (GlobalVars,VarName _) -> True
+    (GlobalVars,VarBindings) -> True
+    (GlobalVars,FormalParms) -> True
+    (GlobalVars,GlobalVars) -> True
+    (GlobalVars,Return) -> True
+    (GlobalVars,MethodName _) -> False
+    (GlobalVars,Exception) -> True
+    (GlobalVars,Actions) -> True
+
+    (FormalParms,NodeNr _) -> True
+    (FormalParms,VarName _) -> True
+    (FormalParms,VarBindings) -> True
+    (FormalParms,FormalParms) -> True
+    (FormalParms,GlobalVars) -> False
+    (FormalParms,Return) -> True
+    (FormalParms,MethodName _) -> False
+    (FormalParms,Exception) -> True
+    (FormalParms,Actions) -> True
+-}
 data SymState = SymState
  { env :: Map.Map SymStateKey SymExpr
  , pc  :: [SymExpr]          -- ^ Path‐conditions: accumulate the conditions under which each execution state is feasible.
@@ -189,62 +232,22 @@ data SymExpr =
   | SBin    SymExpr SymBinOp SymExpr  -- ^ binary operation
   | SNot    SymExpr               -- ^ logical negation
   | SIte    SymExpr SymState (Maybe SymState)   -- ^ if-then-else (cond, then, else)
-  | SLoop   CFGT.Node [CFGT.Node] (Maybe ([Log.Log],SymState)) -- Loop condition, and loop body. the loop step is the last node in the body
+  | SLoop   (Maybe CFGT.Node) CFGT.Node [CFGT.Node] -- Loop acc, Loop condition, and loop body. the loop step is the last node in the body
   | SymNull SymType               -- ^ value of an unassigned variable
   | SymFormalParam SymType String (Maybe SymExpr) -- ^ declared variable (a formal parameter)
   | SymGlobalVar SymType String (Maybe SymExpr) -- ^ variable declared outside the scope of the method
-  | SVarBindings (Map.Map String VarBinding)
+  | SVarBindings (Map.Map String CFG_Coor)
+  | SVarAssignments [(String,CFG_Coor)] 
   | SException String String
   | SActions [String]
-{-
-1) return arr[pos];
-ArrayCallExpr {
-  arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"},
-  index = Just (VarExpr {varType = Nothing, varObj = [], varName = "pos"})
-}
-2) arr[i] % 2 == 0
-ArrayExpr {
-  arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"},
-  index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})
-}
-3) sum += arr[i];
-ArrayExpr {
-  arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"},
-  index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})
-}
-4) int[] arr = new int[size];
-AssignStmt {
-  varModifier = [],
-  assign = AssignExpr {
-    assEleft = VarExpr {
-      varType = Just (ArrayType {baseType = BuiltInType Int}),
-      varObj = [],
-      varName = "arr"
-    },
-    assEright = ArrayInstantiationExpr {
-      arrType = Just (ArrayType {baseType = BuiltInType Int}),
-      arrSize = Just (VarExpr {varType = Nothing, varObj = [], varName = "size"}),
-      arrElems = []
-    }
-  }
-}
-5) arr[i] = elem;
-ArrayCallExpr {
-  arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"},
-  index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})
-}
-6) arg: int[] arr
-VarExpr {
-  varType = Just (ArrayType {baseType = BuiltInType Int}),
-            varObj = [],
-            varName = "arr"
-}
--}
   | SArrayIndexAccess String SymExpr
   | SymArray (Maybe SymType) (Maybe Int) [SymExpr]
+  | SymVar String
+  | SFormalParms [String]
+  | SGlobalVars [String]
   deriving (Eq,Show)
 
-data VarBinding = VarBinding
+data CFG_Coor = CFG_Coor
   { varDeclAt :: Int
   , varFrame  :: Int
   } deriving (Eq,Show)

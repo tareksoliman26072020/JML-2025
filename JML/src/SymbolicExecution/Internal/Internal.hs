@@ -11,8 +11,9 @@ import qualified CFG.Types as CFG
 import qualified Parser.Types as AST
 import Text.Printf (printf)
 import Control.Applicative (Alternative(empty),asum)
-import qualified Data.Map as Map (lookup,empty,Map,filterWithKey)
+import qualified Data.Map as Map (lookup,empty,Map,filterWithKey,insert,foldMapWithKey)
 import Prelude hiding (negate)
+import Data.List (nub)
 
 ------------------------------
 ------------------------------
@@ -50,11 +51,41 @@ isGlobalVariable :: SymExpr -> Bool
 isGlobalVariable (SymGlobalVar _ _ _) = True
 isGlobalVariable _ = False
 
-nodeHasGlobalVar :: CFG.Node -> Bool
-nodeHasGlobalVar = undefined
+nodeHasGlobalVar :: Map.Map SymStateKey SymExpr -> CFG.Node -> Bool
+nodeHasGlobalVar ma = \case
+  CFG.Node _ (CFG.Statement stmt) _ ->
+    let varName = AST.getVarName (AST.getExpression stmt)
+    in case Map.lookup GlobalVars ma of
+         Nothing -> False
+         Just (SGlobalVars li) -> varName `elem` li
+  node -> error $ "TODO: nodeHasGlobalVar: " ++ show node
 
-nodeHasLocalParm :: CFG.Node -> Bool
-nodeHasLocalParm = undefined
+nodeHasFormalParm :: Map.Map SymStateKey SymExpr -> CFG.Node -> Bool
+nodeHasFormalParm ma = \case
+  CFG.Node _ (CFG.Statement stmt) _ ->
+    let varName = AST.getVarName (AST.getExpression stmt)
+    in case Map.lookup FormalParms ma of
+         Nothing -> False
+         Just (SGlobalVars li) -> varName `elem` li
+  node -> error $ "TODO: nodeHasLocalParm: " ++ show node
+
+recordFormalParm :: String -> Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
+recordFormalParm varName ma =
+  let lookingup = Map.lookup FormalParms ma
+  in case lookingup of
+       Nothing -> Map.insert FormalParms (SFormalParms [varName]) ma
+       Just (SFormalParms li)
+         | varName `elem` li -> ma
+         | otherwise -> Map.insert FormalParms (SFormalParms $ li ++ [varName]) ma
+
+recordGlobalVar :: String -> Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
+recordGlobalVar varName ma =
+  let lookingup = Map.lookup GlobalVars ma
+  in case lookingup of
+       Nothing -> Map.insert GlobalVars (SGlobalVars [varName]) ma
+       Just (SGlobalVars li)
+         | varName `elem` li -> ma
+         | otherwise -> Map.insert GlobalVars (SGlobalVars $ li ++ [varName]) ma
 
 isSymInt :: SymExpr -> Bool
 isSymInt = \case
@@ -175,8 +206,26 @@ getVarName = \case
          (Just x,Just y) -> error $ "TODO: getVarName: " ++ show e
   symExpr -> error $ "won't happen2: getVarName: " ++ show symExpr
 
+get_SItes :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
+get_SItes m = flip Map.filterWithKey m $ \_ -> \case
+  SIte _ _ _ -> True
+  _ -> False
+
+get_SLoops :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
+get_SLoops m = flip Map.filterWithKey m $ \_ -> \case
+  SLoop _ _ _ -> True
+  _ -> False
+  
 findVarName :: String -> Map.Map SymStateKey SymExpr -> Maybe SymExpr
 findVarName str = Map.lookup (VarName str)
+
+findVarNameOccurrence :: String -> Map.Map SymStateKey SymExpr -> [SymExpr]
+findVarNameOccurrence varName ma = nub $ flip Map.foldMapWithKey ma $ \k v -> case (k,v) of
+  (VarName vn,_) -> [v]
+  (NodeNr _, SIte _ ifSymState mElseSymState) ->
+    findVarNameOccurrence varName (env ifSymState) ++
+    maybe [] (\s -> findVarNameOccurrence varName (env s)) mElseSymState
+  (NodeNr _, SLoop _ _ _) -> error "findVarNameOccurrence ==> won't happen"
 
 simplify :: SymExpr -> SymExpr
 simplify = \case
@@ -267,31 +316,53 @@ negateOp = \case
 ------------------------------
 ------------------------------
 
-getVarBindings :: SymState -> Map.Map String VarBinding
+getVarBindings :: SymState -> Map.Map String CFG_Coor
 getVarBindings symState = case Map.lookup VarBindings (env symState) of
   Nothing -> Map.empty
   Just (SVarBindings li) -> li
 
-getNewVarBinding :: Int -> Int -> AST.Statement -> Maybe (String,VarBinding)
+getNewVarBinding :: Int -> Int -> AST.Statement -> Maybe (String,CFG_Coor)
 getNewVarBinding nodeId branchId = \case
   -- AssignStmt {varModifier :: [Modifier], assign :: Expression}
-  AST.AssignStmt _ expr -> case expr of --throwError $ "MEOW::: " ++ show stmt
+  AST.AssignStmt _ expr -> case expr of
     --AssignExpr {assEleft :: Expression, assEright :: Expression}
     AST.AssignExpr left _ -> case left of
       AST.VarExpr{} -> case AST.varType left of
         Just _ ->
-          Just (AST.varName left,VarBinding nodeId branchId)
+          Just (AST.varName left,CFG_Coor nodeId branchId)
         Nothing -> Nothing
       AST.ArrayCallExpr{} -> Nothing
       _ -> error $ "getNewVarBinding -> won't happen1: " ++ show left
     _ -> error "getNewVarBinding -> won't happen2"
+  ----------
   --VarStmt {var = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "y"}}
   stmt@AST.VarStmt{} -> case AST.var stmt of
     AST.VarExpr varType _ varName -> case varType of
-      Just _ -> Just (varName,VarBinding nodeId branchId)
+      Just _ -> Just (varName,CFG_Coor nodeId branchId)
       Nothing -> Nothing
     _ -> error "getNewVarBinding -> won't happen3"
+  ----------
   _ -> Nothing
+
+getNewVarAssignment :: Int -> Int -> AST.Statement -> Maybe (String,CFG_Coor)
+getNewVarAssignment nodeId branchId = \case
+  -- AssignStmt {varModifier :: [Modifier], assign :: Expression}
+  AST.AssignStmt _ expr -> case expr of
+    --AssignExpr {assEleft :: Expression, assEright :: Expression}
+    AST.AssignExpr left _ -> case left of
+      AST.VarExpr{} ->
+        Just (AST.varName left,CFG_Coor nodeId branchId)
+      AST.ArrayCallExpr{} ->
+          Just (AST.getVarName left,CFG_Coor nodeId branchId)
+      _ -> error $ "TODO :: getNewVarAssignment: " ++ show left
+    _ -> error "getNewVarAssignment -> won't happen1"
+  ----------
+  --VarStmt {var = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "y"}}
+  stmt@AST.VarStmt{} -> case AST.var stmt of
+    AST.VarExpr varType _ varName -> case varType of
+      Just _ -> Just (varName,CFG_Coor nodeId branchId)
+      Nothing -> Nothing
+    _ -> error "getNewVarBinding -> won't happen3"
 
 getVarNames :: SymState -> Map.Map SymStateKey SymExpr
 getVarNames symState = flip Map.filterWithKey (env symState) $ \k _ -> case k of
@@ -301,6 +372,8 @@ getVarNames symState = flip Map.filterWithKey (env symState) $ \k _ -> case k of
 getActions :: SymState -> [String]
 getActions = maybe [] (\(SActions li) -> li) . Map.lookup Actions . env
 
+getVarAssignments :: SymState -> [(String,CFG_Coor)]
+getVarAssignments = maybe [] (\(SVarAssignments li) -> li) . Map.lookup VarAssignments . env
 ------------------------------
 ------------------------------
 ------------------------------
