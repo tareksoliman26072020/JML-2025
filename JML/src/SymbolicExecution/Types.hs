@@ -7,7 +7,7 @@ import Control.Monad.State
 import Control.Monad.Except
 import Control.Monad.Writer
 import qualified Parser.Types as AST
-import qualified CFG.Types as CFGT (CFG, NodeID)
+import qualified CFG.Types as CFGT (CFG, NodeID, Node)
 import qualified Data.Map as Map (Map)
 import Text.Printf (printf)
 import Data.List (intercalate)
@@ -155,7 +155,7 @@ visitNode ==> End: ER_State
 visitNode ==> Node ==> Statement: ER_State
 visitNode ==> Node ==> BooleanExpression if ==> SBool: ER_State
 visitNode ==> Node ==> BooleanExpression if ==> SBin: ER_Expr SIte
-visitNode ==> Node ==> ForInitialization ==> no accumulation variable ==> ER_Tupel
+visitNode ==> Node ==> ForInitialization ==> no accumulation variable ==> ER_Triplet
 
 visitSymExpr ==> SymFormalParam: ER_SymStateMapEntry
 visitSymExpr ==> SBin: ER_SymStateMapEntry
@@ -168,7 +168,7 @@ data ExecutionResult =
   | ER_ArrayCallExpr {arrayIndexCall :: SymExpr, arrayIndexCallValue :: SymExpr}
   | ER_State SymState
   | ER_Logs [Log.Log]
-  | ER_Tupel (ExecutionResult,ExecutionResult)
+  | ER_Triplet (ExecutionResult,ExecutionResult,ExecutionResult)
   | ER_FunCall SymState
   | ER_FunHandle SymType String
   | ER_IfCond SymExpr  -- ^ boolean expressions found in if conditions. Its existance in the environment values map means that the ......
@@ -189,7 +189,7 @@ data SymExpr =
   | SBin    SymExpr SymBinOp SymExpr  -- ^ binary operation
   | SNot    SymExpr               -- ^ logical negation
   | SIte    SymExpr SymState (Maybe SymState)   -- ^ if-then-else (cond, then, else)
-  | SLoop   CFG.Node [CFG.Node]   -- Loop condition, and loop body. the loop step is the last node in the body
+  | SLoop   CFGT.Node [CFGT.Node] (Maybe ([Log.Log],SymState)) -- Loop condition, and loop body. the loop step is the last node in the body
   | SymNull SymType               -- ^ value of an unassigned variable
   | SymFormalParam SymType String (Maybe SymExpr) -- ^ declared variable (a formal parameter)
   | SymGlobalVar SymType String (Maybe SymExpr) -- ^ variable declared outside the scope of the method

@@ -37,6 +37,7 @@ data Log = Expression_2_Handle String String
          | Meow String String
          | MethodStatementIfCondition String String
          | ProcessPredefinedFunCall String String String
+         deriving Eq
 
 -- Look up the usage of the function `tell` in SymbolicExecution
 -- to best relate to `Log`

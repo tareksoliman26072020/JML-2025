@@ -129,6 +129,7 @@ getFunCallName _ = error "won't happen"
 -- VarExpr {varType = Nothing, varObj = [], varName = "i"}
 getVarName :: Expression -> String
 getVarName expr@VarExpr{} = varName expr
+getVarName expr@AssignExpr{} = getVarName (assEleft expr)
 getVarName expr = error $ "won't happen: " ++ show expr
 
 getActualParmName :: Expression -> String

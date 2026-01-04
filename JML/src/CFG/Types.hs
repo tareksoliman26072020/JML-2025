@@ -15,7 +15,7 @@ data Node = Entry (AST.Type AST.Types) String [AST.Expression] | End {
     id :: NodeID,
     nodeData :: NodeData,
     parent :: NodeID
-  } deriving Show
+  } deriving (Eq,Show)
 
 showNode :: Node -> String
 showNode (Entry t n args) = "Entry " ++ n ++ ": method type: " ++ showType t
@@ -75,7 +75,7 @@ data NodeData = Statement AST.Statement
               | ForStep (Maybe AST.Statement) 
               | TryNode | CatchNode (AST.Type AST.Exception) | FinallyNode
               | Meet Kind
-              deriving Show
+              deriving (Eq,Show)
 
 showNodeData :: NodeData -> String
 showNodeData (Statement stmt) = showStatement stmt
@@ -93,7 +93,6 @@ showNodeData (CatchNode t) = "Catch Node: " ++ showTypeException t
 showNodeData FinallyNode = "Finally Node"
 showNodeData (Meet kind) = "Meet: " ++ show kind
 
-
 isIfStartNode :: Node -> Bool
 isIfStartNode = \case
   Node _ (BooleanExpression If _) _ -> True
@@ -108,6 +107,12 @@ isForStartNode :: Node -> Bool
 isForStartNode = \case
   Node _ (ForInitialization _) _ -> True
   _ -> False
+
+isForInitNode :: Node -> Bool
+isForInitNode = \case
+  Node _ (ForInitialization _) _ -> True
+  _ -> False
+
 
 isForCondNode :: Node -> Bool
 isForCondNode = \case
@@ -136,15 +141,19 @@ getEndIfNode cfg node
 getEndForNode :: CFG -> Node -> Node
 getEndForNode cfg node = case findEdge_via_id cfg (getNodeId node) of
   Nothing -> error "getEndForNode: won't happen"
-  Just (_,[next1,next2]) ->
-    let n = findNode_via_id cfg next2
-    in if isForEndNode n then n
-       else error $ "TODO: getEndForNode ==> " ++ show [next1,next2]
+  Just (_,[next]) ->
+    let forCondNode = findNode_via_id cfg next
+    in case findEdge_via_id cfg (getNodeId forCondNode) of
+         Nothing -> error "getEndForNode: won't happen"
+         Just (_,[next1,next2]) ->
+           let n = findNode_via_id cfg next2
+           in if isForEndNode n then n
+              else error $ "TODO: getEndForNode ==> " ++ show [next1,next2]
 
 ------------------------------
 
 data Kind = If | While | For
-          deriving Show
+          deriving (Eq,Show)
 
 {-
   | ArrayCallExpr {arrName :: Expression, index :: Maybe Expression}
@@ -291,11 +300,11 @@ getPath startId cfg =
         Nothing -> Nothing
         Just (_,[]) -> error "getPath: won't happen 2"
         Just (_,[next])
-          | not (isIfStartNode currentNode) -> Just next
+          | not (isIfStartNode currentNode || isForInitNode currentNode) -> Just next
         Just (_,(_ : _)) ->
           let endNode
                | isIfStartNode currentNode = getEndIfNode cfg currentNode
-               | isForCondNode currentNode = getEndForNode cfg currentNode
+               | isForInitNode currentNode = getEndForNode cfg currentNode
                | otherwise = error $ "getPath: what is this? " ++ show currentNode
           in case findEdge_via_id cfg (getNodeId endNode) of
                Just (_,[next2]) -> Just next2

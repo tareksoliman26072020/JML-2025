@@ -50,6 +50,12 @@ isGlobalVariable :: SymExpr -> Bool
 isGlobalVariable (SymGlobalVar _ _ _) = True
 isGlobalVariable _ = False
 
+nodeHasGlobalVar :: CFG.Node -> Bool
+nodeHasGlobalVar = undefined
+
+nodeHasLocalParm :: CFG.Node -> Bool
+nodeHasLocalParm = undefined
+
 isSymInt :: SymExpr -> Bool
 isSymInt = \case
   SymInt _ -> True
@@ -168,6 +174,9 @@ getVarName = \case
          (Nothing,Just n) -> n
          (Just x,Just y) -> error $ "TODO: getVarName: " ++ show e
   symExpr -> error $ "won't happen2: getVarName: " ++ show symExpr
+
+findVarName :: String -> Map.Map SymStateKey SymExpr -> Maybe SymExpr
+findVarName str = Map.lookup (VarName str)
 
 simplify :: SymExpr -> SymExpr
 simplify = \case

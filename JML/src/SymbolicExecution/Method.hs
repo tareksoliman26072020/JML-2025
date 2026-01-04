@@ -206,7 +206,9 @@ instance CFGVisitor Method_SymExec where
           Just accumulationVar -> do
             -- variable will be added to a new state, custom-made for the for body
             let (accLogs,accState) = runCFG cfgs cfg (Just [CFG.Node (CFG.id n) (CFG.Statement $ AST.AssignStmt [] accumulationVar) 0]) (Just originalState)
-            return $ ER_Tupel (ER_Logs accLogs,ER_State accState)
+            let accVarNameString = AST.getVarName accumulationVar
+            let Just accVarNameVal = findVarName accVarNameString (env accState)
+            return $ ER_Triplet (ER_Logs accLogs,ER_Expr accVarNameVal,ER_State accState)
         -- process SymState of for body
         -- branches: start id for the for body branch.
         --           return is a list of one int.
@@ -225,7 +227,7 @@ instance CFGVisitor Method_SymExec where
         -- call it `visitForLoop`
         visitForLoop (case accumulationVar_visited of
           ER_Void -> Nothing
-          ER_Tupel tu -> Just tu) forBody_forStep_path forCondNode
+          ER_Triplet tu -> Just tu) forBody_forStep_path forCondNode (CFG.id n)
       ----------------------------------------
       ----------------------------------------
       ----------------------------------------
@@ -250,9 +252,26 @@ instance CFGVisitor Method_SymExec where
             newCondSymState = SymState newCondSymStateEnv (pc condSymState)
         in newCondSymState
       
-      visitForLoop :: Maybe (ExecutionResult,ExecutionResult) -> [CFG.Node] -> CFG.Node -> Method_R
-      visitForLoop m_Log_State forBody_forStep_path forCondNode = do
-        undefined
+      visitForLoop :: Maybe (ExecutionResult,ExecutionResult,ExecutionResult) -> [CFG.Node] -> CFG.Node -> Int -> Method_R
+      visitForLoop m_Log_Acc_State forBody_forStep_path forCondNode nodeNr
+        -- if any of the variables has a global variable or formal parameter,
+        -- then add SLoop to the state and end without visiting nodes
+        | (maybe True
+                 (\(_,ER_Expr sExpr,_) -> any (\p -> p sExpr) [isFormalParameter,isGlobalVariable])
+                 m_Log_Acc_State)
+          || any (\node -> nodeHasGlobalVar node || nodeHasLocalParm node) (forCondNode : forBody_forStep_path) = do
+            let symExpr = SLoop
+                  forCondNode
+                  forBody_forStep_path
+                  (flip fmap m_Log_Acc_State $ \(ER_Logs log,_,ER_State s) -> (log,s))
+                toReturn = ER_SymStateMapEntry (NodeNr nodeNr) symExpr
+            tell [Log.ModifyState "visitNode ==> ForInitialization ==> visitForLoop" (show nodeNr,"SLoop")]
+            modify $ \symState -> SymState {
+              env = Map.insert (NodeNr nodeNr) symExpr (env symState),
+              pc = pc symState
+            }
+            return toReturn
+        | otherwise = throwError "TODO2:: visitForLoop"
 
 ----------------------------------------
 ----------------------------------------
