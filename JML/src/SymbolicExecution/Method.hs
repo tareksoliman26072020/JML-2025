@@ -208,7 +208,9 @@ instance CFGVisitor Method_SymExec where
                 modify $ \symState ->
                   SymState {
                     env =
-                      let addNode = Map.insert (NodeNr $ CFG.id n) symExpr (env symState)
+                      let addNode = Map.insert
+                            (BranchRange $ BR (CFG.id n) (CFG.getNodeId $ CFG.getEndIfNode cfg n)) {-(NodeNr $ CFG.id n)-}
+                            symExpr (env symState)
                           addVarAssignments = Map.insert
                             VarAssignments (SVarAssignments newMainVarAssignments) addNode
                       in addVarAssignments,
@@ -220,17 +222,6 @@ instance CFGVisitor Method_SymExec where
       ----------------------------------------
       ----------------------------------------
       ----------------------------------------
-      {-
-         Node {
-           id = 2,
-           nodeData = ForInitialization (Just (
-             AssignExpr {
-               assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, 
-               assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}
-             }))
-           , parent = 0
-         }
-       -}
       CFG.ForInitialization mAccumulationVar -> do
         tell [Log.MethodStatementIfCondition (printf "visitNode -> case nodeData of Node -> ForInitialization -> Accumulation Variable -> Node num: %d" (CFG.id n)) (show mAccumulationVar)]
         ER_FunHandle _ funName <- getFunHandle
@@ -244,21 +235,6 @@ instance CFGVisitor Method_SymExec where
               Just cfg0 -> cfg0
         let m_Acc = flip fmap mAccumulationVar $ \v ->
               CFG.Node (CFG.id n) (CFG.Statement $ AST.AssignStmt [] v) 0
-        {-
-        -- process the accumulation variable, if it exists
-        accumulationVar_visited <- case mAccumulationVar of
-          -- no accumulation variable
-          Nothing -> do
-            tell [Log.ForStatementHasNoAccumulationVariable $ "visitNode -> case nodeData of Node -> ForInitialization -> Accumulation Variable -> Node num: " ++ show (CFG.id n)]
-            return ER_Void
-          -- yes accumulation variable
-          Just accumulationVar -> do
-            -- variable will be added to a new state, custom-made for the for body
-            let (accLogs,accState) = runCFG cfgs cfg (Just [CFG.Node (CFG.id n) (CFG.Statement $ AST.AssignStmt [] accumulationVar) 0]) (Just originalState)
-            let accVarNameString = AST.getVarName accumulationVar
-            let Just accVarNameVal = findVarName accVarNameString (env accState)
-            return $ ER_Triplet (ER_Logs accLogs,ER_Expr accVarNameVal,ER_State accState)
-         -}
         -- process SymState of for body
         -- branches: start id for the for body branch.
         --           return is a list of one int.
@@ -275,7 +251,10 @@ instance CFGVisitor Method_SymExec where
               CFG.Node theId _ _ -> theId /= forCondNodeId
         -- implement a helper that takes as input `(accLogs,accState)`
         -- call it `visitForLoop`
-        visitForLoop m_Acc forCondNode forBody_forStep_path (CFG.id n) (env originalState)
+        visitForLoop m_Acc forCondNode forBody_forStep_path
+          (BR (CFG.id n)
+              (CFG.getNodeId $ CFG.getEndForNode cfg $ (CFG.findNode_via_id cfg $ CFG.id n)))
+          (env originalState)
       ----------------------------------------
       ----------------------------------------
       ----------------------------------------
@@ -300,8 +279,8 @@ instance CFGVisitor Method_SymExec where
             newCondSymState = SymState newCondSymStateEnv (pc condSymState)
         in newCondSymState
       
-      visitForLoop :: Maybe CFG.Node -> CFG.Node -> [CFG.Node] -> Int -> Map.Map SymStateKey SymExpr -> Method_R
-      visitForLoop m_Acc forCondNode forBody_forStep_path nodeNr ma
+      visitForLoop :: Maybe CFG.Node -> CFG.Node -> [CFG.Node] -> BranchRange -> Map.Map SymStateKey SymExpr -> Method_R
+      visitForLoop m_Acc forCondNode forBody_forStep_path branchRange ma
         -- if any of the variables has a global variable or formal parameter,
         -- then add SLoop to the state and end without visiting nodes
         | (maybe True
@@ -312,10 +291,10 @@ instance CFGVisitor Method_SymExec where
                   m_Acc
                   forCondNode
                   forBody_forStep_path
-                toReturn = ER_SymStateMapEntry (NodeNr nodeNr) symExpr
-            tell [Log.ModifyState "visitNode ==> ForInitialization ==> visitForLoop" (show nodeNr,"SLoop")]
+                toReturn = ER_SymStateMapEntry (BranchRange branchRange) symExpr
+            tell [Log.ModifyState "visitNode ==> ForInitialization ==> visitForLoop" (show branchRange,"SLoop")]
             modify $ \symState -> SymState {
-              env = Map.insert (NodeNr nodeNr) symExpr (env symState),
+              env = Map.insert (BranchRange branchRange) symExpr (env symState),
               pc = pc symState
             }
             return toReturn

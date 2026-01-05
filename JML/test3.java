@@ -1266,17 +1266,6 @@ public static int boo28_6_2(int i){
 SymState {
   env = fromList [
     (MethodName "boo28_6_3",SMethodType Int),
-    (VarBindings,SVarBindings (fromList [("x",VarBinding {varDeclAt = 1, varFrame = 0}),("y",VarBinding {varDeclAt = 7, varFrame = 0})])),
-    (VarName "i",SymFormalParam Int "i" Nothing),
-    (VarName "x",SymInt 1),
-    (VarName "y",SymInt 2),
-    (Return,SymInt 7)
-  ], pc = []
-}
-
-SymState {
-  env = fromList [
-    (MethodName "boo28_6_3",SMethodType Int),
     (FormalParms,SFormalParms ["i"]),
     (VarBindings,SVarBindings (fromList [("x",CFG_Coor {varDeclAt = 1, varFrame = 0}),("y",CFG_Coor {varDeclAt = 7, varFrame = 0})])),
     (VarAssignments,SVarAssignments [("x",CFG_Coor {varDeclAt = 1, varFrame = 0}),("y",CFG_Coor {varDeclAt = 7, varFrame = 0})]),
@@ -1338,7 +1327,21 @@ public static int boo28_6_4(int i){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "boo28_6_5",SMethodType Int),
+    (FormalParms,SFormalParms ["i"]),
+    (VarBindings,SVarBindings (fromList [("x",CFG_Coor {varDeclAt = 1, varFrame = 0})])),
+    (VarAssignments,SVarAssignments [("x",CFG_Coor {varDeclAt = 1, varFrame = 0}),("x",CFG_Coor {varDeclAt = 5, varFrame = 2})]),
+    (VarName "i",SymFormalParam Int "i" Nothing),
+    (VarName "x",SymInt 2),
+    (Return,SymInt 2),
+    (Actions,SActions [])
+  ], pc = []
+}
+*/
 public static int boo28_6_5(int i){
   int x = 1;
   if(x < 0){
@@ -1348,6 +1351,74 @@ public static int boo28_6_5(int i){
   else {
     x++;
   }
+  return x;
+}
+
+////////////////////////////////////////
+
+//TODO
+/*
+SymState {
+  env = fromList [
+    (MethodName "boo28_6_6",SMethodType Int),
+    (FormalParms,SFormalParms ["i"]),
+    (VarBindings,SVarBindings (fromList [("x",CFG_Coor {varDeclAt = 1, varFrame = 0})])),
+    (VarAssignments,SVarAssignments [
+      ("x",CFG_Coor {varDeclAt = 1, varFrame = 0}),
+      ("x",CFG_Coor {varDeclAt = 6, varFrame = 2})]),
+    (NodeNr 2,SIte (SBin (SymFormalParam Int "i" Nothing) Ge (SymInt 0))
+                   (SymState {env = fromList [(MethodName "boo28_6_6",SMethodType Int),(FormalParms,SFormalParms ["i"]),(VarBindings,SVarBindings (fromList [("x",CFG_Coor {varDeclAt = 1, varFrame = 0}),("y",CFG_Coor {varDeclAt = 3, varFrame = 2})])),(VarAssignments,SVarAssignments [("x",CFG_Coor {varDeclAt = 1, varFrame = 0}),("y",CFG_Coor {varDeclAt = 3, varFrame = 2}),("y",CFG_Coor {varDeclAt = 4, varFrame = 2})]),(VarName "i",SymFormalParam Int "i" Nothing),(VarName "x",SymInt 1),(VarName "y",SymInt 1),(Return,SBin (SymFormalParam Int "i" Nothing) Add (SymInt 1))], pc = []})
+                   (Just (SymState {env = fromList [(MethodName "boo28_6_6",SMethodType Int),(FormalParms,SFormalParms ["i"]),(VarBindings,SVarBindings (fromList [("x",CFG_Coor {varDeclAt = 1, varFrame = 0})])),(VarAssignments,SVarAssignments [("x",CFG_Coor {varDeclAt = 1, varFrame = 0}),("x",CFG_Coor {varDeclAt = 6, varFrame = 2})]),(VarName "i",SymFormalParam Int "i" Nothing),(VarName "x",SymInt 2)], pc = []}))),
+    (VarName "i",SymFormalParam Int "i" Nothing),
+    (VarName "x",SymInt 1),
+    (Return CFG_Coor {varDeclAt = 8, varFrame = 0},SymInt 1)
+  ], pc = []
+}
+*/
+public static int boo28_6_6(int i){
+  int x = 1;
+  if(i >= 0){
+    int y = 0;
+    y++;
+    return i+y;
+  }
+  else {
+    x++;
+  }
+  return x;
+}
+
+////////////////////////////////////////
+
+//TODO
+/*
+SymState {
+  env = fromList [
+    (MethodName "boo28_6_7",SMethodType Int),
+    (FormalParms,SFormalParms ["i"]),
+    (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = 0})])),
+    (VarAssignments,SVarAssignments [
+      ("x",Node_Coor {varDeclAt = 1, varFrame = 0}),
+      ("x",Node_Coor {varDeclAt = 6, varFrame = 2}),
+      ("x",Node_Coor {varDeclAt = 8, varFrame = 0})
+    ]),
+    (BranchRange (BR {branchStart = 2, branchEnd = 7}),SIte (SBin (SymFormalParam Int "i" Nothing) Ge (SymInt 0)) (SymState {env = fromList [(MethodName "boo28_6_7",SMethodType Int),(FormalParms,SFormalParms ["i"]),(VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = 0}),("y",Node_Coor {varDeclAt = 3, varFrame = 2})])),(VarAssignments,SVarAssignments [("x",Node_Coor {varDeclAt = 1, varFrame = 0}),("y",Node_Coor {varDeclAt = 3, varFrame = 2}),("y",Node_Coor {varDeclAt = 4, varFrame = 2})]),(VarName "i",SymFormalParam Int "i" Nothing),(VarName "x",SymInt 1),(VarName "y",SymInt 1),(Return,SBin (SymFormalParam Int "i" Nothing) Add (SymInt 1))], pc = []}) (Just (SymState {env = fromList [(MethodName "boo28_6_7",SMethodType Int),(FormalParms,SFormalParms ["i"]),(VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = 0})])),(VarAssignments,SVarAssignments [("x",Node_Coor {varDeclAt = 1, varFrame = 0}),("x",Node_Coor {varDeclAt = 6, varFrame = 2})]),(VarName "i",SymFormalParam Int "i" Nothing),(VarName "x",SymInt 2)], pc = []}))),
+    (VarName "i",SymFormalParam Int "i" Nothing),
+    (VarName "x",SymInt 5),(Return,SymInt 5)
+  ], pc = []
+}
+*/
+public static int boo28_6_7(int i){
+  int x = 1;
+  if(i >= 0){
+    int y = 0;
+    y++;
+    return i+y;
+  }
+  else {
+    x++;
+  }
+  x = 5;
   return x;
 }
 

@@ -1367,6 +1367,34 @@ public static int boo28_6_4(int i){
 ////////////////////////////////////////
 
 /*
+SymState {
+  env = fromList [
+    (MethodName "boo28_6_5",SMethodType Int),
+    (FormalParms,SFormalParms ["i"]),
+    (VarBindings,SVarBindings (fromList [("x",CFG_Coor {varDeclAt = 1, varFrame = 0})])),
+    (VarAssignments,SVarAssignments [("x",CFG_Coor {varDeclAt = 1, varFrame = 0}),("x",CFG_Coor {varDeclAt = 5, varFrame = 2})]),
+    (VarName "i",SymFormalParam Int "i" Nothing),
+    (VarName "x",SymInt 2),
+    (Return,SymInt 2),
+    (Actions,SActions [])
+  ], pc = []
+}
+*/
+public static int boo28_6_5(int i){
+  int x = 1;
+  if(x < 0){
+    int y = 0;
+    y++;
+  }
+  else {
+    x++;
+  }
+  return x;
+}
+
+////////////////////////////////////////
+
+/*
 CFG {
   nodes = [
     Entry,

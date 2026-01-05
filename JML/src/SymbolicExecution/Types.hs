@@ -37,7 +37,7 @@ getReader_MethodCall_R (MethodCall_SymExec r) = r
 
 data SymStateKey = MethodName String
                  | GlobalVars | FormalParms | VarBindings | VarAssignments
-                 | NodeNr Int | VarName String
+                 | BranchRange BranchRange | VarName String
                  | Return | Exception | Actions
                  deriving (Eq,Ord,Show)
 {-
@@ -236,8 +236,8 @@ data SymExpr =
   | SymNull SymType               -- ^ value of an unassigned variable
   | SymFormalParam SymType String (Maybe SymExpr) -- ^ declared variable (a formal parameter)
   | SymGlobalVar SymType String (Maybe SymExpr) -- ^ variable declared outside the scope of the method
-  | SVarBindings (Map.Map String CFG_Coor)
-  | SVarAssignments [(String,CFG_Coor)] 
+  | SVarBindings (Map.Map String Node_Coor)
+  | SVarAssignments [(String,Node_Coor)] 
   | SException String String
   | SActions [String]
   | SArrayIndexAccess String SymExpr
@@ -247,10 +247,15 @@ data SymExpr =
   | SGlobalVars [String]
   deriving (Eq,Show)
 
-data CFG_Coor = CFG_Coor
+data Node_Coor = Node_Coor
   { varDeclAt :: Int
   , varFrame  :: Int
   } deriving (Eq,Show)
+
+data BranchRange = BR
+  { branchStart :: Int
+  , branchEnd :: Int
+  } deriving (Eq,Ord,Show)
 
 ppSymExpr :: SymExpr -> String
 ppSymExpr = \case

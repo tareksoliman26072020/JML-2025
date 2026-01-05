@@ -222,10 +222,10 @@ findVarName str = Map.lookup (VarName str)
 findVarNameOccurrence :: String -> Map.Map SymStateKey SymExpr -> [SymExpr]
 findVarNameOccurrence varName ma = nub $ flip Map.foldMapWithKey ma $ \k v -> case (k,v) of
   (VarName vn,_) -> [v]
-  (NodeNr _, SIte _ ifSymState mElseSymState) ->
+  (BranchRange _, SIte _ ifSymState mElseSymState) ->
     findVarNameOccurrence varName (env ifSymState) ++
     maybe [] (\s -> findVarNameOccurrence varName (env s)) mElseSymState
-  (NodeNr _, SLoop _ _ _) -> error "findVarNameOccurrence ==> won't happen"
+  (BranchRange _, SLoop _ _ _) -> error "findVarNameOccurrence ==> won't happen"
 
 simplify :: SymExpr -> SymExpr
 simplify = \case
@@ -316,12 +316,12 @@ negateOp = \case
 ------------------------------
 ------------------------------
 
-getVarBindings :: SymState -> Map.Map String CFG_Coor
+getVarBindings :: SymState -> Map.Map String Node_Coor
 getVarBindings symState = case Map.lookup VarBindings (env symState) of
   Nothing -> Map.empty
   Just (SVarBindings li) -> li
 
-getNewVarBinding :: Int -> Int -> AST.Statement -> Maybe (String,CFG_Coor)
+getNewVarBinding :: Int -> Int -> AST.Statement -> Maybe (String,Node_Coor)
 getNewVarBinding nodeId branchId = \case
   -- AssignStmt {varModifier :: [Modifier], assign :: Expression}
   AST.AssignStmt _ expr -> case expr of
@@ -329,7 +329,7 @@ getNewVarBinding nodeId branchId = \case
     AST.AssignExpr left _ -> case left of
       AST.VarExpr{} -> case AST.varType left of
         Just _ ->
-          Just (AST.varName left,CFG_Coor nodeId branchId)
+          Just (AST.varName left,Node_Coor nodeId branchId)
         Nothing -> Nothing
       AST.ArrayCallExpr{} -> Nothing
       _ -> error $ "getNewVarBinding -> won't happen1: " ++ show left
@@ -338,29 +338,29 @@ getNewVarBinding nodeId branchId = \case
   --VarStmt {var = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "y"}}
   stmt@AST.VarStmt{} -> case AST.var stmt of
     AST.VarExpr varType _ varName -> case varType of
-      Just _ -> Just (varName,CFG_Coor nodeId branchId)
+      Just _ -> Just (varName,Node_Coor nodeId branchId)
       Nothing -> Nothing
     _ -> error "getNewVarBinding -> won't happen3"
   ----------
   _ -> Nothing
 
-getNewVarAssignment :: Int -> Int -> AST.Statement -> Maybe (String,CFG_Coor)
+getNewVarAssignment :: Int -> Int -> AST.Statement -> Maybe (String,Node_Coor)
 getNewVarAssignment nodeId branchId = \case
   -- AssignStmt {varModifier :: [Modifier], assign :: Expression}
   AST.AssignStmt _ expr -> case expr of
     --AssignExpr {assEleft :: Expression, assEright :: Expression}
     AST.AssignExpr left _ -> case left of
       AST.VarExpr{} ->
-        Just (AST.varName left,CFG_Coor nodeId branchId)
+        Just (AST.varName left,Node_Coor nodeId branchId)
       AST.ArrayCallExpr{} ->
-          Just (AST.getVarName left,CFG_Coor nodeId branchId)
+          Just (AST.getVarName left,Node_Coor nodeId branchId)
       _ -> error $ "TODO :: getNewVarAssignment: " ++ show left
     _ -> error "getNewVarAssignment -> won't happen1"
   ----------
   --VarStmt {var = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "y"}}
   stmt@AST.VarStmt{} -> case AST.var stmt of
     AST.VarExpr varType _ varName -> case varType of
-      Just _ -> Just (varName,CFG_Coor nodeId branchId)
+      Just _ -> Just (varName,Node_Coor nodeId branchId)
       Nothing -> Nothing
     _ -> error "getNewVarBinding -> won't happen3"
 
@@ -372,7 +372,7 @@ getVarNames symState = flip Map.filterWithKey (env symState) $ \k _ -> case k of
 getActions :: SymState -> [String]
 getActions = maybe [] (\(SActions li) -> li) . Map.lookup Actions . env
 
-getVarAssignments :: SymState -> [(String,CFG_Coor)]
+getVarAssignments :: SymState -> [(String,Node_Coor)]
 getVarAssignments = maybe [] (\(SVarAssignments li) -> li) . Map.lookup VarAssignments . env
 ------------------------------
 ------------------------------
