@@ -242,7 +242,7 @@ data SymExpr =
   | SActions [String]
   | SArrayIndexAccess String SymExpr
   | SymArray (Maybe SymType) (Maybe Int) [SymExpr]
-  | SymUnknown (SymType,String,SymExpr) SymReason
+  | SymUnknown (SymType,String,Maybe SymExpr) SymReason
   | SFormalParms [String]
   | SGlobalVars [String]
   deriving (Eq,Show)
@@ -274,7 +274,9 @@ ppSymExpr = \case
   SymGlobalVar t s m -> maybe s ppSymExpr m
   SymArray _ _ elems -> printf "[%s]" $ intercalate ", " (map ppSymExpr elems)
 
-data SymType = Int | Double | Float | Bool | Void | Array SymType | String deriving (Show,Eq)
+data SymType = Int | Double | Float | Bool | Void | Array SymType | String 
+             | UnknownGlobalVarSymType
+             | UnknownNumSymType deriving (Show,Eq)
 
 instance MonadFail (Either String) where
   fail = Left

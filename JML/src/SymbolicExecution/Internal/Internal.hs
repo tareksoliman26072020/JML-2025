@@ -10,8 +10,8 @@ import Control.Monad.Writer
 import qualified CFG.Types as CFG
 import qualified Parser.Types as AST
 import Text.Printf (printf)
-import Control.Applicative (Alternative(empty),asum)
-import qualified Data.Map as Map (lookup,empty,Map,filterWithKey,insert,foldMapWithKey)
+import Control.Applicative (Alternative(empty),asum,(<|>))
+import qualified Data.Map as Map (lookup,empty,Map,filterWithKey,insert,foldMapWithKey,toList)
 import Prelude hiding (negate)
 import Data.List (nub)
 
@@ -51,13 +51,16 @@ isGlobalVariable :: SymExpr -> Bool
 isGlobalVariable (SymGlobalVar _ _ _) = True
 isGlobalVariable _ = False
 
+isGlobalVariable2 :: String -> Map.Map SymStateKey SymExpr -> Bool
+isGlobalVariable2 varName s = case Map.lookup GlobalVars s of
+  Nothing -> False
+  Just (SGlobalVars li) -> varName `elem` li
+
 nodeHasGlobalVar :: Map.Map SymStateKey SymExpr -> CFG.Node -> Bool
 nodeHasGlobalVar ma = \case
   CFG.Node _ (CFG.Statement stmt) _ ->
     let varName = AST.getVarName (AST.getExpression stmt)
-    in case Map.lookup GlobalVars ma of
-         Nothing -> False
-         Just (SGlobalVars li) -> varName `elem` li
+    in isGlobalVariable2 varName ma
   node -> error $ "TODO: nodeHasGlobalVar: " ++ show node
 
 nodeHasFormalParm :: Map.Map SymStateKey SymExpr -> CFG.Node -> Bool
@@ -66,7 +69,7 @@ nodeHasFormalParm ma = \case
     let varName = AST.getVarName (AST.getExpression stmt)
     in case Map.lookup FormalParms ma of
          Nothing -> False
-         Just (SGlobalVars li) -> varName `elem` li
+         Just (SFormalParms li) -> varName `elem` li
   node -> error $ "TODO: nodeHasLocalParm: " ++ show node
 
 recordFormalParm :: String -> Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
@@ -80,12 +83,11 @@ recordFormalParm varName ma =
 
 recordGlobalVar :: String -> Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
 recordGlobalVar varName ma =
-  let lookingup = Map.lookup GlobalVars ma
-  in case lookingup of
-       Nothing -> Map.insert GlobalVars (SGlobalVars [varName]) ma
-       Just (SGlobalVars li)
-         | varName `elem` li -> ma
-         | otherwise -> Map.insert GlobalVars (SGlobalVars $ li ++ [varName]) ma
+  case Map.lookup GlobalVars ma of
+    Nothing -> Map.insert GlobalVars (SGlobalVars [varName]) ma
+    Just (SGlobalVars li)
+      | varName `elem` li -> ma
+      | otherwise -> Map.insert GlobalVars (SGlobalVars $ li ++ [varName]) ma
 
 isSymInt :: SymExpr -> Bool
 isSymInt = \case
@@ -153,18 +155,21 @@ toSymType1 = \case
 
 -- get SymType via SymExpr
 toSymType2 :: SymExpr -> SymType
-toSymType2 (SymInt _) = Int
-toSymType2 (SymDouble _) = Double
-toSymType2 (SymFloat _) = Float
-toSymType2 (SBool _) = Bool
-toSymType2 (SymNull t) = t
-toSymType2 (SymFormalParam t _ _) = t
-toSymType2 (SymGlobalVar t _ _) = t
-toSymType2 (SObjAcc li) = case li of
-  [_,"length"] -> Int
-  _ -> error $ "TODO1: toSymType2 ==> " ++ show (SObjAcc li)
-toSymType2 (SymUnknown (t,_,_) _) = t
-toSymType2 symExpr = error $ "TODO2: toSymType2 ==> " ++ show symExpr
+toSymType2 = \case
+  SymInt _ -> Int
+  SymDouble _ -> Double
+  SymFloat _ -> Float
+  SBool _ -> Bool
+  SymNull t -> t
+  SymFormalParam t _ _ -> t
+  SymGlobalVar t _ _ -> t
+  SObjAcc li -> case li of
+    [_,"length"] -> Int
+    _ -> error $ "TODO1: toSymType2 ==> " ++ show (SObjAcc li)
+  (SymUnknown (t,_,_) _) -> t
+  SBin a _ b -> toSymType2 a
+  SymNum _ -> UnknownNumSymType
+  symExpr -> error $ "TODO2: toSymType2 ==> " ++ show symExpr
 
 -- will be used in `calculate`
 toSymType3 :: SymExpr -> Maybe SymType
@@ -182,6 +187,22 @@ toSymType3 = \case
 
 findSymType :: [SymExpr] -> Maybe SymType
 findSymType = asum . map toSymType3
+
+pick_known_symType :: (SymType,SymType) -> SymType
+pick_known_symType = \case
+  -- 2 unknown nums
+  (UnknownNumSymType,UnknownNumSymType) -> UnknownNumSymType
+  -- 2 unknown global
+  (UnknownGlobalVarSymType,UnknownGlobalVarSymType) -> UnknownGlobalVarSymType
+  -- unknown num + unknown global
+  (UnknownGlobalVarSymType,UnknownNumSymType) -> UnknownNumSymType
+  (UnknownNumSymType,UnknownGlobalVarSymType) -> UnknownNumSymType
+  -- unknown + known
+  (UnknownGlobalVarSymType,symType) -> symType
+  (symType,UnknownGlobalVarSymType) -> symType
+  (UnknownNumSymType,symType) -> symType
+  (symType,UnknownNumSymType) -> symType
+  (s1,_) -> s1
 
 getReturnSymExpr :: SymState -> Maybe SymExpr
 getReturnSymExpr = Map.lookup Return . env
@@ -221,13 +242,27 @@ get_SLoops m = flip Map.filterWithKey m $ \_ -> \case
 findVarName :: String -> Map.Map SymStateKey SymExpr -> Maybe SymExpr
 findVarName str = Map.lookup (VarName str)
 
-findVarNameOccurrence :: String -> Map.Map SymStateKey SymExpr -> [SymExpr]
-findVarNameOccurrence varName ma = nub $ flip Map.foldMapWithKey ma $ \k v -> case (k,v) of
-  (VarName vn,_) -> [v]
-  (BranchRange _, SIte _ ifSymState mElseSymState) ->
-    findVarNameOccurrence varName (env ifSymState) ++
-    maybe [] (\s -> findVarNameOccurrence varName (env s)) mElseSymState
-  (BranchRange _, SLoop _ _ _) -> error "findVarNameOccurrence ==> won't happen"
+findBranch_at_nodeNr :: Int -> Map.Map SymStateKey SymExpr -> Maybe (BranchRange,SymExpr)
+findBranch_at_nodeNr bStart s =
+  let s2 = flip Map.filterWithKey s $ \k v -> case k of
+        BranchRange (BR start _) -> bStart == start
+        _ -> False
+  in case Map.toList s2 of
+       [] -> Nothing
+       ((BranchRange br,val) : _) -> Just (br,val)
+
+findVarName_via_coor :: (String,Node_Coor) -> Map.Map SymStateKey SymExpr -> Maybe SymExpr
+findVarName_via_coor (varName,(Node_Coor declAt vf)) s =
+  let mBranchSymExpr = findBranch_at_nodeNr vf s
+  in case mBranchSymExpr of
+       Nothing -> Nothing
+       Just (br,symExpr@(SIte _ ifBranchSymState mElseBranchSymState)) ->
+         let mSearch1 = Map.lookup (VarName varName) (env ifBranchSymState)
+             mSearch2 = case mElseBranchSymState of
+               Nothing -> Nothing
+               Just elseBranchSymState -> Map.lookup (VarName varName) (env elseBranchSymState)
+         in mSearch1 <|> mSearch2
+       Just tu -> error $ "TODO: findVarName_via_coor ==> " ++ show tu
 
 simplify :: SymExpr -> SymExpr
 simplify = \case
@@ -250,10 +285,7 @@ newSymNum = \case
   Add -> SymNum 1
   Sub -> SymNum (-1)
   _   -> error "won't happen"
-{-
-Add (SymInt 0, SymNum 2) = cast Int (SymNum 2)
-                         = SymInt 2
--}
+
 -- The type of the variable in `symExpr` needs to conform to `symType`.
 -- This matters in the context of `AssignExpr`, and `BinOpExpr`
 cast :: SymType -> SymExpr -> SymExpr
@@ -265,12 +297,28 @@ cast symType symExpr = case symExpr of
                 Bool   -> error "cast ~~> won't happen"
                 Void   -> error "cast ~~> won't happen"
                 Array t -> cast t (SymNum num)
-                _ -> error $ "TODO: cast ==> " ++ show symType
+                UnknownGlobalVarSymType -> symExpr
+                UnknownNumSymType -> symExpr
+                _ -> error $ printf "TODO: cast ==> cast (%s) (%s)" (show symType) (show symExpr)
   SBin expr1 op expr2 -> SBin (cast symType expr1) op (cast symType expr2)
   --SymArray (Maybe SymType) (Maybe Int) [SymExpr]
   SymArray _ mInt symExprs -> SymArray (Just symType) mInt (map (cast symType) symExprs)
+  --
+  SymGlobalVar t s m ->
+    let t2 = pick_known_symType (symType,t)
+    in maybe (SymGlobalVar t2 s Nothing) (cast symType) m
   a -> a
 --a -> error $ printf "TODO ~~> cast (%s) (%s)" (show symType) (show symExpr)
+
+isUnknownGlobalVarSymType :: SymType -> Bool
+isUnknownGlobalVarSymType = \case
+  UnknownGlobalVarSymType -> True
+  _ -> False
+
+isUnknownNumSymType :: SymType -> Bool
+isUnknownNumSymType = \case
+  UnknownNumSymType -> True
+  _ -> False
 
 toDouble :: Float -> Double
 toDouble = read . show

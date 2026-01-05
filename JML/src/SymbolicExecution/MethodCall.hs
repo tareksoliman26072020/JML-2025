@@ -408,7 +408,7 @@ visitSymExpr0 = \case
   ------------------------------
   ------------------------------
   ------------------------------
-  val@(SymUnknown (_,varName,symExpr) _) -> do
+  val@(SymUnknown (_,varName,Just symExpr) _) -> do
     tell [Log.SymExpr_2_Handle (show val) "visitSymExpr0 -> SymUnknown"]
     mExpr <- findVarName varName . env <$> get
     let exprToVisit = case mExpr of

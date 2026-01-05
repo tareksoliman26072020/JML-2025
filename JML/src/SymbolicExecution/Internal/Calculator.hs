@@ -102,12 +102,14 @@ numericCalculator2 op = \case
   --
   (a@(SymGlobalVar t1 varName1 m1), b@(SymGlobalVar t2 varName2 m2))
     | op == Add && varName1 == varName2 && (isNothing $ m1 <|> m2)
-        -> SBin (cast t1 $ SymNum 2) Mul a
+        -> SBin (cast (pick_known_symType (t1,t2)) $ SymNum 2) Mul a
     | op == Add && varName1 == varName2 && (isJust $ m1 <|> m2)
-        -> SBin (cast t1 $ SymNum 2) Mul (fromJust $ m1 <|> m2)
-    | op == Sub && varName1 == varName2 -> cast t1 (SymNum 0)
-  (a@(SymGlobalVar _ _ m1), b@(SymGlobalVar _ _ m2))
-    -> SBin (maybe a id m1) op (maybe b id m2)
+        -> SBin (cast (pick_known_symType (t1,t2)) $ SymNum 2) Mul (fromJust $ m1 <|> m2)
+    | op == Sub && varName1 == varName2
+        -> cast (pick_known_symType (t1,t2)) (SymNum 0)
+  (a@(SymGlobalVar t1 _ m1), b@(SymGlobalVar t2 _ m2))
+    -> let t = pick_known_symType (t1,t2)
+       in SBin (maybe (cast t a) id m1) op (maybe (cast t b) id m2)
 ----------
   (SymNum num1, SymInt num2) ->
     SymInt (getIntegralArithBinOp op (round num1) num2)
@@ -336,7 +338,6 @@ numericCalculator2 op = \case
            -- (X - e12) - (e21 * X) == 
            | op `elem` [Add,Sub] && op2 == Mul && op1 `elem` [Add,Sub]
              && all isVar [e11,e22] && getVarName e11 == getVarName e22 ->
-             --error $ printf "MEOW:\n1) %s\n2) %s\n3) %s" (show a) (show op) (show b)
                numericCalculator $ SBin (numericCalculator $ SBin (newSymNum op1) Mul e12)
                                         Add
                                         (numericCalculator $ SBin e11
@@ -588,11 +589,13 @@ numericCalculator2 op = \case
     error $ "numericCalculator: won't happen because of the function `simplify`"
 ----------
   (a, b@(SymGlobalVar t _ Nothing)) ->
-    SBin (cast t a) op b
+    let t2 = pick_known_symType (toSymType2 a,t)
+    in SBin (cast t2 a) op b
   (a, SymGlobalVar t _ (Just symExpr)) ->
     error $ "numericCalculator: won't happen because of the function `simplify`"
   (a@(SymGlobalVar t _ Nothing), b) ->
-    SBin a op (cast t b)
+    let t2 = pick_known_symType (t, toSymType2 b)
+    in SBin a op (cast t2 b)
   (SymGlobalVar t _ (Just symExpr), b) ->
     error $ "numericCalculator: won't happen because of the function `simplify`"
 ----------
@@ -639,8 +642,6 @@ booleanCalculator2 op = \case
     SBool $ getArithBoolOp op num1 num2
   (SymFloat num1, SymFloat num2) ->
     SBool $ getArithBoolOp op num1 num2
-  (a, b@(SymNum _)) ->
-    SBin a op (cast (toSymType2 a) b)
   ----------
   (a@(SymFormalParam _ _ m1), b@(SymFormalParam _ _ m2))
     -> SBin (maybe a id m1) op (maybe b id m2)
@@ -654,12 +655,20 @@ booleanCalculator2 op = \case
   (a, b@(SObjAcc li))
     -> SBin (cast (toSymType2 b) a) op b
   ----------
-  (a@(SymGlobalVar _ _ m1),b@(SymGlobalVar _ _ m2))
-    -> SBin (maybe a id m1) op (maybe b id m2)
+  (a@(SymGlobalVar t1 _ m1),b@(SymGlobalVar t2 _ m2))
+    -> let t = pick_known_symType (t1,t2)
+       in SBin (maybe (cast t a) id m1) op (maybe (cast t b) id m2)
   (a@(SymGlobalVar t _ m), b)
-    -> SBin (maybe a id m) op (cast t b)
+    -> let t2 = pick_known_symType (t,toSymType2 b)
+       in SBin (maybe (cast t2 a) id m) op (cast t2 b)
   (a, b@(SymGlobalVar t _ m))
-    -> SBin (cast t a) op (maybe b id m)
+    -> let t2 = pick_known_symType (toSymType2 a,t)
+       in SBin (cast t2 a) op (maybe (cast t2 b) id m)
+  ----------
+  (a@(SymNum _),b) ->
+    SBin (cast (toSymType2 b) a) op b
+  (a,b@(SymNum _)) ->
+    SBin a op (cast (toSymType2 a) b)
   ----------
   (p1,p2) -> error $ printf "booleanCalculator2: (%s, %s, %s)" (show p1) (show op) (show p2)
 

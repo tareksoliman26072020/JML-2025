@@ -2184,6 +2184,87 @@ public int ifFun3(int n) {
 /*
 SymState {
   env = fromList [
+    (MethodName "ifFun4",SMethodType Int),
+    (GlobalVars,SGlobalVars ["y"]),
+    (FormalParms,SFormalParms ["n"]),
+    (VarAssignments,SVarAssignments [("y",Node_Coor {varDeclAt = 2, varFrame = 1})]),
+    (BranchRange (BR {branchStart = 1, branchEnd = 3}),
+     SIte (SBin (SymGlobalVar UnknownNumSymType "y" Nothing) Ge (SymNum 0.0))
+     (SymState {env = fromList [(MethodName "ifFun4",SMethodType Int),(GlobalVars,SGlobalVars ["y"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("y",Node_Coor {varDeclAt = 2, varFrame = 1})]),(VarName "n",SymFormalParam Int "n" Nothing),(VarName "y",SBin (SymGlobalVar Int "y" Nothing) Add (SymFormalParam Int "n" Nothing))], pc = []})
+     Nothing),
+    (VarName "n",SymFormalParam Int "n" Nothing),
+    (VarName "y",SymUnknown (Int,"y",Nothing) (IfBranchingReason (BR {branchStart = 1, branchEnd = 3}))),
+    (Return,SymUnknown (Int,"y",Nothing) (IfBranchingReason (BR {branchStart = 1, branchEnd = 3})))
+  ], pc = []
+}
+*/
+public int ifFun4(int n) {
+  if(y>=0) {
+    y += n;
+  }
+  return y;
+}
+
+/////////////////////
+
+/*
+SymState {
+  env = fromList [
+    (MethodName "ifFun5",SMethodType Int),
+    (GlobalVars,SGlobalVars ["y"]),
+    (FormalParms,SFormalParms ["n"]),
+    (VarAssignments,SVarAssignments [("y",Node_Coor {varDeclAt = 1, varFrame = 0}),("y",Node_Coor {varDeclAt = 3, varFrame = 2})]),
+    (BranchRange (BR {branchStart = 2, branchEnd = 4}),
+     SIte (SBin (SymFormalParam Int "n" Nothing) Ge (SymInt 0))
+     (SymState {env = fromList [(MethodName "ifFun5",SMethodType Int),(GlobalVars,SGlobalVars ["y"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("y",Node_Coor {varDeclAt = 1, varFrame = 0}),("y",Node_Coor {varDeclAt = 3, varFrame = 2})]),(VarName "n",SymFormalParam Int "n" Nothing),(VarName "y",SBin (SymInt 2) Mul (SymFormalParam Int "n" Nothing))], pc = []})
+     Nothing),
+    (VarName "n",SymFormalParam Int "n" Nothing),
+    (VarName "y",SymUnknown (Int,"y",Just (SymFormalParam Int "n" Nothing)) (IfBranchingReason (BR {branchStart = 2, branchEnd = 4}))),
+    (Return,SymUnknown (Int,"y",Just (SymFormalParam Int "n" Nothing)) (IfBranchingReason (BR {branchStart = 2, branchEnd = 4})))
+  ], pc = []
+}
+*/
+public int ifFun5(int n) {
+  y = n;
+  if(y>=0) {
+    y += n;
+  }
+  return y;
+}
+
+/////////////////////
+
+/*
+SymState {
+  env = fromList [
+    (MethodName "ifFun6",SMethodType String),
+    (GlobalVars,SGlobalVars ["y","s","c"]),
+    (FormalParms,SFormalParms ["n"]),
+    (VarAssignments,SVarAssignments [("m",Node_Coor {varDeclAt = 2, varFrame = 1}),("s",Node_Coor {varDeclAt = 4, varFrame = 0})]),
+    (BranchRange (BR {branchStart = 1, branchEnd = 3}),
+     SIte (SBin (SymGlobalVar UnknownNumSymType "y" Nothing) Ge (SymNum 0.0))
+     (SymState {env = fromList [(MethodName "ifFun6",SMethodType String),(GlobalVars,SGlobalVars ["y","m"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("m",Node_Coor {varDeclAt = 2, varFrame = 1})]),(VarName "m",SBin (SymGlobalVar Int "m" Nothing) Add (SymFormalParam Int "n" Nothing)),(VarName "n",SymFormalParam Int "n" Nothing)], pc = []}) 
+     Nothing),
+    (VarName "m",SymUnknown (Int,"m",Nothing) (IfBranchingReason (BR {branchStart = 1, branchEnd = 3}))),
+    (VarName "n",SymFormalParam Int "n" Nothing),
+    (VarName "s",SymString "something"),
+    (Return,SymGlobalVar String "c" Nothing)
+  ], pc = []
+}
+*/
+public String ifFun6(int n) {
+  if(y>=0) {
+    m += n;
+  }
+  s = "something";
+  return c;
+}
+
+/////////////////////
+
+/*
+SymState {
+  env = fromList [
     (MethodName "manyArrs3",SMethodType (Array Int)),
     (VarBindings,SVarBindings (fromList [("numbers",VarBinding {varDeclAt = 1, varFrame = 0})])),
     (VarName "numbers",SymArray (Just (Array Int)) (Just 2) [SymInt 99,SymInt 5]),

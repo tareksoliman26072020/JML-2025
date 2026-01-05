@@ -68,7 +68,7 @@ instance CFGVisitor Method_SymExec where
         --addVarBinding (CFG.id n) (CFG.parent n) stmt
         -- Var Bindings
         case getNewVarBinding (CFG.id n) (CFG.parent n) stmt of
-          Just new -> do
+          Just new -> do          
             old <- getVarBindings <$> get
             tell [Log.AddVarBinding "visitNode -> Node -> Statement" (show new)]
             modify $ \state ->
@@ -91,6 +91,7 @@ instance CFGVisitor Method_SymExec where
                 pc = pc s
               }
             return ER_Void
+            -- Just ("y",Node_Coor {varDeclAt = 2, varFrame = 1})
           _ -> return ER_Void
         tell [Log.Return "visitNode -> Node -> Statement" (show toReturn)] $> toReturn
       ----------------------------------------
@@ -191,6 +192,7 @@ instance CFGVisitor Method_SymExec where
                 let (ifLogs,ifSymState) = runCFG cfgs cfg (Just $ branches_paths !! 0) (Just state)
                 flip mapM_ ifLogs $ \log ->
                   tell [Log.Nested "if statement" log]
+                -- symExpr is the SIte with the two conditional states
                 symExpr <- case branches_paths of
                   [_] -> return $ SIte expr2 ifSymState Nothing
                   [_,pElse] -> do
@@ -198,8 +200,14 @@ instance CFGVisitor Method_SymExec where
                     flip mapM_ elseLogs $ \log ->
                       tell [Log.Nested "else statement" log]
                     return $ SIte expr2 ifSymState (Just elseSymState)
+                -- condVarAssignments gives me
+                -- 1) the VarAssignments in the if/else branch,
+                --    which were originally defined outside of them
+                -- 2) the VarAssignments of global variables
                 let condVarAssignments s = flip filter (getVarAssignments s) $
-                      \(name,_) -> maybe False (const True) $ lookup name mainVarAssignments
+                      \(name,_) -> maybe
+                          (isGlobalVariable2 name (env s))
+                          (const True) $ lookup name mainVarAssignments
                     newMainVarAssignments = case symExpr of
                       SIte _ ifSymState mElseSymState -> nub $
                         condVarAssignments ifSymState ++
@@ -208,6 +216,8 @@ instance CFGVisitor Method_SymExec where
                 modify $ \symState ->
                   let condBranchRange = BR (CFG.id n)
                                            (CFG.getNodeId $ CFG.getEndIfNode cfg n)
+                      -- `s1` has the new conditional branchs (addNode)
+                      --  and has the new VarAssignments from the conditional branches
                       s1 = SymState {
                         env =
                           let addNode = Map.insert
@@ -218,21 +228,44 @@ instance CFGVisitor Method_SymExec where
                           in addVarAssignments,
                         pc = pc symState
                       }
-                      varAssignments = getVarAssignments s1
                       -- if there's a var in `vars` that was assigned between `condBranchRange`
                       -- then make it unknown
-                      unknownVars = flip concatMap varAssignments $ \case
+                      -- unknownVars = ["y"]
+                      unknownVars = flip concatMap (getVarAssignments s1) $ \case
                         tu@(vn,Node_Coor coor frameCoor)
                           | frameCoor == branchStart condBranchRange -> [vn]
                           | otherwise -> []
                       -- make vars unknown
-                      in SymState {
+                      {-in SymState {
+                        env = foldl (\s unknownVar -> ) (env s1) unknownVars
+                      }-}
+                      -- if there exists a VarName that was mentioned in `unknownVars`
+                      -- then mark it as unknown.
+                      s2 = SymState {
                         env = flip Map.mapWithKey (env s1) $ \k v -> case k of
                           VarName vn
-                            | vn `elem` unknownVars -> SymUnknown (toSymType2 v,vn,v) (IfBranchingReason condBranchRange)
+                            | vn `elem` unknownVars -> SymUnknown (toSymType2 v,vn,Just v) (IfBranchingReason condBranchRange)
                           _ -> v,
                         pc = pc s1
                       }
+                      -- if there is a SVarAssignment that has no `VarName`
+                      -- then it is a GlobalVar that is assigned in a conditional branch
+                      -- then add this GlobalVar to the State
+                      varNames = getVarNames s2
+                      ma3 = foldl (\s (varAssName,coor) ->
+                        let Just (br,_) = findBranch_at_nodeNr (varFrame coor) s
+                            Just globalVar = findVarName_via_coor (varAssName,coor) s
+                        in case Map.lookup (VarName varAssName) s of
+                          Nothing -> Map.insert
+                                       (VarName varAssName)
+                                       (SymUnknown (toSymType2 globalVar,varAssName,Nothing)
+                                                   (IfBranchingReason br))
+                                       s
+                          Just _ -> s) (env s2) (getVarAssignments s2)
+                  in SymState {
+                    env = ma3,
+                    pc = pc s2
+                  }
                 return (ER_Expr symExpr)
         
         tell [Log.Return "visitNode -> Node -> BooleanExpression" (show toReturn)] $> toReturn
@@ -337,7 +370,8 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
   tell [Log.ReturnStatement (show expr) "visitStmt -> ReturnStmt"]
   er <- visitExpr expr
   varNames <- getVarNames <$> get
-  let symExpr = case er of
+  ER_FunHandle t _ <- getFunHandle
+  let symExpr = cast t $ case er of
         ER_Expr symExpr_ -> symExpr_ 
         ER_SymStateMapEntry _ val -> val
         ER_FunCall funCallSymState -> case getReturnSymExpr funCallSymState of
@@ -515,10 +549,16 @@ visitExpr expr@AST.BinOpExpr{} = do
                | otherwise -> numericCalculator
           False -> booleanCalculator
         toReturn = ER_Expr $ whichFun (SBin (simplify op1) (toSymBinOp $ AST.binOp expr) (simplify op2))
-    in tell [Log.Return (printf "visitExpr -> BinOpExpr -> %s"
-                                (if isNumericOp then "numericCalculator"
-                                 else "booleanCalculator")) (show toReturn)
-            ] $> toReturn
+    in do {-case op1 of
+            SymGlobalVar _ "y" _ ->
+              throwError $ printf "MEOW::\n1) %s\n2) %s\n3) %s"
+                (show op1) (show op2) (show toReturn)
+            _ -> return ER_Void
+           -}
+          tell [Log.Return (printf "visitExpr -> BinOpExpr -> %s"
+                                   (if isNumericOp then "numericCalculator"
+                                    else "booleanCalculator")) (show toReturn)
+               ] $> toReturn
   getReturnSymExpr :: SymState -> SymExpr
   getReturnSymExpr = maybe (error "visitExpr ~~> BinOpExpr ~~> getReturnSymExpr ~~> no return value found") id . (Map.!? Return) . env
 -- UnOpExpr {unOp :: UnOp, expr :: Expression}
@@ -536,6 +576,7 @@ visitExpr expr@AST.AssignExpr{} = do
          --val = SymNull String
          (VarName arrName,val)
        ER_Expr ex -> error $ printf "visitExpr ==> AssignExpr: (%s,%s,%s)" (show expr) (show ex) (show $ AST.assEleft expr)
+
   two <- visitExpr (AST.assEright expr)
   let e2 = case two of
           ER_Expr e2_ -> cast (toSymType2 one_val) e2_
@@ -584,8 +625,9 @@ visitExpr expr@AST.VarExpr{} = do
               tell [Log.Return "visitExpr -> VarExpr -> Updating" (show toReturn)] $> toReturn
             Nothing -> do
               tell [Log.GlobalVar varName_ "visitExpr -> VarExpr"]
-              ER_FunHandle t _ <- getFunHandle
-              let toReturn = ER_SymStateMapEntry (VarName varName_) (SymGlobalVar t varName_ Nothing)
+              let toReturn = ER_SymStateMapEntry
+                    (VarName varName_)
+                    (SymGlobalVar UnknownGlobalVarSymType varName_ Nothing)
               modify $ \symState -> SymState {
                 env = recordGlobalVar varName_ (env symState),
                 pc = pc symState
