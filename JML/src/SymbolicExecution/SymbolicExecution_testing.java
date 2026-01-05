@@ -1395,6 +1395,66 @@ public static int boo28_6_5(int i){
 ////////////////////////////////////////
 
 /*
+SymState {
+  env = fromList [
+    (MethodName "boo28_6_6",SMethodType Int),
+    (FormalParms,SFormalParms ["i"]),
+    (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = 0})])),
+    (VarAssignments,SVarAssignments [("x",Node_Coor {varDeclAt = 1, varFrame = 0}),("x",Node_Coor {varDeclAt = 6, varFrame = 2})]),
+    (BranchRange (BR {branchStart = 2, branchEnd = 7}),SIte (SBin (SymFormalParam Int "i" Nothing) Ge (SymInt 0)) (SymState {env = fromList [(MethodName "boo28_6_6",SMethodType Int),(FormalParms,SFormalParms ["i"]),(VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = 0}),("y",Node_Coor {varDeclAt = 3, varFrame = 2})])),(VarAssignments,SVarAssignments [("x",Node_Coor {varDeclAt = 1, varFrame = 0}),("y",Node_Coor {varDeclAt = 3, varFrame = 2}),("y",Node_Coor {varDeclAt = 4, varFrame = 2})]),(VarName "i",SymFormalParam Int "i" Nothing),(VarName "x",SymInt 1),(VarName "y",SymInt 1),(Return,SBin (SymFormalParam Int "i" Nothing) Add (SymInt 1))], pc = []}) (Just (SymState {env = fromList [(MethodName "boo28_6_6",SMethodType Int),(FormalParms,SFormalParms ["i"]),(VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = 0})])),(VarAssignments,SVarAssignments [("x",Node_Coor {varDeclAt = 1, varFrame = 0}),("x",Node_Coor {varDeclAt = 6, varFrame = 2})]),(VarName "i",SymFormalParam Int "i" Nothing),(VarName "x",SymInt 2)], pc = []}))),
+    (VarName "i",SymFormalParam Int "i" Nothing),
+    (VarName "x",SymUnknown ("x",Int)
+    (IfBranchingReason (BR {branchStart = 2, branchEnd = 7}))),
+    (Return,SymUnknown ("x",Int) (IfBranchingReason (BR {branchStart = 2, branchEnd = 7})))
+  ], pc = []
+}
+*/
+public static int boo28_6_6(int i){
+  int x = 1;
+  if(i >= 0){
+    int y = 0;
+    y++;
+    return i+y;
+  }
+  else {
+    x++;
+  }
+  return x;
+}
+
+////////////////////////////////////////
+
+/*
+SymState {
+  env = fromList [
+    (MethodName "boo28_6_7",SMethodType Int),
+    (FormalParms,SFormalParms ["i"]),
+    (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = 0})])),
+    (VarAssignments,SVarAssignments [("x",Node_Coor {varDeclAt = 1, varFrame = 0}),("x",Node_Coor {varDeclAt = 6, varFrame = 2}),("x",Node_Coor {varDeclAt = 8, varFrame = 0})]),
+    (BranchRange (BR {branchStart = 2, branchEnd = 7}),SIte (SBin (SymFormalParam Int "i" Nothing) Ge (SymInt 0)) (SymState {env = fromList [(MethodName "boo28_6_7",SMethodType Int),(FormalParms,SFormalParms ["i"]),(VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = 0}),("y",Node_Coor {varDeclAt = 3, varFrame = 2})])),(VarAssignments,SVarAssignments [("x",Node_Coor {varDeclAt = 1, varFrame = 0}),("y",Node_Coor {varDeclAt = 3, varFrame = 2}),("y",Node_Coor {varDeclAt = 4, varFrame = 2})]),(VarName "i",SymFormalParam Int "i" Nothing),(VarName "x",SymInt 1),(VarName "y",SymInt 1),(Return,SBin (SymFormalParam Int "i" Nothing) Add (SymInt 1))], pc = []}) (Just (SymState {env = fromList [(MethodName "boo28_6_7",SMethodType Int),(FormalParms,SFormalParms ["i"]),(VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = 0})])),(VarAssignments,SVarAssignments [("x",Node_Coor {varDeclAt = 1, varFrame = 0}),("x",Node_Coor {varDeclAt = 6, varFrame = 2})]),(VarName "i",SymFormalParam Int "i" Nothing),(VarName "x",SymInt 2)], pc = []}))),
+    (VarName "i",SymFormalParam Int "i" Nothing),
+    (VarName "x",SymInt 5),
+    (Return,SymInt 5)
+  ], pc = []
+}
+*/
+public static int boo28_6_7(int i){
+  int x = 1;
+  if(i >= 0){
+    int y = 0;
+    y++;
+    return i+y;
+  }
+  else {
+    x++;
+  }
+  x = 5;
+  return x;
+}
+
+/////////////////////
+
+/*
 CFG {
   nodes = [
     Entry,
@@ -1964,6 +2024,159 @@ public void manyArrs2() {
   println(numbers1);
   println(numbers2);
   println(numbers3);
+}
+
+/////////////////////
+
+/*
+SymState {
+  env = fromList [
+    (MethodName "ifFun",SMethodType Int),
+    (FormalParms,SFormalParms ["n"]),
+    (VarBindings,SVarBindings (fromList [("m",Node_Coor {varDeclAt = 2, varFrame = 0}),("res",Node_Coor {varDeclAt = 1, varFrame = 0}),("x",Node_Coor {varDeclAt = 3, varFrame = 0})])),
+    (VarAssignments,SVarAssignments [("res",Node_Coor {varDeclAt = 1, varFrame = 0}),("m",Node_Coor {varDeclAt = 2, varFrame = 0}),("x",Node_Coor {varDeclAt = 3, varFrame = 0}),("res",Node_Coor {varDeclAt = 5, varFrame = 4}),("m",Node_Coor {varDeclAt = 6, varFrame = 4})]),
+    (BranchRange (BR {branchStart = 4, branchEnd = 7}),SIte (SBin (SymFormalParam Int "n" Nothing) Ge (SymInt 0)) (SymState {env = fromList [(MethodName "ifFun",SMethodType Int),(FormalParms,SFormalParms ["n"]),(VarBindings,SVarBindings (fromList [("m",Node_Coor {varDeclAt = 2, varFrame = 0}),("res",Node_Coor {varDeclAt = 1, varFrame = 0}),("x",Node_Coor {varDeclAt = 3, varFrame = 0})])),(VarAssignments,SVarAssignments [("res",Node_Coor {varDeclAt = 1, varFrame = 0}),("m",Node_Coor {varDeclAt = 2, varFrame = 0}),("x",Node_Coor {varDeclAt = 3, varFrame = 0}),("res",Node_Coor {varDeclAt = 5, varFrame = 4}),("m",Node_Coor {varDeclAt = 6, varFrame = 4})]),(VarName "m",SBin (SymInt 2) Mul (SymFormalParam Int "n" Nothing)),(VarName "n",SymFormalParam Int "n" Nothing),(VarName "res",SymFormalParam Int "n" Nothing),(VarName "x",SymInt 1)], pc = []}) Nothing),
+    (VarName "m",SymUnknown ("m",Int) (IfBranchingReason (BR {branchStart = 4, branchEnd = 7}))),
+    (VarName "n",SymFormalParam Int "n" Nothing),
+    (VarName "res",SymUnknown ("res",Int) (IfBranchingReason (BR {branchStart = 4, branchEnd = 7}))),
+    (VarName "x",SymInt 1),
+    (Return,SBin (SymUnknown ("res",Int) (IfBranchingReason (BR {branchStart = 4, branchEnd = 7}))) Add (SymInt 1))
+  ], pc = []
+}
+*/
+public int ifFun(int n) {
+  int res = 0;
+  int m = 0;
+  int x = 1;
+  if(n>=0) {
+    res += n;
+    m += 2*n;
+  }
+  return res+1;
+}
+
+/////////////////////
+
+/*
+SymState {
+  env = fromList [
+    (MethodName "ifFunCall",SMethodType Int),
+    (Return,SymInt 4)
+  ], pc = []
+}
+*/
+public int ifFunCall() {
+  return 4+ifFun(3);
+}
+
+
+/////////////////////
+
+/*
+SymState {
+  env = fromList [
+    (MethodName "ifFun2",SMethodType Int),
+    (GlobalVars,SGlobalVars ["y"]),
+    (FormalParms,SFormalParms ["n"]),
+    (VarBindings,SVarBindings (fromList [("m",Node_Coor {varDeclAt = 2, varFrame = 0}),("res",Node_Coor {varDeclAt = 1, varFrame = 0}),("x",Node_Coor {varDeclAt = 3, varFrame = 0})])),
+    (VarAssignments,SVarAssignments [
+      ("res",Node_Coor {varDeclAt = 1, varFrame = 0}),
+      ("m",Node_Coor {varDeclAt = 2, varFrame = 0}),
+      ("x",Node_Coor {varDeclAt = 3, varFrame = 0}),
+      ("res",Node_Coor {varDeclAt = 5, varFrame = 4}),
+      ("m",Node_Coor {varDeclAt = 6, varFrame = 4})
+    ]),
+    (BranchRange (BR {branchStart = 4, branchEnd = 7}),
+     SIte (SBin (SymFormalParam Int "n" Nothing) Ge (SymInt 0))
+          (SymState {env = fromList [
+             (MethodName "ifFun2",SMethodType Int),
+             (GlobalVars,SGlobalVars ["y"]),
+             (FormalParms,SFormalParms ["n"]),
+             (VarBindings,SVarBindings (fromList [("m",Node_Coor {varDeclAt = 2, varFrame = 0}),("res",Node_Coor {varDeclAt = 1, varFrame = 0}),("x",Node_Coor {varDeclAt = 3, varFrame = 0})])),
+             (VarAssignments,SVarAssignments [("res",Node_Coor {varDeclAt = 1, varFrame = 0}),("m",Node_Coor {varDeclAt = 2, varFrame = 0}),("x",Node_Coor {varDeclAt = 3, varFrame = 0}),("res",Node_Coor {varDeclAt = 5, varFrame = 4}),("m",Node_Coor {varDeclAt = 6, varFrame = 4})]),
+             (VarName "m",SBin (SymInt 2) Mul (SymFormalParam Int "n" Nothing)),
+             (VarName "n",SymFormalParam Int "n" Nothing),
+             (VarName "res",SBin (SymGlobalVar Int "y" Nothing) Add (SymFormalParam Int "n" Nothing)),
+             (VarName "x",SymInt 1)
+           ], pc = []
+           }) 
+          Nothing),
+    (VarName "m",SymUnknown (Int,"m",SymInt 0) (IfBranchingReason (BR {branchStart = 4, branchEnd = 7}))),
+    (VarName "n",SymFormalParam Int "n" Nothing),
+    (VarName "res",SymUnknown (Int,"res",SymGlobalVar Int "y" Nothing) (IfBranchingReason (BR {branchStart = 4, branchEnd = 7}))),
+    (VarName "x",SymInt 1),
+    (Return,SBin (SymUnknown (Int,"res",SymGlobalVar Int "y" Nothing) (IfBranchingReason (BR {branchStart = 4, branchEnd = 7}))) Add (SymInt 1))
+  ], pc = []
+}
+*/
+public int ifFun2(int n) {
+  int res = y;
+  int m = 0;
+  int x = 1;
+  if(n>=0) {
+    res += n;
+    m += 2*n;
+  }
+  return res+1;
+}
+
+/////////////////////
+
+/*
+SymState {
+  env = fromList [
+    (MethodName "ifFun2Call",SMethodType Int),
+    (Return,SBin (SymGlobalVar Int "y" Nothing) Add (SymInt 11))
+  ], pc = []
+}
+*/
+public int ifFun2Call() {
+  return ifFun2(10);
+}
+
+/////////////////////
+
+/*
+SymState {env = fromList [
+  (MethodName "ifFun2Call2",SMethodType Int),
+  (Return,SBin (SymGlobalVar Int "y" Nothing) Add (SymInt 1))], pc = []
+}
+*/
+public int ifFun2Call2() {
+  return ifFun2(-10);
+}
+
+/////////////////////
+
+/*
+SymState {
+  env = fromList [
+    (MethodName "ifFun3",SMethodType Int),
+    (GlobalVars,SGlobalVars ["y"]),
+    (FormalParms,SFormalParms ["n"]),
+    (VarBindings,SVarBindings (fromList [("m",Node_Coor {varDeclAt = 2, varFrame = 0}),("res",Node_Coor {varDeclAt = 1, varFrame = 0}),("x",Node_Coor {varDeclAt = 3, varFrame = 0})])),
+    (VarAssignments,SVarAssignments [("res",Node_Coor {varDeclAt = 1, varFrame = 0}),("m",Node_Coor {varDeclAt = 2, varFrame = 0}),("x",Node_Coor {varDeclAt = 3, varFrame = 0}),("res",Node_Coor {varDeclAt = 5, varFrame = 4}),("m",Node_Coor {varDeclAt = 6, varFrame = 4})]),
+    (BranchRange (BR {branchStart = 4, branchEnd = 7}),
+     SIte (SBin (SymGlobalVar Int "y" Nothing) Ge (SymInt 0))
+          (SymState {env = fromList [(MethodName "ifFun3",SMethodType Int),(GlobalVars,SGlobalVars ["y"]),(FormalParms,SFormalParms ["n"]),(VarBindings,SVarBindings (fromList [("m",Node_Coor {varDeclAt = 2, varFrame = 0}),("res",Node_Coor {varDeclAt = 1, varFrame = 0}),("x",Node_Coor {varDeclAt = 3, varFrame = 0})])),(VarAssignments,SVarAssignments [("res",Node_Coor {varDeclAt = 1, varFrame = 0}),("m",Node_Coor {varDeclAt = 2, varFrame = 0}),("x",Node_Coor {varDeclAt = 3, varFrame = 0}),("res",Node_Coor {varDeclAt = 5, varFrame = 4}),("m",Node_Coor {varDeclAt = 6, varFrame = 4})]),(VarName "m",SBin (SymInt 2) Mul (SymFormalParam Int "n" Nothing)),(VarName "n",SymFormalParam Int "n" Nothing),(VarName "res",SymFormalParam Int "n" Nothing),(VarName "x",SymInt 1)], pc = []})
+          Nothing),
+    (VarName "m",SymUnknown (Int,"m",SymInt 0) (IfBranchingReason (BR {branchStart = 4, branchEnd = 7}))),
+    (VarName "n",SymFormalParam Int "n" Nothing),
+    (VarName "res",SymUnknown (Int,"res",SymInt 0) (IfBranchingReason (BR {branchStart = 4, branchEnd = 7}))),
+    (VarName "x",SymInt 1),
+    (Return,SBin (SymUnknown (Int,"res",SymInt 0) (IfBranchingReason (BR {branchStart = 4, branchEnd = 7}))) Add (SymInt 1))
+  ], pc = []
+}
+*/
+public int ifFun3(int n) {
+  int res = 0;
+  int m = 0;
+  int x = 1;
+  if(y>=0) {
+    res += n;
+    m += 2*n;
+  }
+  return res+1;
 }
 
 /////////////////////

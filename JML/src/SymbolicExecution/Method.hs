@@ -206,16 +206,33 @@ instance CFGVisitor Method_SymExec where
                         maybe [] condVarAssignments mElseSymState
                 tell [Log.ModifyState "visitNode -> Node -> BooleanExpression if -> recording symbolic branching" (printf "if node num: %d" (CFG.id n),show symExpr)]
                 modify $ \symState ->
-                  SymState {
-                    env =
-                      let addNode = Map.insert
-                            (BranchRange $ BR (CFG.id n) (CFG.getNodeId $ CFG.getEndIfNode cfg n)) {-(NodeNr $ CFG.id n)-}
-                            symExpr (env symState)
-                          addVarAssignments = Map.insert
-                            VarAssignments (SVarAssignments newMainVarAssignments) addNode
-                      in addVarAssignments,
-                    pc = pc symState
-                  }
+                  let condBranchRange = BR (CFG.id n)
+                                           (CFG.getNodeId $ CFG.getEndIfNode cfg n)
+                      s1 = SymState {
+                        env =
+                          let addNode = Map.insert
+                                (BranchRange condBranchRange)
+                                symExpr (env symState)
+                              addVarAssignments = Map.insert
+                                VarAssignments (SVarAssignments newMainVarAssignments) addNode
+                          in addVarAssignments,
+                        pc = pc symState
+                      }
+                      varAssignments = getVarAssignments s1
+                      -- if there's a var in `vars` that was assigned between `condBranchRange`
+                      -- then make it unknown
+                      unknownVars = flip concatMap varAssignments $ \case
+                        tu@(vn,Node_Coor coor frameCoor)
+                          | frameCoor == branchStart condBranchRange -> [vn]
+                          | otherwise -> []
+                      -- make vars unknown
+                      in SymState {
+                        env = flip Map.mapWithKey (env s1) $ \k v -> case k of
+                          VarName vn
+                            | vn `elem` unknownVars -> SymUnknown (toSymType2 v,vn,v) (IfBranchingReason condBranchRange)
+                          _ -> v,
+                        pc = pc s1
+                      }
                 return (ER_Expr symExpr)
         
         tell [Log.Return "visitNode -> Node -> BooleanExpression" (show toReturn)] $> toReturn
@@ -381,34 +398,6 @@ visitStmt stmt@(AST.FunCallStmt expr) = case expr of
   _ -> throwError $ "visitStmt ==> FunCallStmt ==> won't happen 2: " ++ show expr
 visitStmt stmt = throwError $ "TODO -> visitStmt -> " ++ show stmt
 
-{-
-data Expression
-  = NumberLiteral Float
-  | BoolLiteral Bool
-  | CharLiteral Char
-  | StringLiteral String
-  | Null
-  | ArrayCallExpr {arrName :: Expression, index :: Maybe Expression}
-  | ArrayInstantiationExpr {arrType :: Maybe (Type Types), arrSize :: Maybe Expression, arrElems :: [Expression]}
-  | UnOpExpr {unOp :: UnOp, expr :: Expression}
-  | CondExpr {eiff :: Expression, ethenn :: Expression, eelsee :: Expression}
-  | ExcpExpr {excpName :: Exception, excpmsg :: Maybe String}
-  | ReturnExpr {returnE :: Maybe Expression}
-  deriving (Eq, Show)
--}
-{-
-data Types
-  = Int
-  | Void
-  | Char
-  | String
-  | Boolean
-  | Double
-  | Short
-  | Float
-  | Long
-  | Byte
--}
 visitExpr :: AST.Expression -> Method_R
 visitExpr expr@(AST.NumberLiteral float) = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> NumberLiteral"]

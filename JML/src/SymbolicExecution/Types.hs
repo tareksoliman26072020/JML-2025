@@ -242,10 +242,12 @@ data SymExpr =
   | SActions [String]
   | SArrayIndexAccess String SymExpr
   | SymArray (Maybe SymType) (Maybe Int) [SymExpr]
-  | SymVar String
+  | SymUnknown (SymType,String,SymExpr) SymReason
   | SFormalParms [String]
   | SGlobalVars [String]
   deriving (Eq,Show)
+
+data SymReason = IfBranchingReason BranchRange deriving (Eq,Show)
 
 data Node_Coor = Node_Coor
   { varDeclAt :: Int

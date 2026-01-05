@@ -120,6 +120,7 @@ isVar = \case
   SymFormalParam _ _ (Just expr) -> isVar expr
   SymGlobalVar _ _ Nothing -> True
   SymGlobalVar _ _ (Just expr) -> isVar expr
+  SymUnknown _ _ -> True
   expr -> error $ "TODO: isVar: " ++ show expr
 
 isArray :: SymExpr -> Bool
@@ -162,6 +163,7 @@ toSymType2 (SymGlobalVar t _ _) = t
 toSymType2 (SObjAcc li) = case li of
   [_,"length"] -> Int
   _ -> error $ "TODO1: toSymType2 ==> " ++ show (SObjAcc li)
+toSymType2 (SymUnknown (t,_,_) _) = t
 toSymType2 symExpr = error $ "TODO2: toSymType2 ==> " ++ show symExpr
 
 -- will be used in `calculate`

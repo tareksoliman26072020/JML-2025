@@ -599,6 +599,11 @@ numericCalculator2 op = \case
   (a@(SException _ _),b) -> a
   (a,b@(SException _ _)) -> b
 ----------
+  (a@(SymUnknown (t,_,_) _),b) ->
+    SBin a op (cast t b)
+  (a,b@(SymUnknown (t,_,_) _)) ->
+    SBin (cast t a) op b
+----------
   (a,b) -> error $ printf "numericCalculator: (%s ,, %s ,, %s)" (show a) (show op) (show b)
 
 isNegative :: SymExpr -> Bool
@@ -643,8 +648,19 @@ booleanCalculator2 op = \case
     -> SBin (maybe a id m1) op (cast t b)
   (a, b@(SymFormalParam t _ m2))
     -> SBin (cast t a) op (maybe b id m2)
+  ----------
   (a@(SObjAcc li), b)
     -> SBin a op (cast (toSymType2 a) b)
+  (a, b@(SObjAcc li))
+    -> SBin (cast (toSymType2 b) a) op b
+  ----------
+  (a@(SymGlobalVar _ _ m1),b@(SymGlobalVar _ _ m2))
+    -> SBin (maybe a id m1) op (maybe b id m2)
+  (a@(SymGlobalVar t _ m), b)
+    -> SBin (maybe a id m) op (cast t b)
+  (a, b@(SymGlobalVar t _ m))
+    -> SBin (cast t a) op (maybe b id m)
+  ----------
   (p1,p2) -> error $ printf "booleanCalculator2: (%s, %s, %s)" (show p1) (show op) (show p2)
 
 ----------------------------------------------------------------------
