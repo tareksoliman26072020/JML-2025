@@ -1,7 +1,9 @@
 {-# Language LambdaCase #-}
 module CFG.Types where
 
-import qualified Parser.Types as AST(Statement(..),Expression(..), Type(..), Types(..), Modifier(..), Exception(..),getExpression,getVarName)
+import qualified Parser.Types as AST(
+  Statement(..),Expression(..), Type(..), Types(..), Modifier(..), Exception(..),
+  getExpression,getVarName,getVarNames)
 import Data.List (intercalate, find)
 import Text.Printf(printf)
 
@@ -112,7 +114,6 @@ isForInitNode :: Node -> Bool
 isForInitNode = \case
   Node _ (ForInitialization _) _ -> True
   _ -> False
-
 
 isForCondNode :: Node -> Bool
 isForCondNode = \case
@@ -322,3 +323,24 @@ getVarName :: Node -> String
 getVarName = \case
   Node _ (Statement stmt) _ -> AST.getVarName (AST.getExpression stmt)
   node -> error $ "TODO:: getVarName ==> " ++ show node
+
+getVarNames :: Node -> [String]
+getVarNames = \case
+  Node _ (Statement stmt) _ -> AST.getVarNames (AST.getExpression stmt)
+  node -> error $ "TODO:: getVarNames ==> " ++ show node
+
+{-
+data NodeData = Statement AST.Statement
+              | ForInitialization (Maybe AST.Expression)
+              | BooleanExpression Kind (Maybe AST.Expression)
+              | ForStep (Maybe AST.Statement) 
+              | TryNode | CatchNode (AST.Type AST.Exception) | FinallyNode
+              | Meet Kind
+ -}
+getExpression :: Node -> Maybe AST.Expression
+getExpression = \case
+  Node _ (Statement stmt) _ -> Just $ AST.getExpression stmt
+  Node _ (ForInitialization mExpr) _ -> mExpr
+  Node _ (BooleanExpression _ mExpr) _ -> mExpr
+  Node _ (ForStep mStmt) _ -> fmap AST.getExpression mStmt
+  node -> error $ "TODO:: getExpression ==> " ++ show node

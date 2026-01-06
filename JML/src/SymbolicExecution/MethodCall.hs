@@ -241,7 +241,16 @@ instance SymStateVisitor MethodCall_SymExec where
   ------------------------------
   ------------------------------
   ------------------------------
-      SVarBindings _ -> return ER_Void
+      SVarBindings _ -> do
+        tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SVarBindings"]
+        tell [Log.ModifyState "visitSymExpr -> SVarBindings" (show key,show val)]
+        modify $ \symState ->
+          SymState {
+            env = Map.insert key val (env symState),
+            pc  = pc symState
+          }
+        let toReturn = ER_SymStateMapEntry key val
+        tell [Log.Return "visitSymExpr -> SVarBindings" (show toReturn)] $> toReturn
   ------------------------------
   ------------------------------
   ------------------------------

@@ -1341,6 +1341,19 @@ SymState {
     (Actions,SActions [])
   ], pc = []
 }
+
+SymState {
+  env = fromList [
+    (MethodName "boo28_6_5",SMethodType Int),
+    (FormalParms,SFormalParms ["i"]),
+    (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = 0})])),
+    (VarAssignments,SVarAssignments [("x",Node_Coor {varDeclAt = 1, varFrame = 0}),("x",Node_Coor {varDeclAt = 5, varFrame = 2})]),
+    (VarName "i",SymFormalParam Int "i" Nothing),
+    (VarName "x",SymInt 2),
+    (Return,SymInt 2),
+    (Actions,SActions [])
+  ], pc = []
+}
 */
 public static int boo28_6_5(int i){
   int x = 1;
@@ -2174,10 +2187,15 @@ CFG {nodes = [Entry (BuiltInType Int) "sum1" [VarExpr {varType = Just (BuiltInTy
 SymState {
   env = fromList [
     (MethodName "sum1",SMethodType Int),
-    (VarBindings,SVarBindings (fromList [("res",VarBinding {varDeclAt = 1, varFrame = 0})])),
+    (FormalParms,SFormalParms ["n"]),
+    (VarBindings,SVarBindings (fromList [("res",Node_Coor {varDeclAt = 1, varFrame = 0})])),
+    (VarAssignments,SVarAssignments [("res",Node_Coor {varDeclAt = 1, varFrame = 0})]),
+    (BranchRange (BR {branchStart = 2, branchEnd = 6}),
+     SLoop (Just (Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}), parent = 0}))
+     (Node {id = 3, nodeData = BooleanExpression For (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >, expr2 = NumberLiteral 0.0})), parent = 2}) 
+     [Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}}), parent = 2},Node {id = 5, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = -, expr2 = NumberLiteral 1.0}}})), parent = 2}]),
     (VarName "n",SymFormalParam Int "n" Nothing),
     (VarName "res",SymInt 0),
-    (NodeNr 2,SLoop (Node {id = 3, nodeData = BooleanExpression For (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >, expr2 = NumberLiteral 0.0})), parent = 2}) [Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}}), parent = 2},Node {id = 5, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = -, expr2 = NumberLiteral 1.0}}})), parent = 2}] (Just ([Next Node: Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}), parent = 0},>>>>>>>>>> visitNode <<<<<<<<<<,(visitNode -> case nodeData of Node -> Statement): Method Statement: AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}}},(visitStmt -> pattern matching: AssignStmt): handling assign statement: AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}},(visitExpr -> AssignExpr): handling expression: AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}},(visitExpr -> VarExpr): handling expression: VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"},(visitExpr -> VarExpr): New Variable BuiltInType Int i,(visitExpr -> VarExpr): Modifying State: (i,SymNull Int),(visitExpr -> VarExpr -> Declaring Local Variable): Returning: ER_SymStateMapEntry {er_key = VarName "i", er_val = SymNull Int},(visitExpr -> VarExpr): handling expression: VarExpr {varType = Nothing, varObj = [], varName = "n"},(visitExpr -> VarExpr): Update Variable n,(visitExpr -> VarExpr): Look up in environmane table: (n ~~> SymFormalParam Int "n" Nothing) ,(visitExpr -> VarExpr -> Updating): Returning: ER_SymStateMapEntry {er_key = VarName "n", er_val = SymFormalParam Int "n" Nothing},(visitExpr -> AssignExpr): Affected: ER_SymStateMapEntry {er_key = VarName "i", er_val = SymNull Int}, ER_SymStateMapEntry {er_key = VarName "n", er_val = SymFormalParam Int "n" Nothing},(visitExpr -> AssignExpr): Modifying State: (VarName "i",SymFormalParam Int "n" Nothing),(visitExpr -> AssignExpr): Returning: ER_SymStateMapEntry {er_key = VarName "i", er_val = SymFormalParam Int "n" Nothing},(visitStmt -> AssignStmt): Returning: ER_State (SymState {env = fromList [(MethodName "sum1",SMethodType Int),(VarBindings,SVarBindings (fromList [("res",VarBinding {varDeclAt = 1, varFrame = 0})])),(VarName "i",SymFormalParam Int "n" Nothing),(VarName "n",SymFormalParam Int "n" Nothing),(VarName "res",SymInt 0)], pc = []}),(visitNode -> Node -> Statement): Adding Var Binding: ("i",VarBinding {varDeclAt = 2, varFrame = 0}),(visitNode -> Node -> Statement): Returning: ER_State (SymState {env = fromList [(MethodName "sum1",SMethodType Int),(VarBindings,SVarBindings (fromList [("res",VarBinding {varDeclAt = 1, varFrame = 0})])),(VarName "i",SymFormalParam Int "n" Nothing),(VarName "n",SymFormalParam Int "n" Nothing),(VarName "res",SymInt 0)], pc = []})],SymState {env = fromList [(MethodName "sum1",SMethodType Int),(VarBindings,SVarBindings (fromList [("i",VarBinding {varDeclAt = 2, varFrame = 0}),("res",VarBinding {varDeclAt = 1, varFrame = 0})])),(VarName "i",SymFormalParam Int "n" Nothing),(VarName "n",SymFormalParam Int "n" Nothing),(VarName "res",SymInt 0)], pc = []}))),
     (Return,SymInt 0)
   ], pc = []
 }
@@ -2186,6 +2204,8 @@ public int sum1(int n) {
   int res = 0;
   for(int i=n; i>0; i--) {
     res += i;
+    int z = 9;
+    z = i;
   }
   return res;
 }

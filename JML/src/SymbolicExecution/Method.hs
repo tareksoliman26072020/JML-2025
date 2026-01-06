@@ -15,7 +15,7 @@ import SymbolicExecution.MethodCall (runSymState)
 import Control.Monad.Writer
 import Text.Printf (printf)
 import Data.Functor (($>))
-import Data.List (foldl',nub)
+import Data.List (foldl',nub,intercalate)
 import SymbolicExecution.Internal.Internal
 import SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator, objAccCalculator, stringCalculator, funCallCalculator)
 
@@ -333,7 +333,7 @@ instance CFGVisitor Method_SymExec where
       visitForLoop m_Acc forCondNode forBody_forStep_path branchRange ma
         -- if any of the variables has a global variable or formal parameter,
         -- then add SLoop to the state and end without visiting nodes
-        | (maybe True
+        | (maybe False
                  (\node -> nodeHasGlobalVar ma node || nodeHasFormalParm ma node)
                  m_Acc)
           || any (\node -> nodeHasGlobalVar ma node || nodeHasFormalParm ma node) (forCondNode : forBody_forStep_path) = do
@@ -342,13 +342,75 @@ instance CFGVisitor Method_SymExec where
                   forCondNode
                   forBody_forStep_path
                 toReturn = ER_SymStateMapEntry (BranchRange branchRange) symExpr
+            -- if there's a node among (m_Acc,forBody_forStep_path)
+            -- which assigns/reassigns
+            -- 1) a formal parameter
+            -- 2) a local parameter defined outside the for loop
+            -- 3) a global variable
+            -- then update these VarNames in the main SymState
+            -- and mention them in the Lists: (GlobalVariables,VarAssignments) in case they miss
             tell [Log.ModifyState "visitNode ==> ForInitialization ==> visitForLoop" (show branchRange,"SLoop")]
             modify $ \symState -> SymState {
-              env = Map.insert (BranchRange branchRange) symExpr (env symState),
+              env =
+                let map1 = Map.insert (BranchRange branchRange) symExpr (env symState)
+                    allNodes = maybe [] (\acc -> [acc]) m_Acc ++ forBody_forStep_path
+                    allNewNodes = filter (\node ->
+                      let mExpr = CFG.getExpression node
+                      in case mExpr of
+                           Nothing -> False
+                           Just expr ->
+                             AST.isAssignExpr expr && AST.isNewVar (AST.assEleft expr)
+                      ) allNodes
+                    allOldNodes = filter (\node ->
+                      let mExpr = CFG.getExpression node
+                      in case mExpr of
+                           Nothing -> True
+                           Just expr ->
+                             AST.isAssignExpr expr && (not $ AST.isNewVar $ AST.assEleft expr)
+                      ) allNodes
+                    -- allOldNodes2 == allOldNodes \\ allNewNodes
+                    allOldNodes2 = flip filter allOldNodes $ \oldNode ->
+                      let Just oldAssignExpr = CFG.getExpression oldNode
+                          oldVarName = AST.varName $ AST.assEleft oldAssignExpr
+                      in flip all allNewNodes $ \newNode ->
+                           let Just newAssignExpr = CFG.getExpression newNode
+                               newVarName = AST.varName $ AST.assEleft newAssignExpr
+                           in oldVarName /= newVarName
+                    -- new VarAssignments
+                    varAssignments = getVarAssignments2 ma ++ flip map allOldNodes2 (\node ->
+                      (let Just oldAssignExpr = CFG.getExpression node
+                       in AST.varName $ AST.assEleft oldAssignExpr,
+                       Node_Coor (CFG.id node) (branchStart branchRange)))
+                    map2 = Map.insert VarAssignments (SVarAssignments varAssignments) map1
+                    --TODO: add (VarNames ==>SymUnknown) for the global, local, formalParms
+                    -- that are present in `allOldNodes2`
+                in error $ "MEOW:: " ++ show varAssignments--map1
+                {-
+                in error $ printf "MEOW::\n1) %s\n\n2) %s\n\n3) %s"
+                     (intercalate "\n>>> " $ map show allNewNodes)
+                     (intercalate "\n>>> " $ map show allOldNodes)
+                     (intercalate "\n>>> " $ map show allOldNodes2)-},
               pc = pc symState
             }
             return toReturn
         | otherwise = throwError "TODO2:: visitForLoop"
+{-error $ "EOF:: " ++ show newVarName
+(
+[
+int i=n;
+int z = 9;
+]
+
+
+[
+res += i;
+z = i;
+i--
+]
+
+res += i;
+)
+ -}
 
 ----------------------------------------
 ----------------------------------------

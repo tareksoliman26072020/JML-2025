@@ -135,14 +135,41 @@ getExpression = \case
 -- ArrayCallExpr {arrName :: Expression, index :: Maybe Expression}
 getVarName :: Expression -> String
 getVarName expr@VarExpr{} = varName expr
-getVarName expr@AssignExpr{} = getVarName (assEleft expr)
 getVarName expr@ArrayCallExpr{} = getVarName (arrName expr)
-getVarName expr = error $ "won't happen: " ++ show expr
+getVarName expr = error $ "getVarName ==> won't happen: " ++ show expr
+
+getVarNames :: Expression -> [String]
+getVarNames = \case
+  -- BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
+  expr@BinOpExpr{} -> getVarNames (expr1 expr) ++ getVarNames (expr2 expr)
+  expr@VarExpr{} -> [varName expr]
+  expr@AssignExpr{} -> getVarNames (assEleft expr) ++ getVarNames (assEright expr)
+  expr@ArrayCallExpr{} -> getVarNames (arrName expr)
+  NumberLiteral _ -> []
+  expr -> error $ "getVarNames ==> won't happen: " ++ show expr
 
 isVarExpr :: Expression -> Bool
 isVarExpr = \case
   VarExpr{} -> True
   _ -> False
+
+-- VarExpr {varType :: Maybe (Type Types), varObj :: [String], varName :: String}
+isNewVar :: Expression -> Bool
+isNewVar = \case
+  expr@VarExpr{} -> case varType expr of
+    Nothing -> False
+    _ -> True
+  expr -> error $ "isNewVar ==> won't happen: " ++ show expr
+
+isAssignExpr :: Expression -> Bool
+isAssignExpr = \case
+  AssignExpr{} -> True
+  _ -> False
+
+getLeftVarAssignExpr :: Expression -> Expression
+getLeftVarAssignExpr = \case
+  expr@AssignExpr{} -> assEleft expr
+  expr -> error $ "getLeftVarAssignExpr ==> won't happen ==> " ++ show expr
 
 getActualParmName :: Expression -> String
 getActualParmName = \case

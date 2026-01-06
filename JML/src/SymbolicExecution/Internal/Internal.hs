@@ -56,21 +56,44 @@ isGlobalVariable2 varName s = case Map.lookup GlobalVars s of
   Nothing -> False
   Just (SGlobalVars li) -> varName `elem` li
 
+isFormalParameter2 :: String -> Map.Map SymStateKey SymExpr -> Bool
+isFormalParameter2 varName s = case Map.lookup FormalParms s of
+  Nothing -> False
+  Just (SFormalParms li) -> varName `elem` li
+
 nodeHasGlobalVar :: Map.Map SymStateKey SymExpr -> CFG.Node -> Bool
 nodeHasGlobalVar ma = \case
   CFG.Node _ (CFG.Statement stmt) _ ->
-    let varName = AST.getVarName (AST.getExpression stmt)
-    in isGlobalVariable2 varName ma
+    let varNames = AST.getVarNames (AST.getExpression stmt)
+    in any (\vn -> isGlobalVariable2 vn ma) varNames
+  CFG.Node _ (CFG.BooleanExpression CFG.For mExpr) _ ->
+    let mVarNames = fmap AST.getVarNames mExpr
+    in process_mVarNames mVarNames
+  CFG.Node _ (CFG.ForStep mStmt) _ ->
+    let mVarNames :: Maybe [String]
+        mVarNames = fmap (AST.getVarNames . AST.getExpression) mStmt
+    in process_mVarNames mVarNames
   node -> error $ "TODO: nodeHasGlobalVar: " ++ show node
+  where
+  process_mVarNames :: Maybe [String] -> Bool
+  process_mVarNames = maybe False (\varNames -> any (\vn -> isGlobalVariable2 vn ma) varNames)
 
 nodeHasFormalParm :: Map.Map SymStateKey SymExpr -> CFG.Node -> Bool
 nodeHasFormalParm ma = \case
   CFG.Node _ (CFG.Statement stmt) _ ->
-    let varName = AST.getVarName (AST.getExpression stmt)
-    in case Map.lookup FormalParms ma of
-         Nothing -> False
-         Just (SFormalParms li) -> varName `elem` li
+    let varNames = AST.getVarNames (AST.getExpression stmt)
+    in any (\vn -> isFormalParameter2 vn ma) varNames
+  CFG.Node _ (CFG.BooleanExpression CFG.For mExpr) _ ->
+    let mVarNames = fmap AST.getVarNames mExpr
+    in process_mVarNames mVarNames
+  CFG.Node _ (CFG.ForStep mStmt) _ ->
+    let mVarNames :: Maybe [String]
+        mVarNames = fmap (AST.getVarNames . AST.getExpression) mStmt
+    in process_mVarNames mVarNames
   node -> error $ "TODO: nodeHasLocalParm: " ++ show node
+  where
+  process_mVarNames :: Maybe [String] -> Bool
+  process_mVarNames = maybe False (\varNames -> any (\vn -> isFormalParameter2 vn ma) varNames)
 
 recordFormalParm :: String -> Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
 recordFormalParm varName ma =
@@ -424,6 +447,9 @@ getActions = maybe [] (\(SActions li) -> li) . Map.lookup Actions . env
 
 getVarAssignments :: SymState -> [(String,Node_Coor)]
 getVarAssignments = maybe [] (\(SVarAssignments li) -> li) . Map.lookup VarAssignments . env
+
+getVarAssignments2 :: Map.Map SymStateKey SymExpr -> [(String,Node_Coor)]
+getVarAssignments2 = maybe [] (\(SVarAssignments li) -> li) . Map.lookup VarAssignments
 ------------------------------
 ------------------------------
 ------------------------------
