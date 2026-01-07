@@ -206,7 +206,7 @@ instance CFGVisitor Method_SymExec where
                 -- 2) the VarAssignments of global variables
                 let condVarAssignments s = flip filter (getVarAssignments s) $
                       \(name,_) -> maybe
-                          (isGlobalVariable2 name (env s))
+                          (hasGlobalVariable name (env s))
                           (const True) $ lookup name mainVarAssignments
                     newMainVarAssignments = case symExpr of
                       SIte _ ifSymState mElseSymState -> nub $
@@ -361,13 +361,12 @@ instance CFGVisitor Method_SymExec where
                            Just expr ->
                              AST.isAssignExpr expr && AST.isNewVar (AST.assEleft expr)
                       ) allNodes
-                    allOldNodes = filter (\node ->
+                    allOldNodes = flip filter allNodes $ \node ->
                       let mExpr = CFG.getExpression node
                       in case mExpr of
-                           Nothing -> True
+                           Nothing -> False
                            Just expr ->
                              AST.isAssignExpr expr && (not $ AST.isNewVar $ AST.assEleft expr)
-                      ) allNodes
                     -- allOldNodes2 == allOldNodes \\ allNewNodes
                     allOldNodes2 = flip filter allOldNodes $ \oldNode ->
                       let Just oldAssignExpr = CFG.getExpression oldNode
@@ -377,14 +376,34 @@ instance CFGVisitor Method_SymExec where
                                newVarName = AST.varName $ AST.assEleft newAssignExpr
                            in oldVarName /= newVarName
                     -- new VarAssignments
-                    varAssignments = getVarAssignments2 ma ++ flip map allOldNodes2 (\node ->
+                    new_varAssignments = getVarAssignments2 ma ++ flip map allOldNodes2 (\node ->
                       (let Just oldAssignExpr = CFG.getExpression node
                        in AST.varName $ AST.assEleft oldAssignExpr,
                        Node_Coor (CFG.id node) (branchStart branchRange)))
-                    map2 = Map.insert VarAssignments (SVarAssignments varAssignments) map1
-                    --TODO: add (VarNames ==>SymUnknown) for the global, local, formalParms
-                    -- that are present in `allOldNodes2`
-                in error $ "MEOW:: " ++ show varAssignments--map1
+                    map2 = Map.insert VarAssignments (SVarAssignments new_varAssignments) map1
+                    -- formal parameters present in `allOldNodes2`
+                    allOldNodes2_formals = case Map.lookup FormalParms map2 of
+                      Nothing -> []
+                      Just (SFormalParms formalParms) -> flip filter allOldNodes2
+                        $ \node ->
+                            let Just varName = fmap AST.getVarName $ CFG.getExpression node
+                            in varName `elem` formalParms
+                    -- global variables present in `allOldNodes2`
+                    allOldNodes2_globals = case Map.lookup GlobalVars map2 of
+                      Nothing -> []
+                      Just (SGlobalVars globalVars) -> flip filter allOldNodes2
+                        $ \node ->
+                            let Just varName = fmap AST.getVarName $ CFG.getExpression node
+                            in varName `elem` globalVars
+                    -- local variables present in `allOldNodes2`
+                    allOldNodes2_locals = case Map.lookup VarBindings map2 of
+                      Nothing -> []
+                      Just (SVarBindings localVarsMap) -> flip filter allOldNodes2
+                        $ \node ->
+                            let Just varName = fmap AST.getVarName $ CFG.getExpression node
+                            in varName `Map.member` localVarsMap
+                    -- TODO: add all mentions in `allOldNodes2_formals`, `allOldNodes2_globals`, `allOldNodes2_locals` to map2
+                in error $ "MEOW:: " ++ show new_varAssignments--map1
                 {-
                 in error $ printf "MEOW::\n1) %s\n\n2) %s\n\n3) %s"
                      (intercalate "\n>>> " $ map show allNewNodes)

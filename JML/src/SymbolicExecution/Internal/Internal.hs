@@ -11,7 +11,7 @@ import qualified CFG.Types as CFG
 import qualified Parser.Types as AST
 import Text.Printf (printf)
 import Control.Applicative (Alternative(empty),asum,(<|>))
-import qualified Data.Map as Map (lookup,empty,Map,filterWithKey,insert,foldMapWithKey,toList)
+import qualified Data.Map as Map (lookup,empty,Map,filterWithKey,insert,foldMapWithKey,toList,alter)
 import Prelude hiding (negate)
 import Data.List (nub)
 
@@ -51,13 +51,13 @@ isGlobalVariable :: SymExpr -> Bool
 isGlobalVariable (SymGlobalVar _ _ _) = True
 isGlobalVariable _ = False
 
-isGlobalVariable2 :: String -> Map.Map SymStateKey SymExpr -> Bool
-isGlobalVariable2 varName s = case Map.lookup GlobalVars s of
+hasGlobalVariable :: String -> Map.Map SymStateKey SymExpr -> Bool
+hasGlobalVariable varName s = case Map.lookup GlobalVars s of
   Nothing -> False
   Just (SGlobalVars li) -> varName `elem` li
 
-isFormalParameter2 :: String -> Map.Map SymStateKey SymExpr -> Bool
-isFormalParameter2 varName s = case Map.lookup FormalParms s of
+hasFormalParameter :: String -> Map.Map SymStateKey SymExpr -> Bool
+hasFormalParameter varName s = case Map.lookup FormalParms s of
   Nothing -> False
   Just (SFormalParms li) -> varName `elem` li
 
@@ -65,7 +65,7 @@ nodeHasGlobalVar :: Map.Map SymStateKey SymExpr -> CFG.Node -> Bool
 nodeHasGlobalVar ma = \case
   CFG.Node _ (CFG.Statement stmt) _ ->
     let varNames = AST.getVarNames (AST.getExpression stmt)
-    in any (\vn -> isGlobalVariable2 vn ma) varNames
+    in any (\vn -> hasGlobalVariable vn ma) varNames
   CFG.Node _ (CFG.BooleanExpression CFG.For mExpr) _ ->
     let mVarNames = fmap AST.getVarNames mExpr
     in process_mVarNames mVarNames
@@ -76,13 +76,13 @@ nodeHasGlobalVar ma = \case
   node -> error $ "TODO: nodeHasGlobalVar: " ++ show node
   where
   process_mVarNames :: Maybe [String] -> Bool
-  process_mVarNames = maybe False (\varNames -> any (\vn -> isGlobalVariable2 vn ma) varNames)
+  process_mVarNames = maybe False (\varNames -> any (\vn -> hasGlobalVariable vn ma) varNames)
 
 nodeHasFormalParm :: Map.Map SymStateKey SymExpr -> CFG.Node -> Bool
 nodeHasFormalParm ma = \case
   CFG.Node _ (CFG.Statement stmt) _ ->
     let varNames = AST.getVarNames (AST.getExpression stmt)
-    in any (\vn -> isFormalParameter2 vn ma) varNames
+    in any (\vn -> hasFormalParameter vn ma) varNames
   CFG.Node _ (CFG.BooleanExpression CFG.For mExpr) _ ->
     let mVarNames = fmap AST.getVarNames mExpr
     in process_mVarNames mVarNames
@@ -93,7 +93,7 @@ nodeHasFormalParm ma = \case
   node -> error $ "TODO: nodeHasLocalParm: " ++ show node
   where
   process_mVarNames :: Maybe [String] -> Bool
-  process_mVarNames = maybe False (\varNames -> any (\vn -> isFormalParameter2 vn ma) varNames)
+  process_mVarNames = maybe False (\varNames -> any (\vn -> hasFormalParameter vn ma) varNames)
 
 recordFormalParm :: String -> Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
 recordFormalParm varName ma =
@@ -111,6 +111,14 @@ recordGlobalVar varName ma =
     Just (SGlobalVars li)
       | varName `elem` li -> ma
       | otherwise -> Map.insert GlobalVars (SGlobalVars $ li ++ [varName]) ma
+
+makeVarSymUnknown :: (String,SymReason) -> Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
+makeVarSymUnknown (varName,symReason) ma =
+  Map.alter (\case
+    Nothing -> error
+      $ printf "makeVarSymUnknown ==> won't happen because varName (%s) should exist" varName
+    Just expr -> Just $ SymUnknown (toSymType2 expr,varName,Just expr) symReason) 
+            (VarName varName) ma
 
 isSymInt :: SymExpr -> Bool
 isSymInt = \case

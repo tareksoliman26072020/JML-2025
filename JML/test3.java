@@ -145,10 +145,32 @@ SymState {
     ("y",SymNull Int)
   ], pc = []
 }
+
+
+SymState {
+  env = fromList [
+    (MethodName "boo33_5",SMethodType Double),
+    (GlobalVars,SGlobalVars ["z","t"]),
+    (FormalParms,SFormalParms ["str"]),
+    (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = 0}),("y",Node_Coor {varDeclAt = 2, varFrame = 0})])),
+    (VarAssignments,SVarAssignments [("x",Node_Coor {varDeclAt = 1, varFrame = 0}),("y",Node_Coor {varDeclAt = 2, varFrame = 0}),("z",Node_Coor {varDeclAt = 3, varFrame = 0}),("x",Node_Coor {varDeclAt = 4, varFrame = 0})]),
+    (VarName "str",SymFormalParam String "str" Nothing),
+    (VarName "x",SymDouble 1.1),
+    (VarName "y",SymNull Int),
+    (VarName "z",SymGlobalVar UnknownGlobalVarSymType "t" Nothing),
+    (Return,SymDouble 1.1)
+  ], pc = []
+}
 */
-public double boo33_5(){
+/*
+Formal parameter: all of them are mentioned in `FormalParms`
+Global Variables: all of them are mentioned in `GlobalVars`
+Local Variables: all of them are mentioned in `VarBindings`
+*/
+public double boo33_5(String str){
   double x = 1;
   int y;
+  z = t;
   x = x + 0.1;
   return x;
 }
