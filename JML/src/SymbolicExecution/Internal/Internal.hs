@@ -11,7 +11,7 @@ import qualified CFG.Types as CFG
 import qualified Parser.Types as AST
 import Text.Printf (printf)
 import Control.Applicative (Alternative(empty),asum,(<|>))
-import qualified Data.Map as Map (lookup,empty,Map,filterWithKey,insert,foldMapWithKey,toList,alter)
+import qualified Data.Map as Map (lookup,empty,Map,filterWithKey,insert,foldMapWithKey,toList,alter,notMember)
 import Prelude hiding (negate)
 import Data.List (nub)
 
@@ -50,6 +50,32 @@ isFormalParameter _ = False
 isGlobalVariable :: SymExpr -> Bool
 isGlobalVariable (SymGlobalVar _ _ _) = True
 isGlobalVariable _ = False
+
+-- a sign that a global variable exists is that
+-- it either exists in SGlobalVars,
+-- or it does not exist in both SFormalParms or in SVarBindings
+isGlobalVariable2 :: String -> Map.Map SymStateKey SymExpr -> Bool
+isGlobalVariable2 varName ma =
+  let isGlobal globals = varName `elem` globals
+      isNotFormal formals = varName `notElem` formals
+      isNotLocal bindings = varName `Map.notMember` bindings
+  in case (Map.lookup GlobalVars ma,Map.lookup FormalParms ma,Map.lookup VarBindings ma) of
+  --(globals,formals,locals)
+    (Nothing,Nothing,Nothing) -> False
+    (Just (SGlobalVars globals),Nothing,Nothing)
+      -> isGlobal globals
+    (Nothing,Just (SFormalParms formals),Nothing)
+      -> isNotFormal formals
+    (Nothing,Nothing,Just (SVarBindings bindings))
+      -> isNotLocal bindings
+    (Nothing,Just (SFormalParms formals),Just (SVarBindings bindings))
+      -> isNotFormal formals && isNotLocal bindings
+    (Just (SGlobalVars globals),Nothing,Just (SVarBindings bindings))
+      -> isGlobal globals && isNotLocal bindings
+    (Just (SGlobalVars globals),Just (SFormalParms formals),Nothing)
+      -> isGlobal globals && isNotFormal formals
+    (Just (SGlobalVars globals),Just (SFormalParms formals),Just (SVarBindings bindings))
+      -> isGlobal globals && isNotFormal formals && isNotLocal bindings
 
 hasGlobalVariable :: String -> Map.Map SymStateKey SymExpr -> Bool
 hasGlobalVariable varName s = case Map.lookup GlobalVars s of

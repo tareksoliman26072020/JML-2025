@@ -381,7 +381,7 @@ instance CFGVisitor Method_SymExec where
                        in AST.varName $ AST.assEleft oldAssignExpr,
                        Node_Coor (CFG.id node) (branchStart branchRange)))
                     map2 = Map.insert VarAssignments (SVarAssignments new_varAssignments) map1
-                    -- formal parameters present in `allOldNodes2`
+                   -- formal parameters present in `allOldNodes2`
                     allOldNodes2_formals = case Map.lookup FormalParms map2 of
                       Nothing -> []
                       Just (SFormalParms formalParms) -> flip filter allOldNodes2
@@ -389,12 +389,10 @@ instance CFGVisitor Method_SymExec where
                             let Just varName = fmap AST.getVarName $ CFG.getExpression node
                             in varName `elem` formalParms
                     -- global variables present in `allOldNodes2`
-                    allOldNodes2_globals = case Map.lookup GlobalVars map2 of
-                      Nothing -> []
-                      Just (SGlobalVars globalVars) -> flip filter allOldNodes2
+                    allOldNodes2_globals = flip filter allOldNodes2
                         $ \node ->
                             let Just varName = fmap AST.getVarName $ CFG.getExpression node
-                            in varName `elem` globalVars
+                            in isGlobalVariable2 varName map2
                     -- local variables present in `allOldNodes2`
                     allOldNodes2_locals = case Map.lookup VarBindings map2 of
                       Nothing -> []
@@ -402,13 +400,42 @@ instance CFGVisitor Method_SymExec where
                         $ \node ->
                             let Just varName = fmap AST.getVarName $ CFG.getExpression node
                             in varName `Map.member` localVarsMap
-                    -- TODO: add all mentions in `allOldNodes2_formals`, `allOldNodes2_globals`, `allOldNodes2_locals` to map2
-                in error $ "MEOW:: " ++ show new_varAssignments--map1
-                {-
-                in error $ printf "MEOW::\n1) %s\n\n2) %s\n\n3) %s"
-                     (intercalate "\n>>> " $ map show allNewNodes)
-                     (intercalate "\n>>> " $ map show allOldNodes)
-                     (intercalate "\n>>> " $ map show allOldNodes2)-},
+                    -- add formal parameters to the map
+                    map_with_allOldNodes2 = foldl' (\ma node ->
+                      let Just varName = fmap AST.getVarName $ CFG.getExpression node
+                      in case (node `elem` allOldNodes2_formals
+                              ,node `elem` allOldNodes2_globals
+                              ,node `elem` allOldNodes2_locals) of
+                        (True,True,True) -> error "visitForLoop ==> won't happen1"
+                        (True,True,False) -> error "visitForLoop ==> won't happen2"
+                        (True,False,True) -> error "visitForLoop ==> won't happen3"
+                      --formals
+                        (True,False,False) -> Map.alter (\case
+                          Nothing -> error "visitForLoop ==> won't happen4"
+                          Just symExpr -> Just $ SymUnknown (toSymType2 symExpr,varName,Just symExpr) (ForBranchingReason branchRange)
+                          ) (VarName varName) ma
+                        (False,True,True) -> error "visitForLoop ==> won't happen5"
+                        --globals
+                        (False,True,False) -> Map.alter (\case
+                          Nothing -> Just $ SymUnknown (
+                            UnknownGlobalVarSymType,
+                            varName,
+                            Just $ SymGlobalVar UnknownGlobalVarSymType varName Nothing) (ForBranchingReason branchRange)
+                          Just expr -> Just $ SymUnknown (
+                            toSymType2 expr,
+                            varName,
+                            Just expr) (ForBranchingReason branchRange)) (VarName varName) ma
+                        --locals
+                        (False,False,True) -> Map.alter (\case
+                          Nothing -> error "visitForLoop ==> won't happen6"
+                          Just expr -> Just $ SymUnknown (
+                            toSymType2 expr,
+                            varName,
+                            Just expr) (ForBranchingReason branchRange)
+                          ) (VarName varName) ma
+                        (False,False,False) -> error "visitForLoop ==> won't happen7"
+                      ) map2 allOldNodes2
+                in error "TODO: SymType of global variables that are used for the first time inside the for loop", --map_with_allOldNodes2,
               pc = pc symState
             }
             return toReturn

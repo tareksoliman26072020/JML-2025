@@ -136,6 +136,7 @@ getExpression = \case
 getVarName :: Expression -> String
 getVarName expr@VarExpr{} = varName expr
 getVarName expr@ArrayCallExpr{} = getVarName (arrName expr)
+getVarName expr@AssignExpr{} = getVarName $ assEleft expr
 getVarName expr = error $ "getVarName ==> won't happen: " ++ show expr
 
 getVarNames :: Expression -> [String]
