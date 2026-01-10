@@ -12,8 +12,9 @@ import qualified Parser.Types as AST
 import qualified SymbolTable.SymbolTableCreator as ST (exec)
 import qualified SymbolTable.Types as STT (Entry,showEntry)
 
-import qualified CFG.CFG as CFG (exec)
-import qualified CFG.Types as CFGT (CFG(..), showCFG, Node(..), findCFGByName, getPath)
+import qualified CFG.CFG as CFG1 (exec)
+import qualified CFG.Internal as CFG2 (findCFGByName, getPath)
+import qualified CFG.Types as CFGT (CFG(..), showCFG, Node(..))
 
 import qualified SymbolicExecution.Types as SYT
 import qualified SymbolicExecution.Method as SYM (runCFG)
@@ -54,7 +55,7 @@ showSymbolTable = readFile "test2.java" >>= putStrLn
 
 getCFG :: String -> IO CFGT.CFG
 getCFG methodName = readFile "test3.java" >>=
-  (\case Just x -> return $ CFG.exec x
+  (\case Just x -> return $ CFG1.exec x
          Nothing -> fail $ printf "method: %s does not exist in test3.java" methodName)
   . find ((== methodName) . snd . AST.getMethodDecl)
   . fromRight undefined . parse parseDeclList ""
@@ -62,7 +63,7 @@ getCFG methodName = readFile "test3.java" >>=
 showCFG :: String -> IO ()
 showCFG methodName = readFile "test3.java" >>= putStrLn
   . CFGT.showCFG
-  . (\case Just x -> CFG.exec x
+  . (\case Just x -> CFG1.exec x
            Nothing -> error $ printf "method: %s does not exist in test3.java" methodName)
   . find ((== methodName) . snd . AST.getMethodDecl)
   . fromRight undefined . parse parseDeclList ""
@@ -71,12 +72,12 @@ showCFG methodName = readFile "test3.java" >>= putStrLn
 
 getCFGs :: IO [CFGT.CFG]
 getCFGs = readFile "test3.java" >>= return
-  . map CFG.exec
+  . map CFG1.exec
   . fromRight undefined . parse parseDeclList ""
 
 getSymState :: String -> IO SYT.SymState
 getSymState funName = readFile "test3.java" >>=
-  (\cfgs -> case CFGT.findCFGByName funName cfgs of
+  (\cfgs -> case CFG2.findCFGByName funName cfgs of
               Just cfg0 ->
                 let (logs,s) = SYM.runCFG cfgs cfg0 Nothing Nothing
                 in do putStrLn "================"
@@ -88,7 +89,7 @@ getSymState funName = readFile "test3.java" >>=
                       putStrLn "=============="
                       return s
               Nothing   -> error $ "method " ++ funName ++ " does not exist")
-  . map CFG.exec
+  . map CFG1.exec
   . fromRight undefined . parse parseDeclList ""
 
 ------------------------------
@@ -96,11 +97,11 @@ getSymState funName = readFile "test3.java" >>=
 -- getPath "boo27" >>= mapM_ (\(num,node) -> putStr $ printf "%d>> %s\n\n" num (show node)) . zip [0 ..]
 getPath :: String -> Int -> IO [CFGT.Node]
 getPath funName startNodeId = readFile "test3.java" >>= return
-  . CFGT.getPath startNodeId
-  . (\cfgs -> case CFGT.findCFGByName funName cfgs of
+  . CFG2.getPath startNodeId
+  . (\cfgs -> case CFG2.findCFGByName funName cfgs of
                 Just cfg0 -> cfg0
                 Nothing   -> error $ "method " ++ funName ++ " does not exist")
-  . map CFG.exec
+  . map CFG1.exec
   . fromRight undefined . parse parseDeclList ""
 
 ------------------------------

@@ -26,6 +26,7 @@ source-repository head
 library
   exposed-modules:
       CFG.CFG
+      CFG.Internal
       CFG.Types
       JML.Types
       Parser.ParseExpr

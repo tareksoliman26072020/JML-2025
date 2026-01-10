@@ -3,7 +3,8 @@ module SymbolicExecution.Method where
 
 import qualified SymbolicExecution.Log as Log
 import SymbolicExecution.Types
-import qualified CFG.Types as CFG
+import qualified CFG.Types as CFGT
+import qualified CFG.Internal as CFG
 import qualified Data.Map as Map
 import Control.Monad.Reader (runReaderT,ask)
 import Control.Monad.State
@@ -20,9 +21,9 @@ import SymbolicExecution.Internal.Internal
 import SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator, objAccCalculator, stringCalculator, funCallCalculator)
 
 instance CFGVisitor Method_SymExec where
---visitNode :: CFG.Node -> Method_SymExec
+--visitNode :: CFGT.Node -> Method_SymExec
   visitNode node = Method_SymExec $ tell [Log.HorizontalLine "visitNode"] >> case node of
-    CFG.Entry t mn args -> do
+    CFGT.Entry t mn args -> do
       tell [Log.MethodStart mn "visitNode -> Entry"]
       case null args of
         True  -> tell [Log.Return "visitNode -> Entry -> method with no args" "()"] $> ()
@@ -47,9 +48,9 @@ instance CFGVisitor Method_SymExec where
     ----------------------------------------
     ----------------------------------------
     ----------------------------------------
-    n@CFG.End{} -> do
+    n@CFGT.End{} -> do
       tell [Log.MethodEnd "visitNode -> End"]
-      case CFG.mExpr n of
+      case CFGT.mExpr n of
         Nothing       -> do
           tell [Log.Void "visitNode -> End -> return nothing"]
           toReturn <- ER_State <$> get
@@ -61,13 +62,13 @@ instance CFGVisitor Method_SymExec where
     ----------------------------------------
     ----------------------------------------
     ----------------------------------------
-    n@CFG.Node{} -> case CFG.nodeData n of
-      CFG.Statement stmt -> do
+    n@CFGT.Node{} -> case CFGT.nodeData n of
+      CFGT.Statement stmt -> do
         tell [Log.MethodStatement "visitNode -> case nodeData of Node -> Statement" (show stmt)]
         toReturn <- visitStmt stmt
-        --addVarBinding (CFG.id n) (CFG.parent n) stmt
+        --addVarBinding (CFGT.id n) (CFGT.parent n) stmt
         -- Var Bindings
-        case getNewVarBinding (CFG.id n) (CFG.parent n) stmt of
+        case getNewVarBinding (CFGT.id n) (CFGT.parent n) stmt of
           Just new -> do          
             old <- getVarBindings <$> get
             tell [Log.AddVarBinding "visitNode -> Node -> Statement" (show new)]
@@ -78,7 +79,7 @@ instance CFGVisitor Method_SymExec where
               }
             return ER_Void
           _ -> return ER_Void
-        case getNewVarAssignment (CFG.id n) (CFG.parent n) stmt of
+        case getNewVarAssignment (CFGT.id n) (CFGT.parent n) stmt of
           Just new -> do
             tell [Log.AddVarAssignment "visitNode -> Node -> Statement" (show new)]
             state_map <- env <$> get
@@ -98,10 +99,10 @@ instance CFGVisitor Method_SymExec where
       ----------------------------------------
       ----------------------------------------
       -- BooleanExpression Kind AST.Expression
-      CFG.BooleanExpression CFG.If Nothing ->
+      CFGT.BooleanExpression CFGT.If Nothing ->
         throwError "visitNode ==> case nodeData of Node ==> BooleanExpression If ==> won't happen"
-      CFG.BooleanExpression CFG.If (Just expr) -> do
-        tell [Log.MethodStatementIfCondition (printf "visitNode -> case nodeData of Node -> BooleanExpression If -> Node num: %d" (CFG.id n)) (show expr)]
+      CFGT.BooleanExpression CFGT.If (Just expr) -> do
+        tell [Log.MethodStatementIfCondition (printf "visitNode -> case nodeData of Node -> BooleanExpression If -> Node num: %d" (CFGT.id n)) (show expr)]
         ER_FunHandle _ funName <- getFunHandle
         (_,cfgs) <- ask
         let cfg = case CFG.findCFGByName funName cfgs of
@@ -112,15 +113,15 @@ instance CFGVisitor Method_SymExec where
             -- branches: start id for the if branch, and the else branch if it exists.
             --           return is a list of one or two ints.
             --           if there is no else branch, then the list has only one int.
-            branches = case CFG.findEdge_via_id cfg (CFG.id n) of
+            branches = case CFG.findEdge_via_id cfg (CFGT.id n) of
                       Just (_,xs) -> xs
                       Nothing     -> error $ "visitNode -> Node -> BooleanExpression -> won't happen"
-        let branches_paths :: [[CFG.Node]]
+        let branches_paths :: [[CFGT.Node]]
             branches_paths = flip map branches $ \branchStartId ->
               let thePath = CFG.getPath branchStartId cfg
               in flip takeWhile thePath $ \case
-                   CFG.Node _ (CFG.Meet CFG.If) _ -> False
-                   _                              -> True
+                   CFGT.Node _ (CFGT.Meet CFGT.If) _ -> False
+                   _                                 -> True
         --throwError $ "visitNode ==> Node ==> BooleanExpression ==> " ++ show branches_paths
         ER_Expr expr2 <- visitExpr expr
         state <- get
@@ -212,9 +213,9 @@ instance CFGVisitor Method_SymExec where
                       SIte _ ifSymState mElseSymState -> nub $
                         condVarAssignments ifSymState ++
                         maybe [] condVarAssignments mElseSymState
-                tell [Log.ModifyState "visitNode -> Node -> BooleanExpression if -> recording symbolic branching" (printf "if node num: %d" (CFG.id n),show symExpr)]
+                tell [Log.ModifyState "visitNode -> Node -> BooleanExpression if -> recording symbolic branching" (printf "if node num: %d" (CFGT.id n),show symExpr)]
                 modify $ \symState ->
-                  let condBranchRange = BR (CFG.id n)
+                  let condBranchRange = BR (CFGT.id n)
                                            (CFG.getNodeId $ CFG.getEndIfNode cfg n)
                       -- `s1` has the new conditional branchs (addNode)
                       --  and has the new VarAssignments from the conditional branches
@@ -272,8 +273,8 @@ instance CFGVisitor Method_SymExec where
       ----------------------------------------
       ----------------------------------------
       ----------------------------------------
-      CFG.ForInitialization mAccumulationVar -> do
-        tell [Log.MethodStatementIfCondition (printf "visitNode -> case nodeData of Node -> ForInitialization -> Accumulation Variable -> Node num: %d" (CFG.id n)) (show mAccumulationVar)]
+      CFGT.ForInitialization mAccumulationVar -> do
+        tell [Log.MethodStatementIfCondition (printf "visitNode -> case nodeData of Node -> ForInitialization -> Accumulation Variable -> Node num: %d" (CFGT.id n)) (show mAccumulationVar)]
         ER_FunHandle _ funName <- getFunHandle
         originalState <- get
         (_,cfgs) <- ask
@@ -284,26 +285,26 @@ instance CFGVisitor Method_SymExec where
                     -- CFG found
               Just cfg0 -> cfg0
         let m_Acc = flip fmap mAccumulationVar $ \v ->
-              CFG.Node (CFG.id n) (CFG.Statement $ AST.AssignStmt [] v) 0
+              CFGT.Node (CFGT.id n) (CFGT.Statement $ AST.AssignStmt [] v) 0
         -- process SymState of for body
         -- branches: start id for the for body branch.
         --           return is a list of one int.
-        let forCondNodeId = CFG.id n + 1
+        let forCondNodeId = CFGT.id n + 1
         let forCondNode = CFG.findNode_via_id cfg forCondNodeId
         let forBodyBranch = case CFG.findEdge_via_id cfg forCondNodeId of
                   Just (_,(x : _)) -> x
                   Nothing     -> error $ "visitNode -> Node -> ForInitialization -> won't happen"
 
-        let forBody_forStep_path :: [CFG.Node]
+        let forBody_forStep_path :: [CFGT.Node]
             forBody_forStep_path = flip takeWhile (CFG.getPath forBodyBranch cfg) $ \case
-              CFG.Entry _ _ _ -> error "won't happen"
-              CFG.End _ _ _ -> error "won't happen"
-              CFG.Node theId _ _ -> theId /= forCondNodeId
+              CFGT.Entry _ _ _ -> error "won't happen"
+              CFGT.End _ _ _ -> error "won't happen"
+              CFGT.Node theId _ _ -> theId /= forCondNodeId
         -- implement a helper that takes as input `(accLogs,accState)`
         -- call it `visitForLoop`
         visitForLoop m_Acc forCondNode forBody_forStep_path
-          (BR (CFG.id n)
-              (CFG.getNodeId $ CFG.getEndForNode cfg $ (CFG.findNode_via_id cfg $ CFG.id n)))
+          (BR (CFGT.id n)
+              (CFG.getNodeId $ CFG.getEndForNode cfg $ (CFG.findNode_via_id cfg $ CFGT.id n)))
           (env originalState)
       ----------------------------------------
       ----------------------------------------
@@ -328,135 +329,6 @@ instance CFGVisitor Method_SymExec where
                  (_,_) -> Map.singleton key val
             newCondSymState = SymState newCondSymStateEnv (pc condSymState)
         in newCondSymState
-      
-      visitForLoop :: Maybe CFG.Node -> CFG.Node -> [CFG.Node] -> BranchRange -> Map.Map SymStateKey SymExpr -> Method_R
-      visitForLoop m_Acc forCondNode forBody_forStep_path branchRange ma
-        -- if any of the variables has a global variable or formal parameter,
-        -- then add SLoop to the state and end without visiting nodes
-        | (maybe False
-                 (\node -> nodeHasGlobalVar ma node || nodeHasFormalParm ma node)
-                 m_Acc)
-          || any (\node -> nodeHasGlobalVar ma node || nodeHasFormalParm ma node) (forCondNode : forBody_forStep_path) = do
-            let symExpr = SLoop
-                  m_Acc
-                  forCondNode
-                  forBody_forStep_path
-                toReturn = ER_SymStateMapEntry (BranchRange branchRange) symExpr
-            -- if there's a node among (m_Acc,forBody_forStep_path)
-            -- which assigns/reassigns
-            -- 1) a formal parameter
-            -- 2) a local parameter defined outside the for loop
-            -- 3) a global variable
-            -- then update these VarNames in the main SymState
-            -- and mention them in the Lists: (GlobalVariables,VarAssignments) in case they miss
-            tell [Log.ModifyState "visitNode ==> ForInitialization ==> visitForLoop" (show branchRange,"SLoop")]
-            modify $ \symState -> SymState {
-              env =
-                let map1 = Map.insert (BranchRange branchRange) symExpr (env symState)
-                    allNodes = maybe [] (\acc -> [acc]) m_Acc ++ forBody_forStep_path
-                    allNewNodes = filter (\node ->
-                      let mExpr = CFG.getExpression node
-                      in case mExpr of
-                           Nothing -> False
-                           Just expr ->
-                             AST.isAssignExpr expr && AST.isNewVar (AST.assEleft expr)
-                      ) allNodes
-                    allOldNodes = flip filter allNodes $ \node ->
-                      let mExpr = CFG.getExpression node
-                      in case mExpr of
-                           Nothing -> False
-                           Just expr ->
-                             AST.isAssignExpr expr && (not $ AST.isNewVar $ AST.assEleft expr)
-                    -- allOldNodes2 == allOldNodes \\ allNewNodes
-                    allOldNodes2 = flip filter allOldNodes $ \oldNode ->
-                      let Just oldAssignExpr = CFG.getExpression oldNode
-                          oldVarName = AST.varName $ AST.assEleft oldAssignExpr
-                      in flip all allNewNodes $ \newNode ->
-                           let Just newAssignExpr = CFG.getExpression newNode
-                               newVarName = AST.varName $ AST.assEleft newAssignExpr
-                           in oldVarName /= newVarName
-                    -- new VarAssignments
-                    new_varAssignments = getVarAssignments2 ma ++ flip map allOldNodes2 (\node ->
-                      (let Just oldAssignExpr = CFG.getExpression node
-                       in AST.varName $ AST.assEleft oldAssignExpr,
-                       Node_Coor (CFG.id node) (branchStart branchRange)))
-                    map2 = Map.insert VarAssignments (SVarAssignments new_varAssignments) map1
-                   -- formal parameters present in `allOldNodes2`
-                    allOldNodes2_formals = case Map.lookup FormalParms map2 of
-                      Nothing -> []
-                      Just (SFormalParms formalParms) -> flip filter allOldNodes2
-                        $ \node ->
-                            let Just varName = fmap AST.getVarName $ CFG.getExpression node
-                            in varName `elem` formalParms
-                    -- global variables present in `allOldNodes2`
-                    allOldNodes2_globals = flip filter allOldNodes2
-                        $ \node ->
-                            let Just varName = fmap AST.getVarName $ CFG.getExpression node
-                            in isGlobalVariable2 varName map2
-                    -- local variables present in `allOldNodes2`
-                    allOldNodes2_locals = case Map.lookup VarBindings map2 of
-                      Nothing -> []
-                      Just (SVarBindings localVarsMap) -> flip filter allOldNodes2
-                        $ \node ->
-                            let Just varName = fmap AST.getVarName $ CFG.getExpression node
-                            in varName `Map.member` localVarsMap
-                    -- add formal parameters to the map
-                    map_with_allOldNodes2 = foldl' (\ma node ->
-                      let Just varName = fmap AST.getVarName $ CFG.getExpression node
-                      in case (node `elem` allOldNodes2_formals
-                              ,node `elem` allOldNodes2_globals
-                              ,node `elem` allOldNodes2_locals) of
-                        (True,True,True) -> error "visitForLoop ==> won't happen1"
-                        (True,True,False) -> error "visitForLoop ==> won't happen2"
-                        (True,False,True) -> error "visitForLoop ==> won't happen3"
-                      --formals
-                        (True,False,False) -> Map.alter (\case
-                          Nothing -> error "visitForLoop ==> won't happen4"
-                          Just symExpr -> Just $ SymUnknown (toSymType2 symExpr,varName,Just symExpr) (ForBranchingReason branchRange)
-                          ) (VarName varName) ma
-                        (False,True,True) -> error "visitForLoop ==> won't happen5"
-                        --globals
-                        (False,True,False) -> Map.alter (\case
-                          Nothing -> Just $ SymUnknown (
-                            UnknownGlobalVarSymType,
-                            varName,
-                            Just $ SymGlobalVar UnknownGlobalVarSymType varName Nothing) (ForBranchingReason branchRange)
-                          Just expr -> Just $ SymUnknown (
-                            toSymType2 expr,
-                            varName,
-                            Just expr) (ForBranchingReason branchRange)) (VarName varName) ma
-                        --locals
-                        (False,False,True) -> Map.alter (\case
-                          Nothing -> error "visitForLoop ==> won't happen6"
-                          Just expr -> Just $ SymUnknown (
-                            toSymType2 expr,
-                            varName,
-                            Just expr) (ForBranchingReason branchRange)
-                          ) (VarName varName) ma
-                        (False,False,False) -> error "visitForLoop ==> won't happen7"
-                      ) map2 allOldNodes2
-                in error "TODO: SymType of global variables that are used for the first time inside the for loop", --map_with_allOldNodes2,
-              pc = pc symState
-            }
-            return toReturn
-        | otherwise = throwError "TODO2:: visitForLoop"
-{-error $ "EOF:: " ++ show newVarName
-(
-[
-int i=n;
-int z = 9;
-]
-
-
-[
-res += i;
-z = i;
-i--
-]
-
-res += i;
-)
- -}
 
 ----------------------------------------
 ----------------------------------------
@@ -846,35 +718,139 @@ visitExpr expr = error $ "What this is: " ++ show expr
 
 ------------------------------
 
-{-
-data CFG = CFG {
-  nodes :: [Node],
-  edges :: [(NodeID,[NodeID])]
-} deriving Show
+visitForLoop :: Maybe CFGT.Node -> CFGT.Node -> [CFGT.Node] -> BranchRange -> Map.Map SymStateKey SymExpr -> Method_R
+visitForLoop m_Acc forCondNode forBody_forStep_path branchRange ma
+  -- if any of the variables has a global variable or formal parameter,
+  -- then add SLoop to the state and end without visiting nodes
+  | (maybe False
+	   (\node -> nodeHasGlobalVar ma node || nodeHasFormalParm ma node)
+	   m_Acc)
+    || any (\node -> nodeHasGlobalVar ma node || nodeHasFormalParm ma node) (forCondNode : forBody_forStep_path) = do
+      let symExpr = SLoop
+	    m_Acc
+	    forCondNode
+	    forBody_forStep_path
+	  toReturn = ER_SymStateMapEntry (BranchRange branchRange) symExpr
+      -- if there's a node among (m_Acc,forBody_forStep_path)
+      -- which assigns/reassigns
+      -- 1) a formal parameter
+      -- 2) a local parameter defined outside the for loop
+      -- 3) a global variable
+      -- then update these VarNames in the main SymState
+      -- and mention them in the Lists: (GlobalVariables,VarAssignments) in case they miss
+      tell [Log.ModifyState "visitNode ==> ForInitialization ==> visitForLoop" (show branchRange,"SLoop")]
+      modify $ \symState -> SymState {
+	env =
+	  let map1 = Map.insert (BranchRange branchRange) symExpr (env symState)
+	      allNodes = maybe [] (\acc -> [acc]) m_Acc ++ forBody_forStep_path
+	      allNewNodes = filter (\node ->
+		let mExpr = CFG.getExpression node
+		in case mExpr of
+		     Nothing -> False
+		     Just expr ->
+		       AST.isAssignExpr expr && AST.isNewVar (AST.assEleft expr)
+		) allNodes
+	      allOldNodes = flip filter allNodes $ \node ->
+		let mExpr = CFG.getExpression node
+		in case mExpr of
+		     Nothing -> False
+		     Just expr ->
+		       AST.isAssignExpr expr && (not $ AST.isNewVar $ AST.assEleft expr)
+	      -- allOldNodes2 == allOldNodes \\ allNewNodes
+	      allOldNodes2 = flip filter allOldNodes $ \oldNode ->
+		let Just oldAssignExpr = CFG.getExpression oldNode
+		    oldVarName = AST.varName $ AST.assEleft oldAssignExpr
+		in flip all allNewNodes $ \newNode ->
+		     let Just newAssignExpr = CFG.getExpression newNode
+			 newVarName = AST.varName $ AST.assEleft newAssignExpr
+		     in oldVarName /= newVarName
+	      -- new VarAssignments
+	      new_varAssignments = getVarAssignments2 ma ++ flip map allOldNodes2 (\node ->
+		(let Just oldAssignExpr = CFG.getExpression node
+		 in AST.varName $ AST.assEleft oldAssignExpr,
+		 Node_Coor (CFGT.id node) (branchStart branchRange)))
+	      map2 = Map.insert VarAssignments (SVarAssignments new_varAssignments) map1
+	     -- formal parameters present in `allOldNodes2`
+	      allOldNodes2_formals = case Map.lookup FormalParms map2 of
+		Nothing -> []
+		Just (SFormalParms formalParms) -> flip filter allOldNodes2
+		  $ \node ->
+		      let Just varName = fmap AST.getVarName $ CFG.getExpression node
+		      in varName `elem` formalParms
+	      -- global variables present in `allOldNodes2`
+	      allOldNodes2_globals = flip filter allOldNodes2
+		  $ \node ->
+		      let Just varName = fmap AST.getVarName $ CFG.getExpression node
+		      in isGlobalVariable2 varName map2
+	      -- local variables present in `allOldNodes2`
+	      allOldNodes2_locals = case Map.lookup VarBindings map2 of
+		Nothing -> []
+		Just (SVarBindings localVarsMap) -> flip filter allOldNodes2
+		  $ \node ->
+		      let Just varName = fmap AST.getVarName $ CFG.getExpression node
+		      in varName `Map.member` localVarsMap
+	      -- add formal parameters to the map
+	      map_with_allOldNodes2 = foldl' (\ma node ->
+		let Just varName = fmap AST.getVarName $ CFG.getExpression node
+		in case (node `elem` allOldNodes2_formals
+			,node `elem` allOldNodes2_globals
+			,node `elem` allOldNodes2_locals) of
+		  (True,True,True) -> error "visitForLoop ==> won't happen1"
+		  (True,True,False) -> error "visitForLoop ==> won't happen2"
+		  (True,False,True) -> error "visitForLoop ==> won't happen3"
+		--formals
+		  (True,False,False) -> Map.alter (\case
+		    Nothing -> error "visitForLoop ==> won't happen4"
+		    Just symExpr -> Just $ SymUnknown (toSymType2 symExpr,varName,Just symExpr) (ForBranchingReason branchRange)
+		    ) (VarName varName) ma
+		  (False,True,True) -> error "visitForLoop ==> won't happen5"
+		  --globals
+		  (False,True,False) -> Map.alter (\case
+		    Nothing -> Just $ SymUnknown (
+		      UnknownGlobalVarSymType,
+		      varName,
+		      Just $ SymGlobalVar UnknownGlobalVarSymType varName Nothing) (ForBranchingReason branchRange)
+		    Just expr -> Just $ SymUnknown (
+		      toSymType2 expr,
+		      varName,
+		      Just expr) (ForBranchingReason branchRange)) (VarName varName) ma
+		  --locals
+		  (False,False,True) -> Map.alter (\case
+		    Nothing -> error "visitForLoop ==> won't happen6"
+		    Just expr -> Just $ SymUnknown (
+		      toSymType2 expr,
+		      varName,
+		      Just expr) (ForBranchingReason branchRange)
+		    ) (VarName varName) ma
+		  (False,False,False) -> error "visitForLoop ==> won't happen7"
+		) map2 allOldNodes2
+	  in error "TODO: SymType of global variables that are used for the first time inside the for loop", --map_with_allOldNodes2,
+	pc = pc symState
+      }
+      return toReturn
+  | otherwise = throwError "TODO2:: visitForLoop"
+{-error $ "EOF:: " ++ show newVarName
+(
+[
+int i=n;
+int z = 9;
+]
 
-----------
 
-data Node = Entry | End {
-    id :: NodeID,
-    parent :: NodeID,
-    mExpr :: Maybe AST.Expression
-  } | Node {
-    id :: NodeID,
-    nodeData :: NodeData,
-    parent :: NodeID
-  } deriving Show
+[
+res += i;
+z = i;
+i--
+]
 
-----------
+res += i;
+)
+ -}
 
-data SymState = SymState
- { env :: Map.Map String SymExpr
- , pc  :: [SymExpr]
--}
-
-type Path = [CFG.Node]
-runCFG :: [CFG.CFG] -> CFG.CFG -> Maybe Path -> Maybe SymState -> ([Log.Log],SymState)
+type Path = [CFGT.Node]
+runCFG :: [CFGT.CFG] -> CFGT.CFG -> Maybe Path -> Maybe SymState -> ([Log.Log],SymState)
 runCFG cfgs cfg mPath mSymState =
-  let path :: [CFG.Node]
+  let path :: [CFGT.Node]
       path = maybe (CFG.getPath 0 cfg) id mPath
       runner = flip mapM_ path $ \node -> do
         tell [Log.NextNode (show node)]
