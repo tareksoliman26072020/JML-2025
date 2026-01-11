@@ -209,7 +209,7 @@ instance CFGVisitor Method_SymExec where
                 -- 2) the VarAssignments of global variables
                 let condVarAssignments s = flip filter (getVarAssignments s) $
                       \(name,_) -> maybe
-                          (hasGlobalVariable name (env s))
+                          (isGlobalVariable2 name (env s))
                           (const True) $ lookup name mainVarAssignments
                     newMainVarAssignments = case symExpr of
                       SIte _ ifSymState mElseSymState -> nub $
@@ -754,8 +754,8 @@ visitForLoop cfg m_Acc forCondNode forBody_forStep_path branchRange ma
   -- if any of the variables has a global variable or formal parameter,
   -- then add SLoop to the state and end without visiting nodes
   | (maybe False
-	   (\node -> nodeHasGlobalVar ma node || nodeHasFormalParm ma node)
-	   m_Acc)
+           (\node -> nodeHasGlobalVar ma node || nodeHasFormalParm ma node)
+           m_Acc)
     || any (\node -> nodeHasGlobalVar ma node || nodeHasFormalParm ma node) (forCondNode : forBody_forStep_path) = do-- runCFG cfgs cfg mPath mSymState
     (_,cfgs) <- ask
     let path = maybe [] (\acc -> [acc]) m_Acc
@@ -795,11 +795,32 @@ visitForLoop cfg m_Acc forCondNode forBody_forStep_path branchRange ma
         originalVarNames = flip Map.filterWithKey (env originalState) $ \k _ ->
           case k of VarName _ -> True
                     _         -> False
+        condNode_globalVars :: [String]
+        condNode_globalVars =
+          let from_acc :: Maybe String
+              from_acc = do
+                acc <- m_Acc
+                if CFG.isNewlyDeclaredNode acc
+                  then Just $ CFG.getVarName acc
+                  else Nothing
+              from_cond :: [String]
+              from_cond = case forCondNode of
+                CFGT.Node _ (CFGT.BooleanExpression CFGT.For mExpr) _ ->
+                  flip (maybe []) mExpr $ \expr -> do
+                    vr <- AST.getVarNames expr :: [String]
+                    -- reject every vr that is same as from_acc
+                    flip (maybe [vr]) from_acc $ \case
+                      acc_varName
+                        | acc_varName == vr -> []
+                        | isGlobalVariable2 vr (env forBodySymState) -> [vr]
+                        | otherwise -> []
+                _ -> error $ "visitForLoop ==> won't happen 4 ==> " ++ show forCondNode
+          in from_cond
         -- a) GlobalVars from `forBodySymState`
-        forBodyGlobalVars = maybe [] (\case
-            SGlobalVars li -> li
-            val -> error $ "visitForLoop ==> won't happen 4 ==> " ++ show val)
-            $ Map.lookup GlobalVars (env forBodySymState)
+        forBodyGlobalVars = condNode_globalVars ++ (flip (maybe [])
+          (Map.lookup GlobalVars (env forBodySymState)) $ \case
+             SGlobalVars li -> li
+             val -> error $ "visitForLoop ==> won't happen 5 ==> " ++ show val)
         -- b) VarAssignments from `forBodySymState` which have
         --        (GlobalVar,
         --         any VarBinding from `originalState`,
@@ -810,7 +831,7 @@ visitForLoop cfg m_Acc forCondNode forBody_forStep_path branchRange ma
                 str `elem` forBodyGlobalVars ||
                 str `elem` originalVarBindings ||
                 str `elem` originalFormalParms
-            val -> error $ "visitForLoop ==> won't happen 5 ==> " ++ show val)
+            val -> error $ "visitForLoop ==> won't happen 7 ==> " ++ show val)
             $ Map.lookup VarAssignments (env forBodySymState)
         -- c) VarNames in `forBodySymState` with
         --        (GlobalVars,
@@ -823,7 +844,7 @@ visitForLoop cfg m_Acc forCondNode forBody_forStep_path branchRange ma
                   VarName vn `Map.member` originalVarNames -> True
               _ -> False
    -- error $ printf "MEOW::\n1) %s\n\n2) %s" (show originalState) (show forBodySymState)
-    error $ "MEOW:: " ++ show forBody_Some_VarNames
+    error $ "MEOW:: " ++ show condNode_globalVars
   | otherwise = throwError "TODO2:: visitForLoop"
 
 {-
@@ -964,7 +985,7 @@ visitForLoop m_Acc forCondNode forBody_forStep_path branchRange ma
 	      allOldNodes2_globals = flip filter allOldNodes2
 		  $ \node ->
 		      let Just varName = fmap AST.getVarName $ CFG.getExpression node
-		      in hasGlobalVariable varName map2
+		      in isGlobalVariable2 varName map2
 	      -- local variables present in `allOldNodes2`
 	      allOldNodes2_locals = case Map.lookup VarBindings map2 of
 		Nothing -> []
@@ -1007,7 +1028,7 @@ visitForLoop m_Acc forCondNode forBody_forStep_path branchRange ma
               allGlobals :: [String]
               allGlobals = flip concatMap (allNewNodes ++ allOldNodes) $ \node ->
                 flip filter (nub $ CFG.getVarNames node) $ \varName ->
-                  hasGlobalVariable varName map3 &&
+                  isGlobalVariable2 varName map3 &&
                   all (\nd -> CFG.getVarName nd /= varName) allNewNodes
 	      map4 = Map.alter (\case
 	        Nothing -> Just $ SGlobalVars allGlobals

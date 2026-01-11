@@ -51,11 +51,14 @@ isGlobalVariable :: SymExpr -> Bool
 isGlobalVariable (SymGlobalVar _ _ _) = True
 isGlobalVariable _ = False
 
+--isNewGlobalVariable :: String -> Map.Map SymStateKey SymExpr -> Bool
+
+-- this function checks whether a 
 -- a sign that a global variable exists is that
 -- it either exists in SGlobalVars,
 -- or it does not exist in both SFormalParms or in SVarBindings
-hasGlobalVariable :: String -> Map.Map SymStateKey SymExpr -> Bool
-hasGlobalVariable varName ma =
+isGlobalVariable2 :: String -> Map.Map SymStateKey SymExpr -> Bool
+isGlobalVariable2 varName ma =
   let isGlobal globals = varName `elem` globals
       isNotFormal formals = varName `notElem` formals
       isNotLocal bindings = varName `Map.notMember` bindings
@@ -71,11 +74,11 @@ hasGlobalVariable varName ma =
     (Nothing,Just (SFormalParms formals),Just (SVarBindings bindings))
       -> isNotFormal formals && isNotLocal bindings
     (Just (SGlobalVars globals),Nothing,Just (SVarBindings bindings))
-      -> isGlobal globals && isNotLocal bindings
+      -> isGlobal globals || isNotLocal bindings
     (Just (SGlobalVars globals),Just (SFormalParms formals),Nothing)
-      -> isGlobal globals && isNotFormal formals
+      -> isGlobal globals || isNotFormal formals
     (Just (SGlobalVars globals),Just (SFormalParms formals),Just (SVarBindings bindings))
-      -> isGlobal globals && isNotFormal formals && isNotLocal bindings
+      -> isGlobal globals || (isNotFormal formals && isNotLocal bindings)
 
 hasFormalParameter :: String -> Map.Map SymStateKey SymExpr -> Bool
 hasFormalParameter varName s = case Map.lookup FormalParms s of
@@ -86,7 +89,7 @@ nodeHasGlobalVar :: Map.Map SymStateKey SymExpr -> CFG.Node -> Bool
 nodeHasGlobalVar ma = \case
   CFG.Node _ (CFG.Statement stmt) _ ->
     let varNames = AST.getVarNames (AST.getStatementExpression stmt)
-    in any (\vn -> hasGlobalVariable vn ma) varNames
+    in any (\vn -> isGlobalVariable2 vn ma) varNames
   CFG.Node _ (CFG.BooleanExpression CFG.For mExpr) _ ->
     let mVarNames = fmap AST.getVarNames mExpr
     in process_mVarNames mVarNames
@@ -97,7 +100,7 @@ nodeHasGlobalVar ma = \case
   node -> error $ "TODO: nodeHasGlobalVar: " ++ show node
   where
   process_mVarNames :: Maybe [String] -> Bool
-  process_mVarNames = maybe False (\varNames -> any (\vn -> hasGlobalVariable vn ma) varNames)
+  process_mVarNames = maybe False (\varNames -> any (\vn -> isGlobalVariable2 vn ma) varNames)
 
 nodeHasFormalParm :: Map.Map SymStateKey SymExpr -> CFG.Node -> Bool
 nodeHasFormalParm ma = \case

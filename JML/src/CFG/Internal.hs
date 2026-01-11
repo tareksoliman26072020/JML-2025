@@ -172,13 +172,16 @@ getExpression = \case
 
 -----------------------------
 
-findNewlyDeclaredNodes :: [Node] -> [Node]
-findNewlyDeclaredNodes = filter $ \node ->
+isNewlyDeclaredNode :: Node -> Bool
+isNewlyDeclaredNode = \node ->
   let mExpr = getExpression node
   in case mExpr of
        Nothing -> False
        Just expr ->
          AST.isAssignExpr expr && AST.isNewVar (AST.assEleft expr)
+
+findNewlyDeclaredNodes :: [Node] -> [Node]
+findNewlyDeclaredNodes = filter isNewlyDeclaredNode
 
 findAlreadyDeclaredNodes :: [Node] -> [Node]
 findAlreadyDeclaredNodes = filter $ \node ->

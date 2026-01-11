@@ -166,26 +166,8 @@ public double boo33_5(String str){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
 /*
-SymState {
-  env = fromList [
-    (MethodName "boo33_6",SMethodType Double),
-    (GlobalVars,SGlobalVars ["z","t"]),
-    (FormalParms,SFormalParms ["str"]),
-    (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = 0}),("y",Node_Coor {varDeclAt = 2, varFrame = 0})])),
-    (VarAssignments,SVarAssignments [("x",Node_Coor {varDeclAt = 1, varFrame = 0}),("y",Node_Coor {varDeclAt = 2, varFrame = 0}),("z",Node_Coor {varDeclAt = 3, varFrame = 0}),("x",Node_Coor {varDeclAt = 4, varFrame = 0}),("z",Node_Coor {varDeclAt = 5, varFrame = 0})]),
-    (VarName "str",SymFormalParam String "str" Nothing),
-    (VarName "t",SymGlobalVar UnknownGlobalVarSymType "t" Nothing),
-    (VarName "x",SymDouble 1.1),
-    (VarName "y",SymNull Int),
-    (VarName "z",SymNum 1.0),
-    (Return,SymDouble 1.1)
-  ], pc = []
-}
-
-
-
 SymState {
   env = fromList [
     (MethodName "boo33_6",SMethodType Double),
@@ -2265,7 +2247,7 @@ SymState {
 public int wrongSum1(int n) {
   int res = 0;
   int j;
-  for(int i=n; i>0; i--) {
+  for(int i=n; w>0; i--) {
     res += i;
     int z = 9;
     z = i;
