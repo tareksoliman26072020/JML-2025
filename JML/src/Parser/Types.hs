@@ -126,10 +126,22 @@ getFunCallName (FunCallStmt s) = case s of
   _               -> error "won't happen"
 getFunCallName _ = error "won't happen"
 
-getExpression :: Statement -> Expression
-getExpression = \case
+getStatementExpression :: Statement -> Expression
+getStatementExpression = \case
   AssignStmt _ expr -> expr
   stmt -> error "TODO: getExpression"
+
+getExpressionExpressions :: Expression -> [Expression]
+getExpressionExpressions = \case
+  --AssignExpr {assEleft :: Expression, assEright :: Expression}
+  expr@AssignExpr{} -> [assEleft expr,assEright expr]
+  expr -> error $ "TODO: getExpressionExpressions ==> " ++ show expr
+
+getExpressionType :: Expression -> Maybe (Type Types)
+getExpressionType = \case
+--VarExpr {varType :: Maybe (Type Types), varObj :: [String], varName :: String}
+  expr@VarExpr{} -> varType expr
+  expr -> error $ "TODO: getExpressionType ==> " ++ show expr
 
 -- VarExpr {varType = Nothing, varObj = [], varName = "i"}
 -- ArrayCallExpr {arrName :: Expression, index :: Maybe Expression}

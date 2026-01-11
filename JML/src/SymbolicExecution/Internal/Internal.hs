@@ -54,8 +54,8 @@ isGlobalVariable _ = False
 -- a sign that a global variable exists is that
 -- it either exists in SGlobalVars,
 -- or it does not exist in both SFormalParms or in SVarBindings
-isGlobalVariable2 :: String -> Map.Map SymStateKey SymExpr -> Bool
-isGlobalVariable2 varName ma =
+hasGlobalVariable :: String -> Map.Map SymStateKey SymExpr -> Bool
+hasGlobalVariable varName ma =
   let isGlobal globals = varName `elem` globals
       isNotFormal formals = varName `notElem` formals
       isNotLocal bindings = varName `Map.notMember` bindings
@@ -77,11 +77,6 @@ isGlobalVariable2 varName ma =
     (Just (SGlobalVars globals),Just (SFormalParms formals),Just (SVarBindings bindings))
       -> isGlobal globals && isNotFormal formals && isNotLocal bindings
 
-hasGlobalVariable :: String -> Map.Map SymStateKey SymExpr -> Bool
-hasGlobalVariable varName s = case Map.lookup GlobalVars s of
-  Nothing -> False
-  Just (SGlobalVars li) -> varName `elem` li
-
 hasFormalParameter :: String -> Map.Map SymStateKey SymExpr -> Bool
 hasFormalParameter varName s = case Map.lookup FormalParms s of
   Nothing -> False
@@ -90,14 +85,14 @@ hasFormalParameter varName s = case Map.lookup FormalParms s of
 nodeHasGlobalVar :: Map.Map SymStateKey SymExpr -> CFG.Node -> Bool
 nodeHasGlobalVar ma = \case
   CFG.Node _ (CFG.Statement stmt) _ ->
-    let varNames = AST.getVarNames (AST.getExpression stmt)
+    let varNames = AST.getVarNames (AST.getStatementExpression stmt)
     in any (\vn -> hasGlobalVariable vn ma) varNames
   CFG.Node _ (CFG.BooleanExpression CFG.For mExpr) _ ->
     let mVarNames = fmap AST.getVarNames mExpr
     in process_mVarNames mVarNames
   CFG.Node _ (CFG.ForStep mStmt) _ ->
     let mVarNames :: Maybe [String]
-        mVarNames = fmap (AST.getVarNames . AST.getExpression) mStmt
+        mVarNames = fmap (AST.getVarNames . AST.getStatementExpression) mStmt
     in process_mVarNames mVarNames
   node -> error $ "TODO: nodeHasGlobalVar: " ++ show node
   where
@@ -107,14 +102,14 @@ nodeHasGlobalVar ma = \case
 nodeHasFormalParm :: Map.Map SymStateKey SymExpr -> CFG.Node -> Bool
 nodeHasFormalParm ma = \case
   CFG.Node _ (CFG.Statement stmt) _ ->
-    let varNames = AST.getVarNames (AST.getExpression stmt)
+    let varNames = AST.getVarNames (AST.getStatementExpression stmt)
     in any (\vn -> hasFormalParameter vn ma) varNames
   CFG.Node _ (CFG.BooleanExpression CFG.For mExpr) _ ->
     let mVarNames = fmap AST.getVarNames mExpr
     in process_mVarNames mVarNames
   CFG.Node _ (CFG.ForStep mStmt) _ ->
     let mVarNames :: Maybe [String]
-        mVarNames = fmap (AST.getVarNames . AST.getExpression) mStmt
+        mVarNames = fmap (AST.getVarNames . AST.getStatementExpression) mStmt
     in process_mVarNames mVarNames
   node -> error $ "TODO: nodeHasLocalParm: " ++ show node
   where

@@ -3,7 +3,7 @@ module CFG.Types where
 
 import qualified Parser.Types as AST(
   Statement(..),Expression(..), Type(..), Types(..), Modifier(..), Exception(..),
-  getExpression,getVarName,getVarNames)
+  getStatementExpression,getVarName,getVarNames)
 import Data.List (intercalate)
 import Text.Printf(printf)
 

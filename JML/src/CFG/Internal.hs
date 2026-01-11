@@ -12,7 +12,7 @@ getCFGName :: CFG -> String
 getCFGName = f2 . find f1 . nodes
   where
   f1 (Entry _ _ _) = True
-  f1 _           = False
+  f1 _             = False
   
   f2 (Just (Entry _ name _)) = name
   f2 Nothing               = error "Won't happen"
@@ -137,12 +137,21 @@ getPath startId cfg =
 
 getVarName :: Node -> String
 getVarName = \case
-  Node _ (Statement stmt) _ -> AST.getVarName (AST.getExpression stmt)
+  Node _ (Statement stmt) _ -> AST.getVarName (AST.getStatementExpression stmt)
   node -> error $ "TODO:: getVarName ==> " ++ show node
 
 getVarNames :: Node -> [String]
 getVarNames = \case
-  Node _ (Statement stmt) _ -> AST.getVarNames (AST.getExpression stmt)
+  Node _ (Statement stmt) _ -> AST.getVarNames (AST.getStatementExpression stmt)
+{-
+Node {
+  id = 11,
+  nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = -, expr2 = NumberLiteral 1.0}}})
+  ),
+  parent = 3
+}
+ -}
+  Node _ (ForStep mStmt) _ -> maybe [] (AST.getVarNames . AST.getStatementExpression) mStmt
   node -> error $ "TODO:: getVarNames ==> " ++ show node
 
 {-
@@ -155,10 +164,43 @@ data NodeData = Statement AST.Statement
  -}
 getExpression :: Node -> Maybe AST.Expression
 getExpression = \case
-  Node _ (Statement stmt) _ -> Just $ AST.getExpression stmt
+  Node _ (Statement stmt) _ -> Just $ AST.getStatementExpression stmt
   Node _ (ForInitialization mExpr) _ -> mExpr
   Node _ (BooleanExpression _ mExpr) _ -> mExpr
-  Node _ (ForStep mStmt) _ -> fmap AST.getExpression mStmt
+  Node _ (ForStep mStmt) _ -> fmap AST.getStatementExpression mStmt
   node -> error $ "TODO:: getExpression ==> " ++ show node
 
 -----------------------------
+
+findNewlyDeclaredNodes :: [Node] -> [Node]
+findNewlyDeclaredNodes = filter $ \node ->
+  let mExpr = getExpression node
+  in case mExpr of
+       Nothing -> False
+       Just expr ->
+         AST.isAssignExpr expr && AST.isNewVar (AST.assEleft expr)
+
+findAlreadyDeclaredNodes :: [Node] -> [Node]
+findAlreadyDeclaredNodes = filter $ \node ->
+  let mExpr = getExpression node
+  in case mExpr of
+       Nothing -> False
+       Just expr ->
+         AST.isAssignExpr expr && (not $ AST.isNewVar $ AST.assEleft expr)
+
+-----------------------------
+
+{-
+Node {
+    id :: NodeID,
+    nodeData :: NodeData,
+    parent :: NodeID
+  }
+ -}
+-- converts any node to a nodeData of `Statement`
+convert :: Node -> Maybe Node
+convert = \case
+  Node theId nodeData parent -> case nodeData of
+    ForStep mStmt -> flip fmap mStmt $ \stmt -> Node theId (Statement stmt) parent
+    _ -> error $ "TODO1:: convert ==> " ++ show nodeData
+  node -> error $ "TODO2:: convert ==> " ++ show node

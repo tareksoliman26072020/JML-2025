@@ -6,10 +6,12 @@ import SymbolicExecution.Types
 import qualified CFG.Types as CFGT
 import qualified CFG.Internal as CFG
 import qualified Data.Map as Map
+import Data.Maybe (mapMaybe)
 import Control.Monad.Reader (runReaderT,ask)
 import Control.Monad.State
 import Control.Monad.Except
 import Control.Monad (forM_, zipWithM)
+import Control.Applicative (asum)
 import qualified Parser.Types as AST
 import Visitors.API
 import SymbolicExecution.MethodCall (runSymState)
@@ -285,7 +287,7 @@ instance CFGVisitor Method_SymExec where
                     -- CFG found
               Just cfg0 -> cfg0
         let m_Acc = flip fmap mAccumulationVar $ \v ->
-              CFGT.Node (CFGT.id n) (CFGT.Statement $ AST.AssignStmt [] v) 0
+              CFGT.Node (CFGT.id n) (CFGT.Statement $ AST.AssignStmt [] v) (CFGT.parent n)
         -- process SymState of for body
         -- branches: start id for the for body branch.
         --           return is a list of one int.
@@ -302,7 +304,7 @@ instance CFGVisitor Method_SymExec where
               CFGT.Node theId _ _ -> theId /= forCondNodeId
         -- implement a helper that takes as input `(accLogs,accState)`
         -- call it `visitForLoop`
-        visitForLoop m_Acc forCondNode forBody_forStep_path
+        visitForLoop cfg m_Acc forCondNode forBody_forStep_path
           (BR (CFGT.id n)
               (CFG.getNodeId $ CFG.getEndForNode cfg $ (CFG.findNode_via_id cfg $ CFGT.id n)))
           (env originalState)
@@ -529,13 +531,7 @@ visitExpr expr@AST.BinOpExpr{} = do
                | otherwise -> numericCalculator
           False -> booleanCalculator
         toReturn = ER_Expr $ whichFun (SBin (simplify op1) (toSymBinOp $ AST.binOp expr) (simplify op2))
-    in do {-case op1 of
-            SymGlobalVar _ "y" _ ->
-              throwError $ printf "MEOW::\n1) %s\n2) %s\n3) %s"
-                (show op1) (show op2) (show toReturn)
-            _ -> return ER_Void
-           -}
-          tell [Log.Return (printf "visitExpr -> BinOpExpr -> %s"
+    in do tell [Log.Return (printf "visitExpr -> BinOpExpr -> %s"
                                    (if isNumericOp then "numericCalculator"
                                     else "booleanCalculator")) (show toReturn)
                ] $> toReturn
@@ -556,7 +552,7 @@ visitExpr expr@AST.AssignExpr{} = do
          --val = SymNull String
          (VarName arrName,val)
        ER_Expr ex -> error $ printf "visitExpr ==> AssignExpr: (%s,%s,%s)" (show expr) (show ex) (show $ AST.assEleft expr)
-
+  
   two <- visitExpr (AST.assEright expr)
   let e2 = case two of
           ER_Expr e2_ -> cast (toSymType2 one_val) e2_
@@ -565,26 +561,60 @@ visitExpr expr@AST.AssignExpr{} = do
               Nothing -> error $ printf "visitExpr ~~> AssignExpr ~~> won't happen"
               Just e2_ -> e2_
           ER_SymStateMapEntry _ e2_ -> e2_
+  {-
+  case two of
+    ER_SymStateMapEntry two_svn two_val
+      | two_svn == VarName "t" -> throwError $ "MEOW:: " ++ show two
+    _ -> return ER_Void
+  -}
   tell [Log.Affected "visitExpr -> AssignExpr" [show one, show two]]
   -- newVal is a transformation of e2. it's the new value
   -- inside of newVal, casting is done
   varNames <- getVarNames <$> get
-  let newVal = case one of
+  let two_newVal = case one of
         ER_ArrayCallExpr (SArrayIndexAccess arrName index) _ ->
           let Just theArray@(SymArray mt ml elems) = Map.lookup (VarName arrName) varNames
           in case index of
                SymInt num ->
                  let int = fromIntegral num
                  in SymArray mt ml (take int elems ++ [cast (toSymType2 one_val) e2] ++ drop (int+1) elems)
-               _ -> error $ "TODO: visitExpr ==> AssignExpr: " ++ show index
+               _ -> error $ "TODO1: visitExpr ==> AssignExpr: " ++ show index
         _ -> cast (toSymType2 one_val) e2
   -- inserting new value in map
-  tell [Log.ModifyState "visitExpr -> AssignExpr" (show one_svn,show newVal)]
+  tell [Log.ModifyState "visitExpr -> AssignExpr" (show one_svn,show two_newVal)]
   modify $ \symState ->
     SymState {
-      env = Map.insert one_svn newVal (env symState),
+      env = Map.insert one_svn two_newVal (env symState),
       pc = pc symState
     }
+  -- Sometimes, the `two_newVal` of `one_svn` can tell us more about the type of `one_val`
+  -- which may be unknown, while the type of `two_newVal` is more known.
+  -- This happens mainly only when `one_val` is a global variable of unknown type
+  -- example: both z and t are global variables mentioned for the first time
+  --    z = t;
+  --    z = 1;
+  -- in the beginning, z and t are related to each other, however their type is unknown
+  -- then the z = 1 tells us that z is numerical, which means t must be also marked
+  -- as numerical.
+  -- The following takes care of t in that context while z = 1 gets processed.
+  -- one: the value of z before it gets updated to 1
+  case one of
+    ER_SymStateMapEntry (VarName vn) (SymGlobalVar st vn2 mv) -> do
+      let ifUnknown = st `elem` [UnknownGlobalVarSymType,UnknownNumSymType]
+      if ifUnknown && vn /= vn2
+        then do
+          tell [Log.UpdateVariable vn2 "visitExpr ==> AssignExpr"]
+          modify $ \symState -> SymState {
+            env = Map.insert
+                    (VarName vn2)
+                    (SymGlobalVar (pick_known_symType (st,toSymType2 two_newVal)) vn2 mv)
+                    (env symState),
+            pc = pc symState
+          }
+          return ER_Void
+      else return ER_Void
+    _ -> return ER_Void
+
   let toReturn = ER_SymStateMapEntry one_svn e2
   tell [Log.Return "visitExpr -> AssignExpr" (show toReturn)] $> toReturn
 
@@ -605,11 +635,13 @@ visitExpr expr@AST.VarExpr{} = do
               tell [Log.Return "visitExpr -> VarExpr -> Updating" (show toReturn)] $> toReturn
             Nothing -> do
               tell [Log.GlobalVar varName_ "visitExpr -> VarExpr"]
-              let toReturn = ER_SymStateMapEntry
+              let symExpr = SymGlobalVar UnknownGlobalVarSymType varName_ Nothing
+                  toReturn = ER_SymStateMapEntry
                     (VarName varName_)
-                    (SymGlobalVar UnknownGlobalVarSymType varName_ Nothing)
+                    symExpr
               modify $ \symState -> SymState {
-                env = recordGlobalVar varName_ (env symState),
+                env = Map.insert (VarName varName_) symExpr
+                      $ recordGlobalVar varName_ (env symState),
                 pc = pc symState
               }
               tell [Log.Return "visitExpr -> VarExpr -> Recording Global Variable" (show toReturn)] $> toReturn
@@ -626,7 +658,6 @@ visitExpr expr@AST.VarExpr{} = do
           tell [Log.Return "visitExpr -> VarExpr -> Declaring Local Variable" (show toReturn)] $> toReturn
     li -> do
       state <- get
-      --throwError $ "TODO: visitExpr ==> VarExpr ==> object access ==> " ++ (show $ li ++ [AST.varName expr]) ++ " ,,, " ++ show expr
       let symExpr0@(SObjAcc exprs) = SObjAcc $ li ++ [AST.varName expr]
       let toReturn = ER_SymStateMapEntry (VarName $ last $ init exprs) (objAccCalculator (getVarNames state) symExpr0)
       tell [Log.Return "visitExpr ==> VarExpr" (show toReturn)] $> toReturn
@@ -718,6 +749,167 @@ visitExpr expr = error $ "What this is: " ++ show expr
 
 ------------------------------
 
+visitForLoop :: CFGT.CFG -> Maybe CFGT.Node -> CFGT.Node -> [CFGT.Node] -> BranchRange -> Map.Map SymStateKey SymExpr -> Method_R
+visitForLoop cfg m_Acc forCondNode forBody_forStep_path branchRange ma
+  -- if any of the variables has a global variable or formal parameter,
+  -- then add SLoop to the state and end without visiting nodes
+  | (maybe False
+	   (\node -> nodeHasGlobalVar ma node || nodeHasFormalParm ma node)
+	   m_Acc)
+    || any (\node -> nodeHasGlobalVar ma node || nodeHasFormalParm ma node) (forCondNode : forBody_forStep_path) = do-- runCFG cfgs cfg mPath mSymState
+    (_,cfgs) <- ask
+    let path = maybe [] (\acc -> [acc]) m_Acc
+               ++ (flip mapMaybe forBody_forStep_path $ \node -> case CFGT.nodeData node of
+                     CFGT.ForStep _ -> CFG.convert node
+                     _ -> Just node)
+    originalState <- get
+    -- modify `originalState` so that we only keep
+    -- GlobalVars, FormalParms, VarBindings, VarNames
+    -- in a new modified Map.Map, because that's all we need
+    -- when we generate the inner state
+    let modifiedOriginalMap = flip Map.filterWithKey (env originalState) $ \k _ -> case k of
+          GlobalVars -> True
+          FormalParms -> True
+          VarBindings -> True
+          VarName _ -> True
+          VarAssignments -> True
+          _ -> False
+    let (_,forBodySymState) = runCFG cfgs cfg (Just path)
+          (Just $ SymState modifiedOriginalMap (pc originalState))
+        -- GlobalVars from `originalState`
+        originalGlobalVars = maybe [] (\case
+            SGlobalVars li -> li
+            val -> error $ "visitForLoop ==> won't happen 1 ==> " ++ show val)
+            $ Map.lookup GlobalVars (env originalState) 
+        -- VarBindings from `originalState`
+        originalVarBindings = maybe [] (\case
+            SVarBindings m -> Map.keys m
+            val -> error $ "visitForLoop ==> won't happen 2 ==> " ++ show val)
+            $ Map.lookup VarBindings (env originalState)
+        -- FormalParms from `originalState`
+        originalFormalParms = maybe [] (\case
+            SFormalParms li -> li
+            val -> error $ "visitForLoop ==> won't happen 3 ==> " ++ show val)
+            $ Map.lookup FormalParms (env originalState)
+        -- VarNames from `originalState`
+        originalVarNames = flip Map.filterWithKey (env originalState) $ \k _ ->
+          case k of VarName _ -> True
+                    _         -> False
+        -- a) GlobalVars from `forBodySymState`
+        forBodyGlobalVars = maybe [] (\case
+            SGlobalVars li -> li
+            val -> error $ "visitForLoop ==> won't happen 4 ==> " ++ show val)
+            $ Map.lookup GlobalVars (env forBodySymState)
+        -- b) VarAssignments from `forBodySymState` which have
+        --        (GlobalVar,
+        --         any VarBinding from `originalState`,
+        --         any FormalParm from `originalState`)
+        forBody_Some_VarAssignments = maybe [] (\case
+            SVarAssignments li -> flip filter li $ \(str,coor) ->
+                str `elem` originalGlobalVars ||
+                str `elem` forBodyGlobalVars ||
+                str `elem` originalVarBindings ||
+                str `elem` originalFormalParms
+            val -> error $ "visitForLoop ==> won't happen 5 ==> " ++ show val)
+            $ Map.lookup VarAssignments (env forBodySymState)
+        -- c) VarNames in `forBodySymState` with
+        --        (GlobalVars,
+        --         VarNames mentioned in `originalState`)
+        forBody_Some_VarNames = flip Map.filterWithKey (env forBodySymState) $ \k a ->
+            case k of
+              VarName vn
+                | vn `elem` originalGlobalVars ||
+                  vn `elem` forBodyGlobalVars  ||
+                  VarName vn `Map.member` originalVarNames -> True
+              _ -> False
+   -- error $ printf "MEOW::\n1) %s\n\n2) %s" (show originalState) (show forBodySymState)
+    error $ "MEOW:: " ++ show forBody_Some_VarNames
+  | otherwise = throwError "TODO2:: visitForLoop"
+
+{-
+* Lets: a) GlobalVars from 2)
+        b) VarAssignments from 2) which have
+            GlobalVar
+            any VarBinding from 1)
+            FormalParm from 1)
+        c) VarNames in 2) with
+            with GlobalVars
+            with VarNames mentioned in 1)
+------------------------------
+d) take GlobalVars from 2) and add them to 1)
+e) ignore FormalParms and VarBindings in 2)
+f) take every VarAssignment from 2) which concerns
+      * any GlobalVar
+      * and any VarBinding from 1)
+      * and FormalParm from 1)
+g) check VarNames in 2)
+      * observe and take only VarNames which concern GlobalVars and VarNames mentioned in 1)
+      * and make them SymUnknown only if for the VarNames whose values in 2) are different from their values in 1)
+      * VarNames of GlobalVars in 2) may not be mentioned in 1). That is fine, take them too.
+h) if there are GlobalVars that are mentioned for the first time in 2) and have no VarName
+  then create VarName for them in 1) (Siehe dazu "c")
+ -}
+{-
+[
+ (MethodName "wrongSum1",SMethodType Int),
+ (FormalParms,SFormalParms ["n"]),
+ (VarBindings,SVarBindings (fromList [("j",Node_Coor {varDeclAt = 2, varFrame = 0}),("res",Node_Coor {varDeclAt = 1, varFrame = 0})])),
+ (VarAssignments,SVarAssignments [("res",Node_Coor {varDeclAt = 1, varFrame = 0}),("j",Node_Coor {varDeclAt = 2, varFrame = 0})]),
+ (VarName "j",SymNull Int),
+ (VarName "n",SymFormalParam Int "n" Nothing),
+ (VarName "res",SymInt 0)
+]
+
+
+[
+ (GlobalVars,SGlobalVars ["t","c"]),
+ (FormalParms,SFormalParms ["n"]),
+ (VarBindings,SVarBindings (fromList [("i",Node_Coor {varDeclAt = 3, varFrame = 0}),("j",Node_Coor {varDeclAt = 2, varFrame = 0}),("res",Node_Coor {varDeclAt = 1, varFrame = 0}),("z",Node_Coor {varDeclAt = 6, varFrame = 3})])),
+ (VarAssignments,SVarAssignments [
+     ("res",Node_Coor {varDeclAt = 1, varFrame = 0}),
+     ("j",Node_Coor {varDeclAt = 2, varFrame = 0}),
+     ("i",Node_Coor {varDeclAt = 3, varFrame = 0}),
+     ("res",Node_Coor {varDeclAt = 5, varFrame = 3}),
+     ("z",Node_Coor {varDeclAt = 6, varFrame = 3}),
+     ("z",Node_Coor {varDeclAt = 7, varFrame = 3}),
+     ("res",Node_Coor {varDeclAt = 8, varFrame = 3}),
+     ("t",Node_Coor {varDeclAt = 9, varFrame = 3}),
+     ("j",Node_Coor {varDeclAt = 10, varFrame = 3}),
+     ("i",Node_Coor {varDeclAt = 11, varFrame = 3})
+ ]),
+ (VarName "c",SymGlobalVar UnknownGlobalVarSymType "c" Nothing),
+ (VarName "i",SBin (SymFormalParam Int "n" Nothing) Sub (SymInt 1)),
+ (VarName "j",SymGlobalVar Int "c" Nothing),
+ (VarName "n",SymFormalParam Int "n" Nothing),
+ (VarName "res",SymInt 0),
+ (VarName "t",SymFormalParam Int "n" Nothing),
+ (VarName "z",SymFormalParam Int "n" Nothing)
+]
+
+
+[
+ (GlobalVars,SGlobalVars ["t","c"]),
+ (FormalParms,SFormalParms ["n"]),
+ (VarBindings,SVarBindings (fromList [("j",Node_Coor {varDeclAt = 2, varFrame = 0}),("res",Node_Coor {varDeclAt = 1, varFrame = 0})])),
+ (VarAssignments,SVarAssignments [
+    ("res",Node_Coor {varDeclAt = 1, varFrame = 0}),
+    ("j",Node_Coor {varDeclAt = 2, varFrame = 0}),
+    ("res",Node_Coor {varDeclAt = 5, varFrame = 3}),
+    ("res",Node_Coor {varDeclAt = 8, varFrame = 3}),
+    ("t",Node_Coor {varDeclAt = 9, varFrame = 3})]),
+ (VarName "j",SymUnknown (Int,"j",SymNull Int) (Reason: For)),
+ (VarName "n",SymFormalParam Int "n" Nothing),
+ (VarName "res",SymInt 0),
+ (VarName "t",SymUnknown (Int,"t",SymNull Int))
+]
+ -}
+
+
+
+
+
+------------------------------
+{-
 visitForLoop :: Maybe CFGT.Node -> CFGT.Node -> [CFGT.Node] -> BranchRange -> Map.Map SymStateKey SymExpr -> Method_R
 visitForLoop m_Acc forCondNode forBody_forStep_path branchRange ma
   -- if any of the variables has a global variable or formal parameter,
@@ -743,20 +935,11 @@ visitForLoop m_Acc forCondNode forBody_forStep_path branchRange ma
 	env =
 	  let map1 = Map.insert (BranchRange branchRange) symExpr (env symState)
 	      allNodes = maybe [] (\acc -> [acc]) m_Acc ++ forBody_forStep_path
-	      allNewNodes = filter (\node ->
-		let mExpr = CFG.getExpression node
-		in case mExpr of
-		     Nothing -> False
-		     Just expr ->
-		       AST.isAssignExpr expr && AST.isNewVar (AST.assEleft expr)
-		) allNodes
-	      allOldNodes = flip filter allNodes $ \node ->
-		let mExpr = CFG.getExpression node
-		in case mExpr of
-		     Nothing -> False
-		     Just expr ->
-		       AST.isAssignExpr expr && (not $ AST.isNewVar $ AST.assEleft expr)
+	      allNewNodes = CFG.findNewlyDeclaredNodes allNodes
+	      allOldNodes = CFG.findAlreadyDeclaredNodes allNodes
 	      -- allOldNodes2 == allOldNodes \\ allNewNodes
+	      -- allOldNodes2 are all the variables that need to be mentioned 
+	      -- in VarAssignments, und die als SymUnknown zu markieren sind.
 	      allOldNodes2 = flip filter allOldNodes $ \oldNode ->
 		let Just oldAssignExpr = CFG.getExpression oldNode
 		    oldVarName = AST.varName $ AST.assEleft oldAssignExpr
@@ -781,7 +964,7 @@ visitForLoop m_Acc forCondNode forBody_forStep_path branchRange ma
 	      allOldNodes2_globals = flip filter allOldNodes2
 		  $ \node ->
 		      let Just varName = fmap AST.getVarName $ CFG.getExpression node
-		      in isGlobalVariable2 varName map2
+		      in hasGlobalVariable varName map2
 	      -- local variables present in `allOldNodes2`
 	      allOldNodes2_locals = case Map.lookup VarBindings map2 of
 		Nothing -> []
@@ -790,20 +973,16 @@ visitForLoop m_Acc forCondNode forBody_forStep_path branchRange ma
 		      let Just varName = fmap AST.getVarName $ CFG.getExpression node
 		      in varName `Map.member` localVarsMap
 	      -- add formal parameters to the map
-	      map_with_allOldNodes2 = foldl' (\ma node ->
-		let Just varName = fmap AST.getVarName $ CFG.getExpression node
-		in case (node `elem` allOldNodes2_formals
+	      map3 = foldl' (\ma node ->
+                let Just varName = fmap AST.getVarName $ CFG.getExpression node
+                in case (node `elem` allOldNodes2_formals
 			,node `elem` allOldNodes2_globals
 			,node `elem` allOldNodes2_locals) of
-		  (True,True,True) -> error "visitForLoop ==> won't happen1"
-		  (True,True,False) -> error "visitForLoop ==> won't happen2"
-		  (True,False,True) -> error "visitForLoop ==> won't happen3"
-		--formals
+		  --formals
 		  (True,False,False) -> Map.alter (\case
 		    Nothing -> error "visitForLoop ==> won't happen4"
 		    Just symExpr -> Just $ SymUnknown (toSymType2 symExpr,varName,Just symExpr) (ForBranchingReason branchRange)
 		    ) (VarName varName) ma
-		  (False,True,True) -> error "visitForLoop ==> won't happen5"
 		  --globals
 		  (False,True,False) -> Map.alter (\case
 		    Nothing -> Just $ SymUnknown (
@@ -822,30 +1001,27 @@ visitForLoop m_Acc forCondNode forBody_forStep_path branchRange ma
 		      varName,
 		      Just expr) (ForBranchingReason branchRange)
 		    ) (VarName varName) ma
-		  (False,False,False) -> error "visitForLoop ==> won't happen7"
+		  tu -> error $ "visitForLoop ==> won't happen7 ==> " ++ show tu
 		) map2 allOldNodes2
-	  in error "TODO: SymType of global variables that are used for the first time inside the for loop", --map_with_allOldNodes2,
+              -- All global variables
+              allGlobals :: [String]
+              allGlobals = flip concatMap (allNewNodes ++ allOldNodes) $ \node ->
+                flip filter (nub $ CFG.getVarNames node) $ \varName ->
+                  hasGlobalVariable varName map3 &&
+                  all (\nd -> CFG.getVarName nd /= varName) allNewNodes
+	      map4 = Map.alter (\case
+	        Nothing -> Just $ SGlobalVars allGlobals
+	        Just (SGlobalVars li) -> Just $ SGlobalVars $ nub $ li ++ allGlobals) GlobalVars map3
+	--in error $ "MEOW: " ++ show map4,
+	--in error $ printf "MEOW:: 1) %s\n\n2) %s\n\n3) %s"
+	--     (show allNewNodes) (show allOldNodes) (show allOldNodes2),
+	  in map4,
+	--in error "TODO: SymType of global variables that are used for the first time inside the for loop",
 	pc = pc symState
       }
       return toReturn
   | otherwise = throwError "TODO2:: visitForLoop"
-{-error $ "EOF:: " ++ show newVarName
-(
-[
-int i=n;
-int z = 9;
-]
-
-
-[
-res += i;
-z = i;
-i--
-]
-
-res += i;
-)
- -}
+-}
 
 type Path = [CFGT.Node]
 runCFG :: [CFGT.CFG] -> CFGT.CFG -> Maybe Path -> Maybe SymState -> ([Log.Log],SymState)

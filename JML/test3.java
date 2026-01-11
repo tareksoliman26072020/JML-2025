@@ -143,6 +143,7 @@ SymState {
     (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = 0}),("y",Node_Coor {varDeclAt = 2, varFrame = 0})])),
     (VarAssignments,SVarAssignments [("x",Node_Coor {varDeclAt = 1, varFrame = 0}),("y",Node_Coor {varDeclAt = 2, varFrame = 0}),("z",Node_Coor {varDeclAt = 3, varFrame = 0}),("x",Node_Coor {varDeclAt = 4, varFrame = 0})]),
     (VarName "str",SymFormalParam String "str" Nothing),
+    (VarName "t",SymGlobalVar UnknownGlobalVarSymType "t" Nothing),
     (VarName "x",SymDouble 1.1),
     (VarName "y",SymNull Int),
     (VarName "z",SymGlobalVar UnknownGlobalVarSymType "t" Nothing),
@@ -165,9 +166,52 @@ public double boo33_5(String str){
 
 ////////////////////////////////////////
 
+//TODO
+/*
+SymState {
+  env = fromList [
+    (MethodName "boo33_6",SMethodType Double),
+    (GlobalVars,SGlobalVars ["z","t"]),
+    (FormalParms,SFormalParms ["str"]),
+    (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = 0}),("y",Node_Coor {varDeclAt = 2, varFrame = 0})])),
+    (VarAssignments,SVarAssignments [("x",Node_Coor {varDeclAt = 1, varFrame = 0}),("y",Node_Coor {varDeclAt = 2, varFrame = 0}),("z",Node_Coor {varDeclAt = 3, varFrame = 0}),("x",Node_Coor {varDeclAt = 4, varFrame = 0}),("z",Node_Coor {varDeclAt = 5, varFrame = 0})]),
+    (VarName "str",SymFormalParam String "str" Nothing),
+    (VarName "t",SymGlobalVar UnknownGlobalVarSymType "t" Nothing),
+    (VarName "x",SymDouble 1.1),
+    (VarName "y",SymNull Int),
+    (VarName "z",SymNum 1.0),
+    (Return,SymDouble 1.1)
+  ], pc = []
+}
 
 
 
+SymState {
+  env = fromList [
+    (MethodName "boo33_6",SMethodType Double),
+    (GlobalVars,SGlobalVars ["z","t"]),
+    (FormalParms,SFormalParms ["str"]),
+    (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = 0}),("y",Node_Coor {varDeclAt = 2, varFrame = 0})])),
+    (VarAssignments,SVarAssignments [("x",Node_Coor {varDeclAt = 1, varFrame = 0}),("y",Node_Coor {varDeclAt = 2, varFrame = 0}),("z",Node_Coor {varDeclAt = 3, varFrame = 0}),("x",Node_Coor {varDeclAt = 4, varFrame = 0}),("z",Node_Coor {varDeclAt = 5, varFrame = 0})]),
+    (VarName "str",SymFormalParam String "str" Nothing),
+    (VarName "t",SymGlobalVar UnknownNumSymType "t" Nothing),
+    (VarName "x",SymDouble 1.1),
+    (VarName "y",SymNull Int),
+    (VarName "z",SymNum 1.0),
+    (Return,SymDouble 1.1)
+  ], pc = []
+}
+*/
+public double boo33_6(String str){
+  double x = 1;
+  int y;
+  z = t;
+  x = x + 0.1;
+  z = 1;
+  return x;
+}
+
+////////////////////////////////////////
 
 
 
@@ -2146,112 +2190,88 @@ public String ifFun6(int n) {
 
 //TODO
 /*
-FunDef {
-  funModifier = [Public],
-  isPureFlag = False,
-  funDecl = FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "sum1"}, funArgs = [VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "n"}]}},
-  throws = Nothing,
-  funBody = CompStmt {statements = [
-    AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "res"}, assEright = NumberLiteral 0.0}},
-    ForStmt {acc = AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}, cond = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >, expr2 = NumberLiteral 0.0}, step = AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = -, expr2 = NumberLiteral 1.0}}}, forBody = CompStmt {statements = [AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}}]}},
-    ReturnStmt {returnS = Just (VarExpr {varType = Nothing, varObj = [], varName = "res"})}]
-  }
-}
-*/
-/*
-CFG {nodes = [Entry (BuiltInType Int) "sum1" [VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "n"}],Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "res"}, assEright = NumberLiteral 0.0}}), parent = 0},Node {id = 2, nodeData = ForInitialization (Just (AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}})), parent = 0},Node {id = 3, nodeData = BooleanExpression For (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >, expr2 = NumberLiteral 0.0})), parent = 2},Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}}), parent = 2},Node {id = 5, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = -, expr2 = NumberLiteral 1.0}}})), parent = 2},Node {id = 6, nodeData = Meet For, parent = 0},End {id = 7, parent = 0, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "res"})}], edges = [(0,[1]),(1,[2]),(2,[3]),(3,[4,6]),(4,[5]),(5,[3]),(6,[7])]}
-*/
-/*
-  Entry sum1: method type: Int, args: (Int n)
+  Entry wrongSum1: method type: Int, args: (Int n)
 ----------
   0 -> 1:
         Int res = 0.0
 ----------
   0 -> 2:
+        Int j
+----------
+  0 -> 3:
         For: init: Just Int i = n
 ----------
-  2 -> 3:
+  3 -> 4:
         For: cond: i > 0.0
 ----------
-  2 -> 4:
+  3 -> 5:
         res = res + i
 ----------
-  2 -> 5:
+  3 -> 6:
+        Int z = 9.0
+----------
+  3 -> 7:
+        z = i
+----------
+  3 -> 8:
+        res = 0.0
+----------
+  3 -> 9:
+        t = i
+----------
+  3 -> 10:
+        j = c
+----------
+  3 -> 11:
         For: step: i = i - 1.0
 ----------
-  0 -> 6:
+  0 -> 12:
         Meet: For
 ----------
-  End: 0 -> 7:
+  End: 0 -> 13:
         return: res
 ========================
   (0,[1])
   (1,[2])
   (2,[3])
-  (3,[4,6])
-  (4,[5])
-  (5,[3])
+  (3,[4])
+  (4,[5,12])
+  (5,[6])
   (6,[7])
+  (7,[8])
+  (8,[9])
+  (9,[10])
+  (10,[11])
+  (11,[4])
+  (12,[13])
 */
 /*
 SymState {
   env = fromList [
-    (MethodName "sum1",SMethodType Int),
+    (MethodName "wrongSum1",SMethodType Int),
+    (GlobalVars,SGlobalVars ["t","c"]),
     (FormalParms,SFormalParms ["n"]),
-    (VarBindings,SVarBindings (fromList [("res",Node_Coor {varDeclAt = 1, varFrame = 0})])),
-    (VarAssignments,SVarAssignments [("res",Node_Coor {varDeclAt = 1, varFrame = 0})]),
-    (BranchRange (BR {branchStart = 2, branchEnd = 6}),
-     SLoop (Just (Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}), parent = 0}))
-     (Node {id = 3, nodeData = BooleanExpression For (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >, expr2 = NumberLiteral 0.0})), parent = 2}) 
-     [Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}}), parent = 2},Node {id = 5, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = -, expr2 = NumberLiteral 1.0}}})), parent = 2}]),
+    (VarBindings,SVarBindings (fromList [("j",Node_Coor {varDeclAt = 2, varFrame = 0}),("res",Node_Coor {varDeclAt = 1, varFrame = 0})])),
+    (VarAssignments,SVarAssignments [("res",Node_Coor {varDeclAt = 1, varFrame = 0}),("j",Node_Coor {varDeclAt = 2, varFrame = 0}),("res",Node_Coor {varDeclAt = 5, varFrame = 3}),("res",Node_Coor {varDeclAt = 8, varFrame = 3}),("t",Node_Coor {varDeclAt = 9, varFrame = 3}),("j",Node_Coor {varDeclAt = 10, varFrame = 3})]),
+    (BranchRange (BR {branchStart = 3, branchEnd = 12}),SLoop (Just (Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}), parent = 0})) (Node {id = 4, nodeData = BooleanExpression For (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >, expr2 = NumberLiteral 0.0})), parent = 3}) [Node {id = 5, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}}), parent = 3},Node {id = 6, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "z"}, assEright = NumberLiteral 9.0}}), parent = 3},Node {id = 7, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "z"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}), parent = 3},Node {id = 8, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = NumberLiteral 0.0}}), parent = 3},Node {id = 9, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "t"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}), parent = 3},Node {id = 10, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "j"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "c"}}}), parent = 3},Node {id = 11, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = -, expr2 = NumberLiteral 1.0}}})), parent = 3}]),
+    (VarName "j",SymUnknown (Int,"j",Just (SymNull Int)) (ForBranchingReason (BR {branchStart = 3, branchEnd = 12}))),
     (VarName "n",SymFormalParam Int "n" Nothing),
-    (VarName "res",SymInt 0),
-    (Return,SymInt 0)
-  ], pc = []
-}
-
-
-SymState {
-  env = fromList [
-    (MethodName "sum1",SMethodType Int),
-    (FormalParms,SFormalParms ["n"]),
-    (VarBindings,SVarBindings (fromList [("res",Node_Coor {varDeclAt = 1, varFrame = 0})])),
-    (VarAssignments,SVarAssignments [("res",Node_Coor {varDeclAt = 1, varFrame = 0}),("res",Node_Coor {varDeclAt = 4, varFrame = 2})]),
-    (BranchRange (BR {branchStart = 2, branchEnd = 8}),SLoop (Just (Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}), parent = 0})) (Node {id = 3, nodeData = BooleanExpression For (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >, expr2 = NumberLiteral 0.0})), parent = 2}) [Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}}), parent = 2},Node {id = 5, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "z"}, assEright = NumberLiteral 9.0}}), parent = 2},Node {id = 6, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "z"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}), parent = 2},Node {id = 7, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = -, expr2 = NumberLiteral 1.0}}})), parent = 2}]),
-    (VarName "n",SymFormalParam Int "n" Nothing),
-    (VarName "res",SymUnknown (Int,"res",Just (SymInt 0)) (ForBranchingReason (BR {branchStart = 2, branchEnd = 8}))),
-    (Return,SymUnknown (Int,"res",Just (SymInt 0)) (ForBranchingReason (BR {branchStart = 2, branchEnd = 8})))
-  ], pc = []
-}
-
-
-
-
-SymState {
-  env = fromList [
-    (MethodName "sum1",SMethodType Int),
-    (FormalParms,SFormalParms ["n"]),
-    (VarBindings,SVarBindings (fromList [("res",Node_Coor {varDeclAt = 1, varFrame = 0})])),
-    (VarAssignments,SVarAssignments [("res",Node_Coor {varDeclAt = 1, varFrame = 0}),("res",Node_Coor {varDeclAt = 4, varFrame = 2}),("res",Node_Coor {varDeclAt = 7, varFrame = 2}),("t",Node_Coor {varDeclAt = 8, varFrame = 2})]),
-    (BranchRange (BR {branchStart = 2, branchEnd = 10}),
-     SLoop (Just (Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}), parent = 0}))
-           (Node {id = 3, nodeData = BooleanExpression For (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >, expr2 = NumberLiteral 0.0})), parent = 2})
-           [Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}}), parent = 2},Node {id = 5, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "z"}, assEright = NumberLiteral 9.0}}), parent = 2},Node {id = 6, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "z"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}), parent = 2},Node {id = 7, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = NumberLiteral 0.0}}), parent = 2},Node {id = 8, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "t"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}), parent = 2},Node {id = 9, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = -, expr2 = NumberLiteral 1.0}}})), parent = 2}]),
-    (VarName "n",SymFormalParam Int "n" Nothing),
-    (VarName "res",SymUnknown (Int,"res",Just (SymUnknown (Int,"res",Just (SymInt 0)) (ForBranchingReason (BR {branchStart = 2, branchEnd = 10})))) (ForBranchingReason (BR {branchStart = 2, branchEnd = 10}))),
-    (VarName "t",SymUnknown (UnknownGlobalVarSymType,"t",Just (SymGlobalVar UnknownGlobalVarSymType "t" Nothing)) (ForBranchingReason (BR {branchStart = 2, branchEnd = 10}))),
-    (Return,SymUnknown (Int,"res",Just (SymUnknown (Int,"res",Just (SymInt 0)) (ForBranchingReason (BR {branchStart = 2, branchEnd = 10})))) (ForBranchingReason (BR {branchStart = 2, branchEnd = 10})))
+    (VarName "res",SymUnknown (Int,"res",Just (SymUnknown (Int,"res",Just (SymInt 0)) (ForBranchingReason (BR {branchStart = 3, branchEnd = 12})))) (ForBranchingReason (BR {branchStart = 3, branchEnd = 12}))),
+    (VarName "t",SymUnknown (UnknownGlobalVarSymType,"t",Just (SymGlobalVar UnknownGlobalVarSymType "t" Nothing)) (ForBranchingReason (BR {branchStart = 3, branchEnd = 12}))),
+    (Return,SymUnknown (Int,"res",Just (SymUnknown (Int,"res",Just (SymInt 0)) (ForBranchingReason (BR {branchStart = 3, branchEnd = 12})))) (ForBranchingReason (BR {branchStart = 3, branchEnd = 12})))
   ], pc = []
 }
 */
-public int sum1(int n) {
+public int wrongSum1(int n) {
   int res = 0;
+  int j;
   for(int i=n; i>0; i--) {
     res += i;
     int z = 9;
     z = i;
     res = 0;
     t = i;
+    j = c;
   }
   return res;
 }
@@ -2307,6 +2327,23 @@ public int sum2(int n) {
 
 /////////////////////
 
+public int wrongSum3(int n) {
+  int res = 0;
+  for(int i=n; i>0; i--) {
+    res += i;
+    int z = 9;
+    z = i;
+    if(true) {
+      v = "hi";
+      res += 1;
+    }
+    res = 0;
+    t = i;
+  }
+  return res;
+}
+
+/////////////////////
 
 //TODO
 public int processArray1(int[] arr) {
