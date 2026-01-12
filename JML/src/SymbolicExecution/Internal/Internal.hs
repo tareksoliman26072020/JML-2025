@@ -474,6 +474,31 @@ getVarNames symState = flip Map.filterWithKey (env symState) $ \k _ -> case k of
   VarName _ -> True
   _ -> False
 
+getVarNames2 :: SymExpr -> [String]
+getVarNames2 = \case
+  SymGlobalVar _ vn mExpr -> vn : maybe [] getVarNames2 mExpr
+  SymFormalParam _ vn mExpr -> vn : maybe [] getVarNames2 mExpr
+  SBin symExpr1 _ symExpr2 -> getVarNames2 symExpr1 ++ getVarNames2 symExpr2
+  SNot symExpr -> getVarNames2 symExpr
+  SArrayIndexAccess s1 s2 -> error $ "TODO1:: getVarNames2 ==> " ++ show (SArrayIndexAccess s1 s2)
+  SymArray onw two three -> error $ "TODO2:: getVarNames2 ==> " ++ show (SymArray onw two three)
+  SymUnknown (_,vn,_) _ -> [vn]
+  SymNull _ -> []
+  SymDouble _ -> []
+  SymInt _ -> []
+  symExpr -> error $ "TODO3:: getVarNames2 ==> " ++ show symExpr
+
+getVarNameSymType :: String -> Map.Map SymStateKey SymExpr -> SymType
+getVarNameSymType varName ma = case Map.lookup (VarName varName) ma of
+  Nothing -> error $ "getVarNameSymType ==> won't happen ==> " ++ varName
+  Just symExpr -> toSymType2 symExpr
+
+changeSymExprType :: SymType -> SymExpr -> SymExpr
+changeSymExprType t = \case
+  SymGlobalVar _ vn mExpr -> SymGlobalVar t vn mExpr
+  SymFormalParam _ varName mExpr -> SymFormalParam t varName mExpr
+  expr -> error $ "TODO:: changeSymExprType ==> " ++ show expr
+
 getActions :: SymState -> [String]
 getActions = maybe [] (\(SActions li) -> li) . Map.lookup Actions . env
 

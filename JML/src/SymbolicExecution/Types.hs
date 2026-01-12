@@ -12,10 +12,11 @@ import qualified Data.Map as Map (Map)
 import Text.Printf (printf)
 import Data.List (intercalate)
 
-type Method_R =
+type Typed_Method_R =
     ReaderT (Config,[CFGT.CFG])
     (ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))))
-    ExecutionResult
+    
+type Method_R = Typed_Method_R ExecutionResult
 
 type FormalParm = (SymType,String)
 type ActualParm_post_Visitation = ExecutionResult
