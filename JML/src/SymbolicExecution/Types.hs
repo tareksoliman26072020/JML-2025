@@ -188,10 +188,9 @@ visitExpr ==> ArrayCallExpr: ER_ArrayCallExpr
 
 visitStmt sends data to visitNode (this may change in the future so that it also sends data to visitStmt)
 
-visitStmt ==> ReturnStmt: ER_State
-visitStmt ==> AssignStmt: ER_State
-visitStmt ==> VarStmt: ER_State
-visitStmt ==> AssignStmt: ER_State
+visitStmt ==> ReturnStmt: ER_State or (visitExpr ==> expr)
+visitStmt ==> VarStmt: ER_SymStateMapEntry or ER_Expr (look visitExpr ==> VarExpr)
+visitStmt ==> AssignStmt: ER_SymStateMapEntry
 visitStmt ==> FunCallStmt: ER_Print
 
 visitNode ==> Entry: ER_State
@@ -217,6 +216,7 @@ data ExecutionResult =
   | ER_FunHandle SymType String
   | ER_IfCond SymExpr  -- ^ boolean expressions found in if conditions. Its existance in the environment values map means that the ......
   | ER_Print String
+  | ER_ForLoopDone
   | ER_Void
   deriving Show
 
@@ -233,7 +233,7 @@ data SymExpr =
   | SBin    SymExpr SymBinOp SymExpr  -- ^ binary operation
   | SNot    SymExpr               -- ^ logical negation
   | SIte    SymExpr SymState (Maybe SymState)   -- ^ if-then-else (cond, then, else)
-  | SLoop   (Maybe CFGT.Node) CFGT.Node [CFGT.Node] -- Loop acc, Loop condition, and loop body. the loop step is the last node in the body
+  | SLoop   (Maybe CFGT.Node) (Maybe AST.Expression) [CFGT.Node] -- Loop acc, Loop condition, and loop body. the loop step is the last node in the body
   | SymNull SymType               -- ^ value of an unassigned variable
   | SymFormalParam SymType String (Maybe SymExpr) -- ^ declared variable (a formal parameter)
   | SymGlobalVar SymType String (Maybe SymExpr) -- ^ variable declared outside the scope of the method

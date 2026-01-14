@@ -29,6 +29,11 @@ data Log = Expression_2_Handle String String
          | AddVarAssignment String String
          | ReportTheState String
          | Skip String
+         | ForLoopDone String
+         | UnvisitedForLoop String String
+         | ForLoopConditionUndetermined String String
+         | ForLoopRound Int String
+         | ForLoopLimitReached String
          | Return String String
          | RunCFGFormalMethodCall String
          | RunSymStateActualMethodCall String
@@ -81,6 +86,13 @@ instance Show Log where
     AddVarAssignment loc val-> printf "(%s): %s: %s" (cyan loc) (yellow "Adding Var Assignment") val
     ReportTheState s        -> printf "(%s):\n%s" (yellow "Reporting The State") (show s)
     Skip thing              -> printf "(%s):\n%s" (yellow "Skip") (show thing)
+    ForLoopDone loc         -> printf "(%s): %s" (cyan loc) (yellow "For Loop Done")
+    UnvisitedForLoop loc expr
+                            -> printf "(%s): %s: %s" (cyan loc) (yellow "For Loop can't be visited") expr
+    ForLoopConditionUndetermined loc val
+                            -> printf "(%s): %s: %s" (cyan loc) (yellow "For Loop Condition Undetermined") val
+    ForLoopRound n loc      -> printf "(%s): %s: %d" (cyan loc) (yellow "For Loop cound") n
+    ForLoopLimitReached loc -> printf "(%s): %s" (cyan loc) (yellow "For Loop limit reached")
     Return loc val          -> printf "(%s): %s: %s" (cyan loc) (yellow "Returning") val
     RunCFGFormalMethodCall
       symState              -> printf "%s: %s" (yellow "Method Call formal SymState") symState
