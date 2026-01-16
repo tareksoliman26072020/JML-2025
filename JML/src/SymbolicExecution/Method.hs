@@ -906,14 +906,17 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
                   else Nothing
               from_cond :: [String]
               from_cond =
-                flip (maybe []) mForCondExpr $ \expr -> do
-                  vr <- AST.getVarNames expr :: [String]
+                flip (maybe []) mForCondExpr $ \forCondExpr -> do
+                  vr <- AST.getVarNames forCondExpr :: [String]
+                  let predicates
+                        | isGlobalVariable2 vr (env forBodySymState) = [vr]
+                        | otherwise = []
                   -- reject every vr that is same as from_acc
-                  flip (maybe [vr]) from_acc $ \case
-                    acc_varName
+                  case from_acc of
+                    Just acc_varName
                       | acc_varName == vr -> []
-                      | isGlobalVariable2 vr (env forBodySymState) -> [vr]
-                      | otherwise -> []
+                      | otherwise -> predicates
+                    Nothing -> predicates
           in from_cond
         -- a) GlobalVars from `forBodySymState`
         forBodyGlobalVars = nub $ condNode_globalVars ++ (flip (maybe [])
@@ -971,6 +974,7 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
                       mOriginalVal) (ForBranchingReason branchRange)
             in Map.insert (VarName vn) newVal ma
             ) map_withVarAssignments forBody_Some_VarNames
+    --throwError $ printf "MEOW:::\n%s\n\n%s\n\n%s" (show originalGlobalVars) (show condNode_globalVars) (show forBodyGlobalVars)
     tell [Log.ModifyState "visitForLoop2" (show branchRange,"SLoop")]
     let symExpr = SLoop m_Acc mForCondExpr forBody_forStep_path
         toReturn = ER_SymStateMapEntry (BranchRange branchRange) symExpr

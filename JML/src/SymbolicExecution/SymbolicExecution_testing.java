@@ -2373,6 +2373,32 @@ public int for1(int n) {
 /*
 SymState {
   env = fromList [
+    (MethodName "sum2",SMethodType Int),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["n"]),
+    (VarBindings,SVarBindings (fromList [("res",Node_Coor {varDeclAt = 1, varFrame = 0})])),
+    (VarAssignments,SVarAssignments [("res",Node_Coor {varDeclAt = 1, varFrame = 0}),
+    ("res",Node_Coor {varDeclAt = 4, varFrame = 2}),("n",Node_Coor {varDeclAt = 5, varFrame = 2})]),
+    (BranchRange (BR {branchStart = 2, branchEnd = 6}),SLoop Nothing (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = >, expr2 = NumberLiteral 0.0})) [Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}}), parent = 2},Node {id = 5, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "n"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = -, expr2 = NumberLiteral 1.0}}})), parent = 2}]),
+    (VarName "n",SymUnknown (Int,"n",Just (SymFormalParam Int "n" Nothing)) (ForBranchingReason (BR {branchStart = 2, branchEnd = 6}))),
+    (VarName "res",SymUnknown (Int,"res",Just (SymInt 0)) (ForBranchingReason (BR {branchStart = 2, branchEnd = 6}))),
+    (Return,SymUnknown (Int,"res",Just (SymInt 0)) (ForBranchingReason (BR {branchStart = 2, branchEnd = 6})))
+  ], pc = []
+}
+*/
+public int sum2(int n) {
+  int res = 0;
+  for(; n>0; n--) {
+    res += n;
+  }
+  return res;
+}
+
+/////////////////////
+
+/*
+SymState {
+  env = fromList [
     (MethodName "manyArrs3",SMethodType (Array Int)),
     (VarBindings,SVarBindings (fromList [("numbers",VarBinding {varDeclAt = 1, varFrame = 0})])),
     (VarName "numbers",SymArray (Just (Array Int)) (Just 2) [SymInt 99,SymInt 5]),

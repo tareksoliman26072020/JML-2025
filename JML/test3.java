@@ -2309,17 +2309,16 @@ public int for1(int n) {
 
 /////////////////////
 
-//TODO
+//DONE
 /*
 SymState {
   env = fromList [
     (MethodName "sum2",SMethodType Int),
-    (GlobalVars,SGlobalVars ["n"]),
+    (GlobalVars,SGlobalVars []),
     (FormalParms,SFormalParms ["n"]),
     (VarBindings,SVarBindings (fromList [("res",Node_Coor {varDeclAt = 1, varFrame = 0})])),
     (VarAssignments,SVarAssignments [("res",Node_Coor {varDeclAt = 1, varFrame = 0}),
-    ("res",Node_Coor {varDeclAt = 4, varFrame = 2}),
-    ("n",Node_Coor {varDeclAt = 5, varFrame = 2})]),
+    ("res",Node_Coor {varDeclAt = 4, varFrame = 2}),("n",Node_Coor {varDeclAt = 5, varFrame = 2})]),
     (BranchRange (BR {branchStart = 2, branchEnd = 6}),SLoop Nothing (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = >, expr2 = NumberLiteral 0.0})) [Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}}), parent = 2},Node {id = 5, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "n"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = -, expr2 = NumberLiteral 1.0}}})), parent = 2}]),
     (VarName "n",SymUnknown (Int,"n",Just (SymFormalParam Int "n" Nothing)) (ForBranchingReason (BR {branchStart = 2, branchEnd = 6}))),
     (VarName "res",SymUnknown (Int,"res",Just (SymInt 0)) (ForBranchingReason (BR {branchStart = 2, branchEnd = 6}))),
@@ -2352,6 +2351,48 @@ public int wrongSum3(int n) {
     t = i;
   }
   return res;
+}
+
+/////////////////////
+
+//TODO
+public int sum3(int n) {
+  int res = 0;
+  for(;; n--) {
+    if (n<=0) {
+      break;
+    }
+    res += n;
+  }
+  return res;
+}
+
+/////////////////////
+
+//TODO
+public int sumEvenNums(int[] nums) {
+  int sum = 0;
+  for (int i=0; i<nums.length; i++) {
+      if (nums[i] % 2 == 0) {
+          continue;
+      }
+      sum += nums[i];
+  }
+  return sum;
+}
+
+/////////////////////
+
+//TODO
+public int sumUntilNegative(int[] nums) {
+    int sum = 0;
+    for (int i=0; i<nums.length; i++) {
+        if (nums[i] < 0) {
+            break;
+        }
+        sum += nums[i];
+    }
+    return sum;
 }
 
 /////////////////////
