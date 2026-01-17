@@ -222,8 +222,9 @@ toSymType2 = \case
     [_,"length"] -> Int
     _ -> error $ "TODO1: toSymType2 ==> " ++ show (SObjAcc li)
   (SymUnknown (t,_,_) _) -> t
-  SBin a _ b -> toSymType2 a
+  SBin a _ b -> pick_known_symType (toSymType2 a,toSymType2 b)
   SymNum _ -> UnknownNumSymType
+  SymString _ -> String
   symExpr -> error $ "TODO2: toSymType2 ==> " ++ show symExpr
 
 -- will be used in `calculate`
@@ -258,6 +259,13 @@ pick_known_symType = \case
   (UnknownNumSymType,symType) -> symType
   (symType,UnknownNumSymType) -> symType
   (s1,_) -> s1
+
+pick_known_symType2 :: [SymType] -> SymType
+pick_known_symType2 = \case
+  [] -> error "pick_known_symType2 ==> won't happen"
+  [t] -> t
+  (t1 : t2 : rest) -> pick_known_symType2 $ pick_known_symType (t1,t2) : rest
+  
 
 getReturnSymExpr :: SymState -> Maybe SymExpr
 getReturnSymExpr = Map.lookup Return . env
@@ -486,6 +494,7 @@ getVarNames2 = \case
   SymNull _ -> []
   SymDouble _ -> []
   SymInt _ -> []
+  SymString str -> [str]
   symExpr -> error $ "TODO3:: getVarNames2 ==> " ++ show symExpr
 
 getVarNameSymType :: String -> Map.Map SymStateKey SymExpr -> SymType
@@ -493,11 +502,25 @@ getVarNameSymType varName ma = case Map.lookup (VarName varName) ma of
   Nothing -> error $ "getVarNameSymType ==> won't happen ==> " ++ varName
   Just symExpr -> toSymType2 symExpr
 
+-- This functions alters type predominantly to globals and formals
 changeSymExprType :: SymType -> SymExpr -> SymExpr
 changeSymExprType t = \case
-  SymGlobalVar _ vn mExpr -> SymGlobalVar t vn mExpr
-  SymFormalParam _ varName mExpr -> SymFormalParam t varName mExpr
-  expr -> error $ "TODO:: changeSymExprType ==> " ++ show expr
+  SymGlobalVar _ vn mExpr -> case mExpr of
+    Nothing -> SymGlobalVar t vn Nothing
+    je@(Just expr) -> SymGlobalVar (pick_known_symType (toSymType2 expr,t)) vn je
+  SymFormalParam _ vn mExpr -> case mExpr of
+    Nothing -> SymFormalParam t vn Nothing
+    je@(Just expr) -> SymFormalParam (pick_known_symType (toSymType2 expr,t)) vn je
+  SBin expr1 op expr2 -> SBin (changeSymExprType t expr1) op (changeSymExprType t expr2)
+  symExpr
+    | is_type_homogeneous_with t symExpr -> symExpr
+  expr -> error $ printf "TODO:: changeSymExprType ==> (%s,%s)" (show t) (show expr)
+
+-- is_type_homogeneous_with is useful for changeSymExprType
+is_type_homogeneous_with :: SymType -> SymExpr -> Bool
+is_type_homogeneous_with symType symExpr = case (symType,symExpr) of
+  (String,SymString _) -> True
+  _ -> error $ printf "TODO: is_type_homogeneous_with ==> (%s,%s)" (show symType) (show symExpr)
 
 getActions :: SymState -> [String]
 getActions = maybe [] (\(SActions li) -> li) . Map.lookup Actions . env

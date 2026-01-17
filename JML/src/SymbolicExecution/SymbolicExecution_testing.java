@@ -2399,6 +2399,34 @@ public int sum2(int n) {
 /*
 SymState {
   env = fromList [
+    (MethodName "replicate",SMethodType String),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["n","v"]),
+    (VarBindings,SVarBindings (fromList [("core",Node_Coor {varDeclAt = 1, varFrame = 0}),("res",Node_Coor {varDeclAt = 2, varFrame = 0})])),
+    (VarAssignments,SVarAssignments [("core",Node_Coor {varDeclAt = 1, varFrame = 0}),("res",Node_Coor {varDeclAt = 2, varFrame = 0}),("res",Node_Coor {varDeclAt = 5, varFrame = 3})]),
+    (BranchRange (BR {branchStart = 3, branchEnd = 7}),SLoop (Just (Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}), parent = 0})) (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >, expr2 = NumberLiteral 0.0})) [Node {id = 5, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "core"}}}}), parent = 3},Node {id = 6, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = -, expr2 = NumberLiteral 1.0}}})), parent = 3}]),
+    (VarName "core",SymFormalParam String "v" Nothing),
+    (VarName "n",SymFormalParam Int "n" Nothing),
+    (VarName "res",SymUnknown (String,"res",Just (SymString "")) (ForBranchingReason (BR {branchStart = 3, branchEnd = 7}))),
+    (VarName "v",SymFormalParam String "v" Nothing),
+    (Return,SymUnknown (String,"res",Just (SymString "")) (ForBranchingReason (BR {branchStart = 3, branchEnd = 7})))
+  ], pc = []
+}
+*/
+public String replicate(int n,String v) {
+  String core = v;
+  String res = "";
+  for(int i=n; i>0; i--) {
+    res += core;
+  }
+  return res;
+}
+
+/////////////////////
+
+/*
+SymState {
+  env = fromList [
     (MethodName "manyArrs3",SMethodType (Array Int)),
     (VarBindings,SVarBindings (fromList [("numbers",VarBinding {varDeclAt = 1, varFrame = 0})])),
     (VarName "numbers",SymArray (Just (Array Int)) (Just 2) [SymInt 99,SymInt 5]),

@@ -90,6 +90,8 @@ data Statement
   | TryCatchStmt {tryBody :: Statement,
                   catchExcp :: Type Exception, catchBody :: Statement,
                   finallyBody :: Statement}
+  | BreakStmt
+  | ContinueStmt
   | ReturnStmt {returnS :: Maybe Expression}
   deriving (Eq, Show)
 

@@ -610,18 +610,40 @@ visitExpr expr@AST.AssignExpr{} = do
   where
   conform_GlobalVarType :: SymType -> ExecutionResult -> Typed_Method_R ()
   conform_GlobalVarType newType = \case
-    ER_SymStateMapEntry _ val -> do
+    er@(ER_SymStateMapEntry _ val) -> do
       theEnv <- env <$> get
       let vns :: [String] -- vns are global variables mentioned in val
           vns = flip filter (getVarNames2 val) $ \vn ->
             isGlobalVariable2 vn theEnv
+{-
+      if null vns
+        then return ()
+        else throwError $ printf "WOF:::\n1) %s\n2) %s\n3) %s"
+               (show newType) (show er) (show vns)
+ -}
+{-
+1) UnknownGlobalVarSymType
+2) ER_SymStateMapEntry {er_key = VarName "v", er_val = SymGlobalVar UnknownGlobalVarSymType "v" Nothing}
+3) ["v"]
+ -}
       -- foldM_ :: (Foldable t, Monad m) => (b -> a -> m b) -> b -> t a -> m ()
       foldM_ (\ma vn -> do
         let ma2 = Map.alter (\case
               Nothing -> Just
                 $ SymGlobalVar newType vn Nothing
               Just symExpr ->
-                let newType2 = pick_known_symType (toSymType2 symExpr,newType)
+                let --newType2 = UnknownGlobalVarSymType
+                    newType2 = pick_known_symType2
+                      $ toSymType2 symExpr : toSymType2 val : [newType]
+                {-
+                 vn = "v"
+                 val = SymGlobalVar UnknownGlobalVarSymType "v" Nothing
+                 symExpr = SBin (SymGlobalVar UnknownGlobalVarSymType "v" Nothing)
+                                Add
+                                (SymString "hi")
+                 -}
+                --in error $ printf "EOF:::\n1) %s\n2) %s\n3) %s" vn (show symExpr) (show newType2))
+                --in error $ printf "EOF::: %s" (show $ toSymType2 symExpr))
                 in Just $ changeSymExprType newType2 symExpr)
               (VarName vn) ma
         tell [Log.UpdateVariable vn "visitExpr ==> AssignExpr"]

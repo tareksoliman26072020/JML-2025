@@ -6,6 +6,7 @@ import Data.List (nub)
 
 import Parser.ParseExpr
 import Parser.Types
+import Data.Functor (($>))
 
 import Text.ParserCombinators.Parsec
 
@@ -96,8 +97,15 @@ parseExcp = do
   ReturnStmt . Just . ExcpExpr (Exception i) <$> optionMaybe
     (skipChar '(' *> skip stringLit <* skipChar ')')
 
+parseBreak :: Parser Statement
+parseBreak = keyword "break" $> BreakStmt
+
+parseContinue :: Parser Statement
+parseContinue = keyword "continue" $> ContinueStmt
+
 parseStmt :: Parser Statement
 parseStmt = parseBlock <|> parseIf <|> parseFor <|> parseWhile <|> parseTry
+  <|> parseBreak <|> parseContinue
   <|> parseReturn <|> parseExcp <|> parseDeclOrFunCall
 
 parseComment :: Parser ()
