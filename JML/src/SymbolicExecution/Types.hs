@@ -249,12 +249,12 @@ data SymExpr =
   | SGlobalVars [String]
   deriving (Eq,Show)
 
-data SymReason = IfBranchingReason BranchRange
-               | ForBranchingReason BranchRange deriving (Eq,Show)
+data SymReason = IfBranchingReason [Node_Coor]
+               | ForBranchingReason [Node_Coor] deriving (Eq,Show)
 
 data Node_Coor = Node_Coor
   { varDeclAt :: Int
-  , varFrame  :: Int
+  , varFrame  :: BranchRange
   } deriving (Eq,Show)
 
 data BranchRange = BR

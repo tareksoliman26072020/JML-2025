@@ -311,27 +311,15 @@ get_SLoops m = flip Map.filterWithKey m $ \_ -> \case
 findVarName :: String -> Map.Map SymStateKey SymExpr -> Maybe SymExpr
 findVarName str = Map.lookup (VarName str)
 
-findBranch_at_nodeNr :: Int -> Map.Map SymStateKey SymExpr -> Maybe (BranchRange,SymExpr)
-findBranch_at_nodeNr bStart s =
-  let s2 = flip Map.filterWithKey s $ \k v -> case k of
-        BranchRange (BR start _) -> bStart == start
-        _ -> False
-  in case Map.toList s2 of
-       [] -> Nothing
-       ((BranchRange br,val) : _) -> Just (br,val)
-
-findVarName_via_coor :: (String,Node_Coor) -> Map.Map SymStateKey SymExpr -> Maybe SymExpr
-findVarName_via_coor (varName,(Node_Coor declAt vf)) s =
-  let mBranchSymExpr = findBranch_at_nodeNr vf s
-  in case mBranchSymExpr of
-       Nothing -> Nothing
-       Just (br,symExpr@(SIte _ ifBranchSymState mElseBranchSymState)) ->
-         let mSearch1 = Map.lookup (VarName varName) (env ifBranchSymState)
-             mSearch2 = case mElseBranchSymState of
-               Nothing -> Nothing
-               Just elseBranchSymState -> Map.lookup (VarName varName) (env elseBranchSymState)
-         in mSearch1 <|> mSearch2
-       Just tu -> error $ "TODO: findVarName_via_coor ==> " ++ show tu
+findVarName_via_coor :: (String,BranchRange) -> Map.Map SymStateKey SymExpr -> Maybe SymExpr
+findVarName_via_coor (varName,br) s = do
+  symExpr <- Map.lookup (BranchRange br) s
+  case symExpr of
+    SIte _ ifBranchSymState mElseBranchSymState ->
+      let mSearch1 = Map.lookup (VarName varName) (env ifBranchSymState)
+          mSearch2 = mElseBranchSymState >>= Map.lookup (VarName varName) . env
+      in mSearch1 <|> mSearch2
+    tu -> error $ "TODO: findVarName_via_coor ==> " ++ show tu
 
 simplify :: SymExpr -> SymExpr
 simplify = \case
@@ -442,15 +430,16 @@ getVarBindings symState = case Map.lookup VarBindings (env symState) of
   Nothing -> Map.empty
   Just (SVarBindings li) -> li
 
-getNewVarBinding :: Int -> Int -> AST.Statement -> Maybe (String,Node_Coor)
-getNewVarBinding nodeId branchId = \case
+getNewVarBinding :: Node_Coor -> AST.Statement -> Maybe (String,Node_Coor)
+getNewVarBinding nodeCoor = \case
   -- AssignStmt {varModifier :: [Modifier], assign :: Expression}
   AST.AssignStmt _ expr -> case expr of
     --AssignExpr {assEleft :: Expression, assEright :: Expression}
     AST.AssignExpr left _ -> case left of
       AST.VarExpr{} -> case AST.varType left of
         Just _ ->
-          Just (AST.varName left,Node_Coor nodeId branchId)
+          Just (AST.varName left, --CFG.getBranchEnd branchStart cfg
+                nodeCoor)
         Nothing -> Nothing
       AST.ArrayCallExpr{} -> Nothing
       _ -> error $ "getNewVarBinding -> won't happen1: " ++ show left
@@ -459,35 +448,35 @@ getNewVarBinding nodeId branchId = \case
   --VarStmt {var = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "y"}}
   stmt@AST.VarStmt{} -> case AST.var stmt of
     AST.VarExpr varType _ varName -> case varType of
-      Just _ -> Just (varName,Node_Coor nodeId branchId)
+      Just _ -> Just (varName,nodeCoor)
       Nothing -> Nothing
     _ -> error "getNewVarBinding -> won't happen3"
   ----------
   _ -> Nothing
 
-getNewVarAssignment :: Int -> Int -> AST.Statement -> Maybe (String,Node_Coor)
-getNewVarAssignment nodeId branchId = \case
+getNewVarAssignment :: Node_Coor -> AST.Statement -> Maybe (String,Node_Coor)
+getNewVarAssignment nodeCoor = \case
   -- AssignStmt {varModifier :: [Modifier], assign :: Expression}
   AST.AssignStmt _ expr -> case expr of
     --AssignExpr {assEleft :: Expression, assEright :: Expression}
     AST.AssignExpr left _ -> case left of
       AST.VarExpr{} ->
-        Just (AST.varName left,Node_Coor nodeId branchId)
+        Just (AST.varName left,nodeCoor)
       AST.ArrayCallExpr{} ->
-          Just (AST.getVarName left,Node_Coor nodeId branchId)
+          Just (AST.getVarName left,nodeCoor)
       _ -> error $ "TODO :: getNewVarAssignment: " ++ show left
     _ -> error "getNewVarAssignment -> won't happen1"
   ----------
   --VarStmt {var = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "y"}}
   stmt@AST.VarStmt{} -> case AST.var stmt of
     AST.VarExpr varType _ varName -> case varType of
-      Just _ -> Just (varName,Node_Coor nodeId branchId)
+      Just _ -> Just (varName,nodeCoor)
       Nothing -> Nothing
-    _ -> error "getNewVarBinding -> won't happen3"
+    _ -> error "getNewVarAssignment -> won't happen3"
   ----------
   stmt@AST.FunCallStmt{} -> Nothing
   ----------
-  stmt -> error $ printf "getNewVarAssignment ==> TODO: ((%d,%d),%s)" nodeId branchId (show stmt)
+  stmt -> error $ printf "getNewVarAssignment ==> TODO: (%s,%s)" (show nodeCoor) (show stmt)
 
 getVarNames :: SymState -> Map.Map SymStateKey SymExpr
 getVarNames symState = flip Map.filterWithKey (env symState) $ \k _ -> case k of

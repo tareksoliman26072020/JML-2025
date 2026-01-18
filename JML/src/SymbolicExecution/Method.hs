@@ -68,9 +68,20 @@ instance CFGVisitor Method_SymExec where
       CFGT.Statement stmt -> do
         tell [Log.MethodStatement "visitNode -> case nodeData of Node -> Statement" (show stmt)]
         toReturn <- visitStmt stmt
-        --addVarBinding (CFGT.id n) (CFGT.parent n) stmt
-        -- Var Bindings
-        case getNewVarBinding (CFGT.id n) (CFGT.parent n) stmt of
+        ER_FunHandle _ funName <- getFunHandle
+        (_,cfgs) <- ask
+        let cfg = case CFG.findCFGByName funName cfgs of
+              -- CFG not found
+              Nothing   -> error $ "visitNode -> Node -> Sattement " ++ funName ++ " does not exist"
+                    -- CFG found
+              Just cfg0 -> cfg0
+        let newVarCoor = Node_Coor {
+              varDeclAt = CFGT.id n,
+              varFrame =
+                let bStart = CFGT.parent n
+                in BR bStart $ CFG.getBranchEnd bStart cfg
+            }
+        case getNewVarBinding newVarCoor stmt of
           Just new -> do          
             old <- getVarBindings <$> get
             tell [Log.AddVarBinding "visitNode -> Node -> Statement" (show new)]
@@ -81,7 +92,7 @@ instance CFGVisitor Method_SymExec where
               }
             return ER_Void
           _ -> return ER_Void
-        case getNewVarAssignment (CFGT.id n) (CFGT.parent n) stmt of
+        case getNewVarAssignment newVarCoor stmt of
           Just new -> do
             tell [Log.AddVarAssignment "visitNode -> Node -> Statement" (show new)]
             state_map <- env <$> get
@@ -226,8 +237,10 @@ instance CFGVisitor Method_SymExec where
                         ++ maybe [] (getGlobalVars . env) mElseSymState
                 tell [Log.ModifyState "visitNode -> Node -> BooleanExpression if -> recording symbolic branching" (printf "if node num: %d" (CFGT.id n),show symExpr)]
                 modify $ \symState ->
-                  let condBranchRange = BR (CFGT.id n)
-                                           (CFG.getNodeId $ CFG.getEndIfNode cfg n)
+                  let condBranchRange = BR {
+                        branchStart = CFGT.id n,
+                        branchEnd = CFG.getBranchEnd (CFGT.id n) cfg
+                      }
                       -- `s1` has the new conditional branchs (addNode)
                       --  and has the new VarAssignments from the conditional branches
                       s1 = SymState {
@@ -242,38 +255,39 @@ instance CFGVisitor Method_SymExec where
                           in addGlobalVars,
                         pc = pc symState
                       }
-                      -- if there's a var in `vars` that was assigned between `condBranchRange`
+                      -- if there's a VarName that was assigned between `condBranchRange`
                       -- then make it unknown
-                      -- unknownVars = ["y"]
-                      unknownVars = flip concatMap (getVarAssignments s1) $ \case
-                        tu@(vn,Node_Coor coor frameCoor)
-                          | frameCoor == branchStart condBranchRange -> [vn]
-                          | otherwise -> []
+                      unknownVarAssigns = flip filter (getVarAssignments s1) $ \case
+                        (_,Node_Coor _ frameCoor) ->
+                          branchStart frameCoor == branchStart condBranchRange
                       -- make vars unknown
-                      {-in SymState {
-                        env = foldl (\s unknownVar -> ) (env s1) unknownVars
-                      }-}
                       -- if there exists a VarName that was mentioned in `unknownVars`
                       -- then mark it as unknown.
                       s2 = SymState {
                         env = flip Map.mapWithKey (env s1) $ \k v -> case k of
-                          VarName vn
-                            | vn `elem` unknownVars -> SymUnknown (toSymType2 v,vn,Just v) (IfBranchingReason condBranchRange)
+                          VarName vn -> case flip concatMap unknownVarAssigns (\(vn2,coor) ->
+                            if vn2 == vn then [coor]
+                            else []) of
+                              [] -> v
+                              vAs -> SymUnknown
+                                         (toSymType2 v,vn,Just v)
+                                         (IfBranchingReason vAs)
                           _ -> v,
                         pc = pc s1
                       }
                       -- if there is a SVarAssignment that has no `VarName`
                       -- then it is a GlobalVar that is assigned in a conditional branch
                       -- then add this GlobalVar to the State
-                      varNames = getVarNames s2
-                      ma3 = foldl (\s (varAssName,coor) ->
-                        let Just (br,_) = findBranch_at_nodeNr (varFrame coor) s
-                            Just globalVar = findVarName_via_coor (varAssName,coor) s
+                      --ma3 = foldl' (\s globalVar ->) (env s2) newMainGlobalVars
+                      
+                      
+                      ma3 = foldl' (\s (varAssName,coor) ->
+                        let Just globalVar = findVarName_via_coor (varAssName,varFrame coor) s
                         in case Map.lookup (VarName varAssName) s of
                           Nothing -> Map.insert
                                        (VarName varAssName)
                                        (SymUnknown (toSymType2 globalVar,varAssName,Nothing)
-                                                   (IfBranchingReason br))
+                                                   (IfBranchingReason [coor]))
                                        s
                           Just _ -> s) (env s2) (getVarAssignments s2)
                   in SymState {
@@ -282,7 +296,7 @@ instance CFGVisitor Method_SymExec where
                   }
                 return (ER_Expr symExpr)
         
-        tell [Log.Return "visitNode -> Node -> BooleanExpression" (show toReturn)] $> toReturn
+        tell [Log.Return "visitNode -> Node -> BooleanExpression If" (show toReturn)] $> toReturn
       ----------------------------------------
       ----------------------------------------
       ----------------------------------------
@@ -1024,51 +1038,27 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
             let mOriginalVal = Map.lookup (VarName vn) ma
                 vn_forbody_varAssigns = flip filter (getVarAssignments2 ma) $ \case
                   (vn2,node_coor) ->
-                      vn2 == vn && varFrame node_coor == branchStart branchRange
+                      vn2 == vn &&
+                      varDeclAt node_coor >= branchStart branchRange &&
+                      varDeclAt node_coor <= branchEnd branchRange
                 newVal
                   | null vn_forbody_varAssigns = val
-                  | otherwise = SymUnknown (
-                      pick_known_symType (
-                        maybe UnknownGlobalVarSymType
-                              toSymType2 mOriginalVal,
-                        toSymType2 val),
-                      vn,
-                      mOriginalVal) (ForBranchingReason branchRange)
+                  | otherwise =
+                      let node_coors = map snd vn_forbody_varAssigns
+                      in SymUnknown (
+                          pick_known_symType (
+                            maybe UnknownGlobalVarSymType
+                                  toSymType2 mOriginalVal,
+                            toSymType2 val),
+                          vn,
+                          mOriginalVal) (ForBranchingReason node_coors)
             in Map.insert (VarName vn) newVal ma
             ) map_withVarAssignments forBody_Some_VarNames
     {-
     throwError $ printf "MEOW:::\n\n1) %s\n\n2) %s\n\n3) %s"
       (show forBodyGlobalVars) (show forBody_Some_VarAssignments) (show forBody_Some_VarNames)-}
-    --throwError $ "this::: " ++ show forBodySymState
-{-
-[
- Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}), parent = 0},
- Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}}), parent = 2},
- Node {id = 5, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "z"}, assEright = NumberLiteral 9.0}}), parent = 2},
- Node {id = 6, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "z"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}), parent = 2},
- Node {id = 7, nodeData = BooleanExpression If (Just (BoolLiteral True)), parent = 2},
- Node {id = 11, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = NumberLiteral 0.0}}), parent = 2},
- Node {id = 12, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "t"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}), parent = 2},
- Node {id = 13, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = -, expr2 = NumberLiteral 1.0}}}), parent = 2}
-]
+    --throwError $ "this::: " ++ show forBody_Some_VarNames
 
-
-
-[
- (MethodName "wrongSum3",SMethodType Int),
- (GlobalVars,SGlobalVars ["v","t"]),
- (FormalParms,SFormalParms ["n"]),
- (VarBindings,SVarBindings (fromList [("i",Node_Coor {varDeclAt = 2, varFrame = 0}),("res",Node_Coor {varDeclAt = 1, varFrame = 0}),("z",Node_Coor {varDeclAt = 5, varFrame = 2})])),
- (VarAssignments,SVarAssignments [("res",Node_Coor {varDeclAt = 1, varFrame = 0}),("i",Node_Coor {varDeclAt = 2, varFrame = 0}),("res",Node_Coor {varDeclAt = 4, varFrame = 2}),("z",Node_Coor {varDeclAt = 5, varFrame = 2}),("z",Node_Coor {varDeclAt = 6, varFrame = 2}),("res",Node_Coor {varDeclAt = 9, varFrame = 7}),("res",Node_Coor {varDeclAt = 11, varFrame = 2}),("t",Node_Coor {varDeclAt = 12, varFrame = 2}),("i",Node_Coor {varDeclAt = 13, varFrame = 2})]),
- (VarName "i",SBin (SymFormalParam Int "n" Nothing) Sub (SymInt 1)),
- (VarName "n",SymFormalParam Int "n" Nothing),
- (VarName "res",SymInt 0),
- (VarName "t",SymFormalParam Int "n" Nothing),
- (VarName "v",SymString "hi"),
- (VarName "z",SymFormalParam Int "n" Nothing),
- (Actions,SActions [])
-]
- -}
     --throwError $ printf "MEOW:::\n%s\n\n%s\n\n%s" (show originalGlobalVars) (show condNode_globalVars) (show forBodyGlobalVars)
     tell [Log.ModifyState "visitForLoop2" (show branchRange,"SLoop")]
     let symExpr = SLoop m_Acc mForCondExpr forBody_forStep_path

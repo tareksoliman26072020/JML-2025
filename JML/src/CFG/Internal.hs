@@ -191,6 +191,28 @@ findAlreadyDeclaredNodes = filter $ \node ->
        Just expr ->
          AST.isAssignExpr expr && (not $ AST.isNewVar $ AST.assEleft expr)
 
+getBranchEnd :: NodeID -> CFG -> NodeID
+getBranchEnd bStart cfg = helper (nodes cfg) where
+  helper = \case
+    [] -> error "getBranchEnd ==> won't happen1"
+    (node : rest) -> case node of
+      Entry _ _ _
+        | bStart == 0 ->
+            let mEndId = foldr (\n acc -> case n of
+                  End theId _ _ -> Just theId
+                  _ -> acc) Nothing (nodes cfg)
+            in case mEndId of
+                 Nothing -> error "getBranchEnd ==> won't happen2"
+                 Just endId -> endId
+        | otherwise -> helper rest
+      End{} -> error "getBranchEnd ==> won't happen3"
+      Node{}
+        | CFG.Types.id node == bStart -> case nodeData node of
+            BooleanExpression If _ -> getNodeId $ getEndIfNode cfg node
+            ForInitialization _ -> getNodeId $ getEndForNode cfg node
+            _ -> error $ "TODO2 ==> getBranchEnd ==> " ++ show node
+        | otherwise -> helper rest
+
 -----------------------------
 
 {-
