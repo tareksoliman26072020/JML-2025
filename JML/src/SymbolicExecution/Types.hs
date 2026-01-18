@@ -158,6 +158,7 @@ data SymBinOp
   | Sub      -- ^ -
   | Mul      -- ^ *
   | Div      -- ^ /
+  | Mod
   | Eq       -- ^ ==
   | Neq      -- ^ /=
   | Lt       -- ^ <

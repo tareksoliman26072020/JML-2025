@@ -399,17 +399,6 @@ visitStmt stmt@(AST.FunCallStmt expr) = case expr of
           }
         tell [Log.Return "visitStmt -> FunCallStmt" (show toReturn)] $> toReturn
       ER_FunCall state -> do
-        {-
-        let actions = getActions state
-        tell [Log.ModifyState "visitStmt -> FunCallStmt -> inheriting actions" ("Actions",show actions)]
-        modify $ \symState ->
-          SymState {
-            env = Map.alter (\case
-                    Nothing -> Just $ SActions actions
-                    Just (SActions li) -> Just $ SActions $ li ++ actions) Actions (env symState),
-            pc = pc symState
-          }
-         -}
         return ER_Void
       _ -> throwError $ "visitStmt ==> FunCallStmt ==> won't happen 1: " ++ show toReturn
   _ -> throwError $ "visitStmt ==> FunCallStmt ==> won't happen 2: " ++ show expr
@@ -461,20 +450,60 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                    actualParms
           
           -- get SymState due to insertion of actual parameters
+          --throwError $ printf "BEFORE VISITING::: " ++ show funCallSymState1
           let (funCallLogs2,funCallSymState2) = runSymState funCallSymState1 funCallName tus False
-              actions = getActions funCallSymState2
-          if null actions
+              inherit_actions = getActions funCallSymState2
+              inherit_globalVars = getGlobalVars (env funCallSymState2)
+              inherit_globalVars_varNames = flip Map.filterWithKey (getVarNames3 $ env funCallSymState2) $ \k _ -> case k of
+                VarName vn
+                  | vn `elem` inherit_globalVars -> True
+                _ -> False
+          --throwError $ "LOOK HERE:: " ++ show funCallSymState2
+          ----------
+          -- inheriting the method call's global vars list
+          if null inherit_globalVars
             then return ER_Void
             else do
-              tell [Log.ModifyState "visitExpr -> FunCallExpr -> inheriting actions" ("Actions",show actions)]
+              tell [Log.ModifyState "visitExpr -> FunCallExpr -> inheriting global vars list" ("GlobalVars",show inherit_globalVars)]
               modify $ \symState ->
                 SymState {
                   env = Map.alter (\case
-                          Nothing -> Just $ SActions actions
-                          Just (SActions li) -> Just $ SActions $ li ++ actions) Actions (env symState),
+                          Nothing -> Just $ SGlobalVars inherit_globalVars
+                          Just (SGlobalVars li) -> Just
+                            $ SGlobalVars $ nub $ li ++ inherit_globalVars)
+                        GlobalVars (env symState),
                   pc = pc symState
                 }
               return ER_Void
+          ----------
+          -- inheriting the method call's global vars var names
+          if null inherit_globalVars_varNames
+            then return ER_Void
+            else do
+              tell [Log.ModifyState "visitExpr -> FunCallExpr -> inheriting global vars varnames" ("VarNames",show inherit_globalVars_varNames)]
+              modify $ \symState ->
+                SymState {
+                  env = Map.union inherit_globalVars_varNames (env symState),
+                  pc = pc symState
+                }
+              return ER_Void
+          ----------
+          -- inheriting the method call's actions
+          if null inherit_actions
+            then return ER_Void
+            else do
+              tell [Log.ModifyState "visitExpr -> FunCallExpr -> inheriting actions" ("Actions",show inherit_actions)]
+              modify $ \symState ->
+                SymState {
+                  env = Map.alter (\case
+                          Nothing -> Just $ SActions inherit_actions
+                          Just (SActions li) -> Just
+                            $ SActions $ li ++ inherit_actions)
+                        Actions (env symState),
+                  pc = pc symState
+                }
+              return ER_Void
+          ----------
           -- edit its logs
           mapM_ (\log -> tell [Log.Nested ("actual: " ++ funCallName) log]) funCallLogs2
           tell [Log.RunSymStateActualMethodCall (show funCallSymState2)]
@@ -526,7 +555,7 @@ visitExpr expr@AST.BinOpExpr{} = do
   where
   helper :: SymExpr -> SymExpr -> Method_R
   helper op1 op2 =
-    let isNumericOp = AST.binOp expr `elem` [AST.Plus, AST.Mult, AST.Minus, AST.Div]
+    let isNumericOp = AST.binOp expr `elem` [AST.Plus, AST.Mult, AST.Minus, AST.Div, AST.Mod]
         whichFun = case isNumericOp of
           True | all isSymString [op1,op2] -> stringCalculator
                | otherwise -> numericCalculator
@@ -804,7 +833,7 @@ visitForLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma = do
         -- for visitation was completed
         ER_ForLoopDone -> do
           s <- get
-          throwError $ printf "MEOW::\n\n%s\n\n%s" (show originalState) (show s)
+          throwError $ printf "visitForLoop ==> TODO ::\n\n%s\n\n%s" (show originalState) (show s)
     -- for loop condition was not met
     SBool False -> do
       tell [Log.ForLoopDone "visitForLoop1"]

@@ -2194,6 +2194,98 @@ public String ifFun6(int n) {
 
 //DONE
 /*
+SymState {
+  env = fromList [
+    (MethodName "ifFun7",SMethodType Void),
+    (FormalParms,SFormalParms ["n"]),
+    (VarAssignments,SVarAssignments [("v",Node_Coor {varDeclAt = 2, varFrame = 1}),("w",Node_Coor {varDeclAt = 3, varFrame = 1})]),
+    (BranchRange (BR {branchStart = 1, branchEnd = 4}),SIte (SBin (SBin (SymFormalParam Int "n" Nothing) Mod (SymInt 2)) Eq (SymInt 0)) (SymState {env = fromList [(MethodName "ifFun7",SMethodType Void),(GlobalVars,SGlobalVars ["v"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("v",Node_Coor {varDeclAt = 2, varFrame = 1})]),(VarName "n",SymFormalParam Int "n" Nothing),(VarName "v",SymString "hi")], pc = []}) (Just (SymState {env = fromList [(MethodName "ifFun7",SMethodType Void),(GlobalVars,SGlobalVars ["w"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("w",Node_Coor {varDeclAt = 3, varFrame = 1})]),(VarName "n",SymFormalParam Int "n" Nothing),(VarName "w",SymString "bye")], pc = []}))),
+    (VarName "n",SymFormalParam Int "n" Nothing),
+    (VarName "v",SymUnknown (String,"v",Nothing) (IfBranchingReason (BR {branchStart = 1, branchEnd = 4}))),
+    (VarName "w",SymUnknown (String,"w",Nothing) (IfBranchingReason (BR {branchStart = 1, branchEnd = 4})))
+  ], pc = []
+}
+*/
+public void ifFun7(int n) {
+  if(n % 2 == 0) {
+    v = "hi";
+  }
+  else {
+    w = "bye";
+  }
+}
+
+/////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "ifFun7Call",SMethodType Void),
+    (GlobalVars,SGlobalVars ["v"]),
+    (VarName "v",SymString "hi")
+  ], pc = []
+}
+*/
+public void ifFun7Call() {
+  ifFun7(4);
+}
+
+/////////////////////
+
+/*
+SymState {
+  env = fromList [
+    (MethodName "ifFun7Call2",SMethodType Void),
+    (GlobalVars,SGlobalVars ["v","w"]),
+    (VarName "v",SymString "hi"),
+    (VarName "w",SymString "bye")
+  ], pc = []
+}
+*/
+public void ifFun7Call2() {
+  ifFun7(4);
+  ifFun7(5);
+}
+
+/////////////////////
+
+//DONE
+public void ifFun8(int n) {
+  if(n % 2 == 0) {
+    v = "hi";
+    println(v);
+  }
+  else {
+    w = "bye";
+    println(w);
+  }
+}
+
+/////////////////////
+
+//DONE
+/*
+SymState {
+  env = fromList [
+    (MethodName "ifFun8Call",SMethodType Void),
+    (GlobalVars,SGlobalVars ["v","w"]),
+    (VarName "v",SymString "hi"),
+    (VarName "w",SymString "bye"),
+    (Actions,SActions ["hi\n","bye\n","hi\n"])
+  ], pc = []
+}
+*/
+public void ifFun8Call() {
+  ifFun8(4);
+  ifFun8(5);
+  ifFun8(6);
+}
+
+/////////////////////
+
+//DONE
+/*
   Entry wrongSum1: method type: Int, args: (Int n)
 ----------
   0 -> 1:

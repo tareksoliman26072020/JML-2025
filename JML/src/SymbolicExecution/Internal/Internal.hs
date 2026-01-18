@@ -33,6 +33,7 @@ toSymBinOp = \case
   AST.Neq -> Neq
   AST.And -> And
   AST.Or -> Or
+  AST.Mod -> Mod
   _ -> error "toSymBinOp ~~> TODO"
 
 fromSymBinOp :: SymBinOp -> AST.BinOp
@@ -42,6 +43,12 @@ fromSymBinOp = \case
   Sub -> AST.Minus
   Div -> AST.Div
   _   -> error "fromSymBinOp ~~> TODO"
+
+isArithmeticOperator :: SymBinOp -> Bool
+isArithmeticOperator op = elem op [Add, Sub, Mul, Div, Mod]
+
+isBooleanOperator :: SymBinOp -> Bool
+isBooleanOperator = flip elem [Eq, Neq, Lt, Le, Gt, Ge, And, Or]
 
 isFormalParameter :: SymExpr -> Bool
 isFormalParameter (SymFormalParam _ _ _) = True
@@ -391,6 +398,7 @@ getIntegralArithBinOp = \case
     Add -> (+)
     Mul -> (*)
     Sub -> (-)
+    Mod -> mod
 
 getFractionalArithBinOp :: Fractional a => SymBinOp -> (a -> a -> a)
 getFractionalArithBinOp = \case
@@ -407,6 +415,7 @@ getArithBoolOp = \case
   Le -> (<=)
   Gt -> (>)
   Ge -> (>=)
+  op -> error $ "getArithBoolOp:: " ++ show op
 
 getBoolOp :: SymBinOp -> (Bool -> Bool -> Bool)
 getBoolOp = \case
@@ -476,6 +485,10 @@ getNewVarAssignment nodeId branchId = \case
       Just _ -> Just (varName,Node_Coor nodeId branchId)
       Nothing -> Nothing
     _ -> error "getNewVarBinding -> won't happen3"
+  ----------
+  stmt@AST.FunCallStmt{} -> Nothing
+  ----------
+  stmt -> error $ printf "getNewVarAssignment ==> TODO: ((%d,%d),%s)" nodeId branchId (show stmt)
 
 getVarNames :: SymState -> Map.Map SymStateKey SymExpr
 getVarNames symState = flip Map.filterWithKey (env symState) $ \k _ -> case k of
@@ -496,6 +509,11 @@ getVarNames2 = \case
   SymInt _ -> []
   SymString str -> [str]
   symExpr -> error $ "TODO3:: getVarNames2 ==> " ++ show symExpr
+
+getVarNames3 :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
+getVarNames3 ma = flip Map.filterWithKey ma $ \k _ -> case k of
+  VarName _ -> True
+  _ -> False
 
 getVarNameSymType :: String -> Map.Map SymStateKey SymExpr -> SymType
 getVarNameSymType varName ma = case Map.lookup (VarName varName) ma of
@@ -530,6 +548,10 @@ getVarAssignments = maybe [] (\(SVarAssignments li) -> li) . Map.lookup VarAssig
 
 getVarAssignments2 :: Map.Map SymStateKey SymExpr -> [(String,Node_Coor)]
 getVarAssignments2 = maybe [] (\(SVarAssignments li) -> li) . Map.lookup VarAssignments
+
+getGlobalVars :: Map.Map SymStateKey SymExpr -> [String]
+getGlobalVars = maybe [] (\(SGlobalVars li) -> li) . Map.lookup GlobalVars
+
 ------------------------------
 ------------------------------
 ------------------------------

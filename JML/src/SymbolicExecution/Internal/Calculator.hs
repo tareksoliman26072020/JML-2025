@@ -634,8 +634,9 @@ abs = \case
 
 booleanCalculator2 :: SymBinOp -> (SymExpr, SymExpr) -> SymExpr
 booleanCalculator2 op = \case
-  (SymNum num1, SymNum num2) ->
-    SBool $ getArithBoolOp op num1 num2
+  (SymNum num1, SymNum num2)
+--    | op == Mod = SBool (round num1) `mod` (round num2)
+    -> SBool $ getArithBoolOp op num1 num2
   (SymInt num1, SymInt num2) ->
     SBool $ getArithBoolOp op num1 num2
   (SymDouble num1, SymDouble num2) ->
@@ -670,7 +671,28 @@ booleanCalculator2 op = \case
   (a,b@(SymNum _)) ->
     SBin a op (cast (toSymType2 a) b)
   ----------
-  (p1,p2) -> error $ printf "booleanCalculator2: (%s, %s, %s)" (show p1) (show op) (show p2)
+  (a@(SBin _ op1 _),b) ->
+    let whichFun
+          | isBooleanOperator op1 = booleanCalculator
+          | isArithmeticOperator op1 = numericCalculator
+        a2 = whichFun a
+    in SBin a2 op b
+  (a,b@(SBin _ op2 _)) ->
+    let whichFun
+          | isBooleanOperator op2 = booleanCalculator
+          | isArithmeticOperator op2 = numericCalculator
+        b2 = whichFun b
+    in SBin a op b2
+  (a@(SBin _ op1 _),b@(SBin _ op2 _)) ->
+    let whichFun theOp
+          | isBooleanOperator theOp = booleanCalculator
+          | isArithmeticOperator theOp = numericCalculator
+        a2 = (whichFun op1) a
+        b2 = (whichFun op2) b
+    in SBin a2 op b2
+  ----------
+  (p1,p2) -> error $ printf "booleanCalculator2: %s" (show p1)
+  ----------
 
 ----------------------------------------------------------------------
 ----------------------------------------------------------------------
