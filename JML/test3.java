@@ -2194,17 +2194,16 @@ public String ifFun6(int n) {
 
 //DONE
 /*
-SymState {
-  env = fromList [
-    (MethodName "ifFun7",SMethodType Void),
-    (FormalParms,SFormalParms ["n"]),
-    (VarAssignments,SVarAssignments [("v",Node_Coor {varDeclAt = 2, varFrame = 1}),("w",Node_Coor {varDeclAt = 3, varFrame = 1})]),
-    (BranchRange (BR {branchStart = 1, branchEnd = 4}),SIte (SBin (SBin (SymFormalParam Int "n" Nothing) Mod (SymInt 2)) Eq (SymInt 0)) (SymState {env = fromList [(MethodName "ifFun7",SMethodType Void),(GlobalVars,SGlobalVars ["v"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("v",Node_Coor {varDeclAt = 2, varFrame = 1})]),(VarName "n",SymFormalParam Int "n" Nothing),(VarName "v",SymString "hi")], pc = []}) (Just (SymState {env = fromList [(MethodName "ifFun7",SMethodType Void),(GlobalVars,SGlobalVars ["w"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("w",Node_Coor {varDeclAt = 3, varFrame = 1})]),(VarName "n",SymFormalParam Int "n" Nothing),(VarName "w",SymString "bye")], pc = []}))),
-    (VarName "n",SymFormalParam Int "n" Nothing),
-    (VarName "v",SymUnknown (String,"v",Nothing) (IfBranchingReason (BR {branchStart = 1, branchEnd = 4}))),
-    (VarName "w",SymUnknown (String,"w",Nothing) (IfBranchingReason (BR {branchStart = 1, branchEnd = 4})))
-  ], pc = []
-}
+[
+ (MethodName "ifFun7",SMethodType Void),
+ (GlobalVars,SGlobalVars ["v","w"]),
+ (FormalParms,SFormalParms ["n"]),
+ (VarAssignments,SVarAssignments [("v",Node_Coor {varDeclAt = 2, varFrame = 1}),("w",Node_Coor {varDeclAt = 3, varFrame = 1})]),
+ (BranchRange (BR {branchStart = 1, branchEnd = 4}),SIte (SBin (SBin (SymFormalParam Int "n" Nothing) Mod (SymInt 2)) Eq (SymInt 0)) (SymState {env = fromList [(MethodName "ifFun7",SMethodType Void),(GlobalVars,SGlobalVars ["v"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("v",Node_Coor {varDeclAt = 2, varFrame = 1})]),(VarName "n",SymFormalParam Int "n" Nothing),(VarName "v",SymString "hi")], pc = []}) (Just (SymState {env = fromList [(MethodName "ifFun7",SMethodType Void),(GlobalVars,SGlobalVars ["w"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("w",Node_Coor {varDeclAt = 3, varFrame = 1})]),(VarName "n",SymFormalParam Int "n" Nothing),(VarName "w",SymString "bye")], pc = []}))),
+ (VarName "n",SymFormalParam Int "n" Nothing),
+ (VarName "v",SymUnknown (String,"v",Nothing) (IfBranchingReason (BR {branchStart = 1, branchEnd = 4}))),
+ (VarName "w",SymUnknown (String,"w",Nothing) (IfBranchingReason (BR {branchStart = 1, branchEnd = 4})))
+]
 */
 public void ifFun7(int n) {
   if(n % 2 == 0) {
@@ -2219,13 +2218,11 @@ public void ifFun7(int n) {
 
 //DONE
 /*
-SymState {
-  env = fromList [
-    (MethodName "ifFun7Call",SMethodType Void),
-    (GlobalVars,SGlobalVars ["v"]),
-    (VarName "v",SymString "hi")
-  ], pc = []
-}
+[
+ (MethodName "ifFun7Call",SMethodType Void),
+ (GlobalVars,SGlobalVars ["v"]),
+ (VarName "v",SymString "hi")
+]
 */
 public void ifFun7Call() {
   ifFun7(4);
@@ -2251,6 +2248,32 @@ public void ifFun7Call2() {
 /////////////////////
 
 //DONE
+/*
+[
+ (MethodName "ifFun7Call3",SMethodType Void),
+ (GlobalVars,SGlobalVars ["t","v","w"]),
+ (VarName "t",SymGlobalVar UnknownGlobalVarSymType "t" Nothing)
+]
+*/
+public void ifFun7Call3() {
+  ifFun7(t);
+}
+
+/////////////////////
+
+//DONE
+/*
+[
+ (MethodName "ifFun8",SMethodType Void),
+ (GlobalVars,SGlobalVars ["v","w"]),
+ (FormalParms,SFormalParms ["n"]),
+ (VarAssignments,SVarAssignments [("v",Node_Coor {varDeclAt = 2, varFrame = 1}),("w",Node_Coor {varDeclAt = 4, varFrame = 1})]),
+ (BranchRange (BR {branchStart = 1, branchEnd = 6}),SIte (SBin (SBin (SymFormalParam Int "n" Nothing) Mod (SymInt 2)) Eq (SymInt 0)) (SymState {env = fromList [(MethodName "ifFun8",SMethodType Void),(GlobalVars,SGlobalVars ["v"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("v",Node_Coor {varDeclAt = 2, varFrame = 1})]),(VarName "n",SymFormalParam Int "n" Nothing),(VarName "v",SymString "hi"),(Actions,SActions ["hi\n"])], pc = []}) (Just (SymState {env = fromList [(MethodName "ifFun8",SMethodType Void),(GlobalVars,SGlobalVars ["w"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("w",Node_Coor {varDeclAt = 4, varFrame = 1})]),(VarName "n",SymFormalParam Int "n" Nothing),(VarName "w",SymString "bye"),(Actions,SActions ["bye\n"])], pc = []}))),
+ (VarName "n",SymFormalParam Int "n" Nothing),
+ (VarName "v",SymUnknown (String,"v",Nothing) (IfBranchingReason (BR {branchStart = 1, branchEnd = 6}))),
+ (VarName "w",SymUnknown (String,"w",Nothing) (IfBranchingReason (BR {branchStart = 1, branchEnd = 6})))
+]
+*/
 public void ifFun8(int n) {
   if(n % 2 == 0) {
     v = "hi";
@@ -2430,20 +2453,26 @@ public int sum2(int n) {
 
 //TODO
 /*
-SymState {
-  env = fromList [
-    (MethodName "wrongSum3",SMethodType Int),
-    (GlobalVars,SGlobalVars ["v","t"]),
-    (FormalParms,SFormalParms ["n"]),
-    (VarBindings,SVarBindings (fromList [("res",Node_Coor {varDeclAt = 1, varFrame = 0})])),
-    (VarAssignments,SVarAssignments [("res",Node_Coor {varDeclAt = 1, varFrame = 0}),("res",Node_Coor {varDeclAt = 4, varFrame = 2}),("res",Node_Coor {varDeclAt = 9, varFrame = 7}),("res",Node_Coor {varDeclAt = 11, varFrame = 2}),("t",Node_Coor {varDeclAt = 12, varFrame = 2})]),
-    (BranchRange (BR {branchStart = 2, branchEnd = 14}),SLoop (Just (Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}), parent = 0})) (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >, expr2 = NumberLiteral 0.0})) [Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}}), parent = 2},Node {id = 5, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "z"}, assEright = NumberLiteral 9.0}}), parent = 2},Node {id = 6, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "z"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}), parent = 2},Node {id = 7, nodeData = BooleanExpression If (Just (BoolLiteral True)), parent = 2},Node {id = 11, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = NumberLiteral 0.0}}), parent = 2},Node {id = 12, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "t"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}), parent = 2},Node {id = 13, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = -, expr2 = NumberLiteral 1.0}}})), parent = 2}]),
-    (VarName "n",SymFormalParam Int "n" Nothing),
-    (VarName "res",SymUnknown (Int,"res",Just (SymInt 0)) (ForBranchingReason (BR {branchStart = 2, branchEnd = 14}))),
-    (VarName "t",SymUnknown (Int,"t",Nothing) (ForBranchingReason (BR {branchStart = 2, branchEnd = 14}))),
-    (VarName "v",SymString "hi"),
-    (Return,SymUnknown (Int,"res",Just (SymInt 0)) (ForBranchingReason (BR {branchStart = 2, branchEnd = 14})))
-  ], pc = []
+[
+ (MethodName "wrongSum3",SMethodType Int),
+ (GlobalVars,SGlobalVars ["v","t"]),
+ (FormalParms,SFormalParms ["n"]),
+ (VarBindings,SVarBindings (fromList [("res",Node_Coor {varDeclAt = 1, varFrame = 0})])),
+ (VarAssignments,SVarAssignments [
+     ("res",Node_Coor {varDeclAt = 1, varFrame = 0}),
+     ("res",Node_Coor {varDeclAt = 4, varFrame = 2}),
+     ("v",Node_Coor {varDeclAt = 8, varFrame = 7}),
+     ("res",Node_Coor {varDeclAt = 9, varFrame = 7}),
+     ("res",Node_Coor {varDeclAt = 11, varFrame = 2}),
+     ("t",Node_Coor {varDeclAt = 12, varFrame = 2})
+ ]),
+ (BranchRange (BR {branchStart = 2, branchEnd = 14}),SLoop (Just (Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}), parent = 0})) (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >, expr2 = NumberLiteral 0.0})) [Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}}), parent = 2},Node {id = 5, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "z"}, assEright = NumberLiteral 9.0}}), parent = 2},Node {id = 6, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "z"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}), parent = 2},Node {id = 7, nodeData = BooleanExpression If (Just (BoolLiteral True)), parent = 2},Node {id = 11, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = NumberLiteral 0.0}}), parent = 2},Node {id = 12, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "t"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}), parent = 2},Node {id = 13, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = -, expr2 = NumberLiteral 1.0}}})), parent = 2}]),
+ (VarName "n",SymFormalParam Int "n" Nothing),
+ (VarName "res",SymUnknown (Int,"res",Just (SymInt 0)) (ForBranchingReason (BR {branchStart = 2, branchEnd = 14}))),
+ (VarName "t",SymUnknown (Int,"t",Nothing) (ForBranchingReason (BR {branchStart = 2, branchEnd = 14}))),
+ (VarName "v",SymString "hi"),
+ (Return,SymUnknown (Int,"res",Just (SymInt 0)) (ForBranchingReason (BR {branchStart = 2, branchEnd = 14})))
+]
 }
 */
 public int wrongSum3(int n) {

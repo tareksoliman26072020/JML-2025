@@ -2312,17 +2312,16 @@ public String ifFun6(int n) {
 /////////////////////
 
 /*
-SymState {
-  env = fromList [
-    (MethodName "ifFun7",SMethodType Void),
-    (FormalParms,SFormalParms ["n"]),
-    (VarAssignments,SVarAssignments [("v",Node_Coor {varDeclAt = 2, varFrame = 1}),("w",Node_Coor {varDeclAt = 3, varFrame = 1})]),
-    (BranchRange (BR {branchStart = 1, branchEnd = 4}),SIte (SBin (SBin (SymFormalParam Int "n" Nothing) Mod (SymInt 2)) Eq (SymInt 0)) (SymState {env = fromList [(MethodName "ifFun7",SMethodType Void),(GlobalVars,SGlobalVars ["v"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("v",Node_Coor {varDeclAt = 2, varFrame = 1})]),(VarName "n",SymFormalParam Int "n" Nothing),(VarName "v",SymString "hi")], pc = []}) (Just (SymState {env = fromList [(MethodName "ifFun7",SMethodType Void),(GlobalVars,SGlobalVars ["w"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("w",Node_Coor {varDeclAt = 3, varFrame = 1})]),(VarName "n",SymFormalParam Int "n" Nothing),(VarName "w",SymString "bye")], pc = []}))),
-    (VarName "n",SymFormalParam Int "n" Nothing),
-    (VarName "v",SymUnknown (String,"v",Nothing) (IfBranchingReason (BR {branchStart = 1, branchEnd = 4}))),
-    (VarName "w",SymUnknown (String,"w",Nothing) (IfBranchingReason (BR {branchStart = 1, branchEnd = 4})))
-  ], pc = []
-}
+[
+ (MethodName "ifFun7",SMethodType Void),
+ (GlobalVars,SGlobalVars ["v","w"]),
+ (FormalParms,SFormalParms ["n"]),
+ (VarAssignments,SVarAssignments [("v",Node_Coor {varDeclAt = 2, varFrame = 1}),("w",Node_Coor {varDeclAt = 3, varFrame = 1})]),
+ (BranchRange (BR {branchStart = 1, branchEnd = 4}),SIte (SBin (SBin (SymFormalParam Int "n" Nothing) Mod (SymInt 2)) Eq (SymInt 0)) (SymState {env = fromList [(MethodName "ifFun7",SMethodType Void),(GlobalVars,SGlobalVars ["v"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("v",Node_Coor {varDeclAt = 2, varFrame = 1})]),(VarName "n",SymFormalParam Int "n" Nothing),(VarName "v",SymString "hi")], pc = []}) (Just (SymState {env = fromList [(MethodName "ifFun7",SMethodType Void),(GlobalVars,SGlobalVars ["w"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("w",Node_Coor {varDeclAt = 3, varFrame = 1})]),(VarName "n",SymFormalParam Int "n" Nothing),(VarName "w",SymString "bye")], pc = []}))),
+ (VarName "n",SymFormalParam Int "n" Nothing),
+ (VarName "v",SymUnknown (String,"v",Nothing) (IfBranchingReason (BR {branchStart = 1, branchEnd = 4}))),
+ (VarName "w",SymUnknown (String,"w",Nothing) (IfBranchingReason (BR {branchStart = 1, branchEnd = 4})))
+]
 */
 public void ifFun7(int n) {
   if(n % 2 == 0) {
@@ -2367,6 +2366,31 @@ public void ifFun7Call2() {
 
 /////////////////////
 
+/*
+[
+ (MethodName "ifFun7Call3",SMethodType Void),
+ (GlobalVars,SGlobalVars ["t","v","w"]),
+ (VarName "t",SymGlobalVar UnknownGlobalVarSymType "t" Nothing)
+]
+*/
+public void ifFun7Call3() {
+  ifFun7(t);
+}
+
+/////////////////////
+
+/*
+[
+ (MethodName "ifFun8",SMethodType Void),
+ (GlobalVars,SGlobalVars ["v","w"]),
+ (FormalParms,SFormalParms ["n"]),
+ (VarAssignments,SVarAssignments [("v",Node_Coor {varDeclAt = 2, varFrame = 1}),("w",Node_Coor {varDeclAt = 4, varFrame = 1})]),
+ (BranchRange (BR {branchStart = 1, branchEnd = 6}),SIte (SBin (SBin (SymFormalParam Int "n" Nothing) Mod (SymInt 2)) Eq (SymInt 0)) (SymState {env = fromList [(MethodName "ifFun8",SMethodType Void),(GlobalVars,SGlobalVars ["v"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("v",Node_Coor {varDeclAt = 2, varFrame = 1})]),(VarName "n",SymFormalParam Int "n" Nothing),(VarName "v",SymString "hi"),(Actions,SActions ["hi\n"])], pc = []}) (Just (SymState {env = fromList [(MethodName "ifFun8",SMethodType Void),(GlobalVars,SGlobalVars ["w"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("w",Node_Coor {varDeclAt = 4, varFrame = 1})]),(VarName "n",SymFormalParam Int "n" Nothing),(VarName "w",SymString "bye"),(Actions,SActions ["bye\n"])], pc = []}))),
+ (VarName "n",SymFormalParam Int "n" Nothing),
+ (VarName "v",SymUnknown (String,"v",Nothing) (IfBranchingReason (BR {branchStart = 1, branchEnd = 6}))),
+ (VarName "w",SymUnknown (String,"w",Nothing) (IfBranchingReason (BR {branchStart = 1, branchEnd = 6})))
+]
+*/
 public void ifFun8(int n) {
   if(n % 2 == 0) {
     v = "hi";

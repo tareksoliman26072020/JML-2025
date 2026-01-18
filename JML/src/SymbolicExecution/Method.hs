@@ -119,7 +119,7 @@ instance CFGVisitor Method_SymExec where
                       Just (_,xs) -> xs
                       Nothing     -> error $ "visitNode -> Node -> BooleanExpression -> won't happen"
         let branches_paths :: [[CFGT.Node]]
-            branches_paths = flip map branches $ \branchStartId ->
+            branches_paths = filter (not . null) $ flip map branches $ \branchStartId ->
               let thePath = CFG.getPath branchStartId cfg
               in flip takeWhile thePath $ \case
                    CFGT.Node _ (CFGT.Meet CFGT.If) _ -> False
@@ -129,6 +129,7 @@ instance CFGVisitor Method_SymExec where
         state <- get
         let mainActions = getActions state
         let mainVarAssignments = getVarAssignments state
+        --throwError $ printf "WOF::\n\n1) %s\n\n2) %s" (show expr2) (show branches_paths)
         toReturn <- case expr2 of
               SBool b -> do
                 case branches_paths of
@@ -139,7 +140,7 @@ instance CFGVisitor Method_SymExec where
                     -- remove vars declared in that scope
                     -- use vars bindings to do so
                     let s = removeDeletedVars state condSymState
-                        newCondSymState = SymState {
+                    let newCondSymState = SymState {
                           env =
                             let addActions = Map.alter (\case
                                   Nothing -> Just $ SActions mainActions
@@ -150,10 +151,11 @@ instance CFGVisitor Method_SymExec where
                                   Nothing -> Nothing
                                   Just (SVarAssignments li) -> Just $ SVarAssignments
                                     $ flip filter li
-                                      $ \(name,_) -> maybe False (const True)
+                                      $ \(name,_) ->
+                                          isGlobalVariable2 name addActions ||
+                                          maybe False (const True)
                                            (lookup name mainVarAssignments)
-                                  ) VarAssignments
-                                      addActions
+                                  ) VarAssignments addActions
                             in deleteVarAssignments,
                           pc = pc s
                         }
@@ -170,7 +172,7 @@ instance CFGVisitor Method_SymExec where
                     -- remove vars declared in that scope
                     -- use vars bindings to do so
                     let s = removeDeletedVars state condSymState
-                        newCondSymState = SymState {
+                    let newCondSymState = SymState {
                           env =
                             let addActions = Map.alter (\case
                                   Nothing -> Just $ SActions mainActions
@@ -181,7 +183,9 @@ instance CFGVisitor Method_SymExec where
                                   Nothing -> Nothing
                                   Just (SVarAssignments li) -> Just $ SVarAssignments
                                     $ flip filter li
-                                      $ \(name,_) -> maybe False (const True)
+                                      $ \(name,_) ->
+                                          isGlobalVariable2 name addActions ||
+                                          maybe False (const True)
                                            (lookup name mainVarAssignments)
                                   ) VarAssignments
                                       addActions
@@ -215,6 +219,11 @@ instance CFGVisitor Method_SymExec where
                       SIte _ ifSymState mElseSymState -> nub $
                         condVarAssignments ifSymState ++
                         maybe [] condVarAssignments mElseSymState
+                    newMainGlobalVars = case symExpr of
+                      SIte ifCond ifSymState mElseSymState -> nub $
+                        filter (\vn -> isGlobalVariable2 vn (env state)) (getVarNames2 ifCond)
+                        ++ getGlobalVars (env ifSymState)
+                        ++ maybe [] (getGlobalVars . env) mElseSymState
                 tell [Log.ModifyState "visitNode -> Node -> BooleanExpression if -> recording symbolic branching" (printf "if node num: %d" (CFGT.id n),show symExpr)]
                 modify $ \symState ->
                   let condBranchRange = BR (CFGT.id n)
@@ -228,7 +237,9 @@ instance CFGVisitor Method_SymExec where
                                 symExpr (env symState)
                               addVarAssignments = Map.insert
                                 VarAssignments (SVarAssignments newMainVarAssignments) addNode
-                          in addVarAssignments,
+                              addGlobalVars = Map.insert
+                                GlobalVars (SGlobalVars newMainGlobalVars) addVarAssignments
+                          in addGlobalVars,
                         pc = pc symState
                       }
                       -- if there's a var in `vars` that was assigned between `condBranchRange`
@@ -929,17 +940,17 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
         -- GlobalVars from `originalState`
         originalGlobalVars = maybe [] (\case
             SGlobalVars li -> li
-            val -> error $ "visitForLoop ==> won't happen 1 ==> " ++ show val)
+            val -> error $ "visitForLoop2 ==> won't happen 1 ==> " ++ show val)
             $ Map.lookup GlobalVars (env originalState) 
         -- VarBindings from `originalState`
         originalVarBindings = maybe [] (\case
             SVarBindings m -> Map.keys m
-            val -> error $ "visitForLoop ==> won't happen 2 ==> " ++ show val)
+            val -> error $ "visitForLoop2 ==> won't happen 2 ==> " ++ show val)
             $ Map.lookup VarBindings (env originalState)
         -- FormalParms from `originalState`
         originalFormalParms = maybe [] (\case
             SFormalParms li -> li
-            val -> error $ "visitForLoop ==> won't happen 3 ==> " ++ show val)
+            val -> error $ "visitForLoop2 ==> won't happen 3 ==> " ++ show val)
             $ Map.lookup FormalParms (env originalState)
         -- VarNames from `originalState`
         originalVarNames = flip Map.filterWithKey (env originalState) $ \k _ ->
@@ -973,19 +984,19 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
         forBodyGlobalVars = nub $ condNode_globalVars ++ (flip (maybe [])
           (Map.lookup GlobalVars (env forBodySymState)) $ \case
              SGlobalVars li -> li
-             val -> error $ "visitForLoop ==> won't happen 4 ==> " ++ show val)
+             val -> error $ "visitForLoop2 ==> won't happen 4 ==> " ++ show val)
         -- b) VarAssignments from `forBodySymState` which have
         --        (GlobalVar,
         --         any VarBinding from `originalState`,
         --         any FormalParm from `originalState`)
-        forBody_Some_VarAssignments = maybe [] (\case
+        forBody_Some_VarAssignments = flip (maybe [])
+          (Map.lookup VarAssignments (env forBodySymState)) $ \case
             SVarAssignments li -> flip filter li $ \(str,coor) ->
                 str `elem` originalGlobalVars ||
                 str `elem` forBodyGlobalVars ||
                 str `elem` originalVarBindings ||
                 str `elem` originalFormalParms
-            val -> error $ "visitForLoop ==> won't happen 5 ==> " ++ show val)
-            $ Map.lookup VarAssignments (env forBodySymState)
+            val -> error $ "visitForLoop2 ==> won't happen 5 ==> " ++ show val
         -- c) VarNames in `forBodySymState` with
         --        (GlobalVars,
         --         VarNames mentioned in `originalState`)
@@ -1025,6 +1036,39 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
                       mOriginalVal) (ForBranchingReason branchRange)
             in Map.insert (VarName vn) newVal ma
             ) map_withVarAssignments forBody_Some_VarNames
+    {-
+    throwError $ printf "MEOW:::\n\n1) %s\n\n2) %s\n\n3) %s"
+      (show forBodyGlobalVars) (show forBody_Some_VarAssignments) (show forBody_Some_VarNames)-}
+    --throwError $ "this::: " ++ show forBodySymState
+{-
+[
+ Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}), parent = 0},
+ Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}}), parent = 2},
+ Node {id = 5, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "z"}, assEright = NumberLiteral 9.0}}), parent = 2},
+ Node {id = 6, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "z"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}), parent = 2},
+ Node {id = 7, nodeData = BooleanExpression If (Just (BoolLiteral True)), parent = 2},
+ Node {id = 11, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = NumberLiteral 0.0}}), parent = 2},
+ Node {id = 12, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "t"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}), parent = 2},
+ Node {id = 13, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = -, expr2 = NumberLiteral 1.0}}}), parent = 2}
+]
+
+
+
+[
+ (MethodName "wrongSum3",SMethodType Int),
+ (GlobalVars,SGlobalVars ["v","t"]),
+ (FormalParms,SFormalParms ["n"]),
+ (VarBindings,SVarBindings (fromList [("i",Node_Coor {varDeclAt = 2, varFrame = 0}),("res",Node_Coor {varDeclAt = 1, varFrame = 0}),("z",Node_Coor {varDeclAt = 5, varFrame = 2})])),
+ (VarAssignments,SVarAssignments [("res",Node_Coor {varDeclAt = 1, varFrame = 0}),("i",Node_Coor {varDeclAt = 2, varFrame = 0}),("res",Node_Coor {varDeclAt = 4, varFrame = 2}),("z",Node_Coor {varDeclAt = 5, varFrame = 2}),("z",Node_Coor {varDeclAt = 6, varFrame = 2}),("res",Node_Coor {varDeclAt = 9, varFrame = 7}),("res",Node_Coor {varDeclAt = 11, varFrame = 2}),("t",Node_Coor {varDeclAt = 12, varFrame = 2}),("i",Node_Coor {varDeclAt = 13, varFrame = 2})]),
+ (VarName "i",SBin (SymFormalParam Int "n" Nothing) Sub (SymInt 1)),
+ (VarName "n",SymFormalParam Int "n" Nothing),
+ (VarName "res",SymInt 0),
+ (VarName "t",SymFormalParam Int "n" Nothing),
+ (VarName "v",SymString "hi"),
+ (VarName "z",SymFormalParam Int "n" Nothing),
+ (Actions,SActions [])
+]
+ -}
     --throwError $ printf "MEOW:::\n%s\n\n%s\n\n%s" (show originalGlobalVars) (show condNode_globalVars) (show forBodyGlobalVars)
     tell [Log.ModifyState "visitForLoop2" (show branchRange,"SLoop")]
     let symExpr = SLoop m_Acc mForCondExpr forBody_forStep_path

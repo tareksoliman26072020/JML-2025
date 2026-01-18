@@ -60,7 +60,6 @@ isGlobalVariable _ = False
 
 --isNewGlobalVariable :: String -> Map.Map SymStateKey SymExpr -> Bool
 
--- this function checks whether a 
 -- a sign that a global variable exists is that
 -- it either exists in SGlobalVars,
 -- or it does not exist in both SFormalParms or in SVarBindings
