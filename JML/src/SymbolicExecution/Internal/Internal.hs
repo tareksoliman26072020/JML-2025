@@ -13,7 +13,7 @@ import Text.Printf (printf)
 import Control.Applicative (Alternative(empty),asum,(<|>))
 import qualified Data.Map as Map (lookup,empty,Map,filterWithKey,insert,foldMapWithKey,toList,alter,notMember)
 import Prelude hiding (negate)
-import Data.List (nub)
+import Data.List (nub,find)
 
 ------------------------------
 ------------------------------
@@ -86,6 +86,27 @@ isGlobalVariable2 varName ma =
     (Just (SGlobalVars globals),Just (SFormalParms formals),Just (SVarBindings bindings))
       -> isGlobal globals || (isNotFormal formals && isNotLocal bindings)
 
+hasForReason :: [SymReason] -> Bool
+hasForReason li = maybe False (const True) $ flip find li $ \case
+  ForBranchingReason _ -> True
+  _ -> False
+
+hasIfReason :: [SymReason] -> Bool
+hasIfReason li = maybe False (const True) $ flip find li $ \case
+  IfBranchingReason _ -> True
+  _ -> False
+
+alterList :: Eq a => (Maybe a -> Maybe a) -> a -> [a] -> [a]
+alterList f elm li
+  | elm `elem` li = flip concatMap li $ \n ->
+      if n==elm then fun (Just elm)
+      else [n]
+  | otherwise = li ++ fun Nothing
+  where
+  fun m = case f m of
+    Nothing -> []
+    Just newElm -> [newElm]
+
 hasFormalParameter :: String -> Map.Map SymStateKey SymExpr -> Bool
 hasFormalParameter varName s = case Map.lookup FormalParms s of
   Nothing -> False
@@ -142,6 +163,7 @@ recordGlobalVar varName ma =
       | varName `elem` li -> ma
       | otherwise -> Map.insert GlobalVars (SGlobalVars $ li ++ [varName]) ma
 
+{-
 makeVarSymUnknown :: (String,SymReason) -> Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
 makeVarSymUnknown (varName,symReason) ma =
   Map.alter (\case
@@ -149,7 +171,7 @@ makeVarSymUnknown (varName,symReason) ma =
       $ printf "makeVarSymUnknown ==> won't happen because varName (%s) should exist" varName
     Just expr -> Just $ SymUnknown (toSymType2 expr,varName,Just expr) symReason) 
             (VarName varName) ma
-
+-}
 isSymInt :: SymExpr -> Bool
 isSymInt = \case
   SymInt _ -> True
@@ -496,6 +518,7 @@ getVarNames2 = \case
   SymDouble _ -> []
   SymInt _ -> []
   SymString str -> [str]
+  SymNum _ -> []
   symExpr -> error $ "TODO3:: getVarNames2 ==> " ++ show symExpr
 
 getVarNames3 :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
@@ -503,10 +526,11 @@ getVarNames3 ma = flip Map.filterWithKey ma $ \k _ -> case k of
   VarName _ -> True
   _ -> False
 
-getVarNameSymType :: String -> Map.Map SymStateKey SymExpr -> SymType
-getVarNameSymType varName ma = case Map.lookup (VarName varName) ma of
-  Nothing -> error $ "getVarNameSymType ==> won't happen ==> " ++ varName
-  Just symExpr -> toSymType2 symExpr
+getVarNameSymType :: String -> Map.Map SymStateKey SymExpr -> Maybe SymType
+getVarNameSymType varName ma = fmap toSymType2 (Map.lookup (VarName varName) ma)
+
+getVarNameSymExpr :: String -> Map.Map SymStateKey SymExpr -> Maybe SymExpr
+getVarNameSymExpr varName ma = fmap id (Map.lookup (VarName varName) ma)
 
 -- This functions alters type predominantly to globals and formals
 changeSymExprType :: SymType -> SymExpr -> SymExpr

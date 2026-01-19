@@ -128,19 +128,19 @@ instance CFGVisitor Method_SymExec where
             --           if there is no else branch, then the list has only one int.
             branches = case CFG.findEdge_via_id cfg (CFGT.id n) of
                       Just (_,xs) -> xs
-                      Nothing     -> error $ "visitNode -> Node -> BooleanExpression -> won't happen"
+                      Nothing     -> error $ "visitNode -> Node -> BooleanExpression if -> won't happen1"
         let branches_paths :: [[CFGT.Node]]
             branches_paths = filter (not . null) $ flip map branches $ \branchStartId ->
               let thePath = CFG.getPath branchStartId cfg
               in flip takeWhile thePath $ \case
                    CFGT.Node _ (CFGT.Meet CFGT.If) _ -> False
                    _                                 -> True
-        --throwError $ "visitNode ==> Node ==> BooleanExpression ==> " ++ show branches_paths
+        
         ER_Expr expr2 <- visitExpr expr
         state <- get
         let mainActions = getActions state
         let mainVarAssignments = getVarAssignments state
-        --throwError $ printf "WOF::\n\n1) %s\n\n2) %s" (show expr2) (show branches_paths)
+        
         toReturn <- case expr2 of
               SBool b -> do
                 case branches_paths of
@@ -243,44 +243,57 @@ instance CFGVisitor Method_SymExec where
                       }
                       -- `s1` has the new conditional branchs (addNode)
                       --  and has the new VarAssignments from the conditional branches
-                      s1 = SymState {
-                        env =
-                          let addNode = Map.insert
-                                (BranchRange condBranchRange)
-                                symExpr (env symState)
-                              addVarAssignments = Map.insert
-                                VarAssignments (SVarAssignments newMainVarAssignments) addNode
-                              addGlobalVars = Map.insert
-                                GlobalVars (SGlobalVars newMainGlobalVars) addVarAssignments
-                          in addGlobalVars,
-                        pc = pc symState
-                      }
+                      ma1 =
+                        let addNode = Map.insert
+                              (BranchRange condBranchRange)
+                              symExpr (env symState)
+                            addVarAssignments = Map.insert
+                              VarAssignments (SVarAssignments newMainVarAssignments) addNode
+                            addGlobalVars = Map.insert
+                              GlobalVars (SGlobalVars newMainGlobalVars) addVarAssignments
+                        in addGlobalVars
                       -- if there's a VarName that was assigned between `condBranchRange`
                       -- then make it unknown
-                      unknownVarAssigns = flip filter (getVarAssignments s1) $ \case
+                      unknownVarAssigns = flip filter (getVarAssignments2 ma1) $ \case
                         (_,Node_Coor _ frameCoor) ->
                           branchStart frameCoor == branchStart condBranchRange
                       -- make vars unknown
-                      -- if there exists a VarName that was mentioned in `unknownVars`
+                      -- if there exists a VarName that was mentioned in `unknownVarAssigns`
                       -- then mark it as unknown.
-                      s2 = SymState {
-                        env = flip Map.mapWithKey (env s1) $ \k v -> case k of
-                          VarName vn -> case flip concatMap unknownVarAssigns (\(vn2,coor) ->
-                            if vn2 == vn then [coor]
-                            else []) of
-                              [] -> v
-                              vAs -> SymUnknown
-                                         (toSymType2 v,vn,Just v)
-                                         (IfBranchingReason vAs)
-                          _ -> v,
-                        pc = pc s1
-                      }
+                      ma2 = flip Map.mapWithKey ma1 $ \k v -> case k of
+                        VarName vn -> case flip concatMap unknownVarAssigns (\(vn2,coor) ->
+                          if vn2 == vn then [coor]
+                          else []) of
+                            [] -> v
+                            coors -> case v of
+                              SymUnknown tu reasons -> SymUnknown tu
+                                $ case hasIfReason reasons of
+                                    False -> reasons ++ [IfBranchingReason coors]
+                                    True -> flip map reasons $ \case
+                                      IfBranchingReason li ->
+                                        IfBranchingReason $ li ++ coors
+                                      reason -> reason
+                              _ -> SymUnknown (toSymType2 v,vn,Just v) [IfBranchingReason coors]
+                        _ -> v
                       -- if there is a SVarAssignment that has no `VarName`
                       -- then it is a GlobalVar that is assigned in a conditional branch
                       -- then add this GlobalVar to the State
                       --ma3 = foldl' (\s globalVar ->) (env s2) newMainGlobalVars
+                      ma3 = foldl' (\ma (varAssName,coor) ->
+                        Map.alter (\case
+                          Nothing -> Just
+                            $ SymUnknown (
+                                let SIte _ ifSymState mElseSymState = symExpr
+                                    seeking = asum $ map (getVarNameSymType varAssName)
+                                       $ env ifSymState : maybe [] ((: []) . env) mElseSymState
+                                in case seeking of
+                                     Nothing -> error $ "visitNode -> Node -> BooleanExpression if -> won't happen2"
+                                     Just t -> t,
+                                varAssName,Nothing) [IfBranchingReason [coor]]
+                          Just val -> Just val)
+                          (VarName varAssName) ma) ma2 (getVarAssignments2 ma2)
                       
-                      
+                      {-
                       ma3 = foldl' (\s (varAssName,coor) ->
                         let Just globalVar = findVarName_via_coor (varAssName,varFrame coor) s
                         in case Map.lookup (VarName varAssName) s of
@@ -290,9 +303,10 @@ instance CFGVisitor Method_SymExec where
                                                    (IfBranchingReason [coor]))
                                        s
                           Just _ -> s) (env s2) (getVarAssignments s2)
+                       -}
                   in SymState {
                     env = ma3,
-                    pc = pc s2
+                    pc = pc symState
                   }
                 return (ER_Expr symExpr)
         
@@ -1035,24 +1049,32 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
         --    need to be SymUnknown, then add them to `map_withVarAssignments`
         map_withVarNames = Map.foldlWithKey' (\ma key val -> case key of
           VarName vn ->
-            let mOriginalVal = Map.lookup (VarName vn) ma
-                vn_forbody_varAssigns = flip filter (getVarAssignments2 ma) $ \case
-                  (vn2,node_coor) ->
+            let vn_forbody_varAssigns = flip filter (getVarAssignments2 ma) $
+                  \(vn2,node_coor) ->
                       vn2 == vn &&
                       varDeclAt node_coor >= branchStart branchRange &&
                       varDeclAt node_coor <= branchEnd branchRange
-                newVal
-                  | null vn_forbody_varAssigns = val
-                  | otherwise =
-                      let node_coors = map snd vn_forbody_varAssigns
-                      in SymUnknown (
-                          pick_known_symType (
-                            maybe UnknownGlobalVarSymType
-                                  toSymType2 mOriginalVal,
-                            toSymType2 val),
-                          vn,
-                          mOriginalVal) (ForBranchingReason node_coors)
-            in Map.insert (VarName vn) newVal ma
+                node_coors = map snd vn_forbody_varAssigns
+            in case vn_forbody_varAssigns of
+                 [] -> ma
+                 _ -> Map.alter (\case
+                   ---
+                   Nothing -> Just $ SymUnknown (
+                     pick_known_symType (UnknownGlobalVarSymType,toSymType2 val),
+                     vn,
+                     Nothing) [ForBranchingReason node_coors]
+                   ---
+                   Just (SymUnknown tu reasons) -> Just $ SymUnknown tu
+                     $ case hasForReason reasons of
+                         False -> reasons ++ [ForBranchingReason node_coors]
+                         True -> flip map reasons $ \case
+                           ForBranchingReason li -> ForBranchingReason $ li ++ node_coors
+                           reason -> reason
+                   ---
+                   Just oldVal -> Just $ SymUnknown (
+                     pick_known_symType (toSymType2 oldVal,toSymType2 val),
+                     vn,
+                     Just oldVal) [ForBranchingReason node_coors]) (VarName vn) ma
             ) map_withVarAssignments forBody_Some_VarNames
     {-
     throwError $ printf "MEOW:::\n\n1) %s\n\n2) %s\n\n3) %s"

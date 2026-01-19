@@ -222,16 +222,27 @@ instance SymStateVisitor MethodCall_SymExec where
   ------------------------------
   ------------------------------
   ------------------------------
-      SymGlobalVar t varName mExpr -> do
-        tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SymGlobalVar"]
-        ER_Expr newSymExpr <- case mExpr of
-          Nothing -> return ER_Void
-          Just expr -> do
-            visited <- visitSymExpr0 expr
-            case visited of
-              a@(ER_Expr symExpr) -> return a
-              _ -> error $ printf "visitSymExpr ~~> SymGlobalVar ~~> %s ~~> %s ~~> won't happen" (show val) (show visited)
-        tell [Log.ModifyState "visitSymExpr -> SymGlobalVar" (show key,show newSymExpr)]
+      SymGlobalVar _ _ Nothing -> do
+        tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SymGlobalVar Nothing"]
+        tell [Log.ModifyState "visitSymExpr -> SymGlobalVar" (show key,show val)]
+        modify $ \symState ->
+          SymState {
+            env = Map.insert key val (env symState),
+            pc  = pc symState
+          }
+        let toReturn = ER_SymStateMapEntry key val
+        tell [Log.Return "visitSymExpr -> SymGlobalVar Nothing" (show toReturn)] $> toReturn
+  ------------------------------
+  ------------------------------
+  ------------------------------
+      SymGlobalVar _ _ (Just expr) -> do
+        tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SymGlobalVar Just"]
+        ER_Expr newSymExpr <- do
+          visited <- visitSymExpr0 expr
+          case visited of
+            a@(ER_Expr _) -> return a
+            _ -> error $ printf "visitSymExpr ~~> SymGlobalVar Just ~~> %s ~~> %s ~~> won't happen" (show val) (show visited)
+        tell [Log.ModifyState "visitSymExpr -> SymGlobalVar Just" (show key,show newSymExpr)]
         modify $ \symState ->
           SymState {
             env = Map.insert key newSymExpr (env symState),
@@ -385,17 +396,24 @@ visitSymExpr0 = \case
   ------------------------------
   ------------------------------
   ------------------------------
+{-
+SBin (SymUnknown (Int,"res",Just (SymGlobalVar Int "y" Nothing)) [IfBranchingReason [Node_Coor {varDeclAt = 5, varFrame = BR {branchStart = 4, branchEnd = 7}}]])
+     Add
+     (SymInt 1)
+ -}
   val@(SBin symExpr1 symBinOp symExpr2) -> do
-    tell [Log.SymExpr_2_Handle (show val) "visitSymExpr0 -> SBin"]
+    s <- get
+    tell [Log.SymExpr_2_Handle (show val ++ "\n\n" ++ show s) "visitSymExpr0 -> SBin"]
     toReturn <- (\e1 e2 ->
       let isNumericOp = symBinOp `elem` [Add, Mul, Sub, Div, Mod]
           whichFun = case isNumericOp of
             True -> numericCalculator
             False -> booleanCalculator
-      in
-      ER_Expr $ whichFun (SBin (simplify $ getSymExpr e1) symBinOp (simplify $ getSymExpr e2)))
-      <$> (visitSymExpr0 symExpr1)
-      <*> (visitSymExpr0 symExpr2)
+      in case (e1,e2) of
+           (ER_Expr _,ER_Expr _) ->
+              ER_Expr $ whichFun (SBin (simplify $ getSymExpr e1) symBinOp (simplify $ getSymExpr e2)))
+              <$> (visitSymExpr0 symExpr1)
+              <*> (visitSymExpr0 symExpr2)
     tell [Log.Return "visitSymExpr -> SBin" (show toReturn)] $> toReturn
   ------------------------------
   ------------------------------
@@ -422,13 +440,18 @@ visitSymExpr0 = \case
   ------------------------------
   ------------------------------
   ------------------------------
-  val@(SymUnknown (_,varName,_) _) -> do
+  val@(SymUnknown (_,varName,mOrigExpr) _) -> do
     tell [Log.SymExpr_2_Handle (show val) "visitSymExpr0 -> SymUnknown"]
     mExpr <- findVarName varName . env <$> get
     case mExpr of
       Nothing -> do
         tell [Log.Skip $ "visitSymExpr0 -> SymUnknown -> VarName " ++ varName]
-        return ER_Void
+        --return ER_Void
+        case mOrigExpr of
+          Nothing -> throwError "visitSymExpr0 -> SymUnknown -> won't happen"
+          Just origExpr -> do
+            toReturn <- visitSymExpr0 origExpr
+            tell [Log.Return "visitSymExpr0 -> SymUnknown" (show toReturn)] $> toReturn
       Just symExpr2 -> do
         visited <- visitSymExpr0 symExpr2
         let newVal = case visited of
