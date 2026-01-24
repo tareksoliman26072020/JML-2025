@@ -11,9 +11,10 @@ import qualified CFG.Types as CFG
 import qualified Parser.Types as AST
 import Text.Printf (printf)
 import Control.Applicative (Alternative(empty),asum,(<|>))
-import qualified Data.Map as Map (lookup,empty,Map,filterWithKey,insert,foldMapWithKey,toList,alter,notMember)
+import qualified Data.Map as Map (lookup,empty,Map,filterWithKey,insert,foldMapWithKey,toList,alter,notMember,alterF)
 import Prelude hiding (negate)
 import Data.List (nub,find)
+import Control.Monad (forM_, foldM_)
 
 ------------------------------
 ------------------------------
@@ -249,7 +250,7 @@ toSymType2 = \case
   SObjAcc li -> case li of
     [_,"length"] -> Int
     _ -> error $ "TODO1: toSymType2 ==> " ++ show (SObjAcc li)
-  (SymUnknown (t,_,_) _) -> t
+  (SymUnknown (t,_,_) mExpr) -> t
   SBin a _ b -> pick_known_symType (toSymType2 a,toSymType2 b)
   SymNum _ -> UnknownNumSymType
   SymString _ -> String
@@ -293,14 +294,58 @@ pick_known_symType2 = \case
   [] -> error "pick_known_symType2 ==> won't happen"
   [t] -> t
   (t1 : t2 : rest) -> pick_known_symType2 $ pick_known_symType (t1,t2) : rest
-  
 
 getReturnSymExpr :: SymState -> Maybe SymExpr
 getReturnSymExpr = Map.lookup Return . env
 
-getSymExpr :: ExecutionResult -> SymExpr
-getSymExpr er@(ER_Expr symExpr) = symExpr
-getSymExpr er = error $ "getSymExpr ~~> TODO: " ++ show er
+getSymExpr :: ExecutionResult -> Maybe SymExpr
+getSymExpr = \case
+  ER_Expr symExpr -> Just symExpr
+  ER_SymStateMapEntry _ symExpr -> Just symExpr
+  ER_FunCall symState -> getReturnSymExpr symState
+  ER_ArrayCallExpr _ symExpr -> Just symExpr
+  er -> error $ "getSymExpr ~~> TODO: " ++ show er
+
+-- alters the type of a global variable based on the expression and the scope it exists in
+-- It is used in visitExpr ==> AssignExpr / ==> BinOpExpr
+{-
+ example: both z and t are global variables mentioned for the first time
+    z = t;
+    z = 1;
+in the first expression, both z and t are of `UnknownGlobalVarSymType`
+but the second expression tells me that both of them are of `UnknownNumSymType`
+so when this function is used on them, for the type
+ -}
+castGlobalVar :: SymType -> ExecutionResult -> Typed_Method_R ()
+castGlobalVar newType = \case
+  er@(ER_SymStateMapEntry _ val) -> do
+    theEnv <- env <$> get
+    let vns :: [String] -- vns are global variables mentioned in val
+        vns = flip filter (getVarNames2 val) $ \vn ->
+          isGlobalVariable2 vn theEnv
+    -- foldM_ :: (Foldable t, Monad m) => (b -> a -> m b) -> b -> t a -> m ()
+    foldM_ (\ma vn -> do
+      ma2 <- Map.alterF (\case
+            Nothing -> pure $ Just
+              $ SymGlobalVar newType vn Nothing
+            Just oldSymExpr ->
+              let newType2 = pick_known_symType2
+                    $ toSymType2 oldSymExpr : toSymType2 val : [newType]
+              in if newType2 == toSymType2 oldSymExpr
+                   then pure $ Just oldSymExpr
+                 else do
+                   let newSymExpr = changeSymExprType newType2 oldSymExpr
+                   tell [Log.UpdateVariable (vn,show oldSymExpr,show newSymExpr) "castGlobalVar"]
+                   pure $ Just newSymExpr)
+            (VarName vn) ma
+      
+      modify $ \symState -> SymState {
+        env = ma2,
+        pc = pc symState
+      }
+      return ma2
+      ) theEnv vns
+  _ -> return ()
 
 ------------------------------
 ------------------------------
@@ -368,26 +413,25 @@ newSymNum = \case
 -- The type of the variable in `symExpr` needs to conform to `symType`.
 -- This matters in the context of `AssignExpr`, and `BinOpExpr`
 cast :: SymType -> SymExpr -> SymExpr
-cast symType symExpr = case symExpr of
-  SymNum num -> case symType of
-                Int    -> SymInt (round num)
-                Double -> SymDouble (toDouble num)
-                Float  -> SymFloat num
-                Bool   -> error "cast ~~> won't happen"
-                Void   -> error "cast ~~> won't happen"
-                Array t -> cast t (SymNum num)
-                UnknownGlobalVarSymType -> symExpr
-                UnknownNumSymType -> symExpr
-                _ -> error $ printf "TODO: cast ==> cast (%s) (%s)" (show symType) (show symExpr)
-  SBin expr1 op expr2 -> SBin (cast symType expr1) op (cast symType expr2)
+cast symType symExpr = case (symType,symExpr) of
+  (Int,SymNum num) -> SymInt (round num)
+  (Double,SymNum num) -> SymDouble (toDouble num)
+  (Float,SymNum num) -> SymFloat num
+  (Bool,SymNum num) -> error "cast ~~> won't happen1"
+  (Void,SymNum num) -> error "cast ~~> won't happen2"
+  (Array t,SymNum num) -> cast t (SymNum num)
+  (UnknownGlobalVarSymType,SymNum _) -> symExpr
+  (UnknownNumSymType,SymNum _) -> symExpr
+  (_,SymNum _) -> error $ printf "TODO: cast ==> cast (%s) (%s)" (show symType) (show symExpr)
+  (_,SBin expr1 op expr2) -> SBin (cast symType expr1) op (cast symType expr2)
   --SymArray (Maybe SymType) (Maybe Int) [SymExpr]
-  SymArray _ mInt symExprs -> SymArray (Just symType) mInt (map (cast symType) symExprs)
+  (_,SymArray _ mInt symExprs) -> SymArray (Just symType) mInt (map (cast symType) symExprs)
   --
-  SymGlobalVar t s m ->
+  (_,SymGlobalVar t s m) ->
     let t2 = pick_known_symType (symType,t)
     in maybe (SymGlobalVar t2 s Nothing) (cast symType) m
-  a -> a
---a -> error $ printf "TODO ~~> cast (%s) (%s)" (show symType) (show symExpr)
+  --a -> error $ printf "TODO ~~> cast (%s) (%s)" (show symType) (show symExpr)
+  (_,a) -> a
 
 isUnknownGlobalVarSymType :: SymType -> Bool
 isUnknownGlobalVarSymType = \case

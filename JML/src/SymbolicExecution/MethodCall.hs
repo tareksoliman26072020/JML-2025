@@ -411,7 +411,9 @@ SBin (SymUnknown (Int,"res",Just (SymGlobalVar Int "y" Nothing)) [IfBranchingRea
             False -> booleanCalculator
       in case (e1,e2) of
            (ER_Expr _,ER_Expr _) ->
-              ER_Expr $ whichFun (SBin (simplify $ getSymExpr e1) symBinOp (simplify $ getSymExpr e2)))
+              let Just e1_ = fmap simplify $ getSymExpr e1
+                  Just e2_ = fmap simplify $ getSymExpr e2
+              in ER_Expr $ whichFun (SBin e1_ symBinOp e2_))
               <$> (visitSymExpr0 symExpr1)
               <*> (visitSymExpr0 symExpr2)
     tell [Log.Return "visitSymExpr -> SBin" (show toReturn)] $> toReturn
@@ -440,7 +442,7 @@ SBin (SymUnknown (Int,"res",Just (SymGlobalVar Int "y" Nothing)) [IfBranchingRea
   ------------------------------
   ------------------------------
   ------------------------------
-  val@(SymUnknown (_,varName,mOrigExpr) _) -> do
+  val@(SymUnknown (t,varName,mOrigExpr) _) -> do
     tell [Log.SymExpr_2_Handle (show val) "visitSymExpr0 -> SymUnknown"]
     mExpr <- findVarName varName . env <$> get
     case mExpr of
@@ -448,7 +450,15 @@ SBin (SymUnknown (Int,"res",Just (SymGlobalVar Int "y" Nothing)) [IfBranchingRea
         tell [Log.Skip $ "visitSymExpr0 -> SymUnknown -> VarName " ++ varName]
         --return ER_Void
         case mOrigExpr of
-          Nothing -> throwError "visitSymExpr0 -> SymUnknown -> won't happen"
+          Nothing -> do
+            --let toReturn = ER_Expr $ SymNull t
+            toReturn <- do
+              st <- env <$> get
+              return $ ER_Expr $ case (hasFormalParameter varName st,isGlobalVariable2 varName st) of
+                (True,False) -> SymFormalParam t varName Nothing
+                (False,True) -> SymGlobalVar t varName Nothing
+                (False,False) -> SymNull t
+            tell [Log.Return "visitSymExpr0 -> SymUnknown" (show toReturn)] $> toReturn
           Just origExpr -> do
             toReturn <- visitSymExpr0 origExpr
             tell [Log.Return "visitSymExpr0 -> SymUnknown" (show toReturn)] $> toReturn

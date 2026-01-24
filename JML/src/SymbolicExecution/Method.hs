@@ -10,7 +10,7 @@ import Data.Maybe (mapMaybe)
 import Control.Monad.Reader (runReaderT,ask)
 import Control.Monad.State
 import Control.Monad.Except
-import Control.Monad (forM_, zipWithM, foldM_)
+import Control.Monad (zipWithM)
 import Control.Applicative (asum)
 import qualified Parser.Types as AST
 import Visitors.API
@@ -393,19 +393,11 @@ visitStmt :: AST.Statement -> Method_R
 visitStmt (AST.ReturnStmt (Just expr)) = do
   tell [Log.ReturnStatement (show expr) "visitStmt -> ReturnStmt"]
   er <- visitExpr expr
-  varNames <- getVarNames <$> get
-  s <- env <$> get
   ER_FunHandle t _ <- getFunHandle
-  let symExpr = cast t $ case er of
-        ER_Expr symExpr_ -> symExpr_ 
-        ER_SymStateMapEntry _ val -> val
-        ER_FunCall funCallSymState -> case getReturnSymExpr funCallSymState of
-          Just symExpr -> symExpr
-          Nothing -> error $ "visitStmt ==> ReturnStmt: TODO: Nothing: \n" ++ show funCallSymState
-        ER_FunCall funCallSymState -> error
-          $ "visitStmt ==> ReturnStmt: " ++ (show $ env funCallSymState)
-        ER_ArrayCallExpr _ val -> val
-        x                -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show x
+  let symExpr = cast t $ case getSymExpr er of
+        Just symExpr -> symExpr
+        Nothing      -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show er
+  castGlobalVar t er
   tell [Log.ModifyState "visitStmt -> ReturnStmt -> method with args" ("return",show symExpr)]
   modify $ \symState ->
     SymState {
@@ -580,17 +572,17 @@ visitExpr (expr@AST.FunCallExpr{}) = do
 --BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
 visitExpr expr@AST.BinOpExpr{} = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> BinOpExpr"]
-  one <- visitExpr (AST.expr1 expr)
-  two <- visitExpr (AST.expr2 expr)
-  tell [Log.Affected "visitExpr -> BinOpExpr" [show one,show $ AST.binOp expr,show two]]
-  case (one,two) of
-    (ER_Expr op1,ER_Expr op2) -> helper op1 op2
-    (ER_SymStateMapEntry _ op1, ER_Expr op2) -> helper op1 op2
-    (ER_Expr op1, ER_SymStateMapEntry _ op2) -> helper op1 op2
-    (ER_Expr op1, fun@(ER_FunCall symState)) -> helper op1 (getReturnSymExpr symState)
-    (fun@(ER_FunCall symState), ER_Expr op2) -> helper (getReturnSymExpr symState) op2
-    (ER_SymStateMapEntry _ op1, ER_SymStateMapEntry _ op2) -> helper op1 op2
-    _ -> throwError $ "visitExpr ~~> BinOpExpr: " ++ show (one,two)
+  er_one <- visitExpr (AST.expr1 expr)
+  er_two <- visitExpr (AST.expr2 expr)
+  let mOne = getSymExpr er_one
+      mTwo = getSymExpr er_two
+  case (mOne,mTwo) of
+    (Just one,Just two) -> do
+      let newUnifiedSymType = pick_known_symType (toSymType2 one,toSymType2 two)
+      mapM_ (castGlobalVar newUnifiedSymType) [er_one,er_two]
+      tell [Log.Affected "visitExpr -> BinOpExpr" [show one,show $ AST.binOp expr,show two]]
+      helper (cast newUnifiedSymType one) (cast newUnifiedSymType two)
+    _ -> throwError $ printf "visitExpr -> BinOpExpr -> won't happen -> (%s,%s)" (show mOne) (show mTwo)
   where
   helper :: SymExpr -> SymExpr -> Method_R
   helper op1 op2 =
@@ -600,12 +592,10 @@ visitExpr expr@AST.BinOpExpr{} = do
                | otherwise -> numericCalculator
           False -> booleanCalculator
         toReturn = ER_Expr $ whichFun (SBin (simplify op1) (toSymBinOp $ AST.binOp expr) (simplify op2))
-    in do tell [Log.Return (printf "visitExpr -> BinOpExpr -> %s"
-                                   (if isNumericOp then "numericCalculator"
-                                    else "booleanCalculator")) (show toReturn)
-               ] $> toReturn
-  getReturnSymExpr :: SymState -> SymExpr
-  getReturnSymExpr = maybe (error "visitExpr ~~> BinOpExpr ~~> getReturnSymExpr ~~> no return value found") id . (Map.!? Return) . env
+    in tell [Log.Return (printf "visitExpr -> BinOpExpr -> %s"
+                                (if isNumericOp then "numericCalculator"
+                                 else "booleanCalculator")) (show toReturn)
+            ] $> toReturn
 -- UnOpExpr {unOp :: UnOp, expr :: Expression}
 visitExpr expr@AST.UnOpExpr{} = throwError "visitExpr ==> UnOpExpr ==> TODO"
 -- AssignExpr {assEleft :: Expression, assEright :: Expression}
@@ -644,9 +634,21 @@ visitExpr expr@AST.AssignExpr{} = do
                  in SymArray mt ml (take int elems ++ [cast (toSymType2 one_val) e2] ++ drop (int+1) elems)
                _ -> error $ "TODO1: visitExpr ==> AssignExpr: " ++ show index
         _ -> cast (toSymType2 one_val) e2
-  
+
+  -- this case-of sole purpose is creating Log.UpdateVariable
+  case one_svn of
+    VarName _ ->
+      ((Map.lookup one_svn . env) <$> get) >>= \case
+        Just oldVal
+          | oldVal /= two_newVal -> do
+              tell [Log.UpdateVariable (show one_svn,show oldVal,show two_newVal) "visitExpr ==> AssignExpr"]
+              return ER_Void
+        Nothing -> do
+          tell [Log.UpdateVariable (show one_svn,"No previous value",show two_newVal) "visitExpr ==> AssignExpr"]
+          return ER_Void
+
   -- inserting new value in map
-  tell [Log.ModifyState "visitExpr -> AssignExpr" (show one_svn,show two_newVal)]
+  tell [Log.ModifyState "visitExpr ==> AssignExpr" (show one_svn,show two_newVal)]
   modify $ \symState ->
     SymState {
       env = Map.insert one_svn two_newVal (env symState),
@@ -664,63 +666,17 @@ visitExpr expr@AST.AssignExpr{} = do
   -- as numerical.
   -- The following takes care of t in that context while z = 1 gets processed.
   -- one: the value of z before it gets updated to 1
-  conform_GlobalVarType (toSymType2 two_newVal) one
+  castGlobalVar (toSymType2 two_newVal) one
 
   -- consider the AssignExpr:
   --   double x;
   --   x = c;
   -- c is a global variable, used for the first time in this assignment
   -- c is a double, and its VarName in the SymState need to be updated accordingly
-  conform_GlobalVarType (toSymType2 two_newVal) two
+  castGlobalVar (toSymType2 two_newVal) two
 
   let toReturn = ER_SymStateMapEntry one_svn e2
   tell [Log.Return "visitExpr -> AssignExpr" (show toReturn)] $> toReturn
-  where
-  conform_GlobalVarType :: SymType -> ExecutionResult -> Typed_Method_R ()
-  conform_GlobalVarType newType = \case
-    er@(ER_SymStateMapEntry _ val) -> do
-      theEnv <- env <$> get
-      let vns :: [String] -- vns are global variables mentioned in val
-          vns = flip filter (getVarNames2 val) $ \vn ->
-            isGlobalVariable2 vn theEnv
-{-
-      if null vns
-        then return ()
-        else throwError $ printf "WOF:::\n1) %s\n2) %s\n3) %s"
-               (show newType) (show er) (show vns)
- -}
-{-
-1) UnknownGlobalVarSymType
-2) ER_SymStateMapEntry {er_key = VarName "v", er_val = SymGlobalVar UnknownGlobalVarSymType "v" Nothing}
-3) ["v"]
- -}
-      -- foldM_ :: (Foldable t, Monad m) => (b -> a -> m b) -> b -> t a -> m ()
-      foldM_ (\ma vn -> do
-        let ma2 = Map.alter (\case
-              Nothing -> Just
-                $ SymGlobalVar newType vn Nothing
-              Just symExpr ->
-                let --newType2 = UnknownGlobalVarSymType
-                    newType2 = pick_known_symType2
-                      $ toSymType2 symExpr : toSymType2 val : [newType]
-                {-
-                 vn = "v"
-                 val = SymGlobalVar UnknownGlobalVarSymType "v" Nothing
-                 symExpr = SBin (SymGlobalVar UnknownGlobalVarSymType "v" Nothing)
-                                Add
-                                (SymString "hi")
-                 -}
-                --in error $ printf "EOF:::\n1) %s\n2) %s\n3) %s" vn (show symExpr) (show newType2))
-                --in error $ printf "EOF::: %s" (show $ toSymType2 symExpr))
-                in Just $ changeSymExprType newType2 symExpr)
-              (VarName vn) ma
-        tell [Log.UpdateVariable vn "visitExpr ==> AssignExpr"]
-        modify $ \symState -> SymState {
-          env = ma2,
-          pc = pc symState
-        }
-        return ma2) theEnv vns
-    _ -> return ()
 
 -- VarExpr {varType :: Maybe (Type Types), varObj :: [String], varName :: String}
 visitExpr expr@AST.VarExpr{} = do
@@ -730,7 +686,6 @@ visitExpr expr@AST.VarExpr{} = do
       let varName_ = AST.varName expr
       case AST.varType expr of
         Nothing -> do
-          tell [Log.UpdateVariable varName_ "visitExpr -> VarExpr"]
           mVal <- (Map.!? VarName varName_) <$> env <$> get
           case mVal of
             Just val -> do
@@ -743,6 +698,7 @@ visitExpr expr@AST.VarExpr{} = do
                   toReturn = ER_SymStateMapEntry
                     (VarName varName_)
                     symExpr
+              tell [Log.ModifyState "visitExpr -> VarExpr" (varName_,show symExpr)]
               modify $ \symState -> SymState {
                 env = Map.insert (VarName varName_) symExpr
                       $ recordGlobalVar varName_ (env symState),

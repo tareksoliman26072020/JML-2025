@@ -38,7 +38,7 @@ getReader_MethodCall_R (MethodCall_SymExec r) = r
 
 data SymStateKey = MethodName String
                  | GlobalVars | FormalParms | VarBindings | VarAssignments
-                 | BranchRange BranchRange | VarName String
+                 | VarName String | BranchRange BranchRange
                  | Return | Exception | Actions
                  deriving (Eq,Ord,Show)
 {-

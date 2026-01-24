@@ -15,7 +15,7 @@ data Log = Expression_2_Handle String String
          | MethodStatement String String
          | AssignStatement String String
          | NewVariable String String String
-         | UpdateVariable String String
+         | UpdateVariable (String,String,String) String
          | LookUpEnvTable String String String
          | NextNode String
          | ForStatementHasNoAccumulationVariable String
@@ -65,7 +65,11 @@ instance Show Log where
     Meow str1 str2          -> printf "Meow: %s %s" str1 str2
     HorizontalLine str      -> printf ">>>>>>>>>> %s <<<<<<<<<<" (yellow str)
     NewVariable tn vn loc   -> printf "(%s): %s %s %s" (cyan loc) (yellow "New Variable") tn vn
-    UpdateVariable vn loc   -> printf "(%s): %s %s" (cyan loc) (yellow "Update Variable") vn
+    UpdateVariable (vn,old,new) loc
+                            -> printf "(%s): %s\n    %s: %s\n    %s: %s\n    %s: %s" (cyan loc) (yellow "Update Variable")
+                                 (yellow "Var Name") vn
+                                 (yellow "Old Value") old
+                                 (yellow "New Value") new
     LookUpEnvTable
       key val loc           -> printf "(%s): %s: (%s ~~> %s) " (cyan loc) (yellow "Look up in environmane table") key val
     GlobalVar key loc       -> printf "(%s): %s: %s " (cyan loc) (yellow "Global Variable Detected") key
