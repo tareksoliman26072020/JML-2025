@@ -91,6 +91,7 @@ numericCalculator2 op = \case
   (a@(SymNum 0), b) | op == Sub -> negate b
   (a, b@(SymNum 0)) | op == Sub -> a
   -- arithmetics on vars
+{- TODELETE
   (a@(SymFormalParam t1 varName1 m1), b@(SymFormalParam t2 varName2 m2))
     | op == Add && varName1 == varName2 && (isNothing $ m1 <|> m2)
         -> SBin (cast t1 $ SymNum 2) Mul a
@@ -110,6 +111,14 @@ numericCalculator2 op = \case
   (a@(SymGlobalVar t1 _ m1), b@(SymGlobalVar t2 _ m2))
     -> let t = pick_known_symType (t1,t2)
        in SBin (maybe (cast t a) id m1) op (maybe (cast t b) id m2)
+-}
+  (a@(SymVar t1 varName1),b@(SymVar t2 varName2))
+    | op == Add && varName1 == varName2 ->
+        let t3 = pick_known_symType (t1,t2)
+        in SBin (cast t3 $ SymNum 2) Mul a
+    | op == Sub && varName1 == varName2 -> 
+        let t3 = pick_known_symType (t1,t2)
+        in cast t3 (SymNum 0)
 ----------
   (SymNum num1, SymInt num2) ->
     SymInt (getIntegralArithBinOp op (round num1) num2)
@@ -579,6 +588,7 @@ numericCalculator2 op = \case
           expr2 = numericCalculator2 op1 (cast symType symExpr1,cast symType symExpr2)
       return $ SBin expr1 op expr2
 ----------
+{- TODELETE
   (a, b@(SymFormalParam t _ Nothing)) ->
     SBin (cast t a) op b
   (a, SymFormalParam t _ (Just symExpr)) ->
@@ -587,7 +597,15 @@ numericCalculator2 op = \case
     SBin a op (cast t b)
   (SymFormalParam t _ (Just symExpr), b) ->
     error $ "numericCalculator: won't happen because of the function `simplify`"
+ -}
+  (a, b@(SymVar t _)) ->
+    let t3 = pick_known_symType (toSymType2 a,t)
+    in SBin (cast t3 a) op (cast t3 b)
+  (a@(SymVar t _), b) ->
+    let t3 = pick_known_symType (t,toSymType2 b)
+    in SBin (cast t3 a) op (cast t3 b)
 ----------
+{- TODELETE
   (a, b@(SymGlobalVar t _ Nothing)) ->
     let t2 = pick_known_symType (toSymType2 a,t)
     in SBin (cast t2 a) op b
@@ -598,6 +616,7 @@ numericCalculator2 op = \case
     in SBin a op (cast t2 b)
   (SymGlobalVar t _ (Just symExpr), b) ->
     error $ "numericCalculator: won't happen because of the function `simplify`"
+-}
 ----------
   (a@(SException _ _),b) -> a
   (a,b@(SException _ _)) -> b
@@ -644,18 +663,30 @@ booleanCalculator2 op = \case
   (SymFloat num1, SymFloat num2) ->
     SBool $ getArithBoolOp op num1 num2
   ----------
+{- TODELETE
   (a@(SymFormalParam _ _ m1), b@(SymFormalParam _ _ m2))
     -> SBin (maybe a id m1) op (maybe b id m2)
   (a@(SymFormalParam t _ m1), b)
     -> SBin (maybe a id m1) op (cast t b)
   (a, b@(SymFormalParam t _ m2))
     -> SBin (cast t a) op (maybe b id m2)
+ -}
+  (a@(SymVar t1 _), b@(SymVar t2 _)) ->
+    let t3 = pick_known_symType (t1,t2)
+    in SBin (cast t3 a) op (cast t3 b)
+  (a@(SymVar t1 _), b) ->
+    let t3 = pick_known_symType (t1,toSymType2 b)
+    in SBin (cast t3 a) op (cast t3 b)
+  (a, b@(SymVar t2 _)) ->
+    let t3 = pick_known_symType (toSymType2 a,t2)
+    in SBin (cast t3 a) op (cast t3 b)
   ----------
   (a@(SObjAcc li), b)
     -> SBin a op (cast (toSymType2 a) b)
   (a, b@(SObjAcc li))
     -> SBin (cast (toSymType2 b) a) op b
   ----------
+{- TODELETE
   (a@(SymGlobalVar t1 _ m1),b@(SymGlobalVar t2 _ m2))
     -> let t = pick_known_symType (t1,t2)
        in SBin (maybe (cast t a) id m1) op (maybe (cast t b) id m2)
@@ -665,6 +696,7 @@ booleanCalculator2 op = \case
   (a, b@(SymGlobalVar t _ m))
     -> let t2 = pick_known_symType (toSymType2 a,t)
        in SBin (cast t2 a) op (maybe (cast t2 b) id m)
+ -}
   ----------
   (a@(SymNum _),b) ->
     SBin (cast (toSymType2 b) a) op b
@@ -718,10 +750,13 @@ objAccCalculator varNames = \case
 
 objAccCalculator2 :: SymExpr -> SymExpr -> SymExpr
 objAccCalculator2 expr@(SObjAcc [varName,methodCall]) = \case
+{- TODELETE
   SymFormalParam _ _ Nothing -> expr
   SymFormalParam _ _ (Just expr2) -> objAccCalculator2 expr expr2
   SymGlobalVar _ _ Nothing -> expr
   SymGlobalVar _ _ (Just expr2) -> objAccCalculator2 expr expr2
+ -}
+  SymVar _ _ -> expr
   SymArray _ mLength elems
     | methodCall == "length" -> SymInt
         $ maybe (fromIntegral $ length elems) fromIntegral $ mLength

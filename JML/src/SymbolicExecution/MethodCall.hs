@@ -29,6 +29,7 @@ instance SymStateVisitor MethodCall_SymExec where
   ------------------------------
   visitSymExpr (key,val) = MethodCall_SymExec $ do
     tell [Log.HorizontalLine "visitSymExpr"] >> case val of
+{- TODELETE
       SymFormalParam _ _ Nothing -> do
         tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SymFormalParam"]
         visited <- visitSymExpr0 val
@@ -43,9 +44,37 @@ instance SymStateVisitor MethodCall_SymExec where
           }
         let toReturn = ER_SymStateMapEntry key newSymExpr
         tell [Log.Return "visitSymExpr -> SymFormalParam" (show toReturn)] $> toReturn
+ -}
+      SymVar _ varName -> do
+        ma <- env <$> get
+        if hasFormalParameter varName ma
+          then do
+            tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SymVar -> Formal Parameter"]
+            visited <- visitSymExpr0 val
+            let newSymExpr = case visited of
+                  ER_Expr symExpr -> symExpr
+                  _ -> error $ printf "visitSymExpr ~~> SymVar ~~> %s ~~> won't happen" (show visited)
+            tell [Log.ModifyState "visitSymExpr -> SymVar" (show key,show newSymExpr)]
+            modify $ \symState ->
+              SymState {
+                env = Map.insert key newSymExpr (env symState),
+                pc  = pc symState
+              }
+            let toReturn = ER_SymStateMapEntry key newSymExpr
+            tell [Log.Return "visitSymExpr -> SymVar" (show toReturn)] $> toReturn
+          else do
+            tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SymVar -> Global Variable"]
+            modify $ \symState ->
+              SymState {
+                env = Map.insert key val (env symState),
+                pc  = pc symState
+              }
+            let toReturn = ER_SymStateMapEntry key val
+            tell [Log.Return "visitSymExpr -> SymVar" (show toReturn)] $> toReturn
   ------------------------------
   ------------------------------
   ------------------------------
+{- TODELETE
       SymFormalParam _ _ (Just symExpr) -> do
         tell [Log.SymExpr_2_Handle (show val) (printf "visitSymExpr -> SymFormalParam %s" (show symExpr))]
         visited <- visitSymExpr0 val
@@ -58,9 +87,9 @@ instance SymStateVisitor MethodCall_SymExec where
             env = Map.insert key newSymExpr (env symState),
             pc  = pc symState
           }
-      --throwError $ "visitSymExpr ~~> SymFormalParam " ++ show symExpr ++ " ~~> TODO"
         let toReturn = ER_SymStateMapEntry key newSymExpr
         tell [Log.Return (printf "visitSymExpr -> SymFormalParam %s" (show symExpr)) (show toReturn)] $> toReturn
+-}
   ------------------------------
   ------------------------------
   ------------------------------
@@ -222,6 +251,7 @@ instance SymStateVisitor MethodCall_SymExec where
   ------------------------------
   ------------------------------
   ------------------------------
+{- TODELETE
       SymGlobalVar _ _ Nothing -> do
         tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SymGlobalVar Nothing"]
         tell [Log.ModifyState "visitSymExpr -> SymGlobalVar" (show key,show val)]
@@ -232,9 +262,11 @@ instance SymStateVisitor MethodCall_SymExec where
           }
         let toReturn = ER_SymStateMapEntry key val
         tell [Log.Return "visitSymExpr -> SymGlobalVar Nothing" (show toReturn)] $> toReturn
+ -}
   ------------------------------
   ------------------------------
   ------------------------------
+{- TODELETE
       SymGlobalVar _ _ (Just expr) -> do
         tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SymGlobalVar Just"]
         ER_Expr newSymExpr <- do
@@ -250,6 +282,7 @@ instance SymStateVisitor MethodCall_SymExec where
           }
         let toReturn = ER_SymStateMapEntry key newSymExpr
         tell [Log.Return (printf "visitSymExpr -> SymGlobalVar -> %s" (show newSymExpr)) (show toReturn)] $> toReturn
+ -}
   ------------------------------
   ------------------------------
   ------------------------------
@@ -346,6 +379,7 @@ instance SymStateVisitor MethodCall_SymExec where
 
 visitSymExpr0 :: SymExpr -> MethodCall_R
 visitSymExpr0 = \case
+{- TODELETE
   val@(SymFormalParam symType formalParam Nothing) -> do
     tell [Log.SymExpr_2_Handle (show val) "visitSymExpr0 -> SymFormalParam"]
     (_,_,tupels) <- ask
@@ -362,9 +396,35 @@ visitSymExpr0 = \case
     lookup_formalParam_info fParm list =
       let finding = find (\((_,b),_) -> b == fParm) list
       in fmap (\((t,_),actual) -> (t,actual)) finding
+ -}
+  val@(SymVar symType varName) -> do
+    ma <- env <$> get
+    if hasFormalParameter varName ma
+      then do
+        tell [Log.SymExpr_2_Handle (show val) "visitSymExpr0 -> SymVar -> Formal Parameter"]
+        let formalParam = varName
+        (_,_,tupels) <- ask
+        let newSymExpr :: SymExpr
+            newSymExpr = case lookup_formalParam_info formalParam tupels of
+              Just (t,er@ER_SymStateMapEntry{}) -> substitute formalParam (cast t (er_val er))
+              Just (t,(ER_Expr symExpr)) -> substitute formalParam (cast t symExpr)
+              Just er -> error $ "insertActualParams: " ++ show er
+              Nothing -> error "won't happen"
+            toReturn = ER_Expr newSymExpr
+        tell [Log.Return "visitSymExpr0 -> SymVar" (show toReturn)] $> toReturn
+      else do
+        tell [Log.SymExpr_2_Handle (show val) "visitSymExpr0 -> SymVar -> Global Variable"]
+        let toReturn = ER_Expr val
+        tell [Log.Return "visitSymExpr0 -> SymVar" (show toReturn)] $> toReturn
+        where
+        lookup_formalParam_info :: String -> [(FormalParm, ActualParm_post_Visitation)] -> Maybe (SymType,ActualParm_post_Visitation)
+        lookup_formalParam_info fParm list =
+          let finding = find (\((_,b),_) -> b == fParm) list
+          in fmap (\((t,_),actual) -> (t,actual)) finding
   ------------------------------
   ------------------------------
   ------------------------------
+{- TODELETE
   val@(SymFormalParam symType formalParam (Just symExpr)) -> do
     tell [Log.SymExpr_2_Handle (show val) (printf "visitSymExpr0 -> SymFormalParam %s" (show symExpr))]
     visited <- visitSymExpr0 symExpr
@@ -375,16 +435,20 @@ visitSymExpr0 = \case
         tell [Log.Return (printf "visitSymExpr0 -> SymFormalParam %s" (show symExpr)) (show toReturn)] $> toReturn
       -- SymFormalParam Int "i" (Just (SBin (SymFormalParam Int "i" Nothing) Add (SymInt 2)))
       _ -> throwError $ printf "visitSymExpr0 ~~> SymFormalParam %s ~~> TODO: %s" (show symExpr) (show visited)
+ -}
   ------------------------------
   ------------------------------
   ------------------------------
+{- TODELETE
   val@(SymGlobalVar _ _ Nothing) -> do
     tell [Log.SymExpr_2_Handle (show val) "visitSymExpr0 -> SymGlobalVar"]
     let toReturn = ER_Expr val
     tell [Log.Return "visitSymExpr0 -> SymGlobalVar" (show toReturn)] $> toReturn
+ -}
   ------------------------------
   ------------------------------
   ------------------------------
+{- TODELETE
   val@(SymGlobalVar _ _ (Just symExpr)) -> do
     tell [Log.SymExpr_2_Handle (show val) ("visitSymExpr0 -> SymGlobalVar " ++ show symExpr)]
     visited <- visitSymExpr0 symExpr
@@ -393,14 +457,10 @@ visitSymExpr0 = \case
           _ -> error $ "TODO:: visitSymExpr0 -> SymGlobalVar -> " ++ show visited
     let toReturn = ER_Expr symExprVisited
     tell [Log.Return "visitSymExpr0 -> SymGlobalVar" (show toReturn)] $> toReturn
-  ------------------------------
-  ------------------------------
-  ------------------------------
-{-
-SBin (SymUnknown (Int,"res",Just (SymGlobalVar Int "y" Nothing)) [IfBranchingReason [Node_Coor {varDeclAt = 5, varFrame = BR {branchStart = 4, branchEnd = 7}}]])
-     Add
-     (SymInt 1)
  -}
+  ------------------------------
+  ------------------------------
+  ------------------------------
   val@(SBin symExpr1 symBinOp symExpr2) -> do
     s <- get
     tell [Log.SymExpr_2_Handle (show val ++ "\n\n" ++ show s) "visitSymExpr0 -> SBin"]
@@ -411,8 +471,8 @@ SBin (SymUnknown (Int,"res",Just (SymGlobalVar Int "y" Nothing)) [IfBranchingRea
             False -> booleanCalculator
       in case (e1,e2) of
            (ER_Expr _,ER_Expr _) ->
-              let Just e1_ = fmap simplify $ getSymExpr e1
-                  Just e2_ = fmap simplify $ getSymExpr e2
+              let Just e1_ = {-fmap simplify $ -}getSymExpr e1
+                  Just e2_ = {-fmap simplify $ -}getSymExpr e2
               in ER_Expr $ whichFun (SBin e1_ symBinOp e2_))
               <$> (visitSymExpr0 symExpr1)
               <*> (visitSymExpr0 symExpr2)
@@ -454,10 +514,15 @@ SBin (SymUnknown (Int,"res",Just (SymGlobalVar Int "y" Nothing)) [IfBranchingRea
             --let toReturn = ER_Expr $ SymNull t
             toReturn <- do
               st <- env <$> get
+              {- TODELETE
               return $ ER_Expr $ case (hasFormalParameter varName st,isGlobalVariable2 varName st) of
                 (True,False) -> SymFormalParam t varName Nothing
                 (False,True) -> SymGlobalVar t varName Nothing
                 (False,False) -> SymNull t
+               -}
+              return $ ER_Expr $ case (hasFormalParameter varName st || isGlobalVariable2 varName st) of
+                True -> SymVar t varName
+                False -> SymNull t
             tell [Log.Return "visitSymExpr0 -> SymUnknown" (show toReturn)] $> toReturn
           Just origExpr -> do
             toReturn <- visitSymExpr0 origExpr

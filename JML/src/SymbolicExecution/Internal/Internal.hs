@@ -51,6 +51,7 @@ isArithmeticOperator op = elem op [Add, Sub, Mul, Div, Mod]
 isBooleanOperator :: SymBinOp -> Bool
 isBooleanOperator = flip elem [Eq, Neq, Lt, Le, Gt, Ge, And, Or]
 
+{-
 isFormalParameter :: SymExpr -> Bool
 isFormalParameter (SymFormalParam _ _ _) = True
 isFormalParameter _ = False
@@ -58,8 +59,16 @@ isFormalParameter _ = False
 isGlobalVariable :: SymExpr -> Bool
 isGlobalVariable (SymGlobalVar _ _ _) = True
 isGlobalVariable _ = False
+-}
+isFormalParameter :: SymExpr -> Map.Map SymStateKey SymExpr -> Bool
+isFormalParameter symExpr ma = case symExpr of
+  SymVar _ varName -> hasFormalParameter varName ma
+  _ -> False
 
---isNewGlobalVariable :: String -> Map.Map SymStateKey SymExpr -> Bool
+isGlobalVariable :: SymExpr -> Map.Map SymStateKey SymExpr -> Bool
+isGlobalVariable symExpr ma = case symExpr of
+  SymVar _ varName -> hasGlobalVariable varName ma
+  _ -> False
 
 -- a sign that a global variable exists is that
 -- it either exists in SGlobalVars,
@@ -109,9 +118,14 @@ alterList f elm li
     Just newElm -> [newElm]
 
 hasFormalParameter :: String -> Map.Map SymStateKey SymExpr -> Bool
-hasFormalParameter varName s = case Map.lookup FormalParms s of
+hasFormalParameter varName ma = case Map.lookup FormalParms ma of
   Nothing -> False
   Just (SFormalParms li) -> varName `elem` li
+
+hasGlobalVariable :: String -> Map.Map SymStateKey SymExpr -> Bool
+hasGlobalVariable varName ma = case Map.lookup GlobalVars ma of
+  Nothing -> False
+  Just (SGlobalVars li) -> varName `elem` li
 
 nodeHasGlobalVar :: Map.Map SymStateKey SymExpr -> CFG.Node -> Bool
 nodeHasGlobalVar ma = \case
@@ -202,18 +216,20 @@ isVar = \case
   SBool _ -> False
   SBin expr1 _ expr2 -> any isVar [expr1,expr2]
   SNot expr -> isVar expr
-  SymFormalParam _ _ Nothing -> True
-  SymFormalParam _ _ (Just expr) -> isVar expr
-  SymGlobalVar _ _ Nothing -> True
-  SymGlobalVar _ _ (Just expr) -> isVar expr
+--  SymFormalParam _ _ Nothing -> True
+--  SymFormalParam _ _ (Just expr) -> isVar expr
+--  SymGlobalVar _ _ Nothing -> True
+--  SymGlobalVar _ _ (Just expr) -> isVar expr
+  SymVar _ _ -> True
   SymUnknown _ _ -> True
   expr -> error $ "TODO: isVar: " ++ show expr
 
 isArray :: SymExpr -> Bool
 isArray = \case
   SymArray _ _ _ -> True
-  SymFormalParam (Array _) _ _ -> True
-  SymGlobalVar (Array _) _ _ -> True
+--  SymFormalParam (Array _) _ _ -> True
+--  SymGlobalVar (Array _) _ _ -> True
+  SymVar (Array _) _ -> True
   _ -> False
 
 isSymUnknown :: SymExpr -> Bool
@@ -255,8 +271,9 @@ toSymType2 = \case
   SymFloat _ -> Float
   SBool _ -> Bool
   SymNull t -> t
-  SymFormalParam t _ _ -> t
-  SymGlobalVar t _ _ -> t
+--  SymFormalParam t _ _ -> t
+--  SymGlobalVar t _ _ -> t
+  SymVar t _ -> t
   SObjAcc li -> case li of
     [_,"length"] -> Int
     _ -> error $ "TODO1: toSymType2 ==> " ++ show (SObjAcc li)
@@ -276,8 +293,9 @@ toSymType3 = \case
   SBool _ -> pure Bool
   SBin symExpr1 _ symExpr2 -> asum $ map toSymType3 [symExpr1,symExpr2]
   SNot symExpr -> toSymType3 symExpr
-  SymFormalParam t _ mSymExpr -> pure t
-  SymGlobalVar t _ mSymExpr -> pure t
+--  SymFormalParam t _ mSymExpr -> pure t
+--  SymGlobalVar t _ mSymExpr -> pure t
+  SymVar t _ -> pure t
   symExpr -> error $ "toSymType3 ~~> TODO: " ++ show symExpr
 
 findSymType :: [SymExpr] -> Maybe SymType
@@ -337,7 +355,8 @@ castGlobalVar newType = \case
     foldM_ (\ma vn -> do
       ma2 <- Map.alterF (\case
             Nothing -> pure $ Just
-              $ SymGlobalVar newType vn Nothing
+              -- $ SymGlobalVar newType vn Nothing
+              $ SymVar newType vn
             Just oldSymExpr ->
               let newType2 = pick_known_symType2
                     $ toSymType2 oldSymExpr : toSymType2 val : [newType]
@@ -363,8 +382,9 @@ castGlobalVar newType = \case
 
 getVarName :: SymExpr -> String
 getVarName = \case
-  SymFormalParam _ varName _ -> varName
-  SymGlobalVar _ varName _ -> varName
+--  SymFormalParam _ varName _ -> varName
+--  SymGlobalVar _ varName _ -> varName
+  SymVar _ varName -> varName
   e@(SBin expr1 _ expr2) ->
     let n1 = if isVar expr1 then Just $ getVarName expr1 else Nothing
         n2 = if isVar expr2 then Just $ getVarName expr2 else Nothing
@@ -397,12 +417,13 @@ findVarName_via_coor (varName,br) s = do
           mSearch2 = mElseBranchSymState >>= Map.lookup (VarName varName) . env
       in mSearch1 <|> mSearch2
     tu -> error $ "TODO: findVarName_via_coor ==> " ++ show tu
-
+{-
 simplify :: SymExpr -> SymExpr
 simplify = \case
   SymFormalParam _ _ (Just expr) -> expr
   SymGlobalVar _ _ (Just expr) -> expr
   e -> e
+-}
 
 multiplyOps :: SymBinOp -> SymBinOp -> SymBinOp
 multiplyOps op1 op2 = case (op1,op2) of
@@ -437,9 +458,15 @@ cast symType symExpr = case (symType,symExpr) of
   --SymArray (Maybe SymType) (Maybe Int) [SymExpr]
   (_,SymArray _ mInt symExprs) -> SymArray (Just symType) mInt (map (cast symType) symExprs)
   --
+{-
   (_,SymGlobalVar t s m) ->
     let t2 = pick_known_symType (symType,t)
     in maybe (SymGlobalVar t2 s Nothing) (cast symType) m
+-}
+  (_,SymVar t s) ->
+    let t2 = pick_known_symType (symType,t)
+    in SymVar t2 s
+
   --a -> error $ printf "TODO ~~> cast (%s) (%s)" (show symType) (show symExpr)
   (_,a) -> a
 
@@ -561,8 +588,9 @@ getVarNames symState = flip Map.filterWithKey (env symState) $ \k _ -> case k of
 
 getVarNames2 :: SymExpr -> [String]
 getVarNames2 = \case
-  SymGlobalVar _ vn mExpr -> vn : maybe [] getVarNames2 mExpr
-  SymFormalParam _ vn mExpr -> vn : maybe [] getVarNames2 mExpr
+--  SymGlobalVar _ vn mExpr -> vn : maybe [] getVarNames2 mExpr
+--  SymFormalParam _ vn mExpr -> vn : maybe [] getVarNames2 mExpr
+  SymVar _ varName -> [varName]
   SBin symExpr1 _ symExpr2 -> getVarNames2 symExpr1 ++ getVarNames2 symExpr2
   SNot symExpr -> getVarNames2 symExpr
   SArrayIndexAccess s1 s2 -> error $ "TODO1:: getVarNames2 ==> " ++ show (SArrayIndexAccess s1 s2)
@@ -589,12 +617,17 @@ getVarNameSymExpr varName ma = fmap id (Map.lookup (VarName varName) ma)
 -- This functions alters type predominantly to globals and formals
 changeSymExprType :: SymType -> SymExpr -> SymExpr
 changeSymExprType t = \case
+{-
   SymGlobalVar _ vn mExpr -> case mExpr of
     Nothing -> SymGlobalVar t vn Nothing
     je@(Just expr) -> SymGlobalVar (pick_known_symType (toSymType2 expr,t)) vn je
   SymFormalParam _ vn mExpr -> case mExpr of
     Nothing -> SymFormalParam t vn Nothing
     je@(Just expr) -> SymFormalParam (pick_known_symType (toSymType2 expr,t)) vn je
+-}
+  SymVar t2 varName ->
+    let t3 = pick_known_symType (t,t2)
+    in SymVar t3 varName
   SBin expr1 op expr2 -> SBin (changeSymExprType t expr1) op (changeSymExprType t expr2)
   symExpr
     | is_type_homogeneous_with t symExpr -> symExpr
@@ -628,13 +661,16 @@ substitute :: String -> SymExpr -> SymExpr
 substitute formalParam = \case
   actualParam@(SBin symExpr1 symBinOp symExpr2) ->
     SBin (substitute formalParam symExpr1) symBinOp (substitute formalParam symExpr2)
+  {-
   actualParam@(SymFormalParam symType _ Nothing) -> actualParam
     --SymActualParam symType formalParam actualParam
   SymFormalParam symType _ _ -> error "substitute ~~> TODO1"
-  actualParam@(SymInt _) -> actualParam
     --SymGlobalVar SymType String (Maybe SymExpr)
   actualParam@(SymGlobalVar t n Nothing) -> actualParam
   actualParam@(SymGlobalVar _ _ (Just expr)) -> expr
+   -}
+  actualParam@(SymVar _ _) -> actualParam
+  actualParam@(SymInt _) -> actualParam
   actualParam@(SymArray _ _ _) -> actualParam
   act -> error $ printf "substitute ~~> TODO2: (%s,%s)" formalParam (show act)
 

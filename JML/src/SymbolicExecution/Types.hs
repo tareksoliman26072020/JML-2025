@@ -236,8 +236,9 @@ data SymExpr =
   | SIte    SymExpr SymState (Maybe SymState)   -- ^ if-then-else (cond, then, else)
   | SLoop   (Maybe CFGT.Node) (Maybe AST.Expression) [CFGT.Node] -- Loop acc, Loop condition, and loop body. the loop step is the last node in the body
   | SymNull SymType               -- ^ value of an unassigned variable
-  | SymFormalParam SymType String (Maybe SymExpr) -- ^ declared variable (a formal parameter)
-  | SymGlobalVar SymType String (Maybe SymExpr) -- ^ variable declared outside the scope of the method
+--  | SymFormalParam SymType String (Maybe SymExpr) -- ^ declared variable (a formal parameter)
+--  | SymGlobalVar SymType String (Maybe SymExpr) -- ^ variable declared outside the scope of the method
+  | SymVar SymType String
   | SVarBindings (Map.Map String Node_Coor)
   | SVarAssignments [(String,Node_Coor)] 
   | SException String String
@@ -251,14 +252,8 @@ data SymExpr =
 
 data SymReason = IfBranchingReason [Node_Coor]
                | ForBranchingReason [Node_Coor]
-               | IfBranchingNestedReasons [SymReason] [Node_Coor]
-               | ForBranchingNestedReasons [SymReason] [Node_Coor]
                deriving (Eq,Show)
-{-
-data ScopeKind = For | If deriving (Eq,Show)
 
-type SymReason = [(ScopeKind,Node_Coor)]
--}
 data Node_Coor = Node_Coor
   { varDeclAt :: Int
   , varFrame  :: BranchRange
@@ -280,8 +275,9 @@ ppSymExpr = \case
   SNot e -> printf "!(%s)" (ppSymExpr e)
   SIte _ _ _ -> undefined
   SymNull t -> undefined
-  SymFormalParam t s m -> maybe s ppSymExpr m
-  SymGlobalVar t s m -> maybe s ppSymExpr m
+--  SymFormalParam t s m -> maybe s ppSymExpr m
+--  SymGlobalVar t s m -> maybe s ppSymExpr m
+  SymVar t s -> s
   SymArray _ _ elems -> printf "[%s]" $ intercalate ", " (map ppSymExpr elems)
 
 data SymType = Int | Double | Float | Bool | Void | Array SymType | String 

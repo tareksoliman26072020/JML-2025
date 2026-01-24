@@ -36,7 +36,8 @@ instance CFGVisitor Method_SymExec where
                    argVisited <- visitExpr arg
                    case argVisited of
                      ER_SymStateMapEntry (VarName name) (SymNull symType) -> do
-                       let newVal = SymFormalParam symType name Nothing
+                       -- TODELETE let newVal = SymFormalParam symType name Nothing
+                       let newVal = SymVar symType name
                        tell [Log.ModifyState "visitNode -> Entry -> method with args" (name,show newVal)]
                        modify $ \symState ->
                          SymState {
@@ -578,7 +579,7 @@ visitExpr expr@AST.BinOpExpr{} = do
           True | all isSymString [op1,op2] -> stringCalculator
                | otherwise -> numericCalculator
           False -> booleanCalculator
-        toReturn = ER_Expr $ whichFun (SBin (simplify op1) (toSymBinOp $ AST.binOp expr) (simplify op2))
+        toReturn = ER_Expr $ whichFun (SBin {-(simplify op1)-}op1 (toSymBinOp $ AST.binOp expr) {-(simplify op2)-}op2)
     in tell [Log.Return (printf "visitExpr -> BinOpExpr -> %s"
                                 (if isNumericOp then "numericCalculator"
                                  else "booleanCalculator")) (show toReturn)
@@ -681,7 +682,8 @@ visitExpr expr@AST.VarExpr{} = do
               tell [Log.Return "visitExpr -> VarExpr -> Updating" (show toReturn)] $> toReturn
             Nothing -> do
               tell [Log.GlobalVar varName_ "visitExpr -> VarExpr"]
-              let symExpr = SymGlobalVar UnknownGlobalVarSymType varName_ Nothing
+              -- TODELETE let symExpr = SymGlobalVar UnknownGlobalVarSymType varName_ Nothing
+              let symExpr = SymVar UnknownGlobalVarSymType varName_
                   toReturn = ER_SymStateMapEntry
                     (VarName varName_)
                     symExpr
