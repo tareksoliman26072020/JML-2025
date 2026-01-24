@@ -92,7 +92,7 @@ instance Show Log where
     Skip thing              -> printf "(%s):\n%s" (yellow "Skip") (show thing)
     ForLoopDone loc         -> printf "(%s): %s" (cyan loc) (yellow "For Loop Done")
     UnvisitedForLoop loc expr
-                            -> printf "(%s): %s: %s" (cyan loc) (yellow "For Loop can't be visited") expr
+                            -> printf "(%s): %s: %s" (cyan loc) (yellow "Unregistered For Loop") expr
     ForLoopConditionUndetermined loc val
                             -> printf "(%s): %s: %s" (cyan loc) (yellow "For Loop Condition Undetermined") val
     ForLoopRound n loc      -> printf "(%s): %s: %d" (cyan loc) (yellow "For Loop cound") n

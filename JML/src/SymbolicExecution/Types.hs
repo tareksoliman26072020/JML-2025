@@ -250,8 +250,15 @@ data SymExpr =
   deriving (Eq,Show)
 
 data SymReason = IfBranchingReason [Node_Coor]
-               | ForBranchingReason [Node_Coor] deriving (Eq,Show)
+               | ForBranchingReason [Node_Coor]
+               | IfBranchingNestedReasons [SymReason] [Node_Coor]
+               | ForBranchingNestedReasons [SymReason] [Node_Coor]
+               deriving (Eq,Show)
+{-
+data ScopeKind = For | If deriving (Eq,Show)
 
+type SymReason = [(ScopeKind,Node_Coor)]
+-}
 data Node_Coor = Node_Coor
   { varDeclAt :: Int
   , varFrame  :: BranchRange

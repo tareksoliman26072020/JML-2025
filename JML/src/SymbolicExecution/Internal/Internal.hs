@@ -216,6 +216,16 @@ isArray = \case
   SymGlobalVar (Array _) _ _ -> True
   _ -> False
 
+isSymUnknown :: SymExpr -> Bool
+isSymUnknown = \case
+  SymUnknown _ _ -> True
+  _ -> False
+
+getSymUnknownReasons :: SymExpr -> [SymReason]
+getSymUnknownReasons = \case
+  SymUnknown _ reasons -> reasons
+  symExpr -> error $ "getSymUnknownReasons ==> won't happen ==> " ++ show symExpr
+
 -- get SymType via AST.Type
 toSymType1 :: AST.Type AST.Types -> SymType
 toSymType1 = \case
