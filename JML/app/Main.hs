@@ -31,8 +31,27 @@ cfg = CFGT.CFG {
     CFGT.edges = [(0,[1])]
 }
 
+fibonacciSequence :: Int -> [Integer]
+fibonacciSequence count
+  | count <= 0 = []
+  | otherwise = take count fibs
+  where
+    fibs :: [Integer]
+    fibs = 0 : 1 : zipWith (+) fibs (tail fibs)
+
+fibonacci :: Int -> Integer
+fibonacci n
+  | n < 0 = error "fibonacci: negative input"
+  | otherwise = fibs !! n
+  where
+    fibs :: [Integer]
+    fibs = 0 : 1 : zipWith (+) fibs (tail fibs)
+
 main :: IO ()
-main = putStrLn "Hi"
+main = do
+  let count = 10
+  putStrLn $ "First " ++ show count ++ " Fibonacci numbers (DP):"
+  putStrLn $ intercalate ", " (map show (fibonacciSequence count))
 
 getAST :: String -> IO AST.Method
 getAST methodName = readFile "test3.java" >>=
@@ -116,4 +135,3 @@ expr = AST.BinOpExpr {
   AST.binOp = AST.Plus,
   AST.expr2 = AST.NumberLiteral 2.0
 }
-
