@@ -74,6 +74,16 @@ showNodeData (Meet kind) = "Meet: " ++ show kind
 data Kind = If | While | For
           deriving (Eq,Show)
 
+data Node_Coor = Node_Coor
+  { varDeclAt :: Int
+  , varFrame  :: ScopeRange
+  } deriving (Eq,Show)
+
+data ScopeRange = SR
+  { branchStart :: Int
+  , branchEnd :: Int
+  } deriving (Eq,Ord,Show)
+
 {-
   | ArrayCallExpr {arrName :: Expression, index :: Maybe Expression}
   | UnOpExpr {unOp :: UnOp, expr :: Expression}

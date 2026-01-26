@@ -357,7 +357,7 @@ instance SymStateVisitor MethodCall_SymExec where
   ------------------------------
   ------------------------------
   ------------------------------
-      SException _ _ -> do
+      SException _ _ _ -> do
         tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SException"]
         tell [Log.ModifyState "visitSymExpr -> SException" (show key,show val)]
         modify $ \symState ->
@@ -367,6 +367,19 @@ instance SymStateVisitor MethodCall_SymExec where
           }
         let toReturn = ER_SymStateMapEntry key val
         tell [Log.Return "visitSymExpr -> SException" (show toReturn)] $> toReturn
+  ------------------------------
+  ------------------------------
+  ------------------------------
+      SymNum _ -> do
+        tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SymNum"]
+        tell [Log.ModifyState "visitSymExpr -> SymNum" (show key,show val)]
+        modify $ \symState ->
+          SymState {
+            env = Map.insert key val (env symState),
+            pc  = pc symState
+          }
+        let toReturn = ER_SymStateMapEntry key val
+        tell [Log.Return "visitSymExpr -> SymNum" (show toReturn)] $> toReturn
   ------------------------------
   ------------------------------
   ------------------------------

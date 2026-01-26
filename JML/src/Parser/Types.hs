@@ -131,7 +131,8 @@ getFunCallName _ = error "won't happen"
 getStatementExpression :: Statement -> Expression
 getStatementExpression = \case
   AssignStmt _ expr -> expr
-  stmt -> error "TODO: getExpression"
+  stmt@VarStmt{} -> var stmt
+  stmt -> error $ "TODO: getExpression ==> " ++ show stmt
 
 getExpressionExpressions :: Expression -> [Expression]
 getExpressionExpressions = \case

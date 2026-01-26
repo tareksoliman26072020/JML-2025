@@ -7,7 +7,8 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Except
 import Control.Monad.Writer
-import qualified CFG.Types as CFG
+import qualified CFG.Types as CFGT
+import qualified CFG.Internal as CFG (getPathToScope)
 import qualified Parser.Types as AST
 import Text.Printf (printf)
 import Control.Applicative (Alternative(empty),asum,(<|>))
@@ -96,7 +97,7 @@ isGlobalVariable2 varName ma =
     (Just (SGlobalVars globals),Just (SFormalParms formals),Just (SVarBindings bindings))
       -> isGlobal globals || (isNotFormal formals && isNotLocal bindings)
 
-hasForReason :: [SymReason] -> Bool
+{-
 hasForReason li = maybe False (const True) $ flip find li $ \case
   ForBranchingReason _ -> True
   _ -> False
@@ -105,6 +106,23 @@ hasIfReason :: [SymReason] -> Bool
 hasIfReason li = maybe False (const True) $ flip find li $ \case
   IfBranchingReason _ -> True
   _ -> False
+-}
+-- type SymReason = ([(CFGT.Kind,CFGT.ScopeRange)],Int)
+hasForReason :: [SymReason] -> Bool
+hasForReason = \case
+  [] -> False
+  ((li,_) : _) -> case li of
+    [] -> error "hasForReason ==> won't happen"
+    ((CFGT.For,_) : _) -> True
+    _ -> False
+
+hasIfReason :: [SymReason] -> Bool
+hasIfReason = \case
+  [] -> False
+  ((li,_) : _) -> case li of
+    [] -> error "hasIfReason ==> won't happen"
+    ((CFGT.If,_) : _) -> True
+    _ -> False
 
 alterList :: Eq a => (Maybe a -> Maybe a) -> a -> [a] -> [a]
 alterList f elm li
@@ -127,15 +145,15 @@ hasGlobalVariable varName ma = case Map.lookup GlobalVars ma of
   Nothing -> False
   Just (SGlobalVars li) -> varName `elem` li
 
-nodeHasGlobalVar :: Map.Map SymStateKey SymExpr -> CFG.Node -> Bool
+nodeHasGlobalVar :: Map.Map SymStateKey SymExpr -> CFGT.Node -> Bool
 nodeHasGlobalVar ma = \case
-  CFG.Node _ (CFG.Statement stmt) _ ->
+  CFGT.Node _ (CFGT.Statement stmt) _ ->
     let varNames = AST.getVarNames (AST.getStatementExpression stmt)
     in any (\vn -> isGlobalVariable2 vn ma) varNames
-  CFG.Node _ (CFG.BooleanExpression CFG.For mExpr) _ ->
+  CFGT.Node _ (CFGT.BooleanExpression CFGT.For mExpr) _ ->
     let mVarNames = fmap AST.getVarNames mExpr
     in process_mVarNames mVarNames
-  CFG.Node _ (CFG.ForStep mStmt) _ ->
+  CFGT.Node _ (CFGT.ForStep mStmt) _ ->
     let mVarNames :: Maybe [String]
         mVarNames = fmap (AST.getVarNames . AST.getStatementExpression) mStmt
     in process_mVarNames mVarNames
@@ -144,15 +162,15 @@ nodeHasGlobalVar ma = \case
   process_mVarNames :: Maybe [String] -> Bool
   process_mVarNames = maybe False (\varNames -> any (\vn -> isGlobalVariable2 vn ma) varNames)
 
-nodeHasFormalParm :: Map.Map SymStateKey SymExpr -> CFG.Node -> Bool
+nodeHasFormalParm :: Map.Map SymStateKey SymExpr -> CFGT.Node -> Bool
 nodeHasFormalParm ma = \case
-  CFG.Node _ (CFG.Statement stmt) _ ->
+  CFGT.Node _ (CFGT.Statement stmt) _ ->
     let varNames = AST.getVarNames (AST.getStatementExpression stmt)
     in any (\vn -> hasFormalParameter vn ma) varNames
-  CFG.Node _ (CFG.BooleanExpression CFG.For mExpr) _ ->
+  CFGT.Node _ (CFGT.BooleanExpression CFGT.For mExpr) _ ->
     let mVarNames = fmap AST.getVarNames mExpr
     in process_mVarNames mVarNames
-  CFG.Node _ (CFG.ForStep mStmt) _ ->
+  CFGT.Node _ (CFGT.ForStep mStmt) _ ->
     let mVarNames :: Maybe [String]
         mVarNames = fmap (AST.getVarNames . AST.getStatementExpression) mStmt
     in process_mVarNames mVarNames
@@ -281,6 +299,9 @@ toSymType2 = \case
   SBin a _ b -> pick_known_symType (toSymType2 a,toSymType2 b)
   SymNum _ -> UnknownNumSymType
   SymString _ -> String
+  SException symType _ _ -> symType
+  SymArray (mt) _ li ->
+    pick_known_symType2 $ maybe [] ((: []) . id) mt ++ map toSymType2 li
   symExpr -> error $ "TODO2: toSymType2 ==> " ++ show symExpr
 
 -- will be used in `calculate`
@@ -346,11 +367,10 @@ so when this function is used on them, for the type
  -}
 castGlobalVar :: SymType -> ExecutionResult -> Typed_Method_R ()
 castGlobalVar newType = \case
-  er@(ER_SymStateMapEntry _ val) -> do
+  er@(ER_SymStateMapEntry (VarName key) val) -> do
     theEnv <- env <$> get
     let vns :: [String] -- vns are global variables mentioned in val
-        vns = flip filter (getVarNames2 val) $ \vn ->
-          isGlobalVariable2 vn theEnv
+        vns = filter (flip isGlobalVariable2 theEnv) (nub $ key : getVarNames2 val)
     -- foldM_ :: (Foldable t, Monad m) => (b -> a -> m b) -> b -> t a -> m ()
     foldM_ (\ma vn -> do
       ma2 <- Map.alterF (\case
@@ -363,7 +383,10 @@ castGlobalVar newType = \case
               in if newType2 == toSymType2 oldSymExpr
                    then pure $ Just oldSymExpr
                  else do
-                   let newSymExpr = changeSymExprType newType2 oldSymExpr
+                   let newSymExpr :: SymExpr
+                       newSymExpr = cast newType2 oldSymExpr
+                         --error $ printf "W::: (%s,%s)" (show newType2) (show oldSymExpr)
+                         --changeSymExprType newType2 oldSymExpr
                    tell [Log.UpdateVariable (vn,show oldSymExpr,show newSymExpr) "castGlobalVar"]
                    pure $ Just newSymExpr)
             (VarName vn) ma
@@ -408,9 +431,9 @@ get_SLoops m = flip Map.filterWithKey m $ \_ -> \case
 findVarName :: String -> Map.Map SymStateKey SymExpr -> Maybe SymExpr
 findVarName str = Map.lookup (VarName str)
 
-findVarName_via_coor :: (String,BranchRange) -> Map.Map SymStateKey SymExpr -> Maybe SymExpr
+findVarName_via_coor :: (String,CFGT.ScopeRange) -> Map.Map SymStateKey SymExpr -> Maybe SymExpr
 findVarName_via_coor (varName,br) s = do
-  symExpr <- Map.lookup (BranchRange br) s
+  symExpr <- Map.lookup (ScopeRange br) s
   case symExpr of
     SIte _ ifBranchSymState mElseBranchSymState ->
       let mSearch1 = Map.lookup (VarName varName) (env ifBranchSymState)
@@ -528,12 +551,12 @@ negateOp = \case
 ------------------------------
 ------------------------------
 
-getVarBindings :: SymState -> Map.Map String Node_Coor
+getVarBindings :: SymState -> Map.Map String CFGT.Node_Coor
 getVarBindings symState = case Map.lookup VarBindings (env symState) of
   Nothing -> Map.empty
   Just (SVarBindings li) -> li
 
-getNewVarBinding :: Node_Coor -> AST.Statement -> Maybe (String,Node_Coor)
+getNewVarBinding :: CFGT.Node_Coor -> AST.Statement -> Maybe (String,CFGT.Node_Coor)
 getNewVarBinding nodeCoor = \case
   -- AssignStmt {varModifier :: [Modifier], assign :: Expression}
   AST.AssignStmt _ expr -> case expr of
@@ -541,7 +564,7 @@ getNewVarBinding nodeCoor = \case
     AST.AssignExpr left _ -> case left of
       AST.VarExpr{} -> case AST.varType left of
         Just _ ->
-          Just (AST.varName left, --CFG.getBranchEnd branchStart cfg
+          Just (AST.varName left,
                 nodeCoor)
         Nothing -> Nothing
       AST.ArrayCallExpr{} -> Nothing
@@ -557,7 +580,7 @@ getNewVarBinding nodeCoor = \case
   ----------
   _ -> Nothing
 
-getNewVarAssignment :: Node_Coor -> AST.Statement -> Maybe (String,Node_Coor)
+getNewVarAssignment :: CFGT.Node_Coor -> AST.Statement -> Maybe (String,CFGT.Node_Coor)
 getNewVarAssignment nodeCoor = \case
   -- AssignStmt {varModifier :: [Modifier], assign :: Expression}
   AST.AssignStmt _ expr -> case expr of
@@ -570,12 +593,11 @@ getNewVarAssignment nodeCoor = \case
       _ -> error $ "TODO :: getNewVarAssignment: " ++ show left
     _ -> error "getNewVarAssignment -> won't happen1"
   ----------
-  --VarStmt {var = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "y"}}
-  stmt@AST.VarStmt{} -> case AST.var stmt of
+  stmt@AST.VarStmt{} -> Nothing{-case AST.var stmt of
     AST.VarExpr varType _ varName -> case varType of
       Just _ -> Just (varName,nodeCoor)
       Nothing -> Nothing
-    _ -> error "getNewVarAssignment -> won't happen3"
+    _ -> error "getNewVarAssignment -> won't happen3"-}
   ----------
   stmt@AST.FunCallStmt{} -> Nothing
   ----------
@@ -594,13 +616,16 @@ getVarNames2 = \case
   SBin symExpr1 _ symExpr2 -> getVarNames2 symExpr1 ++ getVarNames2 symExpr2
   SNot symExpr -> getVarNames2 symExpr
   SArrayIndexAccess s1 s2 -> error $ "TODO1:: getVarNames2 ==> " ++ show (SArrayIndexAccess s1 s2)
-  SymArray onw two three -> error $ "TODO2:: getVarNames2 ==> " ++ show (SymArray onw two three)
+  -- SymArray (Just (Array Int)) (Just 2) [SymInt 99,SymInt 5]
+  SymArray onw two three -> []
   SymUnknown (_,vn,_) _ -> [vn]
   SymNull _ -> []
   SymDouble _ -> []
   SymInt _ -> []
-  SymString str -> [str]
+  SymString _ -> []
   SymNum _ -> []
+  SException _ _ _ -> []
+  SObjAcc [arrName,"length"] -> [arrName]
   symExpr -> error $ "TODO3:: getVarNames2 ==> " ++ show symExpr
 
 getVarNames3 :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
@@ -614,42 +639,46 @@ getVarNameSymType varName ma = fmap toSymType2 (Map.lookup (VarName varName) ma)
 getVarNameSymExpr :: String -> Map.Map SymStateKey SymExpr -> Maybe SymExpr
 getVarNameSymExpr varName ma = fmap id (Map.lookup (VarName varName) ma)
 
--- This functions alters type predominantly to globals and formals
-changeSymExprType :: SymType -> SymExpr -> SymExpr
-changeSymExprType t = \case
-{-
-  SymGlobalVar _ vn mExpr -> case mExpr of
-    Nothing -> SymGlobalVar t vn Nothing
-    je@(Just expr) -> SymGlobalVar (pick_known_symType (toSymType2 expr,t)) vn je
-  SymFormalParam _ vn mExpr -> case mExpr of
-    Nothing -> SymFormalParam t vn Nothing
-    je@(Just expr) -> SymFormalParam (pick_known_symType (toSymType2 expr,t)) vn je
--}
-  SymVar t2 varName ->
-    let t3 = pick_known_symType (t,t2)
-    in SymVar t3 varName
-  SBin expr1 op expr2 -> SBin (changeSymExprType t expr1) op (changeSymExprType t expr2)
-  symExpr
-    | is_type_homogeneous_with t symExpr -> symExpr
-  expr -> error $ printf "TODO:: changeSymExprType ==> (%s,%s)" (show t) (show expr)
-
--- is_type_homogeneous_with is useful for changeSymExprType
-is_type_homogeneous_with :: SymType -> SymExpr -> Bool
-is_type_homogeneous_with symType symExpr = case (symType,symExpr) of
-  (String,SymString _) -> True
-  _ -> error $ printf "TODO: is_type_homogeneous_with ==> (%s,%s)" (show symType) (show symExpr)
-
 getActions :: SymState -> [String]
 getActions = maybe [] (\(SActions li) -> li) . Map.lookup Actions . env
 
-getVarAssignments :: SymState -> [(String,Node_Coor)]
+getVarAssignments :: SymState -> [(String,CFGT.Node_Coor)]
 getVarAssignments = maybe [] (\(SVarAssignments li) -> li) . Map.lookup VarAssignments . env
 
-getVarAssignments2 :: Map.Map SymStateKey SymExpr -> [(String,Node_Coor)]
+getVarAssignments2 :: Map.Map SymStateKey SymExpr -> [(String,CFGT.Node_Coor)]
 getVarAssignments2 = maybe [] (\(SVarAssignments li) -> li) . Map.lookup VarAssignments
 
 getGlobalVars :: Map.Map SymStateKey SymExpr -> [String]
 getGlobalVars = maybe [] (\(SGlobalVars li) -> li) . Map.lookup GlobalVars
+
+------------------------------
+------------------------------
+------------------------------
+{-
+input:
+kind: For
+br: BR {branchStart = 2, branchEnd = 15}
+node_coors: [
+ Node_Coor {varDeclAt = 4, varFrame = BR {branchStart = 2, branchEnd = 15}},
+ Node_Coor {varDeclAt = 9, varFrame = BR {branchStart = 7, branchEnd = 11}},
+ Node_Coor {varDeclAt = 12, varFrame = BR {branchStart = 2, branchEnd = 15}}
+]
+
+type SymReason = ([(ScopeKind,ScopeRange)],Int)
+
+output:
+[
+ ([For BR {branchStart = 2, branchEnd = 15}],4),
+ ([For BR {branchStart = 2, branchEnd = 15}, If BR {branchStart = 7, branchEnd = 11}],9),
+ ([For BR {branchStart = 2, branchEnd = 15}],12)
+}
+ -}
+createSymReason :: (CFGT.Kind,CFGT.ScopeRange) -> CFGT.CFG -> [CFGT.Node_Coor] -> [SymReason]
+createSymReason (kind,br) cfg = map $ \node_coor ->
+  let one
+        | CFGT.varFrame node_coor == br = [(kind,br)]
+        | otherwise = CFG.getPathToScope (CFGT.varFrame node_coor) cfg
+  in (one,CFGT.varDeclAt node_coor)
 
 ------------------------------
 ------------------------------
@@ -676,7 +705,7 @@ substitute formalParam = \case
 
 -- Extracting ExecutionResult from the monadic type Method_R
 -- useful for debugging
-method_R_2_ExecutionResult ::((Config,[CFG.CFG]),SymState) -> Method_R -> ExecutionResult
+method_R_2_ExecutionResult ::((Config,[CFGT.CFG]),SymState) -> Method_R -> ExecutionResult
 method_R_2_ExecutionResult (r,s) mo =
   let run_r :: ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))) ExecutionResult
       run_r = runReaderT mo r--(defaultConfig,cfgs)

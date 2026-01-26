@@ -7,7 +7,7 @@ import Control.Monad.State
 import Control.Monad.Except
 import Control.Monad.Writer
 import qualified Parser.Types as AST
-import qualified CFG.Types as CFGT (CFG, NodeID, Node)
+import qualified CFG.Types as CFGT (CFG, NodeID, Node, ScopeRange, Node_Coor, Kind)
 import qualified Data.Map as Map (Map)
 import Text.Printf (printf)
 import Data.List (intercalate)
@@ -38,7 +38,7 @@ getReader_MethodCall_R (MethodCall_SymExec r) = r
 
 data SymStateKey = MethodName String
                  | GlobalVars | FormalParms | VarBindings | VarAssignments
-                 | VarName String | BranchRange BranchRange
+                 | VarName String | ScopeRange CFGT.ScopeRange
                  | Return | Exception | Actions
                  deriving (Eq,Ord,Show)
 {-
@@ -239,9 +239,9 @@ data SymExpr =
 --  | SymFormalParam SymType String (Maybe SymExpr) -- ^ declared variable (a formal parameter)
 --  | SymGlobalVar SymType String (Maybe SymExpr) -- ^ variable declared outside the scope of the method
   | SymVar SymType String
-  | SVarBindings (Map.Map String Node_Coor)
-  | SVarAssignments [(String,Node_Coor)] 
-  | SException String String
+  | SVarBindings (Map.Map String CFGT.Node_Coor)
+  | SVarAssignments [(String,CFGT.Node_Coor)] 
+  | SException SymType String String
   | SActions [String]
   | SArrayIndexAccess String SymExpr
   | SymArray (Maybe SymType) (Maybe Int) [SymExpr]
@@ -249,20 +249,12 @@ data SymExpr =
   | SFormalParms [String]
   | SGlobalVars [String]
   deriving (Eq,Show)
-
-data SymReason = IfBranchingReason [Node_Coor]
-               | ForBranchingReason [Node_Coor]
+{-
+data SymReason = IfBranchingReason [CFGT.Node_Coor]
+               | ForBranchingReason [CFGT.Node_Coor]
                deriving (Eq,Show)
-
-data Node_Coor = Node_Coor
-  { varDeclAt :: Int
-  , varFrame  :: BranchRange
-  } deriving (Eq,Show)
-
-data BranchRange = BR
-  { branchStart :: Int
-  , branchEnd :: Int
-  } deriving (Eq,Ord,Show)
+-}
+type SymReason = ([(CFGT.Kind,CFGT.ScopeRange)],Int)
 
 ppSymExpr :: SymExpr -> String
 ppSymExpr = \case
@@ -273,12 +265,14 @@ ppSymExpr = \case
   SBool b -> show b
   SBin e1 op e2 -> printf "(%s) %s (%s)" (ppSymExpr e1) (show op) (ppSymExpr e2)
   SNot e -> printf "!(%s)" (ppSymExpr e)
-  SIte _ _ _ -> undefined
-  SymNull t -> undefined
+  SymNull t -> case t of
+    String -> "null"
+    Int -> "0"
 --  SymFormalParam t s m -> maybe s ppSymExpr m
 --  SymGlobalVar t s m -> maybe s ppSymExpr m
   SymVar t s -> s
   SymArray _ _ elems -> printf "[%s]" $ intercalate ", " (map ppSymExpr elems)
+  symExpr -> error $ "TODO: ppSymExpr ==> " ++ show symExpr
 
 data SymType = Int | Double | Float | Bool | Void | Array SymType | String 
              | UnknownGlobalVarSymType

@@ -133,6 +133,175 @@ getPath startId cfg =
                   Nothing -> []
                   Just nextNodeId -> getPath nextNodeId cfg
 
+{-
+  Entry wrongSum3: method type: Int, args: (Int n)
+----------
+  0 -> 1:
+        Int res = 0.0
+----------
+  0 -> 2:
+        For: init: Just Int i = n
+----------
+  2 -> 3:
+        For: cond: i > 0.0
+----------
+  2 -> 4:
+        res = res + i
+----------
+  2 -> 5:
+        Int z = 9.0
+----------
+  2 -> 6:
+        z = i
+----------
+  2 -> 7:
+        If: cond: True
+----------
+  7 -> 8:
+        v = hi
+----------
+  7 -> 9:
+        res = res + 1.0
+----------
+  7 -> 10:
+        v = zuzu
+----------
+  2 -> 11:
+        Meet: If
+----------
+  2 -> 12:
+        res = 0.0
+----------
+  2 -> 13:
+        t = i
+----------
+  2 -> 14:
+        For: step: i = i - 1.0
+----------
+  0 -> 15:
+        Meet: For
+----------
+  End: 0 -> 16:
+        return: res
+========================
+  (0,[1])
+  (1,[2])
+  (2,[3])
+  (3,[4,15])
+  (4,[5])
+  (5,[6])
+  (6,[7])
+  (7,[8,11])
+  (8,[9])
+  (9,[10])
+  (10,[11])
+  (11,[12])
+  (12,[13])
+  (13,[14])
+  (14,[3])
+  (15,[16])
+
+
+input:
+br: BR {branchStart = 7, branchEnd = 11}
+
+output:
+[(For, BR {branchStart = 2, branchEnd = 15}), (If, BR {branchStart = 7, branchEnd = 11})]
+ -}
+-- getEndIfNode :: CFG -> Node -> Node
+getPathToScope :: ScopeRange -> CFG -> [(Kind,ScopeRange)]
+getPathToScope br cfg = helper (branchStart br) where
+  helper 0 = []
+  helper nodeId =
+    let theNode = findNode_via_id cfg nodeId
+        recordCoor
+          | isIfStartNode theNode =
+             let endNodeId = getEndIfNode cfg theNode
+             in [(If, SR nodeId (getNodeId endNodeId))]
+          | isForStartNode theNode =
+             let endNodeId = getEndForNode cfg theNode
+             in [(For, SR nodeId (getNodeId endNodeId))]
+          | otherwise = []
+    in (++ recordCoor) $ case stepBack nodeId (edges cfg) of
+         Nothing -> error "getPathToScope ==> won't happen"
+         Just (nextNodeId,_) -> helper nextNodeId
+
+{-
+  Entry wrongSum3: method type: Int, args: (Int n)
+----------
+  0 -> 1:
+        Int res = 0.0
+----------
+  0 -> 2:
+        For: init: Just Int i = n
+----------
+  2 -> 3:
+        For: cond: i > 0.0
+----------
+  2 -> 4:
+        res = res + i
+----------
+  2 -> 5:
+        Int z = 9.0
+----------
+  2 -> 6:
+        z = i
+----------
+  2 -> 7:
+        If: cond: True
+----------
+  7 -> 8:
+        v = hi
+----------
+  7 -> 9:
+        res = res + 1.0
+----------
+  7 -> 10:
+        v = zuzu
+----------
+  2 -> 11:
+        Meet: If
+----------
+  2 -> 12:
+        res = 0.0
+----------
+  2 -> 13:
+        t = i
+----------
+  2 -> 14:
+        For: step: i = i - 1.0
+----------
+  0 -> 15:
+        Meet: For
+----------
+  End: 0 -> 16:
+        return: res
+========================
+  (0,[1])
+  (1,[2])
+  (2,[3])
+  (3,[4,15])
+  (4,[5])
+  (5,[6])
+  (6,[7])
+  (7,[8,11])
+  (8,[9])
+  (9,[10])
+  (10,[11])
+  (11,[12])
+  (12,[13])
+  (13,[14])
+  (14,[3])
+  (15,[16])
+
+input:
+to = 7
+
+output: (6,[7])
+ -}
+stepBack :: NodeID -> [(NodeID,[NodeID])] -> Maybe (NodeID,[NodeID])
+stepBack to = find $ \(_,tos) -> to `elem` tos
+
 -----------------------------
 
 getVarName :: Node -> String

@@ -618,8 +618,8 @@ numericCalculator2 op = \case
     error $ "numericCalculator: won't happen because of the function `simplify`"
 -}
 ----------
-  (a@(SException _ _),b) -> a
-  (a,b@(SException _ _)) -> b
+  (a@(SException _ _ _),b) -> a
+  (a,b@(SException _ _ _)) -> b
 ----------
   (a@(SymUnknown (t,_,_) _),b) ->
     SBin a op (cast t b)
