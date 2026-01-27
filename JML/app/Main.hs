@@ -13,7 +13,7 @@ import qualified SymbolTable.SymbolTableCreator as ST (exec)
 import qualified SymbolTable.Types as STT (Entry,showEntry)
 
 import qualified CFG.CFG as CFG1 (exec)
-import qualified CFG.Internal as CFG2 (findCFGByName, getPath)
+import qualified CFG.Internal as CFG2 (findCFGByName, getPath, getCFGName)
 import qualified CFG.Types as CFGT (CFG(..), showCFG, Node(..))
 
 import qualified SymbolicExecution.Types as SYT
@@ -80,21 +80,29 @@ getSymState funName = readFile "test3.java" >>=
   (\cfgs -> case CFG2.findCFGByName funName cfgs of
               Just cfg0 ->
                 let (logs,s) = SYM.runCFG cfgs cfg0 Nothing Nothing
-                in do putStrLn "================"
-                      putStrLn "===Begin Logs==="
-                      putStrLn "================"
-                      putStrLn $ intercalate "\n\n" (SYT.Log.ppLogs logs)
-                      putStrLn "=============="
-                      putStrLn "===End Logs==="
-                      putStrLn "=============="
+                in do putStrLn $ (SYT.Log.ppLogs True logs)
                       return s
               Nothing   -> error $ "method " ++ funName ++ " does not exist")
   . map CFG1.exec
   . fromRight undefined . parse parseDeclList ""
 
+getSymStates2 :: String -> IO ()
+getSymStates2 fileName = readFile fileName >>=
+  (\cfgs ->
+      let size = length cfgs
+      in mapM_ (\(counter,cfg) ->
+           let (logs,s) = SYM.runCFG cfgs cfg Nothing Nothing
+               funName = CFG2.getCFGName cfg
+           in do putStrLn $ printf "%d/%d ==> %s" counter size funName
+                 writeFile
+                   (printf "logs/%s.md" funName)
+                   (SYT.Log.ppLogs False logs ++ "\n\nSymState:\n" ++ show s))
+      $ zip [1 :: Int ..] cfgs)
+  . map CFG1.exec
+  . fromRight undefined . parse parseDeclList ""
+
 ------------------------------
 
--- getPath "boo27" >>= mapM_ (\(num,node) -> putStr $ printf "%d>> %s\n\n" num (show node)) . zip [0 ..]
 getPath :: String -> Int -> IO [CFGT.Node]
 getPath funName startNodeId = readFile "test3.java" >>= return
   . CFG2.getPath startNodeId
