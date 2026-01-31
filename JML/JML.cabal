@@ -29,13 +29,17 @@ library
       CFG.Internal
       CFG.Types
       JML.Types
+      Methods.JavaMethod
       Parser.ParseExpr
       Parser.ParseStmt
       Parser.Print
       Parser.Types
       SymbolicExecution.Internal.Calculator
       SymbolicExecution.Internal.Internal
-      SymbolicExecution.Log
+      SymbolicExecution.Logs.Console
+      SymbolicExecution.Logs.Log
+      SymbolicExecution.Logs.Markdown
+      SymbolicExecution.Logs.PrettyPrint
       SymbolicExecution.Method
       SymbolicExecution.MethodCall
       SymbolicExecution.Types

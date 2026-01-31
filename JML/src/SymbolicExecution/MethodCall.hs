@@ -6,7 +6,7 @@ import qualified CFG.Types as CFGT (CFG)
 import SymbolicExecution.Types
 import SymbolicExecution.Internal.Internal
 import SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator)
-import qualified SymbolicExecution.Log as Log
+import qualified SymbolicExecution.Logs.Log as Log
 import Control.Monad.Writer
 import Control.Monad.Reader
 import Control.Monad.State

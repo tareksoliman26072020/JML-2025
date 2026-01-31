@@ -1,0 +1,242 @@
+plans.md
+
+## Task: Add a logging feature to the app.
+
+- Files to modify: src/logger.hs, src/main.hs
+- Expected Outcome: A logging module is created with a configurable log level.
+- Steps:
+  1. Define log levels.
+  2. Implement `logInfo`, `logWarn`, `logError`.
+  3. Modify `main.hs` to use the logger.
+
+=======================================
+=======================================
+
+=======================================
+
+agents.md
+
+## Agent: Testing Agent
+
+- Task: Ensure that all unit tests pass before proceeding with deployment.
+- Strategy: Use the `test` framework integrated with the CI pipeline.
+
+## Agent: GitHub Agent
+
+- Task: Create a pull request for new features.
+- Strategy: Automatically create PR on GitHub with a summary of changes made.
+
+=======================================
+=======================================
+
+=======================================
+
+agents.md
+
+# Project rules
+
+## Source of truth
+
+- For any feature work, read the relevant PRD in docs/prd/.
+- If PRD conflicts with existing behavior, call it out and propose a resolution.
+
+## ExecPlans
+
+- For tasks estimated > 30 minutes or touching multiple modules:
+  - Produce an ExecPlan in PLAN.md.
+  - Follow the ExecPlan format defined in .agent/PLANS.md.
+  - Map each PRD acceptance criterion to (a) tests, or (b) a verification step.
+
+=======================================
+=======================================
+
+=======================================
+
+prd/cfg-builder.md
+
+# PRD: CFG Builder (Java)
+
+## 1. Summary
+
+Implement a Control-Flow Graph (CFG) builder for Java methods.
+The CFG will be used as input to later analysis passes (e.g., symbolic execution).
+
+## 2. Motivation / Thesis relevance
+
+A correct CFG is foundational for analyzing Java methods.
+This feature is required to evaluate later contributions (e.g., path exploration coverage).
+
+## 3. Goals
+
+- Parse a Java source file, extract methods, and build a CFG per method.
+- Support straight-line code, if/else, while, for, return, break/continue.
+- Provide a stable serialized format for CFGs (JSON or a textual IR).
+
+## 4. Non-goals
+
+- Interprocedural CFG (no cross-method edges yet).
+- Exception edges (try/catch/finally) in v1.
+- Full Java language coverage (limit to Java 8 syntax subset as needed).
+
+## 5. User stories
+
+- As a researcher, I can run `tool cfg <file.java> <method>` and receive a CFG.
+- As a developer, I can visualize CFG nodes and edges for debugging.
+
+## 6. Functional requirements
+
+FR1: The tool SHALL produce a CFG with:
+
+- Nodes: entry, exit, and statement-level nodes.
+- Directed edges representing possible control flow.
+
+FR2: The tool SHALL assign each node:
+
+- A unique ID
+- A source location (file, line, column if available)
+- A node type (ENTRY, EXIT, STMT, BRANCH, MERGE)
+
+FR3: The tool SHALL handle:
+
+- `if (cond) { ... } else { ... }` with proper branch/merge
+- `while (cond) { ... }` loop back-edge and exit edge
+- `return` as a jump to EXIT
+- `break/continue` inside loops (basic support)
+
+## 7. Output format
+
+- Command output: JSON file written to `out/<Class>.<method>.cfg.json`
+- JSON schema (informal):
+  - nodes: [{ id, kind, text, loc }]
+  - edges: [{ from, to, label? }]
+
+## 8. Acceptance criteria
+
+AC1: Given a method with an if/else, the CFG has exactly:
+
+- 1 branch node
+- 1 merge node
+- Correct edges for true/false paths
+
+AC2: Given a method with a while loop:
+
+- There exists a back-edge from loop body to loop condition
+- There exists an exit edge from loop condition to after-loop/exit
+
+AC3: The tool emits deterministic node IDs across repeated runs on the same input.
+
+AC4: A “golden test” directory exists with at least 10 Java examples,
+and CI runs them to validate CFG output.
+
+## 9. Constraints
+
+- Language: Haskell implementation (preferred)
+- Parser: use an existing Java parser library (document which one)
+- Performance: handle files up to 5k LOC in < 5 seconds on a laptop
+
+## 10. Open questions / risks
+
+- Exact node granularity: statement-level vs basic blocks?
+- How to represent short-circuit boolean conditions?
+- How to keep node IDs stable if the parser changes?
+
+=======================================
+=======================================
+
+=======================================
+
+https://developers.openai.com/cookbook/articles/codex_exec_plans
+
+=======================================
+
+# Question from me:
+
+Where am I to write the "how-to-implement" portion of a task? For example I want to enforce a constraint on the Codex's agent, such as (you're allowed to adjust the function's signature if needed) and (you're not permitted to use a function)? In plans.md or in agents.md? I presume in agents.md
+
+# Answer:
+
+You’re presuming correctly: **put enduring “how we implement in this repo” constraints in `AGENTS.md`.**  
+Use `PLANS.md` for **how to write plans**, not for permanent coding rules.
+
+Here’s a crisp split that works well in practice:
+
+## What goes in `AGENTS.md`
+
+Use `AGENTS.md` for **agent guardrails and engineering policy** that should apply to *most* tasks:
+
+- Allowed freedoms: “You may adjust function signatures if needed.”
+
+- Forbidden tools/APIs: “Do not use `unsafePerformIO` / `partial` / `head` / reflection / whatever.”
+
+- Required style: “Prefer total functions; avoid partial pattern matches; require explicit error handling.”
+
+- Required checks: “Run `cabal test` and `hlint` before marking done.”
+
+These are “how-to-implement” constraints in the sense of **repo-wide implementation policy**.
+
+### Example snippet for `AGENTS.md`
+
+```md
+## Implementation constraints
+- You MAY adjust function signatures if required to satisfy correctness or totality.
+- You MUST NOT use:
+  - unsafePerformIO
+  - head / tail (use pattern matching or NonEmpty)
+  - fromJust (use MaybeT / pattern matching)
+- Prefer:
+  - total functions
+  - explicit error types (Either / ExceptT) over error strings
+```
+
+## What goes in PRD / feature docs
+
+Use the PRD (or feature spec) for **feature-specific constraints**:
+
+- “For this feature, do not use `Text.Regex` (use parser combinators).”
+
+- “Must remain API-compatible with `Foo.Bar` public module.”
+
+- “Performance target: < 200ms on dataset X.”
+
+This is still “how-to-implement,” but it’s not repo policy—it's **feature policy**.
+
+## What goes in `PLANS.md`
+
+Use `PLANS.md` only for **plan mechanics**, e.g.
+
+- plan sections
+
+- required checkpoints (“include test plan”)
+
+- definition-of-done checklist
+
+- how to update a plan during execution
+
+`PLANS.md` is not the best place for “don’t use function X,” because that’s not about planning; it’s about implementation rules.
+
+---
+
+## The clean rule of thumb
+
+- **AGENTS.md** = *standing orders* (always-on constraints)
+
+- **PRD / feature.md** = *this task’s special constraints*
+
+- **PLANS.md** = *how plans should be written/maintained*
+
+---
+
+## One more practical tip: enforce priority/precedence
+
+In `AGENTS.md`, add a precedence rule so Codex resolves conflicts predictably:
+
+```md
+## Precedence
+1) PRD constraints for the active feature
+2) AGENTS.md repo-wide constraints
+3) PLANS.md plan format requirements
+```
+
+That prevents the agent from ignoring a PRD exception or “forgetting” a repo-wide ban.
+
+If you tell me your language/tooling (you’re doing Haskell a lot) and a couple of “banned”/“allowed” examples, I can draft a tight `AGENTS.md` constraints section that’s enforceable and not overly restrictive.

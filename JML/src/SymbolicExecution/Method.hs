@@ -1,7 +1,7 @@
 {-# Language LambdaCase #-}
 module SymbolicExecution.Method where
 
-import qualified SymbolicExecution.Log as Log
+import qualified SymbolicExecution.Logs.Log as Log
 import SymbolicExecution.Types
 import qualified CFG.Types as CFGT
 import qualified CFG.Internal as CFG
@@ -1119,5 +1119,5 @@ runCFG cfgs cfg mPath mSymState =
                     (AST.BuiltInType AST.Float, Return, SymNum float)  ->
                         SymFloat float
                     (_,_,_) -> v
-         in (logs,either error (const (SymState m2 ps)) ei)
+         in (logs,either (error $ printf "error in method name (%s) thrown from Method.hs:\n%s" (CFG.getCFGName cfg)) (const (SymState m2 ps)) ei)
 

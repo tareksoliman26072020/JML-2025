@@ -18,9 +18,11 @@ import qualified CFG.Types as CFGT (CFG(..), showCFG, Node(..))
 
 import qualified SymbolicExecution.Types as SYT
 import qualified SymbolicExecution.Method as SYM (runCFG)
-import qualified SymbolicExecution.Log as SYT.Log
+import qualified SymbolicExecution.Logs.PrettyPrint as SYT.Log
 import SymbolicExecution.Internal.Internal (findSymType, cast)
 import SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator)
+
+import qualified Methods.JavaMethod as Method
 
 import Text.Printf (printf)
 
@@ -32,7 +34,7 @@ cfg = CFGT.CFG {
 }
 
 main :: IO ()
-main = putStrLn "Hi"
+main = putStrLn $ Method.ifFun7Call3
 
 getAST :: String -> IO AST.Method
 getAST methodName = readFile "test3.java" >>=
@@ -80,7 +82,7 @@ getSymState funName = readFile "test3.java" >>=
   (\cfgs -> case CFG2.findCFGByName funName cfgs of
               Just cfg0 ->
                 let (logs,s) = SYM.runCFG cfgs cfg0 Nothing Nothing
-                in do putStrLn $ (SYT.Log.ppLogs True logs)
+                in do putStrLn $ (SYT.Log.ppLogs SYT.Log.Console logs)
                       return s
               Nothing   -> error $ "method " ++ funName ++ " does not exist")
   . map CFG1.exec
@@ -96,7 +98,7 @@ getSymStates2 fileName = readFile fileName >>=
            in do putStrLn $ printf "%d/%d ==> %s" counter size funName
                  writeFile
                    (printf "logs/%s.md" funName)
-                   (SYT.Log.ppLogs False logs ++ "\n\nSymState:\n" ++ show s))
+                   (SYT.Log.ppLogs SYT.Log.Markdown logs ++ "\n\nSymState:\n" ++ show s))
       $ zip [1 :: Int ..] cfgs)
   . map CFG1.exec
   . fromRight undefined . parse parseDeclList ""

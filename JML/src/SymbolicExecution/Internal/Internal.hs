@@ -2,7 +2,7 @@
 module SymbolicExecution.Internal.Internal where
 
 import SymbolicExecution.Types
-import qualified SymbolicExecution.Log as Log
+import qualified SymbolicExecution.Logs.Log as Log
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Except

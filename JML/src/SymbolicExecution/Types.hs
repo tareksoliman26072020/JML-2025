@@ -1,7 +1,7 @@
 {-# Language FlexibleInstances, LambdaCase #-} -- to enable instancing MonadFail (Either String)
 module SymbolicExecution.Types where
 
-import qualified SymbolicExecution.Log as Log
+import qualified SymbolicExecution.Logs.Log as Log
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Except
