@@ -56,6 +56,7 @@ library
   build-depends:
       base >=4.7 && <5
     , containers
+    , directory
     , mtl
     , ordered-containers
     , parsec
@@ -74,6 +75,7 @@ executable JML-exe
       JML
     , base >=4.7 && <5
     , containers
+    , directory
     , mtl
     , ordered-containers
     , parsec
@@ -93,6 +95,7 @@ test-suite JML-test
       JML
     , base >=4.7 && <5
     , containers
+    , directory
     , mtl
     , ordered-containers
     , parsec

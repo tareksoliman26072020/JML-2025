@@ -6,12 +6,13 @@ import Data.List (intercalate)
 import Text.Printf (printf)
 import Data.String(IsString(..))
 
-data HTMLColor = Orangered | Cyan | Purple
+data HTMLColor = OrangeRed | Cyan | Purple | BrightPurple
 instance Show HTMLColor where
   show = \case
-    Orangered -> "orangered"
+    OrangeRed -> "orangered"
     Cyan -> "cyan"
     Purple -> "purple"
+    BrightPurple -> "rgb(191, 64, 191)"
 
 data HTMLText = HTMLText {
   text :: String,
@@ -43,10 +44,17 @@ purple htmlText = HTMLText {
   isUnderlined = isUnderlined htmlText
   }
 
-orangered :: HTMLText -> HTMLText
-orangered htmlText = HTMLText {
+brightPurple :: HTMLText -> HTMLText
+brightPurple htmlText = HTMLText {
   text = text htmlText,
-  color = Just Orangered,
+  color = Just BrightPurple,
+  isUnderlined = isUnderlined htmlText
+  }
+
+orangeRed :: HTMLText -> HTMLText
+orangeRed htmlText = HTMLText {
+  text = text htmlText,
+  color = Just OrangeRed,
   isUnderlined = isUnderlined htmlText
   }
 
@@ -66,58 +74,58 @@ underline htmlText = HTMLText {
 
 ppMarkdownLog :: Log -> String
 ppMarkdownLog = \case
-    MethodEnd loc           -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangered "Method End")
-    Void loc                -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangered "Void")
-    MethodStart str loc     -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangered "Method Start") str
-    MethodStatement loc str -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangered "Method Statement") str
+    MethodEnd loc           -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangeRed "Method End")
+    Void loc                -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangeRed "Void")
+    MethodStart str loc     -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "Method Start") str
+    MethodStatement loc str -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "Method Statement") str
     MethodStatementIfCondition loc str
-                            -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangered "If condition") str
+                            -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "If condition") str
     Expression_2_Handle
-      str loc               -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangered "handling expression") str
+      str loc               -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "handling expression") str
     SymExpr_2_Handle
-      str loc               -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangered "handling SymExpr") str
-    ReturnStatement str loc -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangered "handling return expression") str
-    AssignStatement str loc -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangered "handling assign statement") str
-    Edge_2_Handle str loc   -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangered "running CFG") str
+      str loc               -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "handling SymExpr") str
+    ReturnStatement str loc -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "handling return expression") str
+    AssignStatement str loc -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "handling assign statement") str
+    Edge_2_Handle str loc   -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "running CFG") str
     Meow str1 str2          -> printf "Meow: %s %s" str1 str2
-    HorizontalLine str      -> printf "---\n\\>\\>\\>\\>\\>\\>\\>\\>\\>\\> %s <<<<<<<<<<\n\n---" (show $ orangered $ fromString str)
-    NewVariable tn vn loc   -> printf "(%s): %s %s %s" (show $ cyan $ fromString loc) (show $ orangered "New Variable") tn vn
+    HorizontalLine str      -> printf "---\n\n\\>\\>\\>\\>\\>\\>\\>\\>\\>\\> %s <<<<<<<<<<\n\n---" (show $ orangeRed $ fromString str)
+    NewVariable tn vn loc   -> printf "(%s): %s %s %s" (show $ cyan $ fromString loc) (show $ orangeRed "New Variable") tn vn
     UpdateVariable (vn,old,new) loc
-                            -> printf "(%s): %s\n    %s: %s\n    %s: %s\n    %s: %s" (show $ cyan $ fromString loc) (show $ orangered "Update Variable")
-                                 (show $ orangered "Var Name") vn
-                                 (show $ orangered "Old Value") old
-                                 (show $ orangered "New Value") new
+                            -> printf "(%s): %s\n    %s: %s\n    %s: %s\n    %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "Update Variable")
+                                 (show $ orangeRed "Var Name") vn
+                                 (show $ orangeRed "Old Value") old
+                                 (show $ orangeRed "New Value") new
     LookUpEnvTable
-      key val loc           -> printf "(%s): %s: (%s ~~> %s) " (show $ cyan $ fromString loc) (show $ orangered "Look up in environmane table") key val
-    GlobalVar key loc       -> printf "(%s): %s: %s " (show $ cyan $ fromString loc) (show $ orangered "Global Variable Detected") key
+      key val loc           -> printf "(%s): %s: (%s ~~> %s) " (show $ cyan $ fromString loc) (show $ orangeRed "Look up in environmane table") key val
+    GlobalVar key loc       -> printf "(%s): %s: %s " (show $ cyan $ fromString loc) (show $ orangeRed "Global Variable Detected") key
     MethodFormalParams
-      args loc              -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangered "Visiting formal parameters") args
-    NextNode nodeStr        -> printf "%s: %s" ("### " ++ show (orangered "Next Node")) nodeStr
+      args loc              -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "Visiting formal parameters") args
+    NextNode nodeStr        -> printf "%s: %s" ("### " ++ show (orangeRed "Next Node")) nodeStr
     NextMethodCallSymExpr methodCall (key,symExpr)
-                            -> printf "%s (%s ==> %s) in Method Call: %s" (show $ orangered "Next symExpr") key symExpr methodCall
-    Affected loc exprs      -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangered "Affected") (intercalate ", " exprs)
+                            -> printf "%s (%s ==> %s) in Method Call: %s" (show $ orangeRed "Next symExpr") key symExpr methodCall
+    Affected loc exprs      -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "Affected") (intercalate ", " exprs)
     ProcessPredefinedFunCall
-      loc funName funArgs   -> printf "(%s): %s: %s%s" (show $ cyan $ fromString loc) (show $ orangered "Processing Predefined FunCall") funName funArgs
-    ModifyState loc (k,v)   -> printf "(%s): %s: (%s,%s)" (show $ cyan $ fromString loc) (show $ orangered "Modifying State") k v
+      loc funName funArgs   -> printf "(%s): %s: %s%s" (show $ cyan $ fromString loc) (show $ orangeRed "Processing Predefined FunCall") funName funArgs
+    ModifyState loc (k,v)   -> printf "(%s): %s: (%s,%s)" (show $ cyan $ fromString loc) (show $ orangeRed "Modifying State") k v
     ForStatementHasNoAccumulationVariable loc
-                            -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangered "For statement has no Accumulation variable")
-    StateNotModified loc    -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangered "State Not Modified")
-    NoElseBranch loc        -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangered "No Else Branch")
-    AddVarBinding loc val   -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangered "Adding Var Binding") val
-    AddVarAssignment loc val-> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangered "Adding Var Assignment") val
-    ReportTheState s        -> printf "(%s):\n%s" (show $ orangered "Reporting The State") (show s)
-    Skip thing              -> printf "(%s):\n%s" (show $ orangered "Skip") (show thing)
-    ForLoopDone loc         -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangered "For Loop Done")
+                            -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangeRed "For statement has no Accumulation variable")
+    StateNotModified loc    -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangeRed "State Not Modified")
+    NoElseBranch loc        -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangeRed "No Else Branch")
+    AddVarBinding loc val   -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "Adding Var Binding") val
+    AddVarAssignment loc val-> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "Adding Var Assignment") val
+    ReportTheState s        -> printf "(%s):\n%s" (show $ orangeRed "Reporting The State") (show s)
+    Skip thing              -> printf "(%s):\n%s" (show $ orangeRed "Skip") (show thing)
+    ForLoopDone loc         -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangeRed "For Loop Done")
     UnvisitedForLoop loc expr
-                            -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangered "Unregistered For Loop") expr
+                            -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "Unregistered For Loop") expr
     ForLoopConditionUndetermined loc val
-                            -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangered "For Loop Condition Undetermined") val
-    ForLoopRound n loc      -> printf "(%s): %s: %d" (show $ cyan $ fromString loc) (show $ orangered "For Loop cound") n
-    ForLoopLimitReached loc -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangered "For Loop limit reached")
-    Return loc val          -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangered "Returning") val
+                            -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "For Loop Condition Undetermined") val
+    ForLoopRound n loc      -> printf "(%s): %s: %d" (show $ cyan $ fromString loc) (show $ orangeRed "For Loop cound") n
+    ForLoopLimitReached loc -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangeRed "For Loop limit reached")
+    Return loc val          -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "Returning") val
     RunCFGFormalMethodCall
-      symState              -> printf "%s: %s" (show $ orangered "Method Call formal SymState") symState
+      symState              -> printf "%s: %s" (show $ orangeRed "Method Call formal SymState") symState
     RunSymStateActualMethodCall
-      symState              -> printf "%s: %s" (show $ orangered "Method Call actual SymState") symState
-    Nested funCallTag log   -> printf "%s ==> %s" (show $ underline $ purple $ fromString funCallTag) (ppMarkdownLog log)
+      symState              -> printf "%s: %s" (show $ orangeRed "Method Call actual SymState") symState
+    Nested funCallTag log   -> printf "%s ==> %s" (show $ underline $ brightPurple $ fromString funCallTag) (ppMarkdownLog log)
 

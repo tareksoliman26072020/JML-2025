@@ -25,6 +25,7 @@ dependencies:
 - ordered-containers
 - containers
 - mtl
+- directory
 
 ghc-options:
 - -Wall

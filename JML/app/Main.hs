@@ -6,6 +6,7 @@ import Parser.ParseStmt
 import Data.Either (fromRight)
 import Parser.Types (Method)
 import Data.List (intercalate, find)
+import System.Directory (doesDirectoryExist, createDirectory)
 
 import qualified Parser.Types as AST
 
@@ -96,9 +97,13 @@ getSymStates2 fileName = readFile fileName >>=
            let (logs,s) = SYM.runCFG cfgs cfg Nothing Nothing
                funName = CFG2.getCFGName cfg
            in do putStrLn $ printf "%d/%d ==> %s" counter size funName
-                 writeFile
-                   (printf "logs/%s.md" funName)
-                   (SYT.Log.ppLogs SYT.Log.Markdown logs ++ "\n\nSymState:\n" ++ show s))
+                 let writingFun = writeFile
+                       (printf "logs/%s.md" funName)
+                       (SYT.Log.ppLogs SYT.Log.Markdown logs ++ "\n\n# SymState:\n" ++ show s)
+                 isFolderThere <- doesDirectoryExist "logs"
+                 if isFolderThere
+                   then writingFun
+                   else createDirectory "logs" >> writingFun)
       $ zip [1 :: Int ..] cfgs)
   . map CFG1.exec
   . fromRight undefined . parse parseDeclList ""
