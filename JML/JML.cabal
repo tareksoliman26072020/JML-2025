@@ -92,7 +92,8 @@ test-suite JML-test
       test
   ghc-options: -Wall -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-home-modules -Wredundant-constraints -rtsopts -with-rtsopts=-N
   build-depends:
-      JML
+      HUnit
+    , JML
     , base >=4.7 && <5
     , containers
     , directory

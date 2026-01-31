@@ -3,7 +3,7 @@ module Methods.JavaMethod where
 ifFun7 :: String
 ifFun7 = "public void ifFun7(int n) {\n\
          \  if(n % 2 == 0) {\n\
-         \    v = "hi";\n\
+         \    v = \"hi\";\n\
          \  }\n\
          \  else {\n\
          \    w = \"bye\";\n\
