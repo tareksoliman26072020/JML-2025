@@ -2226,6 +2226,7 @@ public String ifFun6Call() {
 /////////////////////
 
 //DONE
+//JavaMethod
 /*
 [
  (MethodName "ifFun7",SMethodType Void),
@@ -2250,6 +2251,7 @@ public void ifFun7(int n) {
 /////////////////////
 
 //DONE
+//JavaMethod
 /*
 [
  (MethodName "ifFun7Call",SMethodType Void),
@@ -2263,6 +2265,7 @@ public void ifFun7Call() {
 
 /////////////////////
 
+//JavaMethod
 /*
 SymState {
   env = fromList [
@@ -2281,6 +2284,7 @@ public void ifFun7Call2() {
 /////////////////////
 
 //TODO
+//JavaMethod
 /*
 [
  (MethodName "ifFun7Call3",SMethodType Void),
