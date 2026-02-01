@@ -93,12 +93,6 @@ instance CFGVisitor Method_SymExec where
               }
             return ER_Void
           _ -> return ER_Void
-        {-case stmt of
-          AST.AssignStmt{} -> throwError $ "MEOW: " ++ show (getNewVarAssignment newVarCoor stmt)
-          _ -> return ER_Void-}
-        {-if (AST.getVarName $ AST.getStatementExpression stmt) == "x"
-          then throwError $ "MEOW: " ++ show (getNewVarAssignment newVarCoor stmt)
-          else return ER_Void-}
         case getNewVarAssignment newVarCoor stmt of
           Just new -> do
             tell [Log.AddVarAssignment "visitNode -> Node -> Statement" (show new)]
@@ -279,17 +273,6 @@ instance CFGVisitor Method_SymExec where
                                 $ createSymReason (CFGT.If, CFGT.SR (CFGT.id n) (CFG.getNodeId $ CFG.getEndIfNode cfg n)) cfg coors
 -- createSymReason :: (CFGT.Kind,CFGT.ScopeRange) -> CFGT.CFG -> [CFGT.Node_Coor] -> [SymReason]
 -- getEndIfNode :: CFG -> Node -> Node
-{- TODELETE
-                            coors -> case v of
-                              SymUnknown tu reasons -> SymUnknown tu
-                                $ case hasIfReason reasons of
-                                    False -> reasons ++ [IfBranchingReason coors]
-                                    True -> flip map reasons $ \case
-                                      IfBranchingReason li ->
-                                        IfBranchingReason $ li ++ coors
-                                      reason -> reason
-                              _ -> SymUnknown (toSymType2 v,vn,Just v) [IfBranchingReason coors]
- -}
                         _ -> v
                       -- if there is a SVarAssignment that has no `VarName`
                       -- then it is a GlobalVar that is assigned in a conditional branch
@@ -577,12 +560,7 @@ visitExpr expr@AST.BinOpExpr{} = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> BinOpExpr"]
   er_one <- visitExpr (AST.expr1 expr)
   er_two <- visitExpr (AST.expr2 expr)
-{-
-  case er_one of
-    ER_SymStateMapEntry (VarName "x") _ -> 
-      throwError $ printf "MEOW:: (%s,%s)" (show er_one) (show er_two) 
-    _ -> return ER_Void
- -}
+
   let mOne = getSymExpr er_one
       mTwo = getSymExpr er_two
   case (mOne,mTwo) of
@@ -685,9 +663,6 @@ visitExpr expr@AST.AssignExpr{} = do
   --   x = c;
   -- c is a global variable, used for the first time in this assignment
   -- c is a double, and its VarName in the SymState need to be updated accordingly
-  {-case two of
-    ER_Expr (SymNum 0) -> return ER_Void
-    _ -> throwError $ "MEOW:: " ++ show two-}
   castGlobalVar (toSymType2 two_newVal) two
 
   let toReturn = ER_SymStateMapEntry one_svn e2
@@ -1076,7 +1051,6 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
  -}
             ) map_withVarAssignments forBody_Some_VarNames
 
-    --throwError $ "MEOW:: " ++ (show map_withVarAssignments)
     let symExpr = SLoop m_Acc mForCondExpr forBody_forStep_path
         toReturn = ER_SymStateMapEntry (ScopeRange branchRange) symExpr
     tell [Log.ModifyState "visitForLoop2" (show branchRange,show symExpr)]
