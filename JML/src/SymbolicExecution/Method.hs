@@ -212,7 +212,7 @@ instance CFGVisitor Method_SymExec where
                 flip mapM_ ifLogs $ \log ->
                   tell [Log.Nested "if statement" log]
                 -- symExpr is the SIte with the two conditional states
-                symExpr <- case branches_paths of
+                symExpr@(SIte ifCond ifSymState mElseSymState) <- case branches_paths of
                   [_] -> return $ SIte expr2 ifSymState Nothing
                   [_,pElse] -> do
                     let (elseLogs,elseSymState) = runCFG cfgs cfg (Just pElse) (Just state)
@@ -227,12 +227,10 @@ instance CFGVisitor Method_SymExec where
                       \(name,_) -> maybe
                           (isGlobalVariable2 name (env s))
                           (const True) $ lookup name mainVarAssignments
-                    newMainVarAssignments = case symExpr of
-                      SIte _ ifSymState mElseSymState -> nub $
+                    newMainVarAssignments = nub $
                         condVarAssignments ifSymState ++
                         maybe [] condVarAssignments mElseSymState
-                    newMainGlobalVars = case symExpr of
-                      SIte ifCond ifSymState mElseSymState -> nub $
+                    newMainGlobalVars = nub $
                         filter (\vn -> isGlobalVariable2 vn (env state)) (getVarNames2 ifCond)
                         ++ getGlobalVars (env ifSymState)
                         ++ maybe [] (getGlobalVars . env) mElseSymState
@@ -258,7 +256,48 @@ instance CFGVisitor Method_SymExec where
                       unknownVarAssigns = flip filter (getVarAssignments2 ma1) $ \case
                         (_,CFGT.Node_Coor _ frameCoor) ->
                           CFGT.branchStart frameCoor == CFGT.branchStart condBranchRange
-                      -- make vars unknown
+                      -- will be used in ma2
+                      -- gets SymType of `varAssName`,
+                      -- which is the one of the vars mentioned in `unknownVarAssigns`
+                      getUnknownVarSymType_in_if_template varAssName =
+                        let seeking = asum $ map (getVarNameSymType varAssName)
+                              $ env ifSymState : maybe [] ((: []) . env) mElseSymState
+                        in case seeking of
+                             Nothing -> error $ "visitNode -> Node -> BooleanExpression if -> won't happen2"
+                             Just t -> t
+                      -- will be used in ma2
+                      -- creates new reason, based in this if scope 
+                      newReason_template :: [CFGT.Node_Coor] -> [SymReason]
+                      newReason_template coors = createSymReason
+                          (CFGT.If,
+                           CFGT.SR (CFGT.id n)
+                                   (CFG.getNodeId $ CFG.getEndIfNode cfg n)) cfg coors
+                      -- ma2 traverses each (varAssName,coors) mentioned in `unknownVarAssigns`
+                      -- and uses them to Map.alter every mention of the varName in ma1
+                      -- This will yield new SymUnknown as SymExpr to each varAssName
+                      -- `getUnknownVarSymType_in_if_template` and `newReason_template`
+                      -- will be used inside
+                      ma2 = foldl' (\ma (varAssName,coor) ->
+                        Map.alter (\case
+                          Nothing -> Just $ SymUnknown (
+                            getUnknownVarSymType_in_if_template varAssName,
+                            varAssName,
+                            Nothing) $ newReason_template [coor]
+                          Just (SymUnknown (t,n,v) oldReasons) -> Just $
+                            SymUnknown
+                              (pick_known_symType (
+                                  t,
+                                  (getUnknownVarSymType_in_if_template varAssName)),
+                              n,v)
+                            $ oldReasons ++ newReason_template [coor]
+                          Just val -> Just $ SymUnknown (
+                            pick_known_symType (
+                              toSymType2 val,
+                              (getUnknownVarSymType_in_if_template varAssName)),
+                            varAssName,Just val)
+                            $ newReason_template [coor]) (VarName varAssName) ma)
+                            ma1 unknownVarAssigns
+                      {--- make vars unknown
                       -- if there exists a VarName that was mentioned in `unknownVarAssigns`
                       -- then mark it as unknown.
                       ma2 = flip Map.mapWithKey ma1 $ \k v -> case k of
@@ -279,21 +318,23 @@ instance CFGVisitor Method_SymExec where
                       -- then add this GlobalVar to the State
                       --ma3 = foldl' (\s globalVar ->) (env s2) newMainGlobalVars
                       ma3 = foldl' (\ma (varAssName,coor) ->
-                        Map.alter (\case
+                        let newReasons = createSymReason (CFGT.If, CFGT.SR (CFGT.id n) (CFG.getNodeId $ CFG.getEndIfNode cfg n)) cfg [coor]
+                        in Map.alter (\case
                           Nothing -> Just
                             $ SymUnknown (
-                                let SIte _ ifSymState mElseSymState = symExpr
-                                    seeking = asum $ map (getVarNameSymType varAssName)
+                                let seeking = asum $ map (getVarNameSymType varAssName)
                                        $ env ifSymState : maybe [] ((: []) . env) mElseSymState
                                 in case seeking of
                                      Nothing -> error $ "visitNode -> Node -> BooleanExpression if -> won't happen2"
                                      Just t -> t,
-                                varAssName,Nothing) $ createSymReason (CFGT.If, CFGT.SR (CFGT.id n) (CFG.getNodeId $ CFG.getEndIfNode cfg n)) cfg [coor]--[IfBranchingReason [coor]]
-                          Just val -> Just val)
-                          (VarName varAssName) ma) ma2 (getVarAssignments2 ma2)
+                                varAssName,Nothing) newReasons
+                          Just (SymUnknown tu reasons) -> Just $
+                            SymUnknown tu (reasons ++ newReasons)
+                          Just val -> Just val) (VarName varAssName) ma
+                          ) ma2 (getVarAssignments2 ma2)-}
 
                   in SymState {
-                    env = ma3,
+                    env = ma2,
                     pc = pc symState
                   }
                 return (ER_Expr symExpr)
