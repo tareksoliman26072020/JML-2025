@@ -458,7 +458,7 @@ visitStmt stmt@(AST.FunCallStmt expr) = case expr of
             pc = pc symState
           }
         tell [Log.Return "visitStmt -> FunCallStmt" (show toReturn)] $> toReturn
-      ER_FunCall state -> do
+      ER_FunCall _ -> do
         return ER_Void
       _ -> throwError $ "visitStmt ==> FunCallStmt ==> won't happen 1: " ++ show toReturn
   _ -> throwError $ "visitStmt ==> FunCallStmt ==> won't happen 2: " ++ show expr
@@ -497,6 +497,21 @@ visitExpr (expr@AST.FunCallExpr{}) = do
       tell [Log.RunCFGFormalMethodCall (show funCallSymState1)]
       -- See if the method call has parameters
       case CFG.getCFGFormalParams cfg0 of
+        -- if it has no parameters
+        []   ->
+          let actions = getActions funCallSymState1
+          in case getReturnSymExpr funCallSymState1 of
+          Just symExpr -> do
+            let toReturn = ER_Expr symExpr
+            modify $ \symState ->
+              SymState {
+                env = Map.alter (\case
+                        Nothing -> Just $ SActions actions
+                        Just (SActions li) -> Just $ SActions $ li ++ actions) Actions (env symState),
+                pc = pc symState
+              }
+            tell [Log.Return "visitExpr -> FunCallExpr -> no parameters" (show toReturn)] $> toReturn
+          Nothing      -> throwError "visitExpr ==> FunCallExpr ==> fun returns nothing ==> TODO"
         -- if it has parameters
         formalParms -> do
           -- get the ExecutionResults of the actual parameters
@@ -517,6 +532,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                 VarName vn
                   | vn `elem` inherit_globalVars -> True
                 _ -> False
+              inherit_formalParms = undefined
           ----------
           -- inheriting the method call's global vars list
           if null inherit_globalVars
@@ -567,21 +583,6 @@ visitExpr (expr@AST.FunCallExpr{}) = do
           tell [Log.RunSymStateActualMethodCall (show funCallSymState2)]
           let toReturn = ER_FunCall funCallSymState2
           tell [Log.Return "visitExpr -> FunCallExpr -> with parameters" (show toReturn)] $> toReturn
-        -- if it has no parameters
-        []   ->
-          let actions = getActions funCallSymState1
-          in case getReturnSymExpr funCallSymState1 of
-          Just symExpr -> do
-            let toReturn = ER_Expr symExpr
-            modify $ \symState ->
-              SymState {
-                env = Map.alter (\case
-                        Nothing -> Just $ SActions actions
-                        Just (SActions li) -> Just $ SActions $ li ++ actions) Actions (env symState),
-                pc = pc symState
-              }
-            tell [Log.Return "visitExpr -> FunCallExpr -> no parameters" (show toReturn)] $> toReturn
-          Nothing      -> throwError "visitExpr ==> FunCallExpr ==> fun returns nothing ==> TODO"
     -- CFG not found
     Nothing
       | funCallName `elem` predefinedFuns -> do
