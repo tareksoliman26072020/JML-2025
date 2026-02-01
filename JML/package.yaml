@@ -55,6 +55,8 @@ tests:
     ghc-options:
     - -rtsopts
     - -with-rtsopts=-N
+    - -threaded
     dependencies:
     - JML
-    - HUnit
+    - tasty
+    - tasty-hunit
