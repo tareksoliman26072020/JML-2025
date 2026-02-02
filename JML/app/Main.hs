@@ -1,5 +1,5 @@
 {-# Language LambdaCase #-}
-module Main (main) where
+module Main where
 
 import Text.ParserCombinators.Parsec
 import Parser.ParseStmt
@@ -23,7 +23,7 @@ import qualified SymbolicExecution.Logs.PrettyPrint as SYT.Log
 import SymbolicExecution.Internal.Internal (findSymType, cast)
 import SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator)
 
-import qualified Methods.JavaMethod as Method
+import qualified Methods.JavaMethod as JavaMethod
 
 import Text.Printf (printf)
 
@@ -35,7 +35,8 @@ cfg = CFGT.CFG {
 }
 
 main :: IO ()
-main = putStrLn $ Method.ifFun7Call3
+--main = putStrLn $ JavaMethod.ifFun7Call3
+main = putStrLn "Hi"
 
 getAST :: String -> IO AST.Method
 getAST methodName = readFile "test3.java" >>=
@@ -78,8 +79,8 @@ getCFGs = readFile "test3.java" >>= return
   . map CFG1.exec
   . fromRight undefined . parse parseDeclList ""
 
-getSymState :: String -> IO SYT.SymState
-getSymState funName = readFile "test3.java" >>=
+getSymState1 :: String -> IO SYT.SymState
+getSymState1 funName = readFile "test3.java" >>=
   (\cfgs -> case CFG2.findCFGByName funName cfgs of
               Just cfg0 ->
                 let (logs,s) = SYM.runCFG cfgs cfg0 Nothing Nothing
@@ -89,8 +90,24 @@ getSymState funName = readFile "test3.java" >>=
   . map CFG1.exec
   . fromRight undefined . parse parseDeclList ""
 
-getSymStates2 :: String -> IO ()
-getSymStates2 fileName = readFile fileName >>=
+getSymState2 :: String -> IO SYT.SymState
+getSymState2 funName =
+  (\(cfg,cfgs) ->
+      let (logs,s) = SYM.runCFG cfgs cfg Nothing Nothing
+      in do putStrLn $ (SYT.Log.ppLogs SYT.Log.Console logs)
+            return s)
+  -- (CFGT.CFG,[CFGT.CFG])
+  $ (\li ->
+      let li2 = map (\(funName,source) ->
+            (funName,CFG1.exec $ fromRight undefined $ parse parseExtDecl "" source)) li
+          search = case lookup funName li2 of
+                     Nothing -> error
+                       $ printf "Main.hs ==> getSymState2 ==> %s was not found in javaMethodInputs" funName
+                     Just cfg -> cfg
+      in (search, map snd li2)) JavaMethod.javaMethodInputs
+
+getSymStates1 :: String -> IO ()
+getSymStates1 fileName = readFile fileName >>=
   (\cfgs ->
       let size = length cfgs
       in mapM_ (\(counter,cfg) ->
@@ -107,6 +124,27 @@ getSymStates2 fileName = readFile fileName >>=
       $ zip [1 :: Int ..] cfgs)
   . map CFG1.exec
   . fromRight undefined . parse parseDeclList ""
+
+getSymStates2 :: IO ()
+getSymStates2 =
+  (\(li,cfgs) ->
+      let size = length cfgs
+      in mapM_ (\(counter,(funName,cfg)) ->
+           let (logs,s) = SYM.runCFG cfgs cfg Nothing Nothing
+           in do putStrLn $ printf "%d/%d ==> %s" counter size funName
+                 let writingFun = writeFile
+                       (printf "logs/%s.md" funName)
+                       (SYT.Log.ppLogs SYT.Log.Markdown logs ++ "\n\n# SymState:\n" ++ show s)
+                 isFolderThere <- doesDirectoryExist "logs"
+                 if isFolderThere
+                   then writingFun
+                   else createDirectory "logs" >> writingFun) li)
+  -- ([(Int, (String,CFGT.CFG))], [CFGT.CFG])
+  $ (\li -> (li, map (snd . snd) li))
+  -- [(Int, (String,AST.CFGT.CFG))]
+  $ map (\(counter,(funName,source)) -> (counter,(funName,CFG1.exec $ fromRight undefined $ parse parseExtDecl "" source)))
+  -- [(Int,(String, String))]
+  $ zip [1 :: Int ..] JavaMethod.javaMethodInputs
 
 ------------------------------
 

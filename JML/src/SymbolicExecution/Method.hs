@@ -35,16 +35,14 @@ instance CFGVisitor Method_SymExec where
           mapM (\arg -> do
                    argVisited <- visitExpr arg
                    case argVisited of
-                     ER_SymStateMapEntry (VarName name) (SymNull symType) -> do
-                       -- TODELETE let newVal = SymFormalParam symType name Nothing
-                       let newVal = SymVar symType name
-                       tell [Log.ModifyState "visitNode -> Entry -> method with args" (name,show newVal)]
+                     ER_SymStateMapEntry (VarName name) val@(SymVar _ _) -> do
+                       tell [Log.ModifyState "visitNode -> Entry -> method with args" (name,show val)]
                        modify $ \symState ->
                          SymState {
-                           env = recordFormalParm name $ Map.insert (VarName name) newVal (env symState),
+                           env = recordFormalParm name $ Map.insert (VarName name) val (env symState),
                            pc = pc symState
                          }
-                     _ -> throwError "won't happen"
+                     _ -> throwError $ "visitNode ==> Entry ==> won't happen ==> " ++ show argVisited
                ) args $> ()
       toReturn <- ER_State <$> get
       tell [Log.Return "visitNode -> Entry -> method has args" (show toReturn)] $> toReturn
@@ -93,12 +91,6 @@ instance CFGVisitor Method_SymExec where
               }
             return ER_Void
           _ -> return ER_Void
-        {-case stmt of
-          AST.AssignStmt{} -> throwError $ "MEOW: " ++ show (getNewVarAssignment newVarCoor stmt)
-          _ -> return ER_Void-}
-        {-if (AST.getVarName $ AST.getStatementExpression stmt) == "x"
-          then throwError $ "MEOW: " ++ show (getNewVarAssignment newVarCoor stmt)
-          else return ER_Void-}
         case getNewVarAssignment newVarCoor stmt of
           Just new -> do
             tell [Log.AddVarAssignment "visitNode -> Node -> Statement" (show new)]
@@ -218,7 +210,7 @@ instance CFGVisitor Method_SymExec where
                 flip mapM_ ifLogs $ \log ->
                   tell [Log.Nested "if statement" log]
                 -- symExpr is the SIte with the two conditional states
-                symExpr <- case branches_paths of
+                symExpr@(SIte ifCond ifSymState mElseSymState) <- case branches_paths of
                   [_] -> return $ SIte expr2 ifSymState Nothing
                   [_,pElse] -> do
                     let (elseLogs,elseSymState) = runCFG cfgs cfg (Just pElse) (Just state)
@@ -233,12 +225,10 @@ instance CFGVisitor Method_SymExec where
                       \(name,_) -> maybe
                           (isGlobalVariable2 name (env s))
                           (const True) $ lookup name mainVarAssignments
-                    newMainVarAssignments = case symExpr of
-                      SIte _ ifSymState mElseSymState -> nub $
+                    newMainVarAssignments = nub $
                         condVarAssignments ifSymState ++
                         maybe [] condVarAssignments mElseSymState
-                    newMainGlobalVars = case symExpr of
-                      SIte ifCond ifSymState mElseSymState -> nub $
+                    newMainGlobalVars = nub $
                         filter (\vn -> isGlobalVariable2 vn (env state)) (getVarNames2 ifCond)
                         ++ getGlobalVars (env ifSymState)
                         ++ maybe [] (getGlobalVars . env) mElseSymState
@@ -264,7 +254,48 @@ instance CFGVisitor Method_SymExec where
                       unknownVarAssigns = flip filter (getVarAssignments2 ma1) $ \case
                         (_,CFGT.Node_Coor _ frameCoor) ->
                           CFGT.branchStart frameCoor == CFGT.branchStart condBranchRange
-                      -- make vars unknown
+                      -- will be used in ma2
+                      -- gets SymType of `varAssName`,
+                      -- which is the one of the vars mentioned in `unknownVarAssigns`
+                      getUnknownVarSymType_in_if_template varAssName =
+                        let seeking = asum $ map (getVarNameSymType varAssName)
+                              $ env ifSymState : maybe [] ((: []) . env) mElseSymState
+                        in case seeking of
+                             Nothing -> error $ "visitNode -> Node -> BooleanExpression if -> won't happen2"
+                             Just t -> t
+                      -- will be used in ma2
+                      -- creates new reason, based in this if scope 
+                      newReason_template :: [CFGT.Node_Coor] -> [SymReason]
+                      newReason_template coors = createSymReason
+                          (CFGT.If,
+                           CFGT.SR (CFGT.id n)
+                                   (CFG.getNodeId $ CFG.getEndIfNode cfg n)) cfg coors
+                      -- ma2 traverses each (varAssName,coors) mentioned in `unknownVarAssigns`
+                      -- and uses them to Map.alter every mention of the varName in ma1
+                      -- This will yield new SymUnknown as SymExpr to each varAssName
+                      -- `getUnknownVarSymType_in_if_template` and `newReason_template`
+                      -- will be used inside
+                      ma2 = foldl' (\ma (varAssName,coor) ->
+                        Map.alter (\case
+                          Nothing -> Just $ SymUnknown (
+                            getUnknownVarSymType_in_if_template varAssName,
+                            varAssName,
+                            Nothing) $ newReason_template [coor]
+                          Just (SymUnknown (t,n,v) oldReasons) -> Just $
+                            SymUnknown
+                              (pick_known_symType (
+                                  t,
+                                  (getUnknownVarSymType_in_if_template varAssName)),
+                              n,v)
+                            $ oldReasons ++ newReason_template [coor]
+                          Just val -> Just $ SymUnknown (
+                            pick_known_symType (
+                              toSymType2 val,
+                              (getUnknownVarSymType_in_if_template varAssName)),
+                            varAssName,Just val)
+                            $ newReason_template [coor]) (VarName varAssName) ma)
+                            ma1 unknownVarAssigns
+                      {--- make vars unknown
                       -- if there exists a VarName that was mentioned in `unknownVarAssigns`
                       -- then mark it as unknown.
                       ma2 = flip Map.mapWithKey ma1 $ \k v -> case k of
@@ -279,38 +310,29 @@ instance CFGVisitor Method_SymExec where
                                 $ createSymReason (CFGT.If, CFGT.SR (CFGT.id n) (CFG.getNodeId $ CFG.getEndIfNode cfg n)) cfg coors
 -- createSymReason :: (CFGT.Kind,CFGT.ScopeRange) -> CFGT.CFG -> [CFGT.Node_Coor] -> [SymReason]
 -- getEndIfNode :: CFG -> Node -> Node
-{- TODELETE
-                            coors -> case v of
-                              SymUnknown tu reasons -> SymUnknown tu
-                                $ case hasIfReason reasons of
-                                    False -> reasons ++ [IfBranchingReason coors]
-                                    True -> flip map reasons $ \case
-                                      IfBranchingReason li ->
-                                        IfBranchingReason $ li ++ coors
-                                      reason -> reason
-                              _ -> SymUnknown (toSymType2 v,vn,Just v) [IfBranchingReason coors]
- -}
                         _ -> v
                       -- if there is a SVarAssignment that has no `VarName`
                       -- then it is a GlobalVar that is assigned in a conditional branch
                       -- then add this GlobalVar to the State
                       --ma3 = foldl' (\s globalVar ->) (env s2) newMainGlobalVars
                       ma3 = foldl' (\ma (varAssName,coor) ->
-                        Map.alter (\case
+                        let newReasons = createSymReason (CFGT.If, CFGT.SR (CFGT.id n) (CFG.getNodeId $ CFG.getEndIfNode cfg n)) cfg [coor]
+                        in Map.alter (\case
                           Nothing -> Just
                             $ SymUnknown (
-                                let SIte _ ifSymState mElseSymState = symExpr
-                                    seeking = asum $ map (getVarNameSymType varAssName)
+                                let seeking = asum $ map (getVarNameSymType varAssName)
                                        $ env ifSymState : maybe [] ((: []) . env) mElseSymState
                                 in case seeking of
                                      Nothing -> error $ "visitNode -> Node -> BooleanExpression if -> won't happen2"
                                      Just t -> t,
-                                varAssName,Nothing) $ createSymReason (CFGT.If, CFGT.SR (CFGT.id n) (CFG.getNodeId $ CFG.getEndIfNode cfg n)) cfg [coor]--[IfBranchingReason [coor]]
-                          Just val -> Just val)
-                          (VarName varAssName) ma) ma2 (getVarAssignments2 ma2)
+                                varAssName,Nothing) newReasons
+                          Just (SymUnknown tu reasons) -> Just $
+                            SymUnknown tu (reasons ++ newReasons)
+                          Just val -> Just val) (VarName varAssName) ma
+                          ) ma2 (getVarAssignments2 ma2)-}
 
                   in SymState {
-                    env = ma3,
+                    env = ma2,
                     pc = pc symState
                   }
                 return (ER_Expr symExpr)
@@ -434,7 +456,7 @@ visitStmt stmt@(AST.FunCallStmt expr) = case expr of
             pc = pc symState
           }
         tell [Log.Return "visitStmt -> FunCallStmt" (show toReturn)] $> toReturn
-      ER_FunCall state -> do
+      ER_FunCall _ -> do
         return ER_Void
       _ -> throwError $ "visitStmt ==> FunCallStmt ==> won't happen 1: " ++ show toReturn
   _ -> throwError $ "visitStmt ==> FunCallStmt ==> won't happen 2: " ++ show expr
@@ -450,13 +472,7 @@ visitExpr expr@(AST.StringLiteral str) = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> StringLiteral"]
   let toReturn = ER_Expr (SymString str)
   tell [Log.Return "visitExpr -> StringLiteral" (show toReturn)] $> toReturn
-{-
-data SymState = SymState
- { env :: Map.Map String SymExpr
- , methodType :: AST.Types
- , pc  :: [SymExpr]
- }
--}
+
 -- FunCallExpr {funName :: Expression, funArgs :: [Expression]}
 visitExpr (expr@AST.FunCallExpr{}) = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> FunCallExpr"]
@@ -473,6 +489,23 @@ visitExpr (expr@AST.FunCallExpr{}) = do
       tell [Log.RunCFGFormalMethodCall (show funCallSymState1)]
       -- See if the method call has parameters
       case CFG.getCFGFormalParams cfg0 of
+{- this pattern matching is redundant 
+        -- if it has no parameters
+        []   ->
+          let actions = getActions funCallSymState1
+          in case getReturnSymExpr funCallSymState1 of
+          Just symExpr -> do
+            let toReturn = ER_Expr symExpr
+            modify $ \symState ->
+              SymState {
+                env = Map.alter (\case
+                        Nothing -> Just $ SActions actions
+                        Just (SActions li) -> Just $ SActions $ li ++ actions) Actions (env symState),
+                pc = pc symState
+              }
+            tell [Log.Return "visitExpr -> FunCallExpr -> no parameters" (show toReturn)] $> toReturn
+          Nothing      -> throwError "visitExpr ==> FunCallExpr ==> fun returns nothing ==> TODO"
+-}
         -- if it has parameters
         formalParms -> do
           -- get the ExecutionResults of the actual parameters
@@ -493,6 +526,30 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                 VarName vn
                   | vn `elem` inherit_globalVars -> True
                 _ -> False
+          mainFunFormalParms <- (getFormalParms . env) <$> get
+          let inherit_formalParms :: [(String,SymExpr)]
+              inherit_formalParms =
+                {-
+                   public void succFun(int i) {
+                     i += 1;
+                   }
+
+                   public int callSuccFun(int n) {
+                     succFun(n);
+                     return n;
+                   }
+                 -}
+                -- pair formals of the funcall `callSuccFun` with formals of the fun `succFun`
+                -- [(n,i)]
+                let funCallFormalParms = zip mainFunFormalParms (map AST.getVarName formalParms)
+                -- replace the key `i` with its value `SBin (SymVar Int "n") Add (SymInt 1)`
+                -- [(n,SBin (SymVar Int "n") Add (SymInt 1))]
+                    getFunCallFormalVal = flip map funCallFormalParms $
+                      \tu -> flip fmap tu $ \vn ->
+                        case findVarName vn (env funCallSymState2) of
+                          Nothing -> error "visitExpr -> FunCallExpr -> inherit_formalParms -> won't happen1"
+                          Just symExpr -> symExpr
+                in getFunCallFormalVal
           ----------
           -- inheriting the method call's global vars list
           if null inherit_globalVars
@@ -538,26 +595,24 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                 }
               return ER_Void
           ----------
+          if null inherit_formalParms
+            then return ER_Void
+            else do
+              tell [Log.ModifyState "visitExpr -> FunCallExpr -> inheriting formalParms" ("FormalParms",show inherit_formalParms)]
+              modify $ \symState ->
+                SymState {
+                  env = foldl' (\ma (k,newVal) -> Map.alter (\case
+                    Nothing -> error "visitExpr -> FunCallExpr -> inherit_formalParms -> won't happen2"
+                    Just _ -> Just newVal) (VarName k) ma) (env symState) inherit_formalParms,
+                  pc = pc symState
+                }
+              return ER_Void
+          ----------
           -- edit its logs
           mapM_ (\log -> tell [Log.Nested ("actual: " ++ funCallName) log]) funCallLogs2
           tell [Log.RunSymStateActualMethodCall (show funCallSymState2)]
           let toReturn = ER_FunCall funCallSymState2
           tell [Log.Return "visitExpr -> FunCallExpr -> with parameters" (show toReturn)] $> toReturn
-        -- if it has no parameters
-        []   ->
-          let actions = getActions funCallSymState1
-          in case getReturnSymExpr funCallSymState1 of
-          Just symExpr -> do
-            let toReturn = ER_Expr symExpr
-            modify $ \symState ->
-              SymState {
-                env = Map.alter (\case
-                        Nothing -> Just $ SActions actions
-                        Just (SActions li) -> Just $ SActions $ li ++ actions) Actions (env symState),
-                pc = pc symState
-              }
-            tell [Log.Return "visitExpr -> FunCallExpr -> no parameters" (show toReturn)] $> toReturn
-          Nothing      -> throwError "visitExpr ==> FunCallExpr ==> fun returns nothing ==> TODO"
     -- CFG not found
     Nothing
       | funCallName `elem` predefinedFuns -> do
@@ -577,12 +632,7 @@ visitExpr expr@AST.BinOpExpr{} = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> BinOpExpr"]
   er_one <- visitExpr (AST.expr1 expr)
   er_two <- visitExpr (AST.expr2 expr)
-{-
-  case er_one of
-    ER_SymStateMapEntry (VarName "x") _ -> 
-      throwError $ printf "MEOW:: (%s,%s)" (show er_one) (show er_two) 
-    _ -> return ER_Void
- -}
+
   let mOne = getSymExpr er_one
       mTwo = getSymExpr er_two
   case (mOne,mTwo) of
@@ -685,9 +735,6 @@ visitExpr expr@AST.AssignExpr{} = do
   --   x = c;
   -- c is a global variable, used for the first time in this assignment
   -- c is a double, and its VarName in the SymState need to be updated accordingly
-  {-case two of
-    ER_Expr (SymNum 0) -> return ER_Void
-    _ -> throwError $ "MEOW:: " ++ show two-}
   castGlobalVar (toSymType2 two_newVal) two
 
   let toReturn = ER_SymStateMapEntry one_svn e2
@@ -723,7 +770,8 @@ visitExpr expr@AST.VarExpr{} = do
               tell [Log.Return "visitExpr -> VarExpr -> Recording Global Variable" (show toReturn)] $> toReturn
         Just t -> do
           tell [Log.NewVariable (show t) varName_ "visitExpr -> VarExpr"]
-          let sExpr = SymNull $ toSymType1 t
+          --let sExpr = SymNull $ toSymType1 t
+          let sExpr = SymVar(toSymType1 t) varName_
           tell [Log.ModifyState "visitExpr -> VarExpr" (varName_,show sExpr)]
           modify $ \symState ->
             SymState {
@@ -1031,14 +1079,6 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
                       CFGT.varDeclAt node_coor >= CFGT.branchStart branchRange &&
                       CFGT.varDeclAt node_coor <= CFGT.branchEnd branchRange
                 node_coors = map snd vn_forbody_varAssigns
-                {- vn_forbody_varAssigns
-                [("res",Node_Coor {varDeclAt = 4, varFrame = BR {branchStart = 2, branchEnd = 15}}),("res",Node_Coor {varDeclAt = 9, varFrame = BR {branchStart = 7, branchEnd = 11}}),("res",Node_Coor {varDeclAt = 12, varFrame = BR {branchStart = 2, branchEnd = 15}})]
-                 -}
-                {- node_coors
-                [Node_Coor {varDeclAt = 4, varFrame = BR {branchStart = 2, branchEnd = 15}},
-                 Node_Coor {varDeclAt = 9, varFrame = BR {branchStart = 7, branchEnd = 11}},
-                 Node_Coor {varDeclAt = 12, varFrame = BR {branchStart = 2, branchEnd = 15}}]
-                 -}
             in case vn_forbody_varAssigns of
                  [] -> ma
                  _ -> Map.alter (\case
@@ -1049,34 +1089,25 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
                    Just (SymUnknown tu reasons) -> Just $ SymUnknown tu
                      $ reasons ++ createSymReason (CFGT.For,branchRange) cfg node_coors
                    ---
-                   Just oldVal -> Just $ SymUnknown (
+                   Just oldVal
+                     -- if the reassignment inside the for body doesn't change the value
+                     -- then there's no point in making it SymUnknown
+                     -- Example (look at `res`):
+                     {-
+                       int res = 0;
+                       for(int i=n; i>0; i--) {
+                         res += i;
+                         res = 0;
+                       }
+                      -}
+                     | oldVal == val -> Just oldVal
+                     | otherwise ->  Just $ SymUnknown (
                      pick_known_symType (toSymType2 oldVal,toSymType2 val),
                      vn,
                      Just oldVal) $ createSymReason (CFGT.For,branchRange) cfg node_coors 
                    ) (VarName vn) ma
-{-
-                 _ -> Map.alter (\case
-                   ---
-                   Nothing -> Just $ SymUnknown (
-                     pick_known_symType (UnknownGlobalVarSymType,toSymType2 val),
-                     vn,
-                     Nothing) [ForBranchingReason node_coors]
-                   ---
-                   Just (SymUnknown tu reasons) -> Just $ SymUnknown tu
-                     $ case hasForReason reasons of
-                         False -> reasons ++ [ForBranchingReason node_coors]
-                         True -> flip map reasons $ \case
-                           ForBranchingReason li -> ForBranchingReason $ li ++ node_coors
-                           reason -> reason
-                   ---
-                   Just oldVal -> Just $ SymUnknown (
-                     pick_known_symType (toSymType2 oldVal,toSymType2 val),
-                     vn,
-                     Just oldVal) [ForBranchingReason node_coors]) (VarName vn) ma
- -}
             ) map_withVarAssignments forBody_Some_VarNames
 
-    --throwError $ "MEOW:: " ++ (show map_withVarAssignments)
     let symExpr = SLoop m_Acc mForCondExpr forBody_forStep_path
         toReturn = ER_SymStateMapEntry (ScopeRange branchRange) symExpr
     tell [Log.ModifyState "visitForLoop2" (show branchRange,show symExpr)]
@@ -1119,5 +1150,5 @@ runCFG cfgs cfg mPath mSymState =
                     (AST.BuiltInType AST.Float, Return, SymNum float)  ->
                         SymFloat float
                     (_,_,_) -> v
-         in (logs,either (error $ printf "error in method name (%s) thrown from Method.hs:\n%s" (CFG.getCFGName cfg)) (const (SymState m2 ps)) ei)
+         in (logs,either (\l -> error $ printf "error in method name (%s) thrown from Method.hs:\n%s" (CFG.getCFGName cfg) l) (const (SymState m2 ps)) ei)
 

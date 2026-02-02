@@ -266,14 +266,12 @@ toSymType1 = \case
   AST.BuiltInType t -> case t of
     AST.Int     -> Int
     AST.Void    -> Void
-    AST.Char    -> undefined
     AST.String  -> String
     AST.Boolean -> Bool
     AST.Double  -> Double
-    AST.Short   -> undefined
     AST.Float   -> Float
-    AST.Long    -> undefined
-    AST.Byte    -> undefined
+    _           -> error $ "toSymType1 ==> TODO ==> " ++ show t
+
 -- ArrayType {baseType :: Type a}
   AST.ArrayType t ->
     let rec = toSymType1 t
@@ -651,32 +649,43 @@ getVarAssignments2 = maybe [] (\(SVarAssignments li) -> li) . Map.lookup VarAssi
 getGlobalVars :: Map.Map SymStateKey SymExpr -> [String]
 getGlobalVars = maybe [] (\(SGlobalVars li) -> li) . Map.lookup GlobalVars
 
+getFormalParms :: Map.Map SymStateKey SymExpr -> [String]
+getFormalParms = maybe [] (\(SFormalParms li) -> li) . Map.lookup FormalParms
+
+getFormalParms2 :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
+getFormalParms2 ma =
+  let formalPs = getFormalParms ma
+  in flip Map.filterWithKey ma $ \k _ -> case k of
+       VarName vn -> vn `elem` formalPs
+       _ -> False
+
 ------------------------------
 ------------------------------
 ------------------------------
-{-
+{- type SymReason = ([(ScopeKind,ScopeRange)],Int)
 input:
 kind: For
-br: BR {branchStart = 2, branchEnd = 15}
+sr: SR {branchStart = 2, branchEnd = 15}
 node_coors: [
- Node_Coor {varDeclAt = 4, varFrame = BR {branchStart = 2, branchEnd = 15}},
- Node_Coor {varDeclAt = 9, varFrame = BR {branchStart = 7, branchEnd = 11}},
- Node_Coor {varDeclAt = 12, varFrame = BR {branchStart = 2, branchEnd = 15}}
+ Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 15}},
+ Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 7, branchEnd = 11}},
+ Node_Coor {varDeclAt = 12, varFrame = SR {branchStart = 2, branchEnd = 15}}
 ]
-
-type SymReason = ([(ScopeKind,ScopeRange)],Int)
 
 output:
 [
- ([For BR {branchStart = 2, branchEnd = 15}],4),
- ([For BR {branchStart = 2, branchEnd = 15}, If BR {branchStart = 7, branchEnd = 11}],9),
- ([For BR {branchStart = 2, branchEnd = 15}],12)
+ ([For SR {branchStart = 2, branchEnd = 15}],4),
+ ([For SR {branchStart = 2, branchEnd = 15}, If SR {branchStart = 7, branchEnd = 11}],9),
+ ([For SR {branchStart = 2, branchEnd = 15}],12)
 }
  -}
+ -- sr: the range of the if branch, or for branch, in which this fun is being called
+ -- cfg: the CFG of the current method
+ -- the list: the coordinates in which the var is being assigned / reassigned
 createSymReason :: (CFGT.Kind,CFGT.ScopeRange) -> CFGT.CFG -> [CFGT.Node_Coor] -> [SymReason]
-createSymReason (kind,br) cfg = map $ \node_coor ->
+createSymReason (kind,sr) cfg = map $ \node_coor ->
   let one
-        | CFGT.varFrame node_coor == br = [(kind,br)]
+        | CFGT.varFrame node_coor == sr = [(kind,sr)]
         | otherwise = CFG.getPathToScope (CFGT.varFrame node_coor) cfg
   in (one,CFGT.varDeclAt node_coor)
 
