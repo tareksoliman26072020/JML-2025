@@ -266,14 +266,12 @@ toSymType1 = \case
   AST.BuiltInType t -> case t of
     AST.Int     -> Int
     AST.Void    -> Void
-    AST.Char    -> undefined
     AST.String  -> String
     AST.Boolean -> Bool
     AST.Double  -> Double
-    AST.Short   -> undefined
     AST.Float   -> Float
-    AST.Long    -> undefined
-    AST.Byte    -> undefined
+    _           -> error $ "toSymType1 ==> TODO ==> " ++ show t
+
 -- ArrayType {baseType :: Type a}
   AST.ArrayType t ->
     let rec = toSymType1 t
@@ -650,6 +648,16 @@ getVarAssignments2 = maybe [] (\(SVarAssignments li) -> li) . Map.lookup VarAssi
 
 getGlobalVars :: Map.Map SymStateKey SymExpr -> [String]
 getGlobalVars = maybe [] (\(SGlobalVars li) -> li) . Map.lookup GlobalVars
+
+getFormalParms :: Map.Map SymStateKey SymExpr -> [String]
+getFormalParms = maybe [] (\(SFormalParms li) -> li) . Map.lookup FormalParms
+
+getFormalParms2 :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
+getFormalParms2 ma =
+  let formalPs = getFormalParms ma
+  in flip Map.filterWithKey ma $ \k _ -> case k of
+       VarName vn -> vn `elem` formalPs
+       _ -> False
 
 ------------------------------
 ------------------------------

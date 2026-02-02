@@ -29,7 +29,14 @@ javaMethodInputs = [
   ("ifFun10", ifFun10),
   ("ifFun11", ifFun11),
   ("ifFun12", ifFun12),
-  ("succFun", succFun)
+  ("succFun", succFun), ("callSuccFun", callSuccFun), ("callCallSuccFun", callCallSuccFun),
+  ("wrongSum1", wrongSum1),
+  ("wrongSum2", wrongSum2),
+  ("wrongSum3", wrongSum3),
+  ("wrongSum4", wrongSum4),
+  ("wrongSum5", wrongSum5),
+  ("for1", for1),
+  ("for2", for2)
   ]
 
 ifFun :: String
@@ -114,6 +121,7 @@ ifFun6 :: String
 ifFun6 = "public String ifFun6(int n) {\n\
          \  if(y>=0) {\n\
          \    m += n;\n\
+         \    y = (-1) * y;\n\
          \  }\n\
          \  s = \"something\";\n\
          \  return c;\n\
@@ -219,4 +227,123 @@ ifFun12 = "public int ifFun12(int n) {\n\
 succFun :: String
 succFun = "public void succFun(int i) {\n\
        \  i += 1;\n\
+       \}"
+
+callSuccFun :: String
+callSuccFun = "public int callSuccFun(int n) {\n\
+              \  succFun(n);\n\
+              \  return n;\n\
+              \}"
+
+callCallSuccFun :: String
+callCallSuccFun = "public int callCallSuccFun() {\n\
+                  \  return callSuccFun(5);\n\
+                  \}"
+
+wrongSum1 :: String
+wrongSum1 = "public int wrongSum1(int n) {\n\
+            \  int res = 0;\n\
+            \  int j = w;\n\
+            \  for(int i=n; i>0; i--) {\n\
+            \    res += i;\n\
+            \    int z = 9;\n\
+            \    z = i;\n\
+            \    res = 0;\n\
+            \    t = i;\n\
+            \    j = c;\n\
+            \  }\n\
+            \  return res;\n\
+            \}"
+
+wrongSum2 :: String
+wrongSum2 = "public int wrongSum2(int n) {\n\
+            \  int res = 0;\n\
+            \  for(int i=n; i>0; i--) {\n\
+            \    res += i;\n\
+            \    int z = 9;\n\
+            \    z = i;\n\
+            \    if(true) {\n\
+            \      v = \"hi\";\n\
+            \      res += 1;\n\
+            \      v = \"zuzu\";\n\
+            \    }\n\
+            \    res = 0;\n\
+            \    t = i;\n\
+            \  }\n\
+            \  return res;\n\
+            \}"
+
+wrongSum3 :: String
+wrongSum3 = "public int wrongSum3(int n) {\n\
+            \  int res = 0;\n\
+            \  for(int i=n; i>0; i--) {\n\
+            \    res += i;\n\
+            \    int z = 9;\n\
+            \    z = i;\n\
+            \    if(false) {\n\
+            \      v = \"hi\";\n\
+            \      res += 1;\n\
+            \      v = \"zuzu\";\n\
+            \    }\n\
+            \    res = 0;\n\
+            \    t = i;\n\
+            \  }\n\
+            \  return res;\n\
+            \}"
+
+wrongSum4 :: String
+wrongSum4 = "public int wrongSum4(int n) {\n\
+            \  int res = 0;\n\
+            \  for(int i=n; i>0; i--) {\n\
+            \    res += i;\n\
+            \    int z = 9;\n\
+            \    z = i;\n\
+            \    if(v == \"bye\") {\n\
+            \      v = \"hi\";\n\
+            \      res += 1;\n\
+            \      v = \"zuzu\";\n\
+            \    }\n\
+            \    res = 0;\n\
+            \    t = i;\n\
+            \  }\n\
+            \  return res;\n\
+            \}"
+
+wrongSum5 :: String
+wrongSum5 = "public int wrongSum5(int n) {\n\
+            \  int res = 0;\n\
+            \  for(int i=n; i>0; i--) {\n\
+            \    res += i;\n\
+            \    int z = 9;\n\
+            \    z = i;\n\
+            \    if(v == \"bye\") {\n\
+            \      v = \"hi\";\n\
+            \      res += 1;\n\
+            \      v = \"zuzu\";\n\
+            \    }\n\
+            \    t = i;\n\
+            \  }\n\
+            \  return res;\n\
+            \}"
+
+for1 :: String
+for1 = "public int for1(int n) {\n\
+       \  int res = 0;\n\
+       \  for(int i=n; i>0; i--) {\n\
+       \  }\n\
+       \  return res;\n\
+       \}"
+
+for2 :: String
+for2 = "public int for2(int n) {\n\
+       \  int res = 0;\n\
+       \  for(int i=n; i>0; i--) {\n\
+       \    if(i % 2 == 0) {\n\
+       \      res += 1;\n\
+       \    }\n\
+       \  }\n\
+       \  if(res % 3 == 0) {\n\
+       \    res *= 3;\n\
+       \  }\n\
+       \  return res;\n\
        \}"
