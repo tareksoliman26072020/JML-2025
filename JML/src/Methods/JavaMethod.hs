@@ -36,7 +36,8 @@ javaMethodInputs = [
   ("wrongSum4", wrongSum4),
   ("wrongSum5", wrongSum5),
   ("for1", for1),
-  ("for2", for2)
+  ("for2", for2),
+  ("sum1", sum1)
   ]
 
 ifFun :: String
@@ -344,6 +345,15 @@ for2 = "public int for2(int n) {\n\
        \  }\n\
        \  if(res % 3 == 0) {\n\
        \    res *= 3;\n\
+       \  }\n\
+       \  return res;\n\
+       \}"
+
+sum1 :: String
+sum1 = "public int sum1(int n) {\n\
+       \  int res = 0;\n\
+       \  for(; n>0; n--) {\n\
+       \    res += n;\n\
        \  }\n\
        \  return res;\n\
        \}"

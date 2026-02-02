@@ -35,16 +35,14 @@ instance CFGVisitor Method_SymExec where
           mapM (\arg -> do
                    argVisited <- visitExpr arg
                    case argVisited of
-                     ER_SymStateMapEntry (VarName name) (SymNull symType) -> do
-                       -- TODELETE let newVal = SymFormalParam symType name Nothing
-                       let newVal = SymVar symType name
-                       tell [Log.ModifyState "visitNode -> Entry -> method with args" (name,show newVal)]
+                     ER_SymStateMapEntry (VarName name) val@(SymVar _ _) -> do
+                       tell [Log.ModifyState "visitNode -> Entry -> method with args" (name,show val)]
                        modify $ \symState ->
                          SymState {
-                           env = recordFormalParm name $ Map.insert (VarName name) newVal (env symState),
+                           env = recordFormalParm name $ Map.insert (VarName name) val (env symState),
                            pc = pc symState
                          }
-                     _ -> throwError "won't happen"
+                     _ -> throwError $ "visitNode ==> Entry ==> won't happen ==> " ++ show argVisited
                ) args $> ()
       toReturn <- ER_State <$> get
       tell [Log.Return "visitNode -> Entry -> method has args" (show toReturn)] $> toReturn
@@ -1152,5 +1150,5 @@ runCFG cfgs cfg mPath mSymState =
                     (AST.BuiltInType AST.Float, Return, SymNum float)  ->
                         SymFloat float
                     (_,_,_) -> v
-         in (logs,either (error $ printf "error in method name (%s) thrown from Method.hs:\n%s" (CFG.getCFGName cfg)) (const (SymState m2 ps)) ei)
+         in (logs,either (\l -> error $ printf "error in method name (%s) thrown from Method.hs:\n%s" (CFG.getCFGName cfg) l) (const (SymState m2 ps)) ei)
 
