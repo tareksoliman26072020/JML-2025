@@ -489,23 +489,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
       tell [Log.RunCFGFormalMethodCall (show funCallSymState1)]
       -- See if the method call has parameters
       case CFG.getCFGFormalParams cfg0 of
-{- this pattern matching is redundant 
-        -- if it has no parameters
-        []   ->
-          let actions = getActions funCallSymState1
-          in case getReturnSymExpr funCallSymState1 of
-          Just symExpr -> do
-            let toReturn = ER_Expr symExpr
-            modify $ \symState ->
-              SymState {
-                env = Map.alter (\case
-                        Nothing -> Just $ SActions actions
-                        Just (SActions li) -> Just $ SActions $ li ++ actions) Actions (env symState),
-                pc = pc symState
-              }
-            tell [Log.Return "visitExpr -> FunCallExpr -> no parameters" (show toReturn)] $> toReturn
-          Nothing      -> throwError "visitExpr ==> FunCallExpr ==> fun returns nothing ==> TODO"
--}
+
         -- if it has parameters
         formalParms -> do
           -- get the ExecutionResults of the actual parameters
@@ -519,8 +503,18 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                    actualParms
           
           -- get SymState due to insertion of actual parameters
-          let (funCallLogs2,funCallSymState2) = runSymState funCallSymState1 funCallName tus False
-              inherit_actions = getActions funCallSymState2
+          --let (funCallLogs2,funCallSymState2) = runSymState funCallSymState1 funCallName tus False
+          (funCallLogs2,funCallSymState2) <- do
+            -- `globalVarsMap` contains all VarNames of global variables
+            -- and their SymExprs
+            ma0 <- env <$> get
+            let globalVarsMap = flip Map.filter (getGlobalVars2 ma0) $ \case
+                  SymVar _ _ -> False
+                  _ -> True
+                (l,SymState ma p) = runSymState funCallSymState1 funCallName tus False
+            ma2 <- injectGlobalVars globalVarsMap ma
+            return (l,SymState ma2 p)
+          let inherit_actions = getActions funCallSymState2
               inherit_globalVars = getGlobalVars (env funCallSymState2)
               inherit_globalVars_varNames = flip Map.filterWithKey (getVarNames3 $ env funCallSymState2) $ \k _ -> case k of
                 VarName vn
@@ -646,13 +640,15 @@ visitExpr expr@AST.BinOpExpr{} = do
   helper :: SymExpr -> SymExpr -> Method_R
   helper op1 op2 =
     let isNumericOp = AST.binOp expr `elem` [AST.Plus, AST.Mult, AST.Minus, AST.Div, AST.Mod]
+        isString = all (\op -> isSymString op || isSymVar2 op String) [op1,op2]
         whichFun = case isNumericOp of
-          True | all isSymString [op1,op2] -> stringCalculator
+          True | isString -> stringCalculator
                | otherwise -> numericCalculator
           False -> booleanCalculator
-        toReturn = ER_Expr $ whichFun (SBin {-(simplify op1)-}op1 (toSymBinOp $ AST.binOp expr) {-(simplify op2)-}op2)
+        toReturn = ER_Expr $ whichFun (SBin op1 (toSymBinOp $ AST.binOp expr) {-(simplify op2)-}op2)
     in tell [Log.Return (printf "visitExpr -> BinOpExpr -> %s"
-                                (if isNumericOp then "numericCalculator"
+                           (if isString then "stringCalculator"
+                            else if isNumericOp then "numericCalculator"
                                  else "booleanCalculator")) (show toReturn)
             ] $> toReturn
 -- UnOpExpr {unOp :: UnOp, expr :: Expression}

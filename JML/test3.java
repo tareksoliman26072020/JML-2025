@@ -2236,14 +2236,56 @@ public String ifFun6(int n) {
 
 //TODO
 //This should return
-//null dangerous something11
+//dangerous something11
+
+/*
+ifFun6 : before injecting:
+[
+ (MethodName "ifFun6",SMethodType String),
+ (GlobalVars,SGlobalVars ["y","m","s","c"]),
+ (FormalParms,SFormalParms ["n"]),
+ (VarAssignments,SVarAssignments [("m",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 4}}),("y",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 4}}),("s",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 6}})]),
+ (VarName "c",SymVar String "c"),
+ (VarName "m",SymVar Int "m"),
+ (VarName "n",SymInt 10),
+ (VarName "s",SymString "something"),
+ (VarName "y",SymVar UnknownNumSymType "y"),
+ (ScopeRange (SR {branchStart = 1, branchEnd = 4}),SIte (SBin (SymVar UnknownNumSymType "y") Ge (SymNum 0.0)) (SymState {env = fromList [(MethodName "ifFun6",SMethodType String),(GlobalVars,SGlobalVars ["y","m"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("m",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 4}}),("y",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 4}})]),(VarName "m",SBin (SymVar Int "m") Add (SymInt 10)),(VarName "n",SymInt 10),(VarName "y",SBin (SymNum (-1.0)) Mul (SymVar UnknownNumSymType "y"))], pc = []}) Nothing),
+ (Return,SymVar String "c")
+]
+*/
+/*
+ifFun6 : after injecting:
+[
+ (MethodName "ifFun6",SMethodType String),
+ (GlobalVars,SGlobalVars ["y","m","s","c"]),
+ (FormalParms,SFormalParms ["n"]),
+ (VarAssignments,SVarAssignments [("m",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 4}}),("y",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 4}}),("s",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 6}})]),
+ (VarName "c",SymString "dangerous"),
+ (VarName "m",SymNum 1.0),
+ (VarName "n",SymInt 10),
+ (VarName "s",SymString "something"),
+ (VarName "y",SymNum 5.0),
+ (ScopeRange (SR {branchStart = 1, branchEnd = 4}),SIte (SBin (SymVar UnknownNumSymType "y") Ge (SymNum 0.0)) (SymState {env = fromList [(MethodName "ifFun6",SMethodType String),(GlobalVars,SGlobalVars ["y","m"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("m",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 4}}),("y",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 4}})]),(VarName "m",SBin (SymVar Int "m") Add (SymInt 10)),(VarName "n",SymInt 10),(VarName "y",SBin (SymNum (-1.0)) Mul (SymVar UnknownNumSymType "y"))], pc = []}) Nothing),
+ (Return,SymString "dangerous")
+]
+*/
 public String ifFun6Call() {
   y = 5;
   m = 1;
   c = "dangerous";
-  return s + " " + ifFun6(10) + " " + s + m;
+  return ifFun6(10) + " " + s + toString(m);
 }
-
+/*
+y = 5; (old)
+m = 1; (old)
+c = "dangerous";
+s = "something";
+ */
+/*
+m = 1 + 10 = 11
+y = -5
+ */
 /////////////////////
 
 //DONE

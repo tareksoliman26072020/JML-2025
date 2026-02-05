@@ -5,7 +5,7 @@ import Visitors.API (SymStateVisitor(..))
 import qualified CFG.Types as CFGT (CFG)
 import SymbolicExecution.Types
 import SymbolicExecution.Internal.Internal
-import SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator)
+import SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator, stringCalculator)
 import qualified SymbolicExecution.Logs.Log as Log
 import Control.Monad.Writer
 import Control.Monad.Reader
@@ -480,12 +480,13 @@ visitSymExpr0 = \case
     toReturn <- (\e1 e2 ->
       let isNumericOp = symBinOp `elem` [Add, Mul, Sub, Div, Mod]
           whichFun = case isNumericOp of
-            True -> numericCalculator
+            True | all isSymString [symExpr1,symExpr2] -> stringCalculator
+                 | otherwise -> numericCalculator
             False -> booleanCalculator
       in case (e1,e2) of
            (ER_Expr _,ER_Expr _) ->
-              let Just e1_ = {-fmap simplify $ -}getSymExpr e1
-                  Just e2_ = {-fmap simplify $ -}getSymExpr e2
+              let Just e1_ = getSymExpr e1
+                  Just e2_ = getSymExpr e2
               in ER_Expr $ whichFun (SBin e1_ symBinOp e2_))
               <$> (visitSymExpr0 symExpr1)
               <*> (visitSymExpr0 symExpr2)
@@ -546,6 +547,13 @@ visitSymExpr0 = \case
               ER_Expr ex -> ex
             toReturn = ER_Expr newVal
         tell [Log.Return "visitSymExpr0 -> SymUnknown Just" (show toReturn)] $> toReturn
+  ------------------------------
+  ------------------------------
+  ------------------------------
+  val@(SymNum _) -> do
+    tell [Log.SymExpr_2_Handle (show val) "visitSymExpr0 -> SymNum"]
+    let toReturn = ER_Expr val
+    tell [Log.Return "visitSymExpr0 -> SymNum" (show toReturn)] $> toReturn
   ------------------------------
   ------------------------------
   ------------------------------

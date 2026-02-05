@@ -771,8 +771,35 @@ objAccCalculator2 expr@(SObjAcc [varName,methodCall]) = \case
 
 stringCalculator :: SymExpr -> SymExpr
 stringCalculator = \case
-  SBin (SymString str1) Add (SymString str2) -> SymString $ str1 ++ str2
-  expr -> error $ "TODO: stringCalculator: " ++ show expr
+  symExpr@(SBin e1 op e2) ->
+    let calculating = stringCalculator2 op (e1,e2)
+    in if calculating == symExpr
+         then symExpr
+       else stringCalculator calculating
+  e -> e
+
+
+stringCalculator2 :: SymBinOp -> (SymExpr,SymExpr) -> SymExpr
+stringCalculator2 Add = \case
+  ((SymString str1),(SymString str2)) -> SymString $ str1 ++ str2
+  ----------
+--SBin (SymVar String "s") Add (SymString " ")
+  (e1@(SymVar String _),e2@(SymVar String _)) -> SBin e1 Add e2
+  (e1@(SymVar String _),e2@(SymString _)) -> SBin e1 Add e2
+  (e1@(SymString _),e2@(SymVar String _)) -> SBin e1 Add e2
+  ----------
+  (e1@(SBin _ _ _),e2) ->
+    let rec = stringCalculator e1
+    in SBin rec Add e2
+  (e1,e2@(SBin _ _ _)) ->
+    let rec = stringCalculator e2
+    in SBin e1 Add rec
+  (e1@(SBin _ _ _),e2@(SBin _ _ _)) ->
+    let rec1 = stringCalculator e1
+        rec2 = stringCalculator e2
+    in SBin rec1 Add rec2
+  ----------
+  expr -> error $ "TODO: stringCalculator2: " ++ show expr
 
 ----------------------------------------------------------------------
 ----------------------------------------------------------------------
@@ -790,6 +817,7 @@ funCallCalculator = \case
      SymInt num -> ER_Expr $ SymString $ show num
      SymString _ -> ER_Expr $ argExpr
      SymArray _ _ _ -> ER_Expr $ SymString $ ppSymExpr argExpr
+     SymNum num -> ER_Expr $ SymString $ show num
      _ -> error $ "TODO1: funCallCalculator ==> " ++ show argExpr
   (funName,[argExpr])
     | funName `elem` ["print","println"] ->

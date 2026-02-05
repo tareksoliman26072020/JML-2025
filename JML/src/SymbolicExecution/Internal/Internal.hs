@@ -12,7 +12,7 @@ import qualified CFG.Internal as CFG (getPathToScope)
 import qualified Parser.Types as AST
 import Text.Printf (printf)
 import Control.Applicative (Alternative(empty),asum,(<|>))
-import qualified Data.Map as Map (lookup,empty,Map,filterWithKey,insert,foldMapWithKey,toList,alter,notMember,alterF)
+import qualified Data.Map as Map (lookup,empty,Map,filterWithKey,insert,foldMapWithKey,toList,alter,notMember,alterF,traverseWithKey)
 import Prelude hiding (negate)
 import Data.List (nub,find)
 import Control.Monad (forM_, foldM_)
@@ -52,15 +52,6 @@ isArithmeticOperator op = elem op [Add, Sub, Mul, Div, Mod]
 isBooleanOperator :: SymBinOp -> Bool
 isBooleanOperator = flip elem [Eq, Neq, Lt, Le, Gt, Ge, And, Or]
 
-{-
-isFormalParameter :: SymExpr -> Bool
-isFormalParameter (SymFormalParam _ _ _) = True
-isFormalParameter _ = False
-
-isGlobalVariable :: SymExpr -> Bool
-isGlobalVariable (SymGlobalVar _ _ _) = True
-isGlobalVariable _ = False
--}
 isFormalParameter :: SymExpr -> Map.Map SymStateKey SymExpr -> Bool
 isFormalParameter symExpr ma = case symExpr of
   SymVar _ varName -> hasFormalParameter varName ma
@@ -75,12 +66,16 @@ isGlobalVariable symExpr ma = case symExpr of
 -- it either exists in SGlobalVars,
 -- or it does not exist in both SFormalParms or in SVarBindings
 isGlobalVariable2 :: String -> Map.Map SymStateKey SymExpr -> Bool
-isGlobalVariable2 varName ma =
-  let isGlobal globals = varName `elem` globals
-      isNotFormal formals = varName `notElem` formals
-      isNotLocal bindings = varName `Map.notMember` bindings
-  in case (Map.lookup GlobalVars ma,Map.lookup FormalParms ma,Map.lookup VarBindings ma) of
-  --(globals,formals,locals)
+isGlobalVariable2 varName ma = isGlobalVariable3
+  (Map.lookup GlobalVars ma,Map.lookup FormalParms ma,Map.lookup VarBindings ma)
+  varName
+
+isGlobalVariable3 :: (Maybe SymExpr,Maybe SymExpr,Maybe SymExpr) -> String -> Bool
+isGlobalVariable3 tu{-@(globals,formals,locals)-} varName =
+  let isGlobal s = varName `elem` s
+      isNotFormal s = varName `notElem` s
+      isNotLocal s = varName `Map.notMember` s
+  in case tu of
     (Nothing,Nothing,Nothing) -> False
     (Just (SGlobalVars globals),Nothing,Nothing)
       -> isGlobal globals
@@ -97,16 +92,6 @@ isGlobalVariable2 varName ma =
     (Just (SGlobalVars globals),Just (SFormalParms formals),Just (SVarBindings bindings))
       -> isGlobal globals || (isNotFormal formals && isNotLocal bindings)
 
-{-
-hasForReason li = maybe False (const True) $ flip find li $ \case
-  ForBranchingReason _ -> True
-  _ -> False
-
-hasIfReason :: [SymReason] -> Bool
-hasIfReason li = maybe False (const True) $ flip find li $ \case
-  IfBranchingReason _ -> True
-  _ -> False
--}
 -- type SymReason = ([(CFGT.Kind,CFGT.ScopeRange)],Int)
 hasForReason :: [SymReason] -> Bool
 hasForReason = \case
@@ -196,15 +181,6 @@ recordGlobalVar varName ma =
       | varName `elem` li -> ma
       | otherwise -> Map.insert GlobalVars (SGlobalVars $ li ++ [varName]) ma
 
-{-
-makeVarSymUnknown :: (String,SymReason) -> Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
-makeVarSymUnknown (varName,symReason) ma =
-  Map.alter (\case
-    Nothing -> error
-      $ printf "makeVarSymUnknown ==> won't happen because varName (%s) should exist" varName
-    Just expr -> Just $ SymUnknown (toSymType2 expr,varName,Just expr) symReason) 
-            (VarName varName) ma
--}
 isSymInt :: SymExpr -> Bool
 isSymInt = \case
   SymInt _ -> True
@@ -223,7 +199,22 @@ isSymFloat = \case
 isSymString :: SymExpr -> Bool
 isSymString = \case
   SymString _ -> True
+  SymVar String _ -> True
+  SBin sExpr1 op sExpr2 ->
+    all isSymString [sExpr1, sExpr2] && op == Add
   _ -> False
+
+isSymVar :: SymExpr -> Bool
+isSymVar = \case
+  SymVar _ _ -> True
+  _ -> False
+
+-- `isSymVar2` returns True
+-- 1) if the SymExpr is SymVar
+-- 2) and if the given SymType matches the SymType of that SymVar
+isSymVar2 :: SymExpr -> SymType -> Bool
+isSymVar2 (SymVar t _) symType = t == symType
+isSymVar2 _ _ = False
 
 isVar :: SymExpr -> Bool
 isVar = \case
@@ -234,19 +225,14 @@ isVar = \case
   SBool _ -> False
   SBin expr1 _ expr2 -> any isVar [expr1,expr2]
   SNot expr -> isVar expr
---  SymFormalParam _ _ Nothing -> True
---  SymFormalParam _ _ (Just expr) -> isVar expr
---  SymGlobalVar _ _ Nothing -> True
---  SymGlobalVar _ _ (Just expr) -> isVar expr
   SymVar _ _ -> True
+  SymString _ -> False
   SymUnknown _ _ -> True
   expr -> error $ "TODO: isVar: " ++ show expr
 
 isArray :: SymExpr -> Bool
 isArray = \case
   SymArray _ _ _ -> True
---  SymFormalParam (Array _) _ _ -> True
---  SymGlobalVar (Array _) _ _ -> True
   SymVar (Array _) _ -> True
   _ -> False
 
@@ -287,8 +273,6 @@ toSymType2 = \case
   SymFloat _ -> Float
   SBool _ -> Bool
   SymNull t -> t
---  SymFormalParam t _ _ -> t
---  SymGlobalVar t _ _ -> t
   SymVar t _ -> t
   SObjAcc li -> case li of
     [_,"length"] -> Int
@@ -474,6 +458,7 @@ cast symType symExpr = case (symType,symExpr) of
   (Array t,SymNum num) -> cast t (SymNum num)
   (UnknownGlobalVarSymType,SymNum _) -> symExpr
   (UnknownNumSymType,SymNum _) -> symExpr
+  (String,SymNum num) -> SymString $ show num
   (_,SymNum _) -> error $ printf "TODO: cast ==> cast (%s) (%s)" (show symType) (show symExpr)
   (_,SBin expr1 op expr2) -> SBin (cast symType expr1) op (cast symType expr2)
   --SymArray (Maybe SymType) (Maybe Int) [SymExpr]
@@ -649,6 +634,15 @@ getVarAssignments2 = maybe [] (\(SVarAssignments li) -> li) . Map.lookup VarAssi
 getGlobalVars :: Map.Map SymStateKey SymExpr -> [String]
 getGlobalVars = maybe [] (\(SGlobalVars li) -> li) . Map.lookup GlobalVars
 
+getGlobalVars2 :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
+getGlobalVars2 ma =
+  let --isGlobalVariable2 :: String -> Map.Map SymStateKey SymExpr -> Bool
+      --isGlobalVariable3 :: (Maybe SymExpr,Maybe SymExpr,Maybe SymExpr) -> String -> Bool
+      tu@(globals,formals,locals) = (Map.lookup GlobalVars ma,Map.lookup FormalParms ma,Map.lookup VarBindings ma)
+  in flip Map.filterWithKey ma $ \k _ -> case k of
+       VarName vn -> isGlobalVariable3 tu vn
+       _ -> False
+
 getFormalParms :: Map.Map SymStateKey SymExpr -> [String]
 getFormalParms = maybe [] (\(SFormalParms li) -> li) . Map.lookup FormalParms
 
@@ -659,6 +653,55 @@ getFormalParms2 ma =
        VarName vn -> vn `elem` formalPs
        _ -> False
 
+{-
+See the following example, and notice how the global vars in `ifFun6Call`
+are being used in `ifFun6`.
+`ifFun6` at the time of visitation is not aware of the values of y,m,c
+`injectGlobalVars` makes the values of y,m,c known to `ifFun6`
+by traversing every SymExpr, and altering it if it contains one of the global variables
+
+public String ifFun6(int n) {
+  if(y>=0) {
+    m += n;
+    y = (-1) * y;
+  }
+  s = "something";
+  return c;
+}
+
+public String ifFun6Call() {
+  y = 5;
+  m = 1;
+  c = "dangerous";
+  return s + " " + ifFun6(10) + " " + s + m;
+}
+ -}
+injectGlobalVars :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr -> Typed_Method_R (Map.Map SymStateKey SymExpr)
+injectGlobalVars toInject ma =
+  flip Map.traverseWithKey ma $ \key val -> case key of
+     VarName vn -> replacementAction1 vn val
+     Return -> replacementAction2 val
+     ScopeRange _ -> replacementAction2 val
+     Exception -> throwError $ printf "TODO1 ==> injectGlobalVars ==> (%s ,, %s)" "Exception" (show val)
+     Actions -> throwError $ printf "TODO2 ==> injectGlobalVars ==> (%s ,, %s)" "Actions" (show val)
+     _ -> return val
+  where
+  replacementAction1 :: String -> SymExpr -> Typed_Method_R SymExpr
+  replacementAction1 key val = case Map.lookup (VarName key) toInject of
+    Nothing -> return val
+    Just newVal -> do
+      tell [Log.UpdateVariable (key,show val,show newVal) "injectGlobalVars"]
+      return newVal
+  replacementAction2 :: SymExpr -> Typed_Method_R SymExpr
+  replacementAction2 = \case
+    val@(SymVar _ vn) -> replacementAction1 vn val
+ -- SIte    SymExpr SymState (Maybe SymState)
+    SIte ifCond ifState maybeElseState -> do
+      replacementAction2 ifCond >>= \case
+        SBool b -> throwError $ "TODO3 ==> injectGlobalVars ==> replacementAction2"
+        symExpr -> throwError $ "TODO4 ==> injectGlobalVars ==> replacementAction2"
+    expr -> error $ "TODO5 ==> injectGlobalVars ==> replacementAction2 ==> " ++ show expr
+   
 ------------------------------
 ------------------------------
 ------------------------------
