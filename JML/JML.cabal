@@ -43,6 +43,7 @@ library
       SymbolicExecution.Method
       SymbolicExecution.MethodCall
       SymbolicExecution.Types
+      SymbolicExecution.VarsInjection
       SymbolTable.SymbolTableCreator
       SymbolTable.Types
       Visitors.API

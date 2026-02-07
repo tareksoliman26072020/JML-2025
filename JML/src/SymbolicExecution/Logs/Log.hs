@@ -43,6 +43,7 @@ data Log = Expression_2_Handle String String
          | Meow String String
          | MethodStatementIfCondition String String
          | ProcessPredefinedFunCall String String String
+         | Location String
          deriving (Show,Eq)
 
 
@@ -52,6 +53,7 @@ ppLog :: Log -> String
 ppLog = \case
     MethodEnd loc           -> printf "(%s): %s" loc "Method End"
     Void loc                -> printf "(%s): %s" loc "Void"
+    Location loc            -> printf "%s: %s" "Location" loc
     MethodStart str loc     -> printf "(%s): %s: %s" loc "Method Start" str
     MethodStatement loc str -> printf "(%s): %s: %s" loc "Method Statement" str
     MethodStatementIfCondition loc str
@@ -104,4 +106,5 @@ ppLog = \case
     RunSymStateActualMethodCall
       symState              -> printf "%s: %s" "Method Call actual SymState" symState
     Nested funCallTag log   -> printf "%s ==> %s" funCallTag (ppLog log)
+    log -> error "Logs.Log ==> TODO"
 

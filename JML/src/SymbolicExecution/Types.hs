@@ -12,29 +12,56 @@ import qualified Data.Map as Map (Map)
 import Text.Printf (printf)
 import Data.List (intercalate)
 
-type Typed_Method_R =
-    ReaderT (Config,[CFGT.CFG])
+type Typed_Method_R r =
+    ReaderT r
     (ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))))
+
+----------
+----------
+----------
     
-type Method_R = Typed_Method_R ExecutionResult
+type Method_R = Typed_Method_R (Config,[CFGT.CFG]) ExecutionResult
+
+----------
+----------
+----------
 
 type FormalParm = (SymType,String)
 type ActualParm_post_Visitation = ExecutionResult
 type MethodName = String
-type MethodCall_R =
-    ReaderT (Config,MethodName,[(FormalParm, ActualParm_post_Visitation)])
-    (ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))))
+type MethodCall_R = Typed_Method_R
+    (Config,MethodName,[(FormalParm, ActualParm_post_Visitation)])
     ExecutionResult
+
+----------
+----------
+----------
+
+type ToInject = Map.Map SymStateKey SymExpr
+type VarsInjection_R = Typed_Method_R
+  (Config,MethodName,ToInject)
+  ExecutionResult
+
+----------
+----------
+----------
 
 newtype Method_SymExec = Method_SymExec Method_R
 
 newtype MethodCall_SymExec = MethodCall_SymExec MethodCall_R
+
+newtype VarsInjection_SymExec = VarsInjection_SymExec VarsInjection_R
 
 getReader_Method_R :: Method_SymExec -> Method_R
 getReader_Method_R (Method_SymExec r) = r
 
 getReader_MethodCall_R :: MethodCall_SymExec -> MethodCall_R
 getReader_MethodCall_R (MethodCall_SymExec r) = r
+
+getReader_VarsInjection_R :: VarsInjection_SymExec -> VarsInjection_R
+getReader_VarsInjection_R (VarsInjection_SymExec r) = r
+
+----------
 
 data SymStateKey = MethodName String
                  | GlobalVars | FormalParms | VarBindings | VarAssignments

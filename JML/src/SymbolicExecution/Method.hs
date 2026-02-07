@@ -14,13 +14,14 @@ import Control.Monad (zipWithM,forM_)
 import Control.Applicative (asum)
 import qualified Parser.Types as AST
 import Visitors.API
-import SymbolicExecution.MethodCall (runSymState)
+import qualified SymbolicExecution.MethodCall as MethodCall (runSymState)
+import qualified SymbolicExecution.VarsInjection as VarsInjection (runSymState)
 import Control.Monad.Writer
 import Text.Printf (printf)
 import Data.Functor (($>))
 import Data.List (foldl',nub,intercalate)
 import SymbolicExecution.Internal.Internal
-import SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator, objAccCalculator, stringCalculator, funCallCalculator)
+import SymbolicExecution.Internal.Calculator (whichCalculator2, objAccCalculator, numericCalculator, booleanCalculator, objAccCalculator, stringCalculator, funCallCalculator)
 
 instance CFGVisitor Method_SymExec where
 --visitNode :: CFGT.Node -> Method_SymExec
@@ -503,17 +504,17 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                    actualParms
           
           -- get SymState due to insertion of actual parameters
-          --let (funCallLogs2,funCallSymState2) = runSymState funCallSymState1 funCallName tus False
-          (funCallLogs2,funCallSymState2) <- do
+          --let (funCallLogs2,funCallSymState2) = MethodCall.runSymState funCallSymState1 funCallName tus False
+          ((funCallLogs2,globalVarsInjectionLogs),funCallSymState2) <- do
             -- `globalVarsMap` contains all VarNames of global variables
             -- and their SymExprs
             ma0 <- env <$> get
             let globalVarsMap = flip Map.filter (getGlobalVars2 ma0) $ \case
                   SymVar _ _ -> False
                   _ -> True
-                (l,SymState ma p) = runSymState funCallSymState1 funCallName tus False
-            ma2 <- injectGlobalVars globalVarsMap ma
-            return (l,SymState ma2 p)
+                (methodCallLogs,methodCallState) = MethodCall.runSymState funCallSymState1 funCallName tus False
+            let (injectionLogs,injectionSymState) = VarsInjection.runSymState methodCallState funCallName globalVarsMap
+            return ((methodCallLogs,injectionLogs),injectionSymState)
           let inherit_actions = getActions funCallSymState2
               inherit_globalVars = getGlobalVars (env funCallSymState2)
               inherit_globalVars_varNames = flip Map.filterWithKey (getVarNames3 $ env funCallSymState2) $ \k _ -> case k of
@@ -602,8 +603,12 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                 }
               return ER_Void
           ----------
-          -- edit its logs
-          mapM_ (\log -> tell [Log.Nested ("actual: " ++ funCallName) log]) funCallLogs2
+          -- edit its logs and tell them
+          flip mapM_ funCallLogs2 $ \log ->
+            tell [Log.Nested ("actual: " ++ funCallName) log]
+          -- edit the injection logs and tell them
+          flip mapM_ globalVarsInjectionLogs $ \log ->
+            tell [Log.Nested ("Global Var Injection: " ++ funCallName) log]
           tell [Log.RunSymStateActualMethodCall (show funCallSymState2)]
           let toReturn = ER_FunCall funCallSymState2
           tell [Log.Return "visitExpr -> FunCallExpr -> with parameters" (show toReturn)] $> toReturn
@@ -634,23 +639,20 @@ visitExpr expr@AST.BinOpExpr{} = do
       let newUnifiedSymType = pick_known_symType (toSymType2 one,toSymType2 two)
       mapM_ (castGlobalVar newUnifiedSymType) [er_one,er_two]
       tell [Log.Affected "visitExpr -> BinOpExpr" [show one,show $ AST.binOp expr,show two]]
-      helper (cast newUnifiedSymType one) (cast newUnifiedSymType two)
+      --helper (cast newUnifiedSymType one) (toSymBinOp $ AST.binOp expr) (cast newUnifiedSymType two)
+      let op1 = cast newUnifiedSymType one
+          operator = toSymBinOp $ AST.binOp expr
+          op2 = cast newUnifiedSymType two
+          calculatorType = whichCalculator2 op1 operator op2
+          calculator = case calculatorType of
+            "stringCalculator"  -> stringCalculator
+            "numericCalculator" -> numericCalculator
+            "booleanCalculator" -> booleanCalculator
+          toReturn = ER_Expr $ calculator (SBin op1 operator op2)
+      tell [Log.Return (printf "visitExpr -> BinOpExpr -> %s"
+                          calculatorType) (show toReturn)
+           ] $> toReturn
     _ -> throwError $ printf "visitExpr -> BinOpExpr -> won't happen -> (%s,%s)" (show mOne) (show mTwo)
-  where
-  helper :: SymExpr -> SymExpr -> Method_R
-  helper op1 op2 =
-    let isNumericOp = AST.binOp expr `elem` [AST.Plus, AST.Mult, AST.Minus, AST.Div, AST.Mod]
-        isString = all (\op -> isSymString op || isSymVar2 op String) [op1,op2]
-        whichFun = case isNumericOp of
-          True | isString -> stringCalculator
-               | otherwise -> numericCalculator
-          False -> booleanCalculator
-        toReturn = ER_Expr $ whichFun (SBin op1 (toSymBinOp $ AST.binOp expr) {-(simplify op2)-}op2)
-    in tell [Log.Return (printf "visitExpr -> BinOpExpr -> %s"
-                           (if isString then "stringCalculator"
-                            else if isNumericOp then "numericCalculator"
-                                 else "booleanCalculator")) (show toReturn)
-            ] $> toReturn
 -- UnOpExpr {unOp :: UnOp, expr :: Expression}
 visitExpr expr@AST.UnOpExpr{} = throwError "visitExpr ==> UnOpExpr ==> TODO"
 -- AssignExpr {assEleft :: Expression, assEright :: Expression}

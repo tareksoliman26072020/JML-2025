@@ -12,15 +12,10 @@ import Control.Monad.Reader
 import Control.Monad.State
 import qualified Data.Map as Map
 import Control.Monad.Except
-import Data.Functor (($>), void)
+import Data.Functor (($>))
 import Text.Printf (printf)
 import Data.List (find)
 import SymbolicExecution.Internal.Calculator (objAccCalculator)
-
-type MethodCall_Map_R =
-    ReaderT (Config,[(FormalParm, ActualParm_post_Visitation)])
-    (ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))))
-    (Map.Map String ExecutionResult)
     
 instance SymStateVisitor MethodCall_SymExec where
 --visitSymExpr :: (String,SymExpr) -> MethodCall_SymExec
@@ -29,22 +24,6 @@ instance SymStateVisitor MethodCall_SymExec where
   ------------------------------
   visitSymExpr (key,val) = MethodCall_SymExec $ do
     tell [Log.HorizontalLine "visitSymExpr"] >> case val of
-{- TODELETE
-      SymFormalParam _ _ Nothing -> do
-        tell [Log.SymExpr_2_Handle (show val) "visitSymExpr -> SymFormalParam"]
-        visited <- visitSymExpr0 val
-        let newSymExpr = case visited of
-              ER_Expr symExpr -> symExpr
-              _ -> error $ printf "visitSymExpr ~~> SymFormalParam ~~> %s ~~> won't happen" (show visited)
-        tell [Log.ModifyState "visitSymExpr -> SymFormalParam" (show key,show newSymExpr)]
-        modify $ \symState ->
-          SymState {
-            env = Map.insert key newSymExpr (env symState),
-            pc  = pc symState
-          }
-        let toReturn = ER_SymStateMapEntry key newSymExpr
-        tell [Log.Return "visitSymExpr -> SymFormalParam" (show toReturn)] $> toReturn
- -}
       SymVar _ varName -> do
         ma <- env <$> get
         if hasFormalParameter varName ma
@@ -71,25 +50,6 @@ instance SymStateVisitor MethodCall_SymExec where
               }
             let toReturn = ER_SymStateMapEntry key val
             tell [Log.Return "visitSymExpr -> SymVar" (show toReturn)] $> toReturn
-  ------------------------------
-  ------------------------------
-  ------------------------------
-{- TODELETE
-      SymFormalParam _ _ (Just symExpr) -> do
-        tell [Log.SymExpr_2_Handle (show val) (printf "visitSymExpr -> SymFormalParam %s" (show symExpr))]
-        visited <- visitSymExpr0 val
-        let newSymExpr = case visited of
-              ER_Expr symExpr2 -> symExpr2
-              _ -> error $ printf "visitSymExpr ~~> SymFormalParam %s ~~> %s ~~> won't happen" (show symExpr) (show visited)
-        tell [Log.ModifyState (printf "visitSymExpr -> SymFormalParam %s" (show symExpr)) (show key,show newSymExpr)]
-        modify $ \symState ->
-          SymState {
-            env = Map.insert key newSymExpr (env symState),
-            pc  = pc symState
-          }
-        let toReturn = ER_SymStateMapEntry key newSymExpr
-        tell [Log.Return (printf "visitSymExpr -> SymFormalParam %s" (show symExpr)) (show toReturn)] $> toReturn
--}
   ------------------------------
   ------------------------------
   ------------------------------
@@ -392,24 +352,6 @@ instance SymStateVisitor MethodCall_SymExec where
 
 visitSymExpr0 :: SymExpr -> MethodCall_R
 visitSymExpr0 = \case
-{- TODELETE
-  val@(SymFormalParam symType formalParam Nothing) -> do
-    tell [Log.SymExpr_2_Handle (show val) "visitSymExpr0 -> SymFormalParam"]
-    (_,_,tupels) <- ask
-    let newSymExpr :: SymExpr
-        newSymExpr = case lookup_formalParam_info formalParam tupels of
-          Just (t,er@ER_SymStateMapEntry{}) -> substitute formalParam (cast t (er_val er))
-          Just (t,(ER_Expr symExpr)) -> substitute formalParam (cast t symExpr)
-          Just er -> error $ "insertActualParams: " ++ show er
-          Nothing -> error "won't happen"
-        toReturn = ER_Expr newSymExpr
-    tell [Log.Return "visitSymExpr0 -> SymFormalParam" (show toReturn)] $> toReturn
-    where
-    lookup_formalParam_info :: String -> [(FormalParm, ActualParm_post_Visitation)] -> Maybe (SymType,ActualParm_post_Visitation)
-    lookup_formalParam_info fParm list =
-      let finding = find (\((_,b),_) -> b == fParm) list
-      in fmap (\((t,_),actual) -> (t,actual)) finding
- -}
   val@(SymVar symType varName) -> do
     ma <- env <$> get
     if hasFormalParameter varName ma
@@ -589,4 +531,5 @@ runSymState symState methodCall tus isInNestedScope =
   in case mRun_s of
        Left str -> error str
        Right ((ei,logs),symState2) ->
-         (logs,either error (const symState2) ei)
+         (logs,either (\l -> error $ printf
+             "error in method name (%s) thrown from MethodCall.hs:\n%s" methodCall l) (const symState2) ei)

@@ -17,6 +17,7 @@ ppConsoleLog :: Log -> String
 ppConsoleLog = \case
     MethodEnd loc           -> printf "(%s): %s" (cyan loc) (yellow "Method End")
     Void loc                -> printf "(%s): %s" (cyan loc) (yellow "Void")
+    Location loc            -> printf "%s: %s" (yellow "Location") (cyan loc)
     MethodStart str loc     -> printf "(%s): %s: %s" (cyan loc) (yellow "Method Start") str
     MethodStatement loc str -> printf "(%s): %s: %s" (cyan loc) (yellow "Method Statement") str
     MethodStatementIfCondition loc str
@@ -69,3 +70,4 @@ ppConsoleLog = \case
     RunSymStateActualMethodCall
       symState              -> printf "%s: %s" (yellow "Method Call actual SymState") symState
     Nested funCallTag log   -> printf "%s ==> %s" (red funCallTag) (ppConsoleLog log)
+    log -> error "Logs.Console ==> TODO"

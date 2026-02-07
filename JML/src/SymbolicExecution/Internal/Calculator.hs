@@ -1,5 +1,5 @@
 {-# Language LambdaCase #-}
-module SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator, objAccCalculator, stringCalculator, funCallCalculator) where
+module SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator, objAccCalculator, stringCalculator, funCallCalculator, whichCalculator, whichCalculator2) where
 
 import SymbolicExecution.Types
 import Data.Maybe
@@ -824,3 +824,26 @@ funCallCalculator = \case
         let ER_Expr (SymString str) = funCallCalculator ("toString",[argExpr])
         in ER_Print $ str ++ if funName == "print" then "" else "\n"
   tu@(funName,argsExprs) -> error $ "TODO2: funCallCalculator ==> " ++ show tu
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+
+whichCalculator :: SymExpr -> SymBinOp -> SymExpr -> (SymExpr -> SymExpr)
+whichCalculator op1 operator op2 =
+  case whichCalculator2 op1 operator op2 of
+    "stringCalculator"  -> stringCalculator
+    "numericCalculator" -> numericCalculator
+    "booleanCalculator" -> booleanCalculator
+
+whichCalculator2 :: SymExpr -> SymBinOp -> SymExpr -> String
+whichCalculator2 op1 operator op2 =
+  let isNumericOp = operator `elem` [Add, Mul, Sub, Div, Mod]
+      isString = all (\op -> isSymString op || isSymVar2 op String) [op1,op2]
+  in case isNumericOp of
+       True | isString -> "stringCalculator"
+            | otherwise -> "numericCalculator"
+       False -> "booleanCalculator"

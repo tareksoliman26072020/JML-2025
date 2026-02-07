@@ -347,7 +347,7 @@ in the first expression, both z and t are of `UnknownGlobalVarSymType`
 but the second expression tells me that both of them are of `UnknownNumSymType`
 so when this function is used on them, for the type
  -}
-castGlobalVar :: SymType -> ExecutionResult -> Typed_Method_R ()
+castGlobalVar :: SymType -> ExecutionResult -> Typed_Method_R (Config,[CFGT.CFG]) ()
 castGlobalVar newType = \case
   er@(ER_SymStateMapEntry (VarName key) val) -> do
     theEnv <- env <$> get
@@ -676,6 +676,12 @@ public String ifFun6Call() {
   return s + " " + ifFun6(10) + " " + s + m;
 }
  -}
+-- toInject: global variables, such as y, m, c.
+--     global variables which are re-assigned before the method call.
+-- ma: the map whose global variables are to be updated
+-- the global variables which should be updated are SymExprs of form SymVar
+--     (see replacementAction1)
+{-
 injectGlobalVars :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr -> Typed_Method_R (Map.Map SymStateKey SymExpr)
 injectGlobalVars toInject ma =
   flip Map.traverseWithKey ma $ \key val -> case key of
@@ -700,8 +706,17 @@ injectGlobalVars toInject ma =
       replacementAction2 ifCond >>= \case
         SBool b -> throwError $ "TODO3 ==> injectGlobalVars ==> replacementAction2"
         symExpr -> throwError $ "TODO4 ==> injectGlobalVars ==> replacementAction2"
+    SBin expr1 op expr2 -> do
+      newExpr1 <- replacementAction2 expr1
+      newExpr2 <- replacementAction2 expr2
+      let calculator = whichCalculator newExpr1 op newExpr2
+          calculating = calculator $ SBin newExpr1 op newExpr2
+      return calculating 
     expr -> error $ "TODO5 ==> injectGlobalVars ==> replacementAction2 ==> " ++ show expr
-   
+-}
+injectGlobalVars :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr -> Typed_Method_R (Config,[CFGT.CFG]) (Map.Map SymStateKey SymExpr)
+injectGlobalVars = undefined
+
 ------------------------------
 ------------------------------
 ------------------------------

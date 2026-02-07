@@ -76,6 +76,7 @@ ppMarkdownLog :: Log -> String
 ppMarkdownLog = \case
     MethodEnd loc           -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangeRed "Method End")
     Void loc                -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangeRed "Void")
+    Location loc            -> printf "%s: %s" (show $ orangeRed "Location") (show $ cyan $ fromString loc)
     MethodStart str loc     -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "Method Start") str
     MethodStatement loc str -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "Method Statement") str
     MethodStatementIfCondition loc str
@@ -128,4 +129,5 @@ ppMarkdownLog = \case
     RunSymStateActualMethodCall
       symState              -> printf "%s: %s" (show $ orangeRed "Method Call actual SymState") symState
     Nested funCallTag log   -> printf "%s ==> %s" (show $ underline $ brightPurple $ fromString funCallTag) (ppMarkdownLog log)
+    log -> error "Logs.Markdown ==> TODO"
 
