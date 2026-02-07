@@ -22,7 +22,7 @@ instance SymStateVisitor MethodCall_SymExec where
   ------------------------------
   ------------------------------
   ------------------------------
-  visitSymExpr (key,val) = MethodCall_SymExec $ do
+  visitSymExpr (key,val) = MethodCall_SymExec $
     tell [Log.HorizontalLine "visitSymExpr"] >> case val of
       SymVar _ varName -> do
         ma <- env <$> get

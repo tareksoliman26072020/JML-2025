@@ -14,8 +14,13 @@ import Text.Printf (printf)
 import Data.Functor (($>), void)
 
 instance SymStateVisitor VarsInjection_SymExec where
+{-
+`visitSymExpr` returns ER_SymStateMapEntry
+but also it returns E_Void when if (False) + there is no else body
+ -}
 --visitSymExpr :: (String,SymExpr) -> VarsInjection_SymExec
-  visitSymExpr (key,val) = VarsInjection_SymExec $ case val of
+  visitSymExpr (key,val) = VarsInjection_SymExec $ 
+    tell [Log.HorizontalLine "visitSymExpr"] >> case val of
     {-
     (VarName vn,_) -> do
       tell [Log.SymExpr_2_Handle (printf "%s ~~> %s") (show key) (show val) "visitSymExpr -> VarName"]
@@ -29,8 +34,8 @@ instance SymStateVisitor VarsInjection_SymExec where
     ------------------------------
     SymVar _ vn -> do
       let loc = "SymbolicExecution.VarsInjection.visitSymExpr -> SymVar"
-      tell [Log.SymExpr_2_Handle ((printf "%s ~~> %s") (show key) (show val)) loc]
-      ER_Expr newSymExpr <- replace vn val
+      tell [Log.SymExpr_2_Handle (show key) loc]
+      ER_Expr newSymExpr <- visitSymExpr0 val
       modifySymState loc key newSymExpr
       let toReturn = ER_SymStateMapEntry key newSymExpr
       tell [Log.Return loc (show toReturn)] $> toReturn
@@ -39,11 +44,8 @@ instance SymStateVisitor VarsInjection_SymExec where
     ------------------------------
     SBin expr1 op expr2 -> do
       let loc = "SymbolicExecution.VarsInjection.visitSymExpr -> SBin"
-      tell [Log.SymExpr_2_Handle ((printf "%s ~~> %s") (show key) (show val)) loc]
-      ER_Expr newExpr1 <- visitSymExpr0 expr1
-      ER_Expr newExpr2 <- visitSymExpr0 expr2
-      let calculator = whichCalculator newExpr1 op newExpr2
-          newSymExpr = calculator $ SBin newExpr1 op newExpr2
+      tell [Log.SymExpr_2_Handle (show key) loc]
+      ER_Expr newSymExpr <- visitSymExpr0 val
       modifySymState loc key newSymExpr
       let toReturn = ER_SymStateMapEntry key newSymExpr
       tell [Log.Return loc (show toReturn)] $> toReturn
@@ -104,11 +106,80 @@ instance SymStateVisitor VarsInjection_SymExec where
     ------------------------------
     ------------------------------
     ------------------------------
+    SIte ifCond ifSymState maybeElseSymState -> do
+      let loc = "SymbolicExecution.VarsInjection.visitSymExpr -> SIte"
+      tell [Log.SymExpr_2_Handle ((printf "%s ~~> %s") (show key) (show val)) loc]
+      (_,methodCall,toInject) <- ask
+      ER_Expr newIfCond <- visitSymExpr0 ifCond
+      case newIfCond of
+        -- take if
+        SBool True -> do
+          -- visit
+          let (ifLogs,newIfSymState) = runSymState ifSymState methodCall toInject
+          -- log
+          flip mapM_ ifLogs $ \log -> tell [log]
+          modify (const newIfSymState)
+          let toReturn = ER_SymStateMapEntry key val
+          tell [Log.Return loc (show toReturn)] $> toReturn
+        -- take else
+        SBool False -> case maybeElseSymState of
+          Just elseSymState -> do
+            -- visit
+            let (elseLogs,newElseSymState) = runSymState elseSymState methodCall toInject
+            -- log
+            flip mapM_ elseLogs $ \log -> tell [log]
+            modify (const newElseSymState)
+            let toReturn = ER_SymStateMapEntry key val
+            tell [Log.Return loc (show toReturn)] $> toReturn
+          Nothing -> do
+            tell [Log.StateNotModified $ loc ++ " -> resolved condition is False -> no else body"]
+            return ER_Void
+        _ -> throwError $ loc ++ " -> TODO3"
+    ------------------------------
+    ------------------------------
+    ------------------------------
     _ -> throwError $ printf "TODO: SymbolicExecution.VarsInjection.visitSymExpr ->\nkey: %s\nvalue: %s" (show key) (show val)
 
 -- visitSymExpr0 returns always `ER_expr <SymExpr>`
 visitSymExpr0 :: SymExpr -> VarsInjection_R
 visitSymExpr0 = \case
+  symExpr@(SymVar _ vn) -> do
+    let loc = "SymbolicExecution.VarsInjection.visitSymExpr0 -> SymVar"
+    tell [Log.SymExpr_2_Handle (show symExpr) loc]
+    ER_Expr newSymExpr <- replace vn symExpr
+    let toReturn = ER_Expr newSymExpr
+    tell [Log.Return loc (show toReturn)] $> toReturn
+  ------------------------------
+  ------------------------------
+  ------------------------------
+  symExpr@(SBin expr1 op expr2) -> do
+    let loc = "SymbolicExecution.VarsInjection.visitSymExpr0 -> SBin"
+    tell [Log.SymExpr_2_Handle (show symExpr) loc]
+    ER_Expr newExpr1 <- visitSymExpr0 expr1
+    ER_Expr newExpr2 <- visitSymExpr0 expr2
+    let calculator = whichCalculator newExpr1 op newExpr2
+        newSymExpr = calculator $ SBin newExpr1 op newExpr2
+    let toReturn = ER_Expr newSymExpr
+    tell [Log.Return loc (show toReturn)] $> toReturn
+  ------------------------------
+  ------------------------------
+  ------------------------------
+  symExpr@(SymNum _) -> do
+    let loc = "SymbolicExecution.VarsInjection.visitSymExpr0 -> SymNum"
+    tell [Log.SymExpr_2_Handle (show symExpr) loc]
+    let toReturn = ER_Expr symExpr
+    tell [Log.Return loc (show toReturn)] $> toReturn
+  ------------------------------
+  ------------------------------
+  ------------------------------
+  symExpr@(SymInt _) -> do
+    let loc = "SymbolicExecution.VarsInjection.visitSymExpr0 -> SymInt"
+    tell [Log.SymExpr_2_Handle (show symExpr) loc]
+    let toReturn = ER_Expr symExpr
+    tell [Log.Return loc (show toReturn)] $> toReturn
+  ------------------------------
+  ------------------------------
+  ------------------------------
   symExpr -> throwError $ "TODO: SymbolicExecution.VarsInjection.visitSymExpr0 ==> " ++ show symExpr
 
 replace :: String -> SymExpr -> VarsInjection_R
