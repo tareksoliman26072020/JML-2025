@@ -79,8 +79,9 @@ getCFGs = readFile "test3.java" >>= return
   . map CFG1.exec
   . fromRight undefined . parse parseDeclList ""
 
-getSymState1 :: String -> IO SYT.SymState
-getSymState1 funName = readFile "test3.java" >>=
+-- print specific given java method SymState to the console
+printSymState1 :: String -> IO SYT.SymState
+printSymState1 funName = readFile "test3.java" >>=
   (\cfgs -> case CFG2.findCFGByName funName cfgs of
               Just cfg0 ->
                 let (logs,s) = SYM.runCFG cfgs cfg0 Nothing Nothing
@@ -90,8 +91,9 @@ getSymState1 funName = readFile "test3.java" >>=
   . map CFG1.exec
   . fromRight undefined . parse parseDeclList ""
 
-getSymState2 :: String -> IO SYT.SymState
-getSymState2 funName =
+-- print specific given method in `JavaMethod.javaMethodInputs` to the console
+printSymState2 :: String -> IO SYT.SymState
+printSymState2 funName =
   (\(cfg,cfgs) ->
       let (logs,s) = SYM.runCFG cfgs cfg Nothing Nothing
       in do putStrLn $ (SYT.Log.ppLogs SYT.Log.Console logs)
@@ -106,8 +108,9 @@ getSymState2 funName =
                      Just cfg -> cfg
       in (search, map snd li2)) JavaMethod.javaMethodInputs
 
-getSymStates1 :: String -> IO ()
-getSymStates1 fileName = readFile fileName >>=
+-- write all logs to logs/
+writeSymStates1 :: String -> IO ()
+writeSymStates1 fileName = readFile fileName >>=
   (\cfgs ->
       let size = length cfgs
       in mapM_ (\(counter,cfg) ->
@@ -125,8 +128,9 @@ getSymStates1 fileName = readFile fileName >>=
   . map CFG1.exec
   . fromRight undefined . parse parseDeclList ""
 
-getSymStates2 :: IO ()
-getSymStates2 =
+-- write all logs of java methods in `JavaMethod.javaMethodInputs` to logs/
+writeSymStates2 :: IO ()
+writeSymStates2 =
   (\(li,cfgs) ->
       let size = length cfgs
       in mapM_ (\(counter,(funName,cfg)) ->
@@ -145,6 +149,24 @@ getSymStates2 =
   $ map (\(counter,(funName,source)) -> (counter,(funName,CFG1.exec $ fromRight undefined $ parse parseExtDecl "" source)))
   -- [(Int,(String, String))]
   $ zip [1 :: Int ..] JavaMethod.javaMethodInputs
+
+-- write logs of specific given java method from test3.java to logs/
+writeSymState :: String -> IO SYT.SymState
+writeSymState funName = readFile "test3.java" >>=
+  (\cfgs -> case CFG2.findCFGByName funName cfgs of
+              Just cfg0 -> do
+                let (logs,s) = SYM.runCFG cfgs cfg0 Nothing Nothing
+                    writingFun = writeFile
+                       (printf "logs/%s.md" funName)
+                       (SYT.Log.ppLogs SYT.Log.Markdown logs ++ "\n\n# SymState:\n" ++ show s)
+                isFolderThere <- doesDirectoryExist "logs"
+                if isFolderThere
+                  then writingFun
+                  else createDirectory "logs" >> writingFun
+                return s
+              Nothing   -> error $ "method " ++ funName ++ " does not exist")
+  . map CFG1.exec
+  . fromRight undefined . parse parseDeclList ""
 
 ------------------------------
 

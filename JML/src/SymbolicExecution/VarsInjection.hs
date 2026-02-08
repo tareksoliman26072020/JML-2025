@@ -24,7 +24,7 @@ but also it returns E_Void when if (False) + there is no else body
     {-
     (VarName vn,_) -> do
       tell [Log.SymExpr_2_Handle (printf "%s ~~> %s") (show key) (show val) "visitSymExpr -> VarName"]
-      ER_Expr newSymExpr <- replace vn val
+      ER_Expr newSymExpr <- inject vn val
       modifySymState "visitSymExpr -> VarName" key newSymExpr
       let toReturn = ER_SymStateMapEntry key newSymExpr
       tell [Log.Return "visitSymExpr -> VarName" (show toReturn)] $> toReturn
@@ -134,7 +134,16 @@ but also it returns E_Void when if (False) + there is no else body
           Nothing -> do
             tell [Log.StateNotModified $ loc ++ " -> resolved condition is False -> no else body"]
             return ER_Void
-        _ -> throwError $ loc ++ " -> TODO3"
+        _ -> do
+          let (ifLogs,newIfSymState)     = runSymState ifSymState methodCall toInject
+              mTu = flip fmap maybeElseSymState $ \s -> runSymState s methodCall toInject
+          -- log
+          flip mapM_ ifLogs $ \log -> tell [log]
+          flip mapM_ mTu $
+              \(elseLogs,_) -> mapM_ (\log -> tell [log]) elseLogs
+          modifySymState loc key (SIte newIfCond newIfSymState $ fmap snd mTu)
+          let toReturn = ER_SymStateMapEntry key val
+          tell [Log.Return loc (show toReturn)] $> toReturn
     ------------------------------
     ------------------------------
     ------------------------------
@@ -146,7 +155,7 @@ visitSymExpr0 = \case
   symExpr@(SymVar _ vn) -> do
     let loc = "SymbolicExecution.VarsInjection.visitSymExpr0 -> SymVar"
     tell [Log.SymExpr_2_Handle (show symExpr) loc]
-    ER_Expr newSymExpr <- replace vn symExpr
+    ER_Expr newSymExpr <- inject vn symExpr
     let toReturn = ER_Expr newSymExpr
     tell [Log.Return loc (show toReturn)] $> toReturn
   ------------------------------
@@ -182,16 +191,16 @@ visitSymExpr0 = \case
   ------------------------------
   symExpr -> throwError $ "TODO: SymbolicExecution.VarsInjection.visitSymExpr0 ==> " ++ show symExpr
 
-replace :: String -> SymExpr -> VarsInjection_R
-replace key val = do
-  tell [Log.Location "SymbolicExecution.VarsInjection.replace"]
+inject :: String -> SymExpr -> VarsInjection_R
+inject key val = do
+  tell [Log.Location $ "SymbolicExecution.VarsInjection.inject " ++ key]
   (_,_,toInject) <- ask
   case Map.lookup (VarName key) toInject of
     Nothing -> return $ ER_Expr val
     Just newVal -> do
       tell [Log.UpdateVariable
               (key,show val,show newVal)
-              "SymbolicExecution.VarsInjection.replace"]
+              "SymbolicExecution.VarsInjection.inject"]
       return $ ER_Expr newVal
 
 modifySymState :: String -> SymStateKey -> SymExpr -> VarsInjection_R

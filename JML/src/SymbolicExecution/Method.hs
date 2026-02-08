@@ -491,7 +491,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
       -- See if the method call has parameters
       case CFG.getCFGFormalParams cfg0 of
 
-        -- if it has parameters
+        -- parameters
         formalParms -> do
           -- get the ExecutionResults of the actual parameters
           let actualParms :: [Method_R]
@@ -513,11 +513,14 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                   SymVar _ _ -> False
                   _ -> True
                 (methodCallLogs,methodCallState) = MethodCall.runSymState funCallSymState1 funCallName tus False
-            let (injectionLogs,injectionSymState) = VarsInjection.runSymState methodCallState funCallName globalVarsMap
-            return ((methodCallLogs,injectionLogs),injectionSymState)
+            case Map.null globalVarsMap of
+              True -> return ((methodCallLogs,[]),methodCallState)
+              False -> let
+                (injectionLogs,injectionSymState) = VarsInjection.runSymState methodCallState funCallName globalVarsMap
+                in return ((methodCallLogs,injectionLogs),injectionSymState)
           let inherit_actions = getActions funCallSymState2
               inherit_globalVars = getGlobalVars (env funCallSymState2)
-              inherit_globalVars_varNames = flip Map.filterWithKey (getVarNames3 $ env funCallSymState2) $ \k _ -> case k of
+          let inherit_globalVars_varNames = flip Map.filterWithKey (getVarNames3 $ env funCallSymState2) $ \k _ -> case k of
                 VarName vn
                   | vn `elem` inherit_globalVars -> True
                 _ -> False
@@ -611,23 +614,24 @@ visitExpr (expr@AST.FunCallExpr{}) = do
             tell [Log.Nested ("Global Var Injection: " ++ funCallName) log]
           tell [Log.RunSymStateActualMethodCall (show funCallSymState2)]
           let toReturn = ER_FunCall funCallSymState2
-          tell [Log.Return "visitExpr -> FunCallExpr -> with parameters" (show toReturn)] $> toReturn
+          tell [Log.Return "visitExpr -> FunCallExpr" (show toReturn)] $> toReturn
     -- CFG not found
     Nothing
       | funCallName `elem` predefinedFuns -> do
           tell [Log.ProcessPredefinedFunCall "visitExpr ==> FunCallExpr" (show $ AST.funName expr) (show $ AST.funArgs expr)]
           -- get SymExprs of args
-          funArgsExprs <- mapM (\ex -> do
+          funArgsExprs <- flip mapM (AST.funArgs expr) $ \ex -> do
             v <- visitExpr ex
             case v of
               ER_SymStateMapEntry _ val -> return val
               ER_Expr expr -> return expr
-            ) $ AST.funArgs expr
           let toReturn = funCallCalculator (AST.getFunCallName $ AST.FunCallStmt expr,funArgsExprs)
           tell [Log.Return "visitExpr ==> FunCallExpr" (show toReturn)] $> toReturn
       | otherwise -> throwError $ "visitExpr => FunCallExpr: Method " ++ funCallName ++ " does not exist"
 --BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
 visitExpr expr@AST.BinOpExpr{} = do
+  --s <- env <$> get
+  --throwError $ "wof2:: " ++ show s
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> BinOpExpr"]
   er_one <- visitExpr (AST.expr1 expr)
   er_two <- visitExpr (AST.expr2 expr)
@@ -649,6 +653,14 @@ visitExpr expr@AST.BinOpExpr{} = do
             "numericCalculator" -> numericCalculator
             "booleanCalculator" -> booleanCalculator
           toReturn = ER_Expr $ calculator (SBin op1 operator op2)
+      {-
+      if operator == Add && op2 == SymVar String "s"
+        --then throwError $ printf "MEOW: %s %s %s" (show op1) (show operator) (show op2)
+        then do 
+          s <- env <$> get
+          throwError $ "MEOW: " ++ show s
+        else return ER_Void
+       -}
       tell [Log.Return (printf "visitExpr -> BinOpExpr -> %s"
                           calculatorType) (show toReturn)
            ] $> toReturn
