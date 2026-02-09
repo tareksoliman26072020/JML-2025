@@ -8,12 +8,19 @@ module Methods.JavaMethod (javaMethodInputs) where
 
 javaMethodInputs :: [(String, String)]
 javaMethodInputs = [
+  ("voidFun1", voidFun1),
+  ("voidFun2", voidFun2),
+  ("voidFun3", voidFun3),
+  ("manyArrs", manyArrs),
+  ("manyArrs2", manyArrs2),
+  ("manyArrs3", manyArrs3),
+  ("manyArrs4", manyArrs4),
   ("ifFun", ifFun),
   ("ifFunCall", ifFunCall),
   ("ifFun2", ifFun2),
   ("ifFun2Call", ifFun2Call),
   ("ifFun2Call2", ifFun2Call2),
-  ("ifFun3", ifFun3),
+  ("ifFun3", ifFun3), ("voidFun3Call", voidFun3Call),
   ("ifFun4", ifFun4),
   ("ifFun5", ifFun5),
   ("ifFun5Call1", ifFun5Call1),
@@ -39,6 +46,91 @@ javaMethodInputs = [
   ("for2", for2),
   ("sum1", sum1)
   ]
+
+voidFun1 :: String
+voidFun1 = "public void voidFun1() {\n\
+           \  return;\n\
+           \}"
+
+voidFun2 :: String
+voidFun2 = "public void voidFun2() {\n\
+           \}"
+
+voidFun3 :: String
+voidFun3 = "public void voidFun3(int n) {\n\
+           \  int x;\n\
+           \  String y;\n\
+           \  x = 1 + n;\n\
+           \  y = \"is one\";\n\
+           \  y2 = \"is not one\";\n\
+           \  if(x == 1) {\n\
+           \    z = toString(x) + \" \" + y;\n\
+           \  }\n\
+           \  else {\n\
+           \    z = toString(x) + \" \" + y2;\n\
+           \  }\n\
+           \}"
+
+voidFun3Call :: String
+voidFun3Call = "public void voidFun3Call() {\n\
+               \  voidFun3(10);\n\
+               \  println(z);\n\
+               \}"
+
+manyArrs :: String
+manyArrs = "public void manyArrs() {\n\
+           \  int[] numbers = new int[2];\n\
+           \  numbers[0] = 99;\n\
+           \  numbers[1] = 5;\n\
+           \  println(numbers);\n\
+           \}"
+
+manyArrs2 :: String
+manyArrs2 = "public void manyArrs2() {\n\
+            \  int[] numbers1 = new int[7];\n\
+            \  int[] numbers2 = {40, 55, 63, 17, 22};\n\
+            \  int[] numbers3;\n\
+            \  numbers3 = new int[5];\n\
+            \  String[] brand = new String[] {\"Toyota\",\"Mercedes\",\"BMW\",\"Volkswagen\",\"Skoda\"};\n\
+            \  String[] strs = new String[3];\n\
+            \  strs[1] = \"meow\";\n\
+            \  numbers1[0] = 86;\n\
+            \  numbers1[2] = 80;\n\
+            \  numbers1[1] = 57;\n\
+            \  numbers1[3] = 34;\n\
+            \  numbers1[4] = 50;\n\
+            \  numbers1[5] = 48;\n\
+            \  numbers1[6] = 94;\n\
+            \  numbers2[0] = 51;\n\
+            \  numbers2[1] = 84;\n\
+            \  numbers2[2] = 92;\n\
+            \  numbers2[3] = 87;\n\
+            \  numbers2[4] = 81;\n\
+            \  numbers3[4] = 43;\n\
+            \  numbers3[3] = 10;\n\
+            \  numbers3[2] = 34;\n\
+            \  numbers3[1] = 75;\n\
+            \  numbers3[4] = 6;\n\
+            \  numbers3[0] = 5;\n\
+            \  println(numbers1);\n\
+            \  println(numbers2);\n\
+            \  println(numbers3);\n\
+            \}"
+
+manyArrs3 :: String
+manyArrs3 = "public int[] manyArrs3() {\n\
+            \  int[] numbers = new int[2];\n\
+            \  numbers[0] = 99;\n\
+            \  numbers[1] = 5;\n\
+            \  return numbers;\n\
+            \}"
+
+manyArrs4 :: String
+manyArrs4 = "public void manyArrs4() {\n\
+            \  int[] numbers = new int[2];\n\
+            \  numbers[0] = 99;\n\
+            \  println(numbers);\n\
+            \}"
 
 ifFun :: String
 ifFun = "public int ifFun(int n) {\n\
@@ -127,6 +219,14 @@ ifFun6 = "public String ifFun6(int n) {\n\
          \  s = \"something\";\n\
          \  return c;\n\
          \}"
+
+ifFun6Call :: String
+ifFun6Call = "public String ifFun6Call() {\n\
+             \  y = 5;\n\
+             \  m = 1;\n\
+             \  c = \"dangerous\";\n\
+             \  return toString(m+y) + \" \" + ifFun6(10) + \" \" + s + toString(m+y);\n\
+             \}"
 
 ifFun7 :: String
 ifFun7 = "public void ifFun7(int n) {\n\

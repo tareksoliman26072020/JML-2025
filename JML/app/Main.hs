@@ -20,8 +20,8 @@ import qualified CFG.Types as CFGT (CFG(..), showCFG, Node(..))
 import qualified SymbolicExecution.Types as SYT
 import qualified SymbolicExecution.Method as SYM (runCFG)
 import qualified SymbolicExecution.Logs.PrettyPrint as SYT.Log
-import SymbolicExecution.Internal.Internal (findSymType, cast)
-import SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator)
+import SymbolicExecution.Internal.Calculator-- (numericCalculator, booleanCalculator)
+import SymbolicExecution.Internal.Internal (cast, toSymType2)
 
 import qualified Methods.JavaMethod as JavaMethod
 
@@ -33,10 +33,6 @@ cfg = CFGT.CFG {
     CFGT.End {CFGT.id = 1, CFGT.parent = 0, CFGT.mExpr = Just (AST.NumberLiteral 5.0)}],
     CFGT.edges = [(0,[1])]
 }
-
-main :: IO ()
---main = putStrLn $ JavaMethod.ifFun7Call3
-main = putStrLn "Hi"
 
 getAST :: String -> IO AST.Method
 getAST methodName = readFile "test3.java" >>=
@@ -192,3 +188,17 @@ expr = AST.BinOpExpr {
   AST.expr2 = AST.NumberLiteral 2.0
 }
 
+symExpr1 :: SYT.SymExpr
+symExpr1 = SYT.SBin
+    (SYT.SymFun SYT.String (SYT.SBin (SYT.SymString "1") SYT.Add (SYT.SymVar SYT.String "n")))
+    SYT.Add 
+    (SYT.SymString " ")
+
+symExpr2 :: SYT.SymExpr
+symExpr2 = SYT.SymString "is one"
+
+symExpr :: SYT.SymExpr
+symExpr = SYT.SBin symExpr1 SYT.Add symExpr2
+
+main :: IO ()
+main = putStrLn $ whichCalculator2 symExpr1 SYT.Add symExpr2

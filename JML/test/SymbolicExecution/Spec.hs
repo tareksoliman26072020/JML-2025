@@ -29,7 +29,7 @@ javaMethodTests =
        (name, cfg) <- li
        let (logs,s) = runCFG cfgs cfg Nothing Nothing--([],SymState Map.empty [])
        return $ testCase (printf "Testing %s" (yellow name)) $
-         assertBool (printf "\n\n%s\n\n" (Log.ppLogs Log.Console logs)) (s == Correct.target name))
+         assertBool (printf "\n\n%s\n\n" (show s){-(Log.ppLogs Log.Console logs)-}) (s == Correct.target name))
   
   {-testGroup "All tests"
     [ testCase (printf "Testing %s" (yellow name)) $

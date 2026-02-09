@@ -14,8 +14,8 @@ import Control.Monad (zipWithM,forM_)
 import Control.Applicative (asum)
 import qualified Parser.Types as AST
 import Visitors.API
-import qualified SymbolicExecution.MethodCall as MethodCall (runSymState)
-import qualified SymbolicExecution.VarsInjection as VarsInjection (runSymState)
+--import qualified SymbolicExecution.MethodCall as MethodCall (runSymState)
+--import qualified SymbolicExecution.VarsInjection as VarsInjection (runSymState)
 import Control.Monad.Writer
 import Text.Printf (printf)
 import Data.Functor (($>))
@@ -28,23 +28,36 @@ instance CFGVisitor Method_SymExec where
   visitNode node = Method_SymExec $ tell [Log.HorizontalLine "visitNode"] >> case node of
     CFGT.Entry t mn args -> do
       tell [Log.MethodStart mn "visitNode -> Entry"]
+      let (methodNameKey,methodNameValue) =
+              (MethodName mn,
+               SMethodType $ toSymType1 t)
+      tell [Log.FunHandle "visitNode -> Entry" mn (show methodNameValue)]
+      tell [Log.ModifyState "visitNode -> Entry" (mn,show methodNameValue)]
+      modify $ \symState -> SymState {
+        env = Map.insert methodNameKey methodNameValue $ env symState,
+        pc = pc symState  
+      }
       case null args of
         True  -> tell [Log.Return "visitNode -> Entry -> method with no args" "()"] $> ()
         False -> do
           tell [Log.MethodFormalParams (show args) "visitNode -> Entry -> method with args"]
-          mapM visitExpr args $> ()
-          mapM (\arg -> do
+          mapM_ (\arg -> do
                    argVisited <- visitExpr arg
                    case argVisited of
                      ER_SymStateMapEntry (VarName name) val@(SymVar _ _) -> do
-                       tell [Log.ModifyState "visitNode -> Entry -> method with args" (name,show val)]
-                       modify $ \symState ->
-                         SymState {
-                           env = recordFormalParm name $ Map.insert (VarName name) val (env symState),
-                           pc = pc symState
-                         }
+                       alreadyExist <- env <$> get >>= return . Map.lookup (VarName name)
+                       case alreadyExist of
+                         Nothing -> throwError "TODO: visitNode -> Entry"
+                         Just (SymVar _ _) -> do
+                           tell [Log.ModifyState "visitNode -> Entry -> arg" (name,show val)]
+                           modify $ \symState -> SymState {
+                               env = recordFormalParm name $ Map.insert (VarName name) val (env symState),
+                               pc = pc symState
+                           }
+                         Just _ -> return ()
+                     ER_ActualParameterDetected -> return ()
                      _ -> throwError $ "visitNode ==> Entry ==> won't happen ==> " ++ show argVisited
-               ) args $> ()
+               ) args
       toReturn <- ER_State <$> get
       tell [Log.Return "visitNode -> Entry -> method has args" (show toReturn)] $> toReturn
     ----------------------------------------
@@ -296,41 +309,6 @@ instance CFGVisitor Method_SymExec where
                             varAssName,Just val)
                             $ newReason_template [coor]) (VarName varAssName) ma)
                             ma1 unknownVarAssigns
-                      {--- make vars unknown
-                      -- if there exists a VarName that was mentioned in `unknownVarAssigns`
-                      -- then mark it as unknown.
-                      ma2 = flip Map.mapWithKey ma1 $ \k v -> case k of
-                        VarName vn -> case flip concatMap unknownVarAssigns (\(vn2,coor) ->
-                          if vn2 == vn then [coor]
-                          else []) of
-                            [] -> v
-                            coors -> case v of
-                              SymUnknown tu reasons -> SymUnknown tu
-                                $ reasons ++ createSymReason (CFGT.If, CFGT.SR (CFGT.id n) (CFG.getNodeId $ CFG.getEndIfNode cfg n)) cfg coors
-                              _ -> SymUnknown (toSymType2 v,vn,Just v)
-                                $ createSymReason (CFGT.If, CFGT.SR (CFGT.id n) (CFG.getNodeId $ CFG.getEndIfNode cfg n)) cfg coors
--- createSymReason :: (CFGT.Kind,CFGT.ScopeRange) -> CFGT.CFG -> [CFGT.Node_Coor] -> [SymReason]
--- getEndIfNode :: CFG -> Node -> Node
-                        _ -> v
-                      -- if there is a SVarAssignment that has no `VarName`
-                      -- then it is a GlobalVar that is assigned in a conditional branch
-                      -- then add this GlobalVar to the State
-                      --ma3 = foldl' (\s globalVar ->) (env s2) newMainGlobalVars
-                      ma3 = foldl' (\ma (varAssName,coor) ->
-                        let newReasons = createSymReason (CFGT.If, CFGT.SR (CFGT.id n) (CFG.getNodeId $ CFG.getEndIfNode cfg n)) cfg [coor]
-                        in Map.alter (\case
-                          Nothing -> Just
-                            $ SymUnknown (
-                                let seeking = asum $ map (getVarNameSymType varAssName)
-                                       $ env ifSymState : maybe [] ((: []) . env) mElseSymState
-                                in case seeking of
-                                     Nothing -> error $ "visitNode -> Node -> BooleanExpression if -> won't happen2"
-                                     Just t -> t,
-                                varAssName,Nothing) newReasons
-                          Just (SymUnknown tu reasons) -> Just $
-                            SymUnknown tu (reasons ++ newReasons)
-                          Just val -> Just val) (VarName varAssName) ma
-                          ) ma2 (getVarAssignments2 ma2)-}
 
                   in SymState {
                     env = ma2,
@@ -446,7 +424,7 @@ visitStmt stmt@(AST.FunCallStmt expr) = case expr of
   AST.FunCallExpr{} -> do
     toReturn <- visitExpr expr
     case toReturn of
-      ER_Print str -> do 
+      ER_Print str -> do
         tell [Log.ModifyState "visitStmt -> FunCallStmt" ("SActions",str)]
         modify $ \symState ->
           SymState {
@@ -483,15 +461,8 @@ visitExpr (expr@AST.FunCallExpr{}) = do
   case CFG.findCFGByName funCallName cfgs of
     -- CFG found
     Just cfg0 -> do
-      -- get SymState of the formal method call
-      let (funCallLogs1,funCallSymState1) = runCFG cfgs cfg0 Nothing Nothing
-      -- edit its logs
-      mapM_ (\log -> tell [Log.Nested ("formal: " ++ funCallName) log]) funCallLogs1
-      tell [Log.RunCFGFormalMethodCall (show funCallSymState1)]
       -- See if the method call has parameters
       case CFG.getCFGFormalParams cfg0 of
-
-        -- parameters
         formalParms -> do
           -- get the ExecutionResults of the actual parameters
           let actualParms :: [Method_R]
@@ -499,25 +470,54 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                 let logging = Log.Nested (printf "SymExec of actual parameter: %s(%s)" funCallName (AST.getActualParmName exp))
                 in censor (map logging) $ visitExpr exp
                
-          tus <- zipWithM (\fParm act -> (,) (let Just t = AST.varType fParm in toSymType1 t,AST.getVarName fParm) <$> act)
+        --actualParms of the method call
+        --actualParms1 :: [(SymStateKey,SymExpr)]
+          actualParms1 <- zipWithM (\fParm act -> do
+            maybeActual <- getSymExpr <$> act
+            case maybeActual of
+              Nothing -> throwError "TODO ==> visitExpr -> FunCallExpr"
+              Just actual ->
+                let Just t = fmap toSymType1 $ AST.varType fParm
+                in return $ (VarName $ AST.getVarName fParm,cast t actual) 
+             {-(,)
+              (let Just t = AST.varType fParm in toSymType1 t,
+               AST.getVarName fParm) <$> act-})
                    formalParms
                    actualParms
-          
-          -- get SymState due to insertion of actual parameters
-          --let (funCallLogs2,funCallSymState2) = MethodCall.runSymState funCallSymState1 funCallName tus False
-          ((funCallLogs2,globalVarsInjectionLogs),funCallSymState2) <- do
-            -- `globalVarsMap` contains all VarNames of global variables
-            -- and their SymExprs
+          -- global vars to be inserted into the method call Map.Map
+          -- (globalVars,globalVarsMap) :: ([String],Map.Map SymStateKey SymExpr)
+          (globalVars,globalVarsMap) <- do
             ma0 <- env <$> get
-            let globalVarsMap = flip Map.filter (getGlobalVars2 ma0) $ \case
+            let theMap = flip Map.filter (getGlobalVars2 ma0) $ \case
                   SymVar _ _ -> False
                   _ -> True
-                (methodCallLogs,methodCallState) = MethodCall.runSymState funCallSymState1 funCallName tus False
-            case Map.null globalVarsMap of
-              True -> return ((methodCallLogs,[]),methodCallState)
-              False -> let
-                (injectionLogs,injectionSymState) = VarsInjection.runSymState methodCallState funCallName globalVarsMap
-                in return ((methodCallLogs,injectionLogs),injectionSymState)
+                globalVars = flip map (Map.keys theMap) $ \(VarName vn) -> vn
+            return (globalVars,theMap)
+          let funCallMap0 =
+                Map.union globalVarsMap
+                $ Map.union (Map.fromList actualParms1)
+                $ Map.insert GlobalVars (SGlobalVars globalVars)
+                $ Map.insert FormalParms (SFormalParms $ map AST.getVarName formalParms)
+                Map.empty
+          let (funCallLogs2,funCallSymState2) = runCFG cfgs cfg0 Nothing
+                $ Just $ SymState funCallMap0 []
+          -- tell formalParms
+          tell [Log.Nested ("actual: " ++ funCallName) $ Log.MethodFormalParams
+              (show formalParms)
+              "visitExpr -> FunCallExpr"]
+          -- tell actualParms
+          tell [Log.Nested ("actual: " ++ funCallName) $ Log.MethodActualParms
+              (show actualParms1)
+              "visitExpr -> FunCallExpr"]
+          if null globalVars
+            then return ER_Void
+            else do
+              -- tell global vars
+              tell [Log.Nested ("actual: " ++ funCallName) $ Log.GlobalVars
+                  (show $ Map.toList globalVarsMap)
+                  "visitExpr -> FunCallExpr"]
+              return ER_Void
+          
           let inherit_actions = getActions funCallSymState2
               inherit_globalVars = getGlobalVars (env funCallSymState2)
           let inherit_globalVars_varNames = flip Map.filterWithKey (getVarNames3 $ env funCallSymState2) $ \k _ -> case k of
@@ -609,9 +609,12 @@ visitExpr (expr@AST.FunCallExpr{}) = do
           -- edit its logs and tell them
           flip mapM_ funCallLogs2 $ \log ->
             tell [Log.Nested ("actual: " ++ funCallName) log]
+          -- TODO
+          {-
           -- edit the injection logs and tell them
-          flip mapM_ globalVarsInjectionLogs $ \log ->
-            tell [Log.Nested ("Global Var Injection: " ++ funCallName) log]
+          -- flip mapM_ globalVarsInjectionLogs $ \log ->
+          --   tell [Log.Nested ("Global Var Injection: " ++ funCallName) log]
+           -}
           tell [Log.RunSymStateActualMethodCall (show funCallSymState2)]
           let toReturn = ER_FunCall funCallSymState2
           tell [Log.Return "visitExpr -> FunCallExpr" (show toReturn)] $> toReturn
@@ -625,13 +628,14 @@ visitExpr (expr@AST.FunCallExpr{}) = do
             case v of
               ER_SymStateMapEntry _ val -> return val
               ER_Expr expr -> return expr
+          -- funArgsExprs = [SBin (SymInt 1) Add (SymVar Int "n")]
+          -- toReturn = ER_Expr (SBin (SymInt 1) Add (SymVar Int "n"))
           let toReturn = funCallCalculator (AST.getFunCallName $ AST.FunCallStmt expr,funArgsExprs)
+          --throwError $ "WFF:: " ++ show toReturn
           tell [Log.Return "visitExpr ==> FunCallExpr" (show toReturn)] $> toReturn
       | otherwise -> throwError $ "visitExpr => FunCallExpr: Method " ++ funCallName ++ " does not exist"
 --BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
 visitExpr expr@AST.BinOpExpr{} = do
-  --s <- env <$> get
-  --throwError $ "wof2:: " ++ show s
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> BinOpExpr"]
   er_one <- visitExpr (AST.expr1 expr)
   er_two <- visitExpr (AST.expr2 expr)
@@ -643,7 +647,6 @@ visitExpr expr@AST.BinOpExpr{} = do
       let newUnifiedSymType = pick_known_symType (toSymType2 one,toSymType2 two)
       mapM_ (castGlobalVar newUnifiedSymType) [er_one,er_two]
       tell [Log.Affected "visitExpr -> BinOpExpr" [show one,show $ AST.binOp expr,show two]]
-      --helper (cast newUnifiedSymType one) (toSymBinOp $ AST.binOp expr) (cast newUnifiedSymType two)
       let op1 = cast newUnifiedSymType one
           operator = toSymBinOp $ AST.binOp expr
           op2 = cast newUnifiedSymType two
@@ -652,15 +655,17 @@ visitExpr expr@AST.BinOpExpr{} = do
             "stringCalculator"  -> stringCalculator
             "numericCalculator" -> numericCalculator
             "booleanCalculator" -> booleanCalculator
-          toReturn = ER_Expr $ calculator (SBin op1 operator op2)
-      {-
-      if operator == Add && op2 == SymVar String "s"
-        --then throwError $ printf "MEOW: %s %s %s" (show op1) (show operator) (show op2)
-        then do 
-          s <- env <$> get
-          throwError $ "MEOW: " ++ show s
-        else return ER_Void
-       -}
+          calculating = calculator (SBin op1 operator op2)
+          toReturn = ER_Expr $ calculating
+      {-if op2 `notElem` [SymVar Int "n",SymInt 1,SymString " "]
+        then throwError $ printf "MEOW::\n\n1) %s\n\n2) %s\n\n3) %s\n\n4) %s\n\n5) visitExpr %s = %s\n\n6) %s"
+            {-1-}(show $ SBin op1 operator op2)
+            {-2-}(show expr)
+            {-3-}(show er_one)
+            {-4-}(show mOne)
+            {-5-}(show $ AST.expr1 expr) (show er_one)
+            {-6-}(show $ calculating)
+        else return ER_Void-}
       tell [Log.Return (printf "visitExpr -> BinOpExpr -> %s"
                           calculatorType) (show toReturn)
            ] $> toReturn
@@ -682,14 +687,20 @@ visitExpr expr@AST.AssignExpr{} = do
        ER_Expr ex -> error $ printf "visitExpr ==> AssignExpr: (%s,%s,%s)" (show expr) (show ex) (show $ AST.assEleft expr)
   
   two <- visitExpr (AST.assEright expr)
+  
   let e2 = case two of
           ER_Expr e2_ -> cast (toSymType2 one_val) e2_
+            {-let res = cast (toSymType2 one_val) e2_
+            in error $ printf "MEOW::\n1) %s\n\n2) %s\n\n3) %s"
+                 {-1-}(show one_val)
+                 {-2-}(show e2_)
+                 {-3-}(show res)-}
           ER_FunCall funCallState ->
             case getReturnSymExpr funCallState of
               Nothing -> error $ printf "visitExpr ~~> AssignExpr ~~> won't happen"
               Just e2_ -> e2_
           ER_SymStateMapEntry _ e2_ -> e2_
-
+  --throwError $ printf "QWQQ::\n1) %s\n2) %s" (show one) (show two)
   tell [Log.Affected "visitExpr -> AssignExpr" [show one, show two]]
   -- newVal is a transformation of e2. it's the new value
   -- inside of newVal, casting is done
@@ -700,10 +711,19 @@ visitExpr expr@AST.AssignExpr{} = do
           in case index of
                SymInt num ->
                  let int = fromIntegral num
-                 in SymArray mt ml (take int elems ++ [cast (toSymType2 one_val) e2] ++ drop (int+1) elems)
+                 in SymArray mt ml (
+                     take int elems ++
+                     [cast (toSymType2 one_val) e2] ++
+                     drop (int+1) elems)
                _ -> error $ "TODO1: visitExpr ==> AssignExpr: " ++ show index
         _ -> cast (toSymType2 one_val) e2
-
+{-
+        _ -> error $ printf "MEOW:: \n1) %s\n\n2) %s\n\n3) %s\n\n4) %s" --cast (toSymType2 one_val) e2
+          {-1-}(show one)
+          {-2-}(show one_val)
+          {-3-}(show two)
+          {-4-}(show e2)
+ -}
   -- this case-of sole purpose is creating Log.UpdateVariable
   case one_svn of
     VarName _ ->
@@ -712,10 +732,10 @@ visitExpr expr@AST.AssignExpr{} = do
           | oldVal /= two_newVal -> do
               tell [Log.UpdateVariable (show one_svn,show oldVal,show two_newVal) "visitExpr ==> AssignExpr"]
               return ER_Void
+          | oldVal == two_newVal -> return ER_Void
         Nothing -> do
           tell [Log.UpdateVariable (show one_svn,"No previous value",show two_newVal) "visitExpr ==> AssignExpr"]
           return ER_Void
-
   -- inserting new value in map
   tell [Log.ModifyState "visitExpr ==> AssignExpr" (show one_svn,show two_newVal)]
   modify $ \symState ->
@@ -746,7 +766,13 @@ visitExpr expr@AST.AssignExpr{} = do
   -- c is a global variable, used for the first time in this assignment
   -- c is a double, and its VarName in the SymState need to be updated accordingly
   castGlobalVar (toSymType2 two_newVal) two
-
+  --throwError $ printf "QWQQ::\n1) %s\n2) %s" (show one) (show two)
+  {-
+  case (one_svn,e2) of
+    (VarName "res",_) -> return ER_Void
+    (VarName "t",_) -> throwError $ printf "QWQQ::\n1) %s\n2) %s" (show one_svn) (show e2)
+    _ -> return ER_Void
+   -}
   let toReturn = ER_SymStateMapEntry one_svn e2
   tell [Log.Return "visitExpr -> AssignExpr" (show toReturn)] $> toReturn
 
@@ -779,17 +805,22 @@ visitExpr expr@AST.VarExpr{} = do
               }
               tell [Log.Return "visitExpr -> VarExpr -> Recording Global Variable" (show toReturn)] $> toReturn
         Just t -> do
-          tell [Log.NewVariable (show t) varName_ "visitExpr -> VarExpr"]
-          --let sExpr = SymNull $ toSymType1 t
-          let sExpr = SymVar(toSymType1 t) varName_
-          tell [Log.ModifyState "visitExpr -> VarExpr" (varName_,show sExpr)]
-          modify $ \symState ->
-            SymState {
-              env = Map.insert (VarName varName_) sExpr (env symState),
-              pc = pc symState
-            }
-          let toReturn = ER_SymStateMapEntry (VarName varName_) sExpr
-          tell [Log.Return "visitExpr -> VarExpr -> Declaring Local Variable" (show toReturn)] $> toReturn
+          alreadyExist <- env <$> get >>= return . Map.lookup (VarName varName_)
+          case alreadyExist of
+            Just expr -> do
+              tell [Log.ActualParameterDetected (show t) varName_ (show expr) "visitExpr -> VarExpr -> "]
+              return ER_ActualParameterDetected
+            Nothing -> do
+              tell [Log.NewVariable (show t) varName_ "visitExpr -> VarExpr"]
+              let sExpr = SymVar(toSymType1 t) varName_
+              tell [Log.ModifyState "visitExpr -> VarExpr" (varName_,show sExpr)]
+              modify $ \symState ->
+                SymState {
+                  env = Map.insert (VarName varName_) sExpr (env symState),
+                  pc = pc symState
+                }
+              let toReturn = ER_SymStateMapEntry (VarName varName_) sExpr
+              tell [Log.Return "visitExpr -> VarExpr -> Declaring Local Variable" (show toReturn)] $> toReturn
     li -> do
       state <- get
       let symExpr0@(SObjAcc exprs) = SObjAcc $ li ++ [AST.varName expr]
@@ -855,8 +886,14 @@ visitExpr expr@AST.ArrayInstantiationExpr{} = do
     er <- visitExpr ex
     case (er,mArrType) of
       (ER_Expr expr2,Nothing) -> return $ expr2
-      (ER_Expr expr2,Just t) -> return $ cast t expr2
+      (ER_Expr expr2,Just t) -> return $ cast (arrayElementSymType t) expr2
       _ -> throwError $ "visitExpr ==> ArrayInstantiationExpr: " ++ show er
+  {-case exprs of
+    [] -> return ER_Void
+    [SymNum 40.0,SymNum 55.0,SymNum 63.0,SymNum 17.0,SymNum 22.0] -> return ER_Void
+    _ -> throwError $ printf "MEOW::\n1) %s\n\n2) %s"
+        (show expr)
+        (show exprs)-}
   -- get array size
   m_arr_size <- case (AST.arrSize expr,length exprs) of
         (Nothing,l) -> return $ Just l
@@ -872,10 +909,10 @@ visitExpr expr@AST.ArrayInstantiationExpr{} = do
   let exprs_ = case (m_arr_size,exprs) of
         (Nothing,[]) -> []
         (Nothing,_) -> exprs
-        (Just num,[]) -> replicate num (SymNull $ maybe (error "visitExpr ==> ArrayInstantiationExpr") (\(Array t) -> t) mArrType)
+        (Just num,[]) -> replicate num (SymNull $ maybe (error "visitExpr ==> ArrayInstantiationExpr") arrayElementSymType mArrType)
         (Just num,_) -> exprs
   let symExpr = SymArray
-        mArrType
+        (fmap arrayElementSymType mArrType)
         m_arr_size
         exprs_
   return $ ER_Expr symExpr
@@ -1140,7 +1177,15 @@ runCFG cfgs cfg mPath mSymState =
         case getReturnSymExpr state_ of
           Just _ -> tell [Log.Skip $ printf "%s" (show node)] $> ER_Void
           Nothing -> getReader_Method_R $ visitNode node
-      initialSymState = maybe (SymState (Map.insert (MethodName $ CFG.getCFGName cfg) (SMethodType $ toSymType1 $ CFG.getCFGType cfg) Map.empty) []) id mSymState
+      (methodNameKey,methodNameValue) = (MethodName $ CFG.getCFGName cfg , SMethodType $ toSymType1 $ CFG.getCFGType cfg)
+      {-
+      initialSymState = maybe
+          (SymState (Map.insert methodNameKey methodNameValue Map.empty) [])
+          id mSymState
+       -}
+      initialSymState = maybe
+          (SymState Map.empty [])
+          id mSymState
       run_r :: ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))) ()
       run_r = runReaderT runner (defaultConfig,cfgs)
       run_e :: WriterT [Log.Log] (StateT SymState (Either String)) (Either String ())

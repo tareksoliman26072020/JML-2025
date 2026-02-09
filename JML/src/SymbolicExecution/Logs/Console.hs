@@ -15,6 +15,8 @@ red = printf "\ESC[1;41m%s\ESC[m"
 
 ppConsoleLog :: Log -> String
 ppConsoleLog = \case
+    FunHandle loc name t    -> printf "(%s): %s: %s %s"
+        (cyan loc) (yellow "Fun infos") (show t) name
     MethodEnd loc           -> printf "(%s): %s" (cyan loc) (yellow "Method End")
     Void loc                -> printf "(%s): %s" (cyan loc) (yellow "Void")
     Location loc            -> printf "%s: %s" (yellow "Location") (cyan loc)
@@ -32,6 +34,8 @@ ppConsoleLog = \case
     Meow str1 str2          -> printf "Meow: %s %s" str1 str2
     HorizontalLine str      -> printf ">>>>>>>>>> %s <<<<<<<<<<" (yellow str)
     NewVariable tn vn loc   -> printf "(%s): %s %s %s" (cyan loc) (yellow "New Variable") tn vn
+    ActualParameterDetected
+              tn vn val loc -> printf "(%s): %s %s %s ==> %s" (cyan loc) (yellow "Actual Parameter Detected") tn vn val
     UpdateVariable (vn,old,new) loc
                             -> printf "(%s): %s\n    %s: %s\n    %s: %s\n    %s: %s" (cyan loc) (yellow "Update Variable")
                                  (yellow "Var Name") vn
@@ -40,8 +44,11 @@ ppConsoleLog = \case
     LookUpEnvTable
       key val loc           -> printf "(%s): %s: (%s ~~> %s) " (cyan loc) (yellow "Look up in environmane table") key val
     GlobalVar key loc       -> printf "(%s): %s: %s " (cyan loc) (yellow "Global Variable Detected") key
+    GlobalVars key loc      -> printf "(%s): %s: %s " (cyan loc) (yellow "Global Variables") key
     MethodFormalParams
-      args loc              -> printf "(%s): %s: %s" (cyan loc) (yellow "Visiting formal parameters") args
+      args loc              -> printf "(%s): %s: %s" (cyan loc) (yellow "formal parameters") args
+    MethodActualParms
+      args loc              -> printf "(%s): %s: %s" (cyan loc) (yellow "actual parameters") args
     NextNode nodeStr        -> printf "%s: %s" (yellow "Next Node") nodeStr
     NextMethodCallSymExpr methodCall (key,symExpr)
                             -> printf "%s (%s ==> %s) in Method Call: %s" (yellow "Next symExpr") key symExpr methodCall

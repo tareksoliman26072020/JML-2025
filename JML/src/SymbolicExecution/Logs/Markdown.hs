@@ -74,6 +74,8 @@ underline htmlText = HTMLText {
 
 ppMarkdownLog :: Log -> String
 ppMarkdownLog = \case
+    FunHandle loc name t    -> printf "(%s): %s: %s %s"
+        (show $ cyan $ fromString loc) (show $ orangeRed "Fun infos") (show t) name
     MethodEnd loc           -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangeRed "Method End")
     Void loc                -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangeRed "Void")
     Location loc            -> printf "%s: %s" (show $ orangeRed "Location") (show $ cyan $ fromString loc)
@@ -91,6 +93,8 @@ ppMarkdownLog = \case
     Meow str1 str2          -> printf "Meow: %s %s" str1 str2
     HorizontalLine str      -> printf "---\n\n\\>\\>\\>\\>\\>\\>\\>\\>\\>\\> %s <<<<<<<<<<\n\n---" (show $ orangeRed $ fromString str)
     NewVariable tn vn loc   -> printf "(%s): %s %s %s" (show $ cyan $ fromString loc) (show $ orangeRed "New Variable") tn vn
+    ActualParameterDetected
+              tn vn val loc -> printf "(%s): %s %s %s ==> %s" (show $ cyan $ fromString loc) (show $ orangeRed "Actual Parameter Detected") tn vn val
     UpdateVariable (vn,old,new) loc
                             -> printf "(%s): %s\n    %s: %s\n    %s: %s\n    %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "Update Variable")
                                  (show $ orangeRed "Var Name") vn
@@ -99,8 +103,11 @@ ppMarkdownLog = \case
     LookUpEnvTable
       key val loc           -> printf "(%s): %s: (%s ~~> %s) " (show $ cyan $ fromString loc) (show $ orangeRed "Look up in environmane table") key val
     GlobalVar key loc       -> printf "(%s): %s: %s " (show $ cyan $ fromString loc) (show $ orangeRed "Global Variable Detected") key
+    GlobalVars key loc      -> printf "(%s): %s: %s " (show $ cyan $ fromString loc) (show $ orangeRed "Global Variables") key
     MethodFormalParams
-      args loc              -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "Visiting formal parameters") args
+      args loc              -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "formal parameters") args
+    MethodActualParms
+      args loc              -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "actual parameters") args
     NextNode nodeStr        -> printf "%s: %s" ("### " ++ show (orangeRed "Next Node")) nodeStr
     NextMethodCallSymExpr methodCall (key,symExpr)
                             -> printf "%s (%s ==> %s) in Method Call: %s" (show $ orangeRed "Next symExpr") key symExpr methodCall

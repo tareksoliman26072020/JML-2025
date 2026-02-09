@@ -216,6 +216,15 @@ isSymVar2 :: SymExpr -> SymType -> Bool
 isSymVar2 (SymVar t _) symType = t == symType
 isSymVar2 _ _ = False
 
+isSymFun :: SymExpr -> Bool
+isSymFun = \case
+  SymFun _ _ -> True
+  _ -> False
+
+isSymFun2 :: SymExpr -> SymType -> Bool
+isSymFun2 (SymFun t _) symType = t == symType
+isSymFun2 _ _ = False
+
 isVar :: SymExpr -> Bool
 isVar = \case
   SymNum _ -> False
@@ -228,6 +237,7 @@ isVar = \case
   SymVar _ _ -> True
   SymString _ -> False
   SymUnknown _ _ -> True
+  SymFun t symExpr -> isVar symExpr
   expr -> error $ "TODO: isVar: " ++ show expr
 
 isArray :: SymExpr -> Bool
@@ -265,6 +275,11 @@ toSymType1 = \case
   AST.AnyType "String" _ -> String
   e -> error $ "TODO: toSymType1: " ++ show e
 
+arrayElementSymType :: SymType -> SymType
+arrayElementSymType = \case
+  Array t -> t
+  t -> t
+
 -- get SymType via SymExpr
 toSymType2 :: SymExpr -> SymType
 toSymType2 = \case
@@ -282,27 +297,11 @@ toSymType2 = \case
   SymNum _ -> UnknownNumSymType
   SymString _ -> String
   SException symType _ _ -> symType
-  SymArray (mt) _ li ->
+  SymArray mt _ li ->
     pick_known_symType2 $ maybe [] ((: []) . id) mt ++ map toSymType2 li
+--SymFun String
+  SymFun t symExpr -> pick_known_symType (t,toSymType2 symExpr)
   symExpr -> error $ "TODO2: toSymType2 ==> " ++ show symExpr
-
--- will be used in `calculate`
-toSymType3 :: SymExpr -> Maybe SymType
-toSymType3 = \case
-  SymNum _ -> empty
-  SymInt _ -> pure Int
-  SymDouble _ -> pure Double
-  SymFloat _ -> pure Float
-  SBool _ -> pure Bool
-  SBin symExpr1 _ symExpr2 -> asum $ map toSymType3 [symExpr1,symExpr2]
-  SNot symExpr -> toSymType3 symExpr
---  SymFormalParam t _ mSymExpr -> pure t
---  SymGlobalVar t _ mSymExpr -> pure t
-  SymVar t _ -> pure t
-  symExpr -> error $ "toSymType3 ~~> TODO: " ++ show symExpr
-
-findSymType :: [SymExpr] -> Maybe SymType
-findSymType = asum . map toSymType3
 
 pick_known_symType :: (SymType,SymType) -> SymType
 pick_known_symType = \case
@@ -450,31 +449,50 @@ newSymNum = \case
 -- This matters in the context of `AssignExpr`, and `BinOpExpr`
 cast :: SymType -> SymExpr -> SymExpr
 cast symType symExpr = case (symType,symExpr) of
+  ----------
   (Int,SymNum num) -> SymInt (round num)
+  (Int,SymInt num) -> SymInt num
+  (Int,SymNull _) -> SymNull Int
+  ----------
   (Double,SymNum num) -> SymDouble (toDouble num)
   (Float,SymNum num) -> SymFloat num
   (Bool,SymNum num) -> error "cast ~~> won't happen1"
   (Void,SymNum num) -> error "cast ~~> won't happen2"
-  (Array t,SymNum num) -> cast t (SymNum num)
+  ----------
+  --(Array t,SymNum num) -> cast t (SymNum num)
+  --(Array t, SymNull _) -> 
+  ----------
   (UnknownGlobalVarSymType,SymNum _) -> symExpr
+  (UnknownGlobalVarSymType,SymString str) -> SymString str
+  ----------
   (UnknownNumSymType,SymNum _) -> symExpr
+  ----------
   (String,SymNum num) -> SymString $ show num
-  (_,SymNum _) -> error $ printf "TODO: cast ==> cast (%s) (%s)" (show symType) (show symExpr)
-  (_,SBin expr1 op expr2) -> SBin (cast symType expr1) op (cast symType expr2)
+  (String,SymInt num) -> SymString $ show num
+  (String,SymString str) -> SymString str
+  (String,SymNull _) -> SymNull String
+  ----------
+  (t,SymUnknown (t2,name,mExpr) reasons) ->
+    SymUnknown (t,name,fmap (\expr -> cast t expr) mExpr) reasons
+  ----------
+  (t,SBin expr1 op expr2) -> SBin (cast t expr1) op (cast t expr2)
+  ----------
   --SymArray (Maybe SymType) (Maybe Int) [SymExpr]
-  (_,SymArray _ mInt symExprs) -> SymArray (Just symType) mInt (map (cast symType) symExprs)
-  --
+  (t,SymArray _ mInt symExprs) -> SymArray
+      (Just t) mInt (map (cast $ arrayElementSymType t) symExprs)
+  ----------
 {-
   (_,SymGlobalVar t s m) ->
     let t2 = pick_known_symType (symType,t)
     in maybe (SymGlobalVar t2 s Nothing) (cast symType) m
 -}
   (_,SymVar t s) ->
-    let t2 = pick_known_symType (symType,t)
-    in SymVar t2 s
+    --let t2 = pick_known_symType (symType,t)
+    SymVar symType s
 
-  --a -> error $ printf "TODO ~~> cast (%s) (%s)" (show symType) (show symExpr)
-  (_,a) -> a
+  (t1,SymFun _ expr) ->
+    SymFun t1 (cast t1 expr)
+  (_,_) -> error $ printf "TODO ~~> cast (%s) (%s)" (show symType) (show symExpr)
 
 isUnknownGlobalVarSymType :: SymType -> Bool
 isUnknownGlobalVarSymType = \case

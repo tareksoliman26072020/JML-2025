@@ -154,6 +154,7 @@ data ExecutionResult =
   | ER_Print String
   | ER_ForLoopDone
   | ER_Void
+  | ER_ActualParameterDetected
   deriving Show
 
 data SymExpr =
@@ -174,6 +175,7 @@ data SymExpr =
 --  | SymFormalParam SymType String (Maybe SymExpr) -- ^ declared variable (a formal parameter)
 --  | SymGlobalVar SymType String (Maybe SymExpr) -- ^ variable declared outside the scope of the method
   | SymVar SymType String
+  | SymFun SymType SymExpr
   | SVarBindings (Map.Map String CFGT.Node_Coor)
   | SVarAssignments [(String,CFGT.Node_Coor)] 
   | SException SymType String String

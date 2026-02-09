@@ -466,11 +466,11 @@ numericCalculator2 op = \case
         (Mul,Add) -> numericCalculator $ SBin (SBin symExpr1 Add (SymNum 1)) Mul symExpr2
         -- (3 * x) - x == (3 - 1) * x
         (Mul,Sub) -> numericCalculator $ SBin (SBin symExpr1 Sub (SymNum 1)) Mul symExpr2
-    | otherwise -> maybe (error "numericCalculator ~~> won't happen 1") id $ do
-      symType <- findSymType [a,b]
-      let expr1 = numericCalculator2 op1 (cast symType symExpr1,cast symType symExpr2)
-          expr2 = cast symType b  
-      return $ SBin expr1 op expr2
+    | otherwise -> let
+        symType = pick_known_symType (toSymType2 a,toSymType2 b)
+        expr1 = numericCalculator2 op1 (cast symType symExpr1,cast symType symExpr2)
+        expr2 = cast symType b  
+        in SBin expr1 op expr2
 ----------
   (a, b@(SBin symExpr1 op1 symExpr2))
     | [op,op1] == [Add,Mul] && (not . isVar) symExpr1 && isNegative symExpr1 ->
@@ -582,11 +582,11 @@ numericCalculator2 op = \case
         (Add,Mul) -> numericCalculator $ SBin (SBin (SymNum 1) Add symExpr1) Mul a
         -- X - (3 * X) == (1 - 3) * X
         (Sub,Mul) -> numericCalculator $ SBin (SBin (SymNum 1) Sub symExpr1) Mul a
-    | otherwise -> maybe (error "numericCalculator ~~> won't happen 2") id $ do
-      symType <- findSymType [a,b]
-      let expr1 = cast symType a
-          expr2 = numericCalculator2 op1 (cast symType symExpr1,cast symType symExpr2)
-      return $ SBin expr1 op expr2
+    | otherwise -> let
+        symType = pick_known_symType (toSymType2 a,toSymType2 b)
+        expr1 = cast symType a
+        expr2 = numericCalculator2 op1 (cast symType symExpr1,cast symType symExpr2)
+        in SBin expr1 op expr2
 ----------
 {- TODELETE
   (a, b@(SymFormalParam t _ Nothing)) ->
@@ -625,6 +625,16 @@ numericCalculator2 op = \case
     SBin a op (cast t b)
   (a,b@(SymUnknown (t,_,_) _)) ->
     SBin (cast t a) op b
+----------
+  (a@(SymFun t1 symExpr1),b@(SymFun t2 symExpr2)) ->
+    let t3 = pick_known_symType2 [t1,t2,toSymType2 symExpr1, toSymType2 symExpr2]
+    in SBin (cast t3 a) op (cast t3 b)
+  (a@(SymFun t1 symExpr1),b) ->
+    let t3 = pick_known_symType2 [t1,toSymType2 symExpr1,toSymType2 b]
+    in SBin (cast t3 a) op (cast t3 b)
+  (a,b@(SymFun t2 symExpr2)) ->
+    let t3 = pick_known_symType2 [toSymType2 a,t2,toSymType2 symExpr2]
+    in SBin (cast t3 a) op (cast t3 b)
 ----------
   (a,b) -> error $ printf "numericCalculator: (%s ,, %s ,, %s)" (show a) (show op) (show b)
 
@@ -799,6 +809,22 @@ stringCalculator2 Add = \case
         rec2 = stringCalculator e2
     in SBin rec1 Add rec2
   ----------
+  (e1@(SymFun _ expr1),e2@(SymFun _ expr2)) ->
+    SBin
+        (SymFun String (cast String expr1))
+        Add
+        (SymFun String (cast String expr1))
+  (e1@(SymFun _ expr1),e2) ->
+    SBin
+        (SymFun String (cast String expr1))
+        Add
+        (cast String e2)
+  (e1,e2@(SymFun _ expr2)) ->
+    SBin
+        (cast String e1)
+        Add
+        (SymFun String (cast String expr2))
+  ----------
   expr -> error $ "TODO: stringCalculator2: " ++ show expr
 
 ----------------------------------------------------------------------
@@ -818,6 +844,11 @@ funCallCalculator = \case
      SymString _ -> ER_Expr $ argExpr
      SymArray _ _ _ -> ER_Expr $ SymString $ ppSymExpr argExpr
      SymNum num -> ER_Expr $ SymString $ show num
+     SBin expr1 op expr2 ->
+       case (whichCalculator expr1 op expr2) argExpr of
+         res
+           | res == argExpr -> ER_Expr $ SymFun String (cast String res)
+           | otherwise -> funCallCalculator ("toString",[res])
      _ -> error $ "TODO1: funCallCalculator ==> " ++ show argExpr
   (funName,[argExpr])
     | funName `elem` ["print","println"] ->
@@ -842,7 +873,7 @@ whichCalculator op1 operator op2 =
 whichCalculator2 :: SymExpr -> SymBinOp -> SymExpr -> String
 whichCalculator2 op1 operator op2 =
   let isNumericOp = operator `elem` [Add, Mul, Sub, Div, Mod]
-      isString = all (\op -> isSymString op || isSymVar2 op String) [op1,op2]
+      isString = all (==String) $ map toSymType2 [op1,op2]
   in case isNumericOp of
        True | isString -> "stringCalculator"
             | otherwise -> "numericCalculator"

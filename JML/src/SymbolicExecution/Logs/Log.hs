@@ -4,7 +4,8 @@ module SymbolicExecution.Logs.Log where
 import Text.Printf (printf)
 import Data.List (foldl', intercalate)
 -- "\ESC[1;31mTarek\ESC[m"
-data Log = Expression_2_Handle String String
+data Log = FunHandle String String String
+         | Expression_2_Handle String String
          | MethodStart String String
          | MethodEnd String
          | Void String
@@ -15,11 +16,13 @@ data Log = Expression_2_Handle String String
          | MethodStatement String String
          | AssignStatement String String
          | NewVariable String String String
+         | ActualParameterDetected String String String String
          | UpdateVariable (String,String,String) String
          | LookUpEnvTable String String String
          | NextNode String
          | ForStatementHasNoAccumulationVariable String
          | MethodFormalParams String String
+         | MethodActualParms String String
          | NextMethodCallSymExpr String (String,String)
          | Affected String [String]
          | ModifyState String (String,String)
@@ -40,6 +43,7 @@ data Log = Expression_2_Handle String String
          | Nested String Log
          | SymExpr_2_Handle String String
          | GlobalVar String String
+         | GlobalVars String String
          | Meow String String
          | MethodStatementIfCondition String String
          | ProcessPredefinedFunCall String String String
@@ -51,6 +55,7 @@ data Log = Expression_2_Handle String String
 -- to best relate to `Log`
 ppLog :: Log -> String
 ppLog = \case
+    FunHandle loc name t    -> printf "(%s): %s: %s %s" loc "Fun infos" (show t) name
     MethodEnd loc           -> printf "(%s): %s" loc "Method End"
     Void loc                -> printf "(%s): %s" loc "Void"
     Location loc            -> printf "%s: %s" "Location" loc
@@ -68,6 +73,8 @@ ppLog = \case
     Meow str1 str2          -> printf "Meow: %s %s" str1 str2
     HorizontalLine str      -> printf ">>>>>>>>>> %s <<<<<<<<<<" str
     NewVariable tn vn loc   -> printf "(%s): %s %s %s" loc "New Variable" tn vn
+    ActualParameterDetected
+              tn vn val loc -> printf "(%s): %s %s %s ==> %s" loc "Actual Parameter Detected" tn vn val
     UpdateVariable (vn,old,new) loc
                             -> printf "(%s): %s\n    %s: %s\n    %s: %s\n    %s: %s" loc "Update Variable"
                                  "Var Name" vn
@@ -76,8 +83,11 @@ ppLog = \case
     LookUpEnvTable
       key val loc           -> printf "(%s): %s: (%s ~~> %s) " loc "Look up in environmane table" key val
     GlobalVar key loc       -> printf "(%s): %s: %s " loc "Global Variable Detected" key
+    GlobalVars key loc      -> printf "(%s): %s: %s " loc "Global Variables" key
     MethodFormalParams
-      args loc              -> printf "(%s): %s: %s" loc "Visiting formal parameters" args
+      args loc              -> printf "(%s): %s: %s" loc "formal parameters" args
+    MethodActualParms
+      args loc              -> printf "(%s): %s: %s" loc "actual parameters" args
     NextNode nodeStr        -> printf "%s: %s" "Next Node" nodeStr
     NextMethodCallSymExpr methodCall (key,symExpr)
                             -> printf "%s (%s ==> %s) in Method Call: %s" "Next symExpr" key symExpr methodCall
