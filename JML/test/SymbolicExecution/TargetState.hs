@@ -281,9 +281,9 @@ ifFun4 = SymState {
     (FormalParms,SFormalParms ["n"]),
     (VarAssignments,SVarAssignments [("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 3}})]),
     (VarName "n",SymVar SYT.Int "n"),
-    (VarName "y",SymUnknown (SYT.Int,"y",Just (SymVar SYT.UnknownNumSymType "y")) [([(If,SR {branchStart = 1, branchEnd = 3})],2)]),
+    (VarName "y",SymUnknown (SYT.Int,"y",Just (SymVar SYT.Int "y")) [([(If,SR {branchStart = 1, branchEnd = 3})],2)]),
     (ScopeRange (SR {branchStart = 1, branchEnd = 3}),SIte (SBin (SymVar SYT.UnknownNumSymType "y") SYT.Ge (SymNum 0.0)) (SymState {env = Map.fromList [(MethodName "ifFun4",SMethodType SYT.Int),(GlobalVars,SGlobalVars ["y"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 3}})]),(VarName "n",SymVar SYT.Int "n"),(VarName "y",SBin (SymVar SYT.Int "y") SYT.Add (SymVar SYT.Int "n"))], pc = []}) Nothing),
-    (Return,SymUnknown (SYT.Int,"y",Just (SymVar SYT.UnknownNumSymType "y")) [([(If,SR {branchStart = 1, branchEnd = 3})],2)])
+    (Return,SymUnknown (SYT.Int,"y",Just (SymVar SYT.Int "y")) [([(If,SR {branchStart = 1, branchEnd = 3})],2)])
   ], pc = []}
 
 -----------------------------

@@ -2203,15 +2203,39 @@ SymState {
     (VarAssignments,SVarAssignments [("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 3}})]),
     (VarName "n",SymVar Int "n"),
     (VarName "y",SymUnknown (Int,"y",Just (SymVar Int "y")) [([(If,SR {branchStart = 1, branchEnd = 3})],2)]),
-    (ScopeRange (SR {branchStart = 1, branchEnd = 3}),SIte (SBin (SymVar UnknownNumSymType "y") Ge (SymNum 0.0)) (SymState {env = fromList [(MethodName "ifFun4",SMethodType Int),(GlobalVars,SGlobalVars ["y"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 3}})]),(VarName "n",SymVar Int "n"),(VarName "y",SBin (SymVar UnknownNumSymType "y") Add (SymVar UnknownNumSymType "n"))], pc = []}) Nothing),
+    (ScopeRange (SR {branchStart = 1, branchEnd = 3}),
+     SIte (SBin (SymVar UnknownNumSymType "y") Ge (SymNum 0.0))
+          (SymState {env = fromList [
+              (MethodName "ifFun4",SMethodType Int),
+              (GlobalVars,SGlobalVars ["y"]),
+              (FormalParms,SFormalParms ["n"]),
+              (VarAssignments,SVarAssignments [("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 3}})]),
+              (VarName "n",SymVar Int "n"),
+              (VarName "y",SBin (SymVar UnknownNumSymType "y") Add (SymVar UnknownNumSymType "n"))], pc = []})
+          Nothing),
     (Return,SymUnknown (Int,"y",Just (SymVar Int "y")) [([(If,SR {branchStart = 1, branchEnd = 3})],2)])
-  ], pc = []}
+  ], pc = []
+}
 */
 public int ifFun4(int n) {
   if(y>=0) {
     y += n;
   }
   return y;
+}
+
+/////////////////////
+
+//TODO
+public void ifFun4Call(int n) {
+  y = 2;
+  z = ifFun4(1);
+  println(toString(y));
+  println(toString(z));
+  y = -1;
+  z = ifFun4(10);
+  println(toString(y));
+  println(toString(z));
 }
 
 /////////////////////
