@@ -353,15 +353,8 @@ castGlobalVar newType er = do
       theEnv <- env <$> get
       let vns :: [String] -- vns are global variables mentioned in val
           vns = filter (flip isGlobalVariable2 theEnv) (nub $ key : getVarNames2 val)
-      -- foldM_ :: (Foldable t, Monad m) => (b -> a -> m b) -> b -> t a -> m ()
       -- search for each occurrence of `vn` in `vns` in `theEnv`
       --     and adjust its type
-{-
-ER_SymStateMapEntry (VarName "y") (SymVar UnknownGlobalVarSymType "y")
-
-[UnknownGlobalVarSymType,UnknownGlobalVarSymType,UnknownNumSymType]
-= UnknownNumSymType
- -}
       foldM_ (\ma vn -> do
         ma2 <- Map.alterF (\case
               Nothing -> pure $ Just
@@ -481,15 +474,10 @@ cast symType symExpr = case (symType,symExpr) of
   (_,SymVar t vn)
     | symType `isInstanceOf` t ->
         SymVar symType vn
---    | symType == String && t /= String ->
---        SymFun ToString $ SymVar t vn
---    | otherwise -> error
---        $ printf "SymbolicExecution.Internal.cast %s %s ==> won't happen"
---            (show symType) (show symExpr)
   ----------
-  (String,SymString _) -> symExpr
+  (String, SymString _) -> symExpr
   (String, SymFun ToString _) -> symExpr
-  (String,_)
+  (String, _)
     | not (symType `isInstanceOf` toSymType2 symExpr) ->
         SymFun ToString symExpr
   ----------
@@ -522,10 +510,10 @@ cast symType symExpr = case (symType,symExpr) of
          $ printf "TODO1 ~~> cast (%s) (%s)" (show symType) (show symExpr)
   ----------
   --SymArray (Maybe SymType) (Maybe Int) [SymExpr]
-  (t,SymArray (Just t2) mInt symExprs)
-    | any (symType `isInstanceOf`)
+  (Array t,SymArray (Just t2) mInt symExprs)
+    | any (t `isInstanceOf`)
           (t2 : map toSymType2 symExprs) -> SymArray (Just symType) mInt
-        $ map (cast $ arrayElementSymType symType) symExprs
+        $ map (cast t) symExprs
     | otherwise -> error
         $ printf "TODO2 ~~> cast (%s) (%s)" (show symType) (show symExpr)
   (t,SymArray Nothing mInt symExprs)

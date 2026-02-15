@@ -758,22 +758,12 @@ stringCalculator2 Add = \case
         rec2 = stringCalculator e2
     in SBin rec1 Add rec2
   ----------
-  (e1@(SymFun pf1 expr1),e2@(SymFun pf2 expr2))
-    | pf1 == pf2 ->
-        SBin
-            (SymFun pf1 (cast String expr1))
-            Add
-            (SymFun pf1 (cast String expr1))
-  (e1@(SymFun pf expr1),e2) ->
-    SBin
-        (SymFun pf (cast String expr1))
-        Add
-        (cast String e2)
-  (e1,e2@(SymFun pf expr2)) ->
-    SBin
-        (cast String e1)
-        Add
-        (SymFun pf (cast String expr2))
+  (e1@(SymFun ToString _),e2@(SymFun ToString _)) ->
+     SBin e1 Add e2
+  (e1@(SymFun ToString _),e2) ->
+    SBin e1 Add (cast String e2)
+  (e1,e2@(SymFun ToString _)) ->
+    SBin (cast String e1) Add e2
   ----------
   expr -> error $ "TODO: stringCalculator2: " ++ show expr
 
@@ -812,7 +802,7 @@ funCallCalculator = \case
      SBin expr1 op expr2 ->
        case (whichCalculator expr1 op expr2) argExpr of
          res
-           | res == argExpr -> SymFun ToString (cast String res)
+           | res == argExpr -> cast String res
            | otherwise -> funCallCalculator (ToString,[res])
      _ -> error $ "TODO1: funCallCalculator ==> " ++ show argExpr
   (funName,[argExpr])        

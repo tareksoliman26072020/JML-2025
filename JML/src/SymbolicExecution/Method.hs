@@ -421,10 +421,20 @@ visitStmt :: AST.Statement -> Method_R
 visitStmt (AST.ReturnStmt (Just expr)) = do
   tell [Log.ReturnStatement (show expr) "visitStmt -> ReturnStmt"]
   er <- visitExpr expr
+{- er
+ER_SymStateMapEntry {
+  er_key = VarName "numbers",
+  er_val = SymArray (Just Int) (Just 2) [SymInt 99,SymInt 5]
+}
+-}
   ER_FunHandle t _ <- getFunHandle
+{- t
+Array Int
+-}
   let symExpr = cast t $ case getSymExpr er of
         Just symExpr -> symExpr
         Nothing      -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show er
+
   castGlobalVar t er
   tell [Log.ModifyState "visitStmt -> ReturnStmt -> method with args" ("return",show symExpr)]
   modify $ \symState ->
@@ -501,11 +511,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
               Just actual ->
                 let Just t = fmap toSymType1 $ AST.varType fParm
                 in return $ (VarName $ AST.getVarName fParm,cast t actual) 
-             {-(,)
-              (let Just t = AST.varType fParm in toSymType1 t,
-               AST.getVarName fParm) <$> act-})
-                   formalParms
-                   actualParms
+              ) formalParms actualParms
           -- global vars to be inserted into the method call Map.Map
           -- (globalVars,globalVarsMap) :: ([String],Map.Map SymStateKey SymExpr)
           (globalVars,globalVarsMap) <- do
@@ -688,7 +694,9 @@ visitExpr expr@AST.UnOpExpr{} = throwError "visitExpr ==> UnOpExpr ==> TODO"
 -- AssignExpr {assEleft :: Expression, assEright :: Expression}
 visitExpr expr@AST.AssignExpr{} = do
   tell [Log.Expression_2_Handle (show expr) "visitExpr -> AssignExpr"]
+
   one <- visitExpr (AST.assEleft expr)
+
   -- one_val's sole purpose is its type
   -- one_svn is important to find key in the map
   let (one_svn,one_val) = case one of
@@ -697,34 +705,68 @@ visitExpr expr@AST.AssignExpr{} = do
          --call = SArrayIndexAccess "strs" (SymInt 1)
          --val = SymNull String
          (VarName arrName,val)
-       ER_Expr ex -> error $ printf "visitExpr ==> AssignExpr: (%s,%s,%s)" (show expr) (show ex) (show $ AST.assEleft expr)
-  
+       ER_Expr ex -> error $ printf "visitExpr ==> AssignExpr: (%s,%s,%s)"
+           (show expr) (show ex) (show $ AST.assEleft expr)
+
   two <- visitExpr (AST.assEright expr)
-  
-  let e2 = case two of
+
+{-
+1) expr = AssignExpr {
+    assEleft = VarExpr {varType = Nothing, varObj = [], varName = "z"},
+    assEright = BinOpExpr {
+        expr1 = BinOpExpr {expr1 = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "toString"}, funArgs = [VarExpr {varType = Nothing, varObj = [], varName = "x"}]}, 
+                           binOp = +,
+                           expr2 = StringLiteral " "},
+        binOp = +,
+        expr2 = VarExpr {varType = Nothing, varObj = [], varName = "y"}}}
+
+2) one_svn = VarName "z"
+
+3) one_val = SymVar UnknownGlobalVarSymType "z"
+
+4) two = ER_Expr (SBin (SBin (SymFun ToString (SymFun ToString (SBin (SymInt 1) Add (SymVar Int "n")))) Add (SymString " ")) Add (SymString "is one"))
+-}
+  {-case one_svn of
+    VarName "z" -> throwError
+      $ printf "MEOW::\n\n1) expr = %s\n\n2) one_svn = %s\n\n3) one_val = %s\n\n4) two = %s"
+          (show expr) (show one_svn) (show one_val) (show two)
+    _ -> return ER_Void-}
+  let two_val = case two of
+          ER_Expr e2_@(SymArray mType1 mSize1 elms1) -> case one_val of
+            SymVar (Array type2) _ ->
+              let newType = pick_known_symType2
+                    $ maybe UnknownGlobalVarSymType id mType1
+                    : map toSymType2 elms1
+                    ++ [type2]
+              in cast newType e2_
+            _ -> error $ "TODO1: SymbolicExecution.Method.visitExpr.AssignExpr.e2 ==> " ++ show one_val
           ER_Expr e2_ -> cast (toSymType2 one_val) e2_
           ER_FunCall funCallState ->
             case getReturnSymExpr funCallState of
               Nothing -> error $ printf "visitExpr ~~> AssignExpr ~~> won't happen"
               Just e2_ -> e2_
           ER_SymStateMapEntry _ e2_ -> e2_
-  --throwError $ printf "QWQQ::\n1) %s\n2) %s" (show one) (show two)
+          ER_PredefinedFunCall e2_ -> cast (toSymType2 one_val) e2_
+          _ -> error $ "TODO2: SymbolicExecution.Method.visitExpr.AssignExpr.e2 ==> " ++ show two
+
   tell [Log.Affected "visitExpr -> AssignExpr" [show one, show two]]
-  -- newVal is a transformation of e2. it's the new value
+  -- newVal is a transformation of two_val. it's the new value
   -- inside of newVal, casting is done
   varNames <- getVarNames <$> get
-  let two_newVal = case one of
-        ER_ArrayCallExpr (SArrayIndexAccess arrName index) _ ->
+  let two_newVal = case (one,two_val) of
+        (ER_ArrayCallExpr (SArrayIndexAccess arrName index) _,_) ->
           let Just theArray@(SymArray mt ml elems) = Map.lookup (VarName arrName) varNames
           in case index of
                SymInt num ->
                  let int = fromIntegral num
                  in SymArray mt ml (
                      take int elems ++
-                     [cast (toSymType2 one_val) e2] ++
+                     [cast (toSymType2 one_val) two_val] ++
                      drop (int+1) elems)
                _ -> error $ "TODO1: visitExpr ==> AssignExpr: " ++ show index
-        _ -> cast (toSymType2 one_val) e2
+        (_,SymArray _ _ _) -> -- casting is done during the creation of two_val
+          two_val
+        _ -> cast (toSymType2 one_val) two_val
   -- this case-of sole purpose is creating Log.UpdateVariable
   case one_svn of
     VarName _ ->
@@ -758,8 +800,6 @@ visitExpr expr@AST.AssignExpr{} = do
   -- one: the value of z before it gets updated to 1
   --s1 <- env <$> get
   castGlobalVar (toSymType2 two_newVal) one
-  --s2 <- env <$> get
-  --throwError $ printf "BEFORE:\n%s\n\nAFTER:\n%s" (show s1) (show s2)
 
   -- consider the AssignExpr:
   --   double x;
@@ -767,14 +807,8 @@ visitExpr expr@AST.AssignExpr{} = do
   -- c is a global variable, used for the first time in this assignment
   -- c is a double, and its VarName in the SymState need to be updated accordingly
   castGlobalVar (toSymType2 two_newVal) two
-  --throwError $ printf "QWQQ::\n1) %s\n2) %s" (show one) (show two)
-  {-
-  case (one_svn,e2) of
-    (VarName "res",_) -> return ER_Void
-    (VarName "t",_) -> throwError $ printf "QWQQ::\n1) %s\n2) %s" (show one_svn) (show e2)
-    _ -> return ER_Void
-   -}
-  let toReturn = ER_SymStateMapEntry one_svn e2
+  
+  let toReturn = ER_SymStateMapEntry one_svn two_val
   tell [Log.Return "visitExpr -> AssignExpr" (show toReturn)] $> toReturn
 
 -- VarExpr {varType :: Maybe (Type Types), varObj :: [String], varName :: String}
@@ -871,14 +905,7 @@ visitExpr expr@AST.ExcpExpr{} = do
            Just str -> str)
   let toReturn = ER_Expr symExpr
   tell [Log.Return "visitExpr -> ExcpExpr" (show toReturn)] $> toReturn
-{-
-ArrayInstantiationExpr {
-  arrType = Just (ArrayType {baseType = BuiltInType Int}),
-  arrSize = Nothing,
-  arrElems = [NumberLiteral 6.0,NumberLiteral 5.0,NumberLiteral 4.0,NumberLiteral 7.0,NumberLiteral 8.0]
-}
--}
--- SymArray SymType (Maybe Int) [SymExpr]
+
 visitExpr expr@AST.ArrayInstantiationExpr{} = do
   tell [Log.Expression_2_Handle (show expr) "visitStmt -> ArrayInstantiationExpr"]
   let mArrType = fmap toSymType1 $ AST.arrType expr
@@ -906,10 +933,12 @@ visitExpr expr@AST.ArrayInstantiationExpr{} = do
         (Nothing,_) -> exprs
         (Just num,[]) -> replicate num (SymNull $ maybe (error "visitExpr ==> ArrayInstantiationExpr") arrayElementSymType mArrType)
         (Just num,_) -> exprs
+
   let symExpr = SymArray
         (fmap arrayElementSymType mArrType)
         m_arr_size
         exprs_
+
   return $ ER_Expr symExpr
 visitExpr expr = error $ "What this is: " ++ show expr
 

@@ -189,16 +189,14 @@ expr = AST.BinOpExpr {
 }
 
 symExpr1 :: SYT.SymExpr
-symExpr1 = SYT.SBin
-    (SYT.SymFun SYT.ToString (SYT.SBin (SYT.SymString "1") SYT.Add (SYT.SymVar SYT.String "n")))
-    SYT.Add 
-    (SYT.SymString " ")
+symExpr1 = SYT.SymFun SYT.ToString
+  $ SYT.SBin (SYT.SymInt 1) SYT.Add (SYT.SymVar SYT.Int "n")
 
 symExpr2 :: SYT.SymExpr
-symExpr2 = SYT.SymString "is one"
+symExpr2 = SYT.SymString "!"
 
 symExpr :: SYT.SymExpr
 symExpr = SYT.SBin symExpr1 SYT.Add symExpr2
 
 main :: IO ()
-main = putStrLn $ whichCalculator2 symExpr1 SYT.Add symExpr2
+main = print $ stringCalculator $ SYT.SBin symExpr1 SYT.Add symExpr2
