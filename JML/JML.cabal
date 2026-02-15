@@ -82,10 +82,35 @@ executable JML-exe
 
 test-suite JML-test
   type: exitcode-stdio-1.0
-  main-is: Spec.hs
+  main-is: Main.hs
   other-modules:
       Color
       SymbolicExecution.Spec
+      SymbolicExecution.TargetState
+      Paths_JML
+  autogen-modules:
+      Paths_JML
+  hs-source-dirs:
+      test
+  ghc-options: -Wall -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-home-modules -Wredundant-constraints -rtsopts -with-rtsopts=-N -threaded
+  build-depends:
+      JML
+    , base >=4.7 && <5
+    , containers
+    , directory
+    , mtl
+    , ordered-containers
+    , parsec
+    , tasty
+    , tasty-hunit
+  default-language: Haskell2010
+
+test-suite SymbolicExecution-test
+  type: exitcode-stdio-1.0
+  main-is: SymbolicExecution/Spec.hs
+  other-modules:
+      Color
+      Main
       SymbolicExecution.TargetState
       Paths_JML
   autogen-modules:

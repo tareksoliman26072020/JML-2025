@@ -560,6 +560,8 @@ cast2 vn newType = \case
   symExpr@(SVarBindings _) -> symExpr
   symExpr@(SActions _) -> symExpr
   symExpr@(SymNum _) -> symExpr
+  symExpr@(SymInt _) -> symExpr
+  symExpr@(SymString _) -> symExpr
   symExpr -> error
     $ printf "SymbolicExecution.Internal.cast2 ==> TODO ==> (%s ,, %s)" vn (show symExpr)
 
@@ -583,6 +585,8 @@ lookupPartialSymExprs vn = \case
     | otherwise -> []
   ----------
   SGlobalVars _ -> []
+  ----------
+  SActions symExprs -> concatMap (lookupPartialSymExprs vn) symExprs
   ----------
   SMethodType _ -> []
   ----------
@@ -623,7 +627,6 @@ lookupPartialSymExprs vn = \case
 -- This function was originally written to test `castGlobalVar`
 existsIn :: String -> SymExpr -> Bool
 existsIn vn = \case
-  --SIte SymExpr SymState (Maybe SymState)
   SIte ifCond ifSymState maybeElseSymState ->
     vn `existsIn` ifCond
     || any (vn `existsIn`) (env ifSymState)
@@ -634,12 +637,14 @@ existsIn vn = \case
   SymVar _ vn2 -> vn == vn2
   SymNum _ -> False
   SymInt _ -> False
+  SymString _ -> False
   SGlobalVars _ -> False
   SMethodType _ -> False
   SFormalParms _ -> False
   SBin symExpr1 _ symExpr2 -> any (vn `existsIn`) [symExpr1,symExpr2]
   SVarAssignments _ -> False
   SymUnknown (_,vn2,_) _ -> vn == vn2
+  SymFun pf symExpr -> existsIn vn symExpr
   symExpr -> error
     $ printf "SymbolicExecution.Internal.existsIn ==> TODO ==> (%s ,, %s)" vn (show symExpr)
 
@@ -833,8 +838,8 @@ getFormalParms2 ma =
        _ -> False
 
 -- `getScopedGlobalVarsSymExpr` returns all the SymExprs
--- which are related to all Global variables
--- which occur in a specific scope
+--     which are related to all Global variables
+--     which occur in a specific scope
 
 -- The scope is passed via an SymExpr, such as `SIte SymExpr SymState (Maybe SymState)`
 
@@ -887,7 +892,7 @@ getScopedGlobalVarsSymExprs symExpr = do
       varNameSymExprs :: [(String,[SymExpr])]
       varNameSymExprs = flip map global_vns $ \vn -> (,) vn
         $ concat [symExprs | (vn2,symExprs) <- varNames_with_exprs1, vn2 == vn] ++
-          [symExpr | (vn2,symExpr) <- varNames_with_exprs2, vn2 == vn]
+          [expr | (vn2,expr) <- varNames_with_exprs2, vn2 == vn]
   return varNameSymExprs
 ------------------------------
 ------------------------------
@@ -922,41 +927,3 @@ createSymReason (kind,sr) cfg = map $ \node_coor ->
 ------------------------------
 ------------------------------
 ------------------------------
-
--- replaces an occurrance of formalParam with the given actualParam
--- useful in MethodCall.hs
-substitute :: String -> SymExpr -> SymExpr
-substitute formalParam = \case
-  actualParam@(SBin symExpr1 symBinOp symExpr2) ->
-    SBin (substitute formalParam symExpr1) symBinOp (substitute formalParam symExpr2)
-  {-
-  actualParam@(SymFormalParam symType _ Nothing) -> actualParam
-    --SymActualParam symType formalParam actualParam
-  SymFormalParam symType _ _ -> error "substitute ~~> TODO1"
-    --SymGlobalVar SymType String (Maybe SymExpr)
-  actualParam@(SymGlobalVar t n Nothing) -> actualParam
-  actualParam@(SymGlobalVar _ _ (Just expr)) -> expr
-   -}
-  actualParam@(SymVar _ _) -> actualParam
-  actualParam@(SymInt _) -> actualParam
-  actualParam@(SymArray _ _ _) -> actualParam
-  act -> error $ printf "substitute ~~> TODO2: (%s,%s)" formalParam (show act)
-
--- Extracting ExecutionResult from the monadic type Method_R
--- useful for debugging
-method_R_2_ExecutionResult ::((Config,[CFGT.CFG]),SymState) -> Method_R -> ExecutionResult
-method_R_2_ExecutionResult (r,s) mo =
-  let run_r :: ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))) ExecutionResult
-      run_r = runReaderT mo r--(defaultConfig,cfgs)
-      run_e :: WriterT [Log.Log] (StateT SymState (Either String)) (Either String ExecutionResult)
-      run_e = runExceptT run_r
-      run_w :: StateT SymState (Either String) (Either String ExecutionResult,[Log.Log])
-      run_w = runWriterT run_e
-      mRun_s :: Either String ((Either String ExecutionResult,[Log.Log]),SymState)
-      mRun_s = runStateT run_w s
-  in case mRun_s of
-       Left str -> error $ "method_R_2_ExecutionResult: 1: " ++ str
-     --Right ((ei,logs),SymState m ps) ->
-       Right ((ei,_),_) -> either
-         (\e -> error $ "method_R_2_ExecutionResult: 2: " ++ e)
-         id ei

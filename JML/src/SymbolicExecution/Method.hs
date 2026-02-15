@@ -14,8 +14,6 @@ import Control.Monad (zipWithM,forM_)
 import Control.Applicative (asum)
 import qualified Parser.Types as AST
 import Visitors.API
---import qualified SymbolicExecution.MethodCall as MethodCall (runSymState)
---import qualified SymbolicExecution.VarsInjection as VarsInjection (runSymState)
 import Control.Monad.Writer
 import Text.Printf (printf)
 import Data.Functor (($>))
@@ -321,9 +319,6 @@ instance CFGVisitor Method_SymExec where
                 -- Extract types of global VarNames from the if and else branches
                 -- and use them to cast the global VarNames in the main branch
                 -- symExpr@(SIte ifCond ifSymState mElseSymState)
-                -- newMainGlobalVars
-                -- getVarNames2 :: SymExpr -> [String]
-                -- lookupPartialSymExprs :: String -> SymExpr -> [SymExpr]
                 -- varNameSymExprs :: [(String,[SymExpr])]
                 varNameSymExprs <- getScopedGlobalVarsSymExprs symExpr
                 -- `varNameSymExprs` provides all needed info for the most concrete type

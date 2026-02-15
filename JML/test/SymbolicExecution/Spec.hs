@@ -1,4 +1,4 @@
-module SymbolicExecution.Spec (main) where
+module SymbolicExecution.Spec (run) where
 
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -30,17 +30,11 @@ javaMethodTests =
        let (logs,s) = runCFG cfgs cfg Nothing Nothing--([],SymState Map.empty [])
        return $ testCase (printf "Testing %s" (yellow name)) $
          assertBool (printf "\n\n%s\n\n" (show s){-(Log.ppLogs Log.Console logs)-}) (s == Correct.target name))
-  
-  {-testGroup "All tests"
-    [ testCase (printf "Testing %s" (yellow name)) $
-        assertBool "wrong result" (validateJavaMethod source)
-    | (name, cfg) <- getCFGs javaMethodInputs
-    ]-}
 
 getCFGs :: [(String,String)] -> [(String,CFGT.CFG)]
 getCFGs = map $ \(funName,source) ->
   (funName, CFG1.exec $ fromRight undefined $ parse parseExtDecl "" source)
 
-main :: IO ()
-main = defaultMain javaMethodTests
+run :: IO ()
+run = defaultMain javaMethodTests
 

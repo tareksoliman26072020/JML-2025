@@ -19,6 +19,8 @@ extra-source-files:
 # common to point users to the README.md file.
 description:         Please see the README on GitHub at <https://github.com/githubuser/JML#readme>
 
+ignore-hpack: true
+
 dependencies:
 - base >= 4.7 && < 5
 - parsec
@@ -36,7 +38,8 @@ ghc-options:
 - -Wredundant-constraints
 
 library:
-  source-dirs: src
+  source-dirs:
+    - src
 
 executables:
   JML-exe:
@@ -50,7 +53,18 @@ executables:
 
 tests:
   JML-test:
-    main:                Spec.hs
+    main:                Main.hs
+    source-dirs:         test
+    ghc-options:
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -threaded
+    dependencies:
+    - JML
+    - tasty
+    - tasty-hunit
+  SymbolicExecution-test:
+    main:                SymbolicExecution/Spec.hs
     source-dirs:         test
     ghc-options:
     - -rtsopts
