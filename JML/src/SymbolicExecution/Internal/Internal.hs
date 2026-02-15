@@ -293,7 +293,7 @@ toSymType2 = \case
   SymNum _ -> UnknownNumSymType
   SymString _ -> String
   SException symType _ _ -> symType
-  SymArray mt _ li ->
+  SymArray mt _ li -> Array $
     pick_known_symType2 $ maybe [] ((: []) . id) mt ++ map toSymType2 li
   SymFun t symExpr
     | t == ToString -> String
@@ -510,18 +510,13 @@ cast symType symExpr = case (symType,symExpr) of
          $ printf "TODO1 ~~> cast (%s) (%s)" (show symType) (show symExpr)
   ----------
   --SymArray (Maybe SymType) (Maybe Int) [SymExpr]
-  (Array t,SymArray (Just t2) mInt symExprs)
+  (Array t,SymArray mt2 mInt symExprs)
     | any (t `isInstanceOf`)
-          (t2 : map toSymType2 symExprs) -> SymArray (Just symType) mInt
-        $ map (cast t) symExprs
+          (maybe [] ((: []) . id) mt2 ++ map toSymType2 symExprs) ->
+        SymArray (Just t) mInt
+          $ map (cast t) symExprs
     | otherwise -> error
         $ printf "TODO2 ~~> cast (%s) (%s)" (show symType) (show symExpr)
-  (t,SymArray Nothing mInt symExprs)
-    | any (symType `isInstanceOf`)
-          (map toSymType2 symExprs) -> SymArray (Just symType) mInt
-        $ map (cast $ arrayElementSymType symType) symExprs
-    | otherwise -> error
-        $ printf "TODO3 ~~> cast (%s) (%s)" (show symType) (show symExpr)
   ----------
   (t1,SymFun pf expr) ->
     SymFun pf $ cast t1 expr
@@ -529,8 +524,8 @@ cast symType symExpr = case (symType,symExpr) of
   _
     | toSymType2 symExpr `isInstanceOf` symType -> symExpr
     | symType `isInstanceOf` toSymType2 symExpr -> error
-        $ printf "TODO4 ~~> make type %s ~~> cast (%s) (%s)" (show symType) (show symType) (show symExpr)
-    | otherwise -> error $ printf "TODO5 ~~> cast (%s) (%s)" (show symType) (show symExpr)
+        $ printf "TODO3 ~~> make type %s ~~> cast (%s) (%s)" (show symType) (show symType) (show symExpr)
+    | otherwise -> error $ printf "TODO4 ~~> cast (%s) (%s)" (show symType) (show symExpr)
 
 -- this function checks the relatability of two SymTypes to each other
 -- Int and String are not related (therefore you can't cast one to the other)

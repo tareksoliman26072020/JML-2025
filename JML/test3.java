@@ -1959,12 +1959,10 @@ SymState {
   env = fromList [
     (MethodName "manyArrs",SMethodType Void),
     (VarBindings,SVarBindings (fromList [("numbers",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
-    (VarAssignments,SVarAssignments [
-        ("numbers",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),
-        ("numbers",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}),
-        ("numbers",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 5}})]),
-        (VarName "numbers",SymArray (Just Int) (Just 2) [SymInt 99,SymInt 5]),
-    (Actions,SActions [SymString "[99, 5]\n"])], pc = []}
+    (VarAssignments,SVarAssignments [("numbers",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("numbers",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}),("numbers",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 5}})]),
+    (VarName "numbers",SymArray (Just (Array Int)) (Just 2) [SymInt 99,SymInt 5]),
+    (Actions,SActions [SymString "[99, 5]\n"])
+  ], pc = []}
 */
 public void manyArrs() {
   int[] numbers = new int[2];
@@ -2032,7 +2030,7 @@ SymState {
     (MethodName "manyArrs3",SMethodType (Array Int)),
     (VarBindings,SVarBindings (fromList [("numbers",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
     (VarAssignments,SVarAssignments [("numbers",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}}),("numbers",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}}),("numbers",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 4}})]),
-    (VarName "numbers",SymArray (Just (Array Int)) (Just 2) [SymInt 99,SymInt 5]),
+    (VarName "numbers",SymArray (Just Int) (Just 2) [SymInt 99,SymInt 5]),
     (Return,SymArray (Just (Array Int)) (Just 2) [SymInt 99,SymInt 5])
   ], pc = []}
 */

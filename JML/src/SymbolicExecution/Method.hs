@@ -421,16 +421,7 @@ visitStmt :: AST.Statement -> Method_R
 visitStmt (AST.ReturnStmt (Just expr)) = do
   tell [Log.ReturnStatement (show expr) "visitStmt -> ReturnStmt"]
   er <- visitExpr expr
-{- er
-ER_SymStateMapEntry {
-  er_key = VarName "numbers",
-  er_val = SymArray (Just Int) (Just 2) [SymInt 99,SymInt 5]
-}
--}
   ER_FunHandle t _ <- getFunHandle
-{- t
-Array Int
--}
   let symExpr = cast t $ case getSymExpr er of
         Just symExpr -> symExpr
         Nothing      -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show er
@@ -659,7 +650,6 @@ visitExpr (expr@AST.FunCallExpr{}) = do
           -- funArgsExprs = [SBin (SymInt 1) Add (SymVar Int "n")]
           -- toReturn = ER_Expr (SBin (SymInt 1) Add (SymVar Int "n"))
           let toReturn = ER_PredefinedFunCall $ funCallCalculator (toPredefinedFun $ AST.getFunCallName $ AST.FunCallStmt expr,funArgsExprs)
-          --throwError $ "WFF:: " ++ show toReturn
           tell [Log.Return "visitExpr ==> FunCallExpr" (show toReturn)] $> toReturn
       | otherwise -> throwError $ "visitExpr => FunCallExpr: Method " ++ funCallName ++ " does not exist"
 --BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
@@ -674,6 +664,7 @@ visitExpr expr@AST.BinOpExpr{} = do
     (Just one,Just two) -> do
       let newUnifiedSymType = pick_known_symType (toSymType2 one,toSymType2 two)
       mapM_ (castGlobalVar newUnifiedSymType) [er_one,er_two]
+
       tell [Log.Affected "visitExpr -> BinOpExpr" [show one,show $ AST.binOp expr,show two]]
       let op1 = cast newUnifiedSymType one
           operator = toSymBinOp $ AST.binOp expr
@@ -710,27 +701,6 @@ visitExpr expr@AST.AssignExpr{} = do
 
   two <- visitExpr (AST.assEright expr)
 
-{-
-1) expr = AssignExpr {
-    assEleft = VarExpr {varType = Nothing, varObj = [], varName = "z"},
-    assEright = BinOpExpr {
-        expr1 = BinOpExpr {expr1 = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "toString"}, funArgs = [VarExpr {varType = Nothing, varObj = [], varName = "x"}]}, 
-                           binOp = +,
-                           expr2 = StringLiteral " "},
-        binOp = +,
-        expr2 = VarExpr {varType = Nothing, varObj = [], varName = "y"}}}
-
-2) one_svn = VarName "z"
-
-3) one_val = SymVar UnknownGlobalVarSymType "z"
-
-4) two = ER_Expr (SBin (SBin (SymFun ToString (SymFun ToString (SBin (SymInt 1) Add (SymVar Int "n")))) Add (SymString " ")) Add (SymString "is one"))
--}
-  {-case one_svn of
-    VarName "z" -> throwError
-      $ printf "MEOW::\n\n1) expr = %s\n\n2) one_svn = %s\n\n3) one_val = %s\n\n4) two = %s"
-          (show expr) (show one_svn) (show one_val) (show two)
-    _ -> return ER_Void-}
   let two_val = case two of
           ER_Expr e2_@(SymArray mType1 mSize1 elms1) -> case one_val of
             SymVar (Array type2) _ ->
@@ -738,7 +708,7 @@ visitExpr expr@AST.AssignExpr{} = do
                     $ maybe UnknownGlobalVarSymType id mType1
                     : map toSymType2 elms1
                     ++ [type2]
-              in cast newType e2_
+              in cast (Array newType) e2_
             _ -> error $ "TODO1: SymbolicExecution.Method.visitExpr.AssignExpr.e2 ==> " ++ show one_val
           ER_Expr e2_ -> cast (toSymType2 one_val) e2_
           ER_FunCall funCallState ->
@@ -767,6 +737,9 @@ visitExpr expr@AST.AssignExpr{} = do
         (_,SymArray _ _ _) -> -- casting is done during the creation of two_val
           two_val
         _ -> cast (toSymType2 one_val) two_val
+{-
+two_newVal = SymArray (Just (Array Int)) (Just 2) [SymNull Int,SymNull Int]
+-}
   -- this case-of sole purpose is creating Log.UpdateVariable
   case one_svn of
     VarName _ ->
