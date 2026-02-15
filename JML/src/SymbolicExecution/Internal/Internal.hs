@@ -501,11 +501,11 @@ cast symType symExpr = case (symType,symExpr) of
   ----------
   (UnknownGlobalVarSymType,SymString _) -> symExpr
   ----------
-  (_,SymUnknown (t2,name,mExpr) reasons) ->
-    let t3 = maybe UnknownGlobalVarSymType toSymType2 mExpr
+  (_,SymUnknown (t2,name,expr) reasons) ->
+    let t3 = toSymType2 expr
     in if any (symType `isInstanceOf`) [t2,t3]
          then let newType = pick_known_symType2 [symType,t2,t3]
-              in SymUnknown (newType,name,fmap (\expr -> cast newType expr) mExpr) reasons
+              in SymUnknown (newType,name,cast newType expr) reasons
        else error
          $ printf "TODO1 ~~> cast (%s) (%s)" (show symType) (show symExpr)
   ----------
@@ -619,9 +619,7 @@ lookupPartialSymExprs vn = \case
   SVarAssignments _ -> []
   ----------
   SymUnknown (_,vn2,mex) _
-    | vn == vn2 -> case fmap (lookupPartialSymExprs vn) mex of
-        Nothing -> []
-        Just li -> li
+    | vn == vn2 -> lookupPartialSymExprs vn mex
     | otherwise -> []
   ----------
   SymNum _ -> []

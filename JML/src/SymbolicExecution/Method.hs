@@ -292,7 +292,8 @@ instance CFGVisitor Method_SymExec where
                           Nothing -> Just $ SymUnknown (
                             getUnknownVarSymType_in_if_template varAssName,
                             varAssName,
-                            Nothing) $ newReason_template [coor]
+                            SymVar (getUnknownVarSymType_in_if_template varAssName) varAssName)
+                              $ newReason_template [coor]
                           Just (SymUnknown (t,n,v) oldReasons) -> Just $
                             SymUnknown
                               (pick_known_symType (
@@ -304,7 +305,7 @@ instance CFGVisitor Method_SymExec where
                             pick_known_symType (
                               toSymType2 val,
                               (getUnknownVarSymType_in_if_template varAssName)),
-                            varAssName,Just val)
+                            varAssName,val)
                             $ newReason_template [coor]) (VarName varAssName) ma)
                             ma1 unknownVarAssigns
                   
@@ -1127,7 +1128,7 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
                  [] -> ma
                  _ -> Map.alter (\case
                    ---createSymReason :: (CFGT.Kind,CFGT.ScopeRange) -> CFGT.CFG -> [CFGT.Node_Coor] -> [SymReason]
-                   Nothing -> Just $ SymUnknown (toSymType2 val,vn,Nothing)
+                   Nothing -> Just $ SymUnknown (toSymType2 val,vn,SymVar (toSymType2 val) vn)
                      $ createSymReason (CFGT.For,branchRange) cfg node_coors
                    ---
                    Just (SymUnknown tu reasons) -> Just $ SymUnknown tu
@@ -1148,7 +1149,7 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
                      | otherwise ->  Just $ SymUnknown (
                      pick_known_symType (toSymType2 oldVal,toSymType2 val),
                      vn,
-                     Just oldVal) $ createSymReason (CFGT.For,branchRange) cfg node_coors 
+                     oldVal) $ createSymReason (CFGT.For,branchRange) cfg node_coors 
                    ) (VarName vn) ma
             ) map_withVarAssignments forBody_Some_VarNames
 
