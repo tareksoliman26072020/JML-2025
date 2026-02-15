@@ -11,6 +11,7 @@ import qualified Prelude (abs)
 import SymbolicExecution.Internal.Internal
 import SymbolicExecution.Types
 import qualified Data.Map as Map (Map,lookup)
+import Data.List (intercalate)
 
 numericCalculator :: SymExpr -> SymExpr
 numericCalculator = \case
@@ -91,27 +92,6 @@ numericCalculator2 op = \case
   (a@(SymNum 0), b) | op == Sub -> negate b
   (a, b@(SymNum 0)) | op == Sub -> a
   -- arithmetics on vars
-{- TODELETE
-  (a@(SymFormalParam t1 varName1 m1), b@(SymFormalParam t2 varName2 m2))
-    | op == Add && varName1 == varName2 && (isNothing $ m1 <|> m2)
-        -> SBin (cast t1 $ SymNum 2) Mul a
-    | op == Add && varName1 == varName2 && (isJust $ m1 <|> m2)
-        -> SBin (cast t1 $ SymNum 2) Mul (fromJust $ m1 <|> m2)
-    | op == Sub && varName1 == varName2 -> cast t1 (SymNum 0)
-  (a@(SymFormalParam _ _ m1), b@(SymFormalParam _ _ m2))
-    -> SBin (maybe a id m1) op (maybe b id m2)
-  --
-  (a@(SymGlobalVar t1 varName1 m1), b@(SymGlobalVar t2 varName2 m2))
-    | op == Add && varName1 == varName2 && (isNothing $ m1 <|> m2)
-        -> SBin (cast (pick_known_symType (t1,t2)) $ SymNum 2) Mul a
-    | op == Add && varName1 == varName2 && (isJust $ m1 <|> m2)
-        -> SBin (cast (pick_known_symType (t1,t2)) $ SymNum 2) Mul (fromJust $ m1 <|> m2)
-    | op == Sub && varName1 == varName2
-        -> cast (pick_known_symType (t1,t2)) (SymNum 0)
-  (a@(SymGlobalVar t1 _ m1), b@(SymGlobalVar t2 _ m2))
-    -> let t = pick_known_symType (t1,t2)
-       in SBin (maybe (cast t a) id m1) op (maybe (cast t b) id m2)
--}
   (a@(SymVar t1 varName1),b@(SymVar t2 varName2))
     | op == Add && varName1 == varName2 ->
         let t3 = pick_known_symType (t1,t2)
@@ -588,35 +568,12 @@ numericCalculator2 op = \case
         expr2 = numericCalculator2 op1 (cast symType symExpr1,cast symType symExpr2)
         in SBin expr1 op expr2
 ----------
-{- TODELETE
-  (a, b@(SymFormalParam t _ Nothing)) ->
-    SBin (cast t a) op b
-  (a, SymFormalParam t _ (Just symExpr)) ->
-    error $ "numericCalculator: won't happen because of the function `simplify`"
-  (a@(SymFormalParam t _ Nothing), b) ->
-    SBin a op (cast t b)
-  (SymFormalParam t _ (Just symExpr), b) ->
-    error $ "numericCalculator: won't happen because of the function `simplify`"
- -}
   (a, b@(SymVar t _)) ->
     let t3 = pick_known_symType (toSymType2 a,t)
     in SBin (cast t3 a) op (cast t3 b)
   (a@(SymVar t _), b) ->
     let t3 = pick_known_symType (t,toSymType2 b)
     in SBin (cast t3 a) op (cast t3 b)
-----------
-{- TODELETE
-  (a, b@(SymGlobalVar t _ Nothing)) ->
-    let t2 = pick_known_symType (toSymType2 a,t)
-    in SBin (cast t2 a) op b
-  (a, SymGlobalVar t _ (Just symExpr)) ->
-    error $ "numericCalculator: won't happen because of the function `simplify`"
-  (a@(SymGlobalVar t _ Nothing), b) ->
-    let t2 = pick_known_symType (t, toSymType2 b)
-    in SBin a op (cast t2 b)
-  (SymGlobalVar t _ (Just symExpr), b) ->
-    error $ "numericCalculator: won't happen because of the function `simplify`"
--}
 ----------
   (a@(SException _ _ _),b) -> a
   (a,b@(SException _ _ _)) -> b
@@ -626,14 +583,14 @@ numericCalculator2 op = \case
   (a,b@(SymUnknown (t,_,_) _)) ->
     SBin (cast t a) op b
 ----------
-  (a@(SymFun t1 symExpr1),b@(SymFun t2 symExpr2)) ->
-    let t3 = pick_known_symType2 [t1,t2,toSymType2 symExpr1, toSymType2 symExpr2]
+  (a@(SymFun _ symExpr1),b@(SymFun _ symExpr2)) ->
+    let t3 = pick_known_symType (toSymType2 symExpr1, toSymType2 symExpr2)
     in SBin (cast t3 a) op (cast t3 b)
-  (a@(SymFun t1 symExpr1),b) ->
-    let t3 = pick_known_symType2 [t1,toSymType2 symExpr1,toSymType2 b]
+  (a@(SymFun _ symExpr1),b) ->
+    let t3 = pick_known_symType (toSymType2 symExpr1,toSymType2 b)
     in SBin (cast t3 a) op (cast t3 b)
-  (a,b@(SymFun t2 symExpr2)) ->
-    let t3 = pick_known_symType2 [toSymType2 a,t2,toSymType2 symExpr2]
+  (a,b@(SymFun _ symExpr2)) ->
+    let t3 = pick_known_symType (toSymType2 a,toSymType2 symExpr2)
     in SBin (cast t3 a) op (cast t3 b)
 ----------
   (a,b) -> error $ printf "numericCalculator: (%s ,, %s ,, %s)" (show a) (show op) (show b)
@@ -673,14 +630,6 @@ booleanCalculator2 op = \case
   (SymFloat num1, SymFloat num2) ->
     SBool $ getArithBoolOp op num1 num2
   ----------
-{- TODELETE
-  (a@(SymFormalParam _ _ m1), b@(SymFormalParam _ _ m2))
-    -> SBin (maybe a id m1) op (maybe b id m2)
-  (a@(SymFormalParam t _ m1), b)
-    -> SBin (maybe a id m1) op (cast t b)
-  (a, b@(SymFormalParam t _ m2))
-    -> SBin (cast t a) op (maybe b id m2)
- -}
   (a@(SymVar t1 _), b@(SymVar t2 _)) ->
     let t3 = pick_known_symType (t1,t2)
     in SBin (cast t3 a) op (cast t3 b)
@@ -695,18 +644,6 @@ booleanCalculator2 op = \case
     -> SBin a op (cast (toSymType2 a) b)
   (a, b@(SObjAcc li))
     -> SBin (cast (toSymType2 b) a) op b
-  ----------
-{- TODELETE
-  (a@(SymGlobalVar t1 _ m1),b@(SymGlobalVar t2 _ m2))
-    -> let t = pick_known_symType (t1,t2)
-       in SBin (maybe (cast t a) id m1) op (maybe (cast t b) id m2)
-  (a@(SymGlobalVar t _ m), b)
-    -> let t2 = pick_known_symType (t,toSymType2 b)
-       in SBin (maybe (cast t2 a) id m) op (cast t2 b)
-  (a, b@(SymGlobalVar t _ m))
-    -> let t2 = pick_known_symType (toSymType2 a,t)
-       in SBin (cast t2 a) op (maybe (cast t2 b) id m)
- -}
   ----------
   (a@(SymNum _),b) ->
     SBin (cast (toSymType2 b) a) op b
@@ -733,7 +670,25 @@ booleanCalculator2 op = \case
         b2 = (whichFun op2) b
     in SBin a2 op b2
   ----------
-  (p1,p2) -> error $ printf "booleanCalculator2: %s" (show p1)
+  (a@(SymFun pf1 expr1),b@(SymFun pf2 expr2))
+    | a == b -> a
+    | otherwise ->
+        let newType
+              | any (== ToString) [pf1,pf2] = String
+              | otherwise = pick_known_symType (toSymType2 expr1,toSymType2 expr2)
+        in SBin (cast newType a) op (cast newType b)
+  (a@(SymFun pf expr1),b) ->
+    let newType
+          | pf == ToString = String
+          | otherwise = pick_known_symType (toSymType2 expr1,toSymType2 b)
+        in SBin (cast newType a) op (cast newType b)
+  (a,b@(SymFun pf expr2)) ->
+    let newType
+          | pf == ToString = String
+          | otherwise = pick_known_symType (toSymType2 a,toSymType2 expr2)
+        in SBin (cast newType a) op (cast newType b)
+  ----------
+  (p1,p2) -> error $ printf "booleanCalculator2: (%s ,, %s ,, %s)" (show p1) (show op) (show p1)
   ----------
 
 ----------------------------------------------------------------------
@@ -760,12 +715,6 @@ objAccCalculator varNames = \case
 
 objAccCalculator2 :: SymExpr -> SymExpr -> SymExpr
 objAccCalculator2 expr@(SObjAcc [varName,methodCall]) = \case
-{- TODELETE
-  SymFormalParam _ _ Nothing -> expr
-  SymFormalParam _ _ (Just expr2) -> objAccCalculator2 expr expr2
-  SymGlobalVar _ _ Nothing -> expr
-  SymGlobalVar _ _ (Just expr2) -> objAccCalculator2 expr expr2
- -}
   SymVar _ _ -> expr
   SymArray _ mLength elems
     | methodCall == "length" -> SymInt
@@ -809,21 +758,22 @@ stringCalculator2 Add = \case
         rec2 = stringCalculator e2
     in SBin rec1 Add rec2
   ----------
-  (e1@(SymFun _ expr1),e2@(SymFun _ expr2)) ->
+  (e1@(SymFun pf1 expr1),e2@(SymFun pf2 expr2))
+    | pf1 == pf2 ->
+        SBin
+            (SymFun pf1 (cast String expr1))
+            Add
+            (SymFun pf1 (cast String expr1))
+  (e1@(SymFun pf expr1),e2) ->
     SBin
-        (SymFun String (cast String expr1))
-        Add
-        (SymFun String (cast String expr1))
-  (e1@(SymFun _ expr1),e2) ->
-    SBin
-        (SymFun String (cast String expr1))
+        (SymFun pf (cast String expr1))
         Add
         (cast String e2)
-  (e1,e2@(SymFun _ expr2)) ->
+  (e1,e2@(SymFun pf expr2)) ->
     SBin
         (cast String e1)
         Add
-        (SymFun String (cast String expr2))
+        (SymFun pf (cast String expr2))
   ----------
   expr -> error $ "TODO: stringCalculator2: " ++ show expr
 
@@ -837,24 +787,49 @@ stringCalculator2 Add = \case
 {-
 toString ==> returns SymString
 -}
-funCallCalculator :: (String,[SymExpr]) -> ExecutionResult
+funCallCalculator :: (PredefinedFun,[SymExpr]) -> SymExpr
 funCallCalculator = \case
-  ("toString",[argExpr]) -> case argExpr of
-     SymInt num -> ER_Expr $ SymString $ show num
-     SymString _ -> ER_Expr $ argExpr
-     SymArray _ _ _ -> ER_Expr $ SymString $ ppSymExpr argExpr
-     SymNum num -> ER_Expr $ SymString $ show num
+  (ToString,[argExpr]) -> case argExpr of
+     SymInt num -> SymString $ show num
+     SymString str -> SymString $ printf "\"%s\"" str
+     -- `SymFun String` is the same as `SymString`
+     SymFun ToString _ -> SymFun ToString argExpr
+     SymArray _ _ _ -> SymString $ ppSymExpr argExpr
+     SymArray mt ms symExprs ->
+       let (areSymStrings,symExprs2) =
+             let two = flip map symExprs $ \expr ->
+                   let se = funCallCalculator (ToString,[expr])
+                   in se
+             in flip (,) two $ foldr (\r l -> case r of
+                  SymString _ -> l
+                  _           -> False) True symExprs2
+       in if areSymStrings
+            then SymString
+                 $ printf "[%s]" (intercalate ", " $ flip map symExprs2 (\(SymString str) -> str))
+          else SymFun ToString $ SymArray mt ms symExprs2
+     SymNum num -> SymString $ show num
+     symExpr@(SymVar _ _) -> cast String symExpr
      SBin expr1 op expr2 ->
        case (whichCalculator expr1 op expr2) argExpr of
          res
-           | res == argExpr -> ER_Expr $ SymFun String (cast String res)
-           | otherwise -> funCallCalculator ("toString",[res])
+           | res == argExpr -> SymFun ToString (cast String res)
+           | otherwise -> funCallCalculator (ToString,[res])
      _ -> error $ "TODO1: funCallCalculator ==> " ++ show argExpr
-  (funName,[argExpr])
-    | funName `elem` ["print","println"] ->
-        let ER_Expr (SymString str) = funCallCalculator ("toString",[argExpr])
-        in ER_Print $ str ++ if funName == "print" then "" else "\n"
-  tu@(funName,argsExprs) -> error $ "TODO2: funCallCalculator ==> " ++ show tu
+  (funName,[argExpr])        
+    | funName `elem` [Print,Println] ->
+        {-let ER_Expr (SymString str) = funCallCalculator (ToString,[argExpr])
+        in ER_Print $ str ++ if funName == Print then "" else "\n"-}
+         let x = flatten $ funCallCalculator (ToString,[argExpr])
+         in case x of
+              SymString str -> SymString $ str ++ if funName == Print then "" else "\n"
+              s@(SymFun pf expr) -> SymFun funName s
+    where
+    flatten symExpr
+      | toSymType2 argExpr == String = case symExpr of
+          SymString ('\"' : rest) -> SymString (init rest)
+          SymFun _ _ -> error $ "TODO2: funCallCalculator ==> " ++ show symExpr
+      | otherwise = symExpr
+  tu@(funName,argsExprs) -> error $ "TODO3: funCallCalculator ==> " ++ show tu
 
 ----------------------------------------------------------------------
 ----------------------------------------------------------------------

@@ -309,11 +309,38 @@ instance CFGVisitor Method_SymExec where
                             varAssName,Just val)
                             $ newReason_template [coor]) (VarName varAssName) ma)
                             ma1 unknownVarAssigns
-
+                  
                   in SymState {
                     env = ma2,
                     pc = pc symState
                   }
+                -- the branching for the if and else
+                -- may provide more concrete informations about
+                -- global VarNames in the main branch
+                --
+                -- Extract types of global VarNames from the if and else branches
+                -- and use them to cast the global VarNames in the main branch
+                -- symExpr@(SIte ifCond ifSymState mElseSymState)
+                -- newMainGlobalVars
+                -- getVarNames2 :: SymExpr -> [String]
+                -- lookupPartialSymExprs :: String -> SymExpr -> [SymExpr]
+                -- varNameSymExprs :: [(String,[SymExpr])]
+                varNameSymExprs <- getScopedGlobalVarsSymExprs symExpr
+                -- `varNameSymExprs` provides all needed info for the most concrete type
+                -- of all global variables available at this point
+                -- record it:
+                modify $ \symState -> SymState {
+                  env = flip Map.mapWithKey (env symState) $ \k v -> case k of
+                    VarName vn -> case lookup vn varNameSymExprs of
+                      Nothing -> v
+                      Just symExprs ->
+                        let newType = pick_known_symType2
+                              $ map toSymType2
+                              $ v : symExprs
+                        in cast newType v
+                    _ -> v,
+                  pc = pc symState
+                }
                 return (ER_Expr symExpr)
         
         tell [Log.Return "visitNode -> Node -> BooleanExpression If" (show toReturn)] $> toReturn
@@ -424,14 +451,14 @@ visitStmt stmt@(AST.FunCallStmt expr) = case expr of
   AST.FunCallExpr{} -> do
     toReturn <- visitExpr expr
     case toReturn of
-      ER_Print str -> do
-        tell [Log.ModifyState "visitStmt -> FunCallStmt" ("SActions",str)]
+      ER_PredefinedFunCall symExpr -> do
+        tell [Log.ModifyState "visitStmt -> FunCallStmt" ("SActions",show symExpr)]
         modify $ \symState ->
           SymState {
             -- alter :: Ord k => (Maybe a -> Maybe a) -> k -> Map k a -> Map k a 
             env = Map.alter (\case
-                    Nothing -> Just $ SActions [str]
-                    Just (SActions li) -> Just $ SActions $ li ++ [str]) Actions (env symState),
+                    Nothing -> Just $ SActions [symExpr]
+                    Just (SActions li) -> Just $ SActions $ li ++ [symExpr]) Actions (env symState),
             pc = pc symState
           }
         tell [Log.Return "visitStmt -> FunCallStmt" (show toReturn)] $> toReturn
@@ -630,7 +657,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
               ER_Expr expr -> return expr
           -- funArgsExprs = [SBin (SymInt 1) Add (SymVar Int "n")]
           -- toReturn = ER_Expr (SBin (SymInt 1) Add (SymVar Int "n"))
-          let toReturn = funCallCalculator (AST.getFunCallName $ AST.FunCallStmt expr,funArgsExprs)
+          let toReturn = ER_PredefinedFunCall $ funCallCalculator (toPredefinedFun $ AST.getFunCallName $ AST.FunCallStmt expr,funArgsExprs)
           --throwError $ "WFF:: " ++ show toReturn
           tell [Log.Return "visitExpr ==> FunCallExpr" (show toReturn)] $> toReturn
       | otherwise -> throwError $ "visitExpr => FunCallExpr: Method " ++ funCallName ++ " does not exist"
@@ -657,15 +684,6 @@ visitExpr expr@AST.BinOpExpr{} = do
             "booleanCalculator" -> booleanCalculator
           calculating = calculator (SBin op1 operator op2)
           toReturn = ER_Expr $ calculating
-      {-if op2 `notElem` [SymVar Int "n",SymInt 1,SymString " "]
-        then throwError $ printf "MEOW::\n\n1) %s\n\n2) %s\n\n3) %s\n\n4) %s\n\n5) visitExpr %s = %s\n\n6) %s"
-            {-1-}(show $ SBin op1 operator op2)
-            {-2-}(show expr)
-            {-3-}(show er_one)
-            {-4-}(show mOne)
-            {-5-}(show $ AST.expr1 expr) (show er_one)
-            {-6-}(show $ calculating)
-        else return ER_Void-}
       tell [Log.Return (printf "visitExpr -> BinOpExpr -> %s"
                           calculatorType) (show toReturn)
            ] $> toReturn
@@ -690,11 +708,6 @@ visitExpr expr@AST.AssignExpr{} = do
   
   let e2 = case two of
           ER_Expr e2_ -> cast (toSymType2 one_val) e2_
-            {-let res = cast (toSymType2 one_val) e2_
-            in error $ printf "MEOW::\n1) %s\n\n2) %s\n\n3) %s"
-                 {-1-}(show one_val)
-                 {-2-}(show e2_)
-                 {-3-}(show res)-}
           ER_FunCall funCallState ->
             case getReturnSymExpr funCallState of
               Nothing -> error $ printf "visitExpr ~~> AssignExpr ~~> won't happen"
@@ -717,13 +730,6 @@ visitExpr expr@AST.AssignExpr{} = do
                      drop (int+1) elems)
                _ -> error $ "TODO1: visitExpr ==> AssignExpr: " ++ show index
         _ -> cast (toSymType2 one_val) e2
-{-
-        _ -> error $ printf "MEOW:: \n1) %s\n\n2) %s\n\n3) %s\n\n4) %s" --cast (toSymType2 one_val) e2
-          {-1-}(show one)
-          {-2-}(show one_val)
-          {-3-}(show two)
-          {-4-}(show e2)
- -}
   -- this case-of sole purpose is creating Log.UpdateVariable
   case one_svn of
     VarName _ ->

@@ -12,9 +12,9 @@ import qualified CFG.Internal as CFG (getPathToScope)
 import qualified Parser.Types as AST
 import Text.Printf (printf)
 import Control.Applicative (Alternative(empty),asum,(<|>))
-import qualified Data.Map as Map (lookup,empty,Map,filterWithKey,insert,foldMapWithKey,toList,alter,notMember,alterF,traverseWithKey)
+import qualified Data.Map as Map (lookup, empty, Map, filterWithKey, insert, foldMapWithKey, toList, alter, notMember, alterF, traverseWithKey, null, mapWithKey, map)
 import Prelude hiding (negate)
-import Data.List (nub,find)
+import Data.List (nub,find,foldl')
 import Control.Monad (forM_, foldM_)
 
 ------------------------------
@@ -221,10 +221,6 @@ isSymFun = \case
   SymFun _ _ -> True
   _ -> False
 
-isSymFun2 :: SymExpr -> SymType -> Bool
-isSymFun2 (SymFun t _) symType = t == symType
-isSymFun2 _ _ = False
-
 isVar :: SymExpr -> Bool
 isVar = \case
   SymNum _ -> False
@@ -237,7 +233,7 @@ isVar = \case
   SymVar _ _ -> True
   SymString _ -> False
   SymUnknown _ _ -> True
-  SymFun t symExpr -> isVar symExpr
+  SymFun _ symExpr -> isVar symExpr
   expr -> error $ "TODO: isVar: " ++ show expr
 
 isArray :: SymExpr -> Bool
@@ -299,9 +295,10 @@ toSymType2 = \case
   SException symType _ _ -> symType
   SymArray mt _ li ->
     pick_known_symType2 $ maybe [] ((: []) . id) mt ++ map toSymType2 li
---SymFun String
-  SymFun t symExpr -> pick_known_symType (t,toSymType2 symExpr)
-  symExpr -> error $ "TODO2: toSymType2 ==> " ++ show symExpr
+  SymFun t symExpr
+    | t == ToString -> String
+    | otherwise -> toSymType2 symExpr
+  symExpr -> error $ "TODO2: toSymType2 ==> " {-++ replicate 50 '\n'-}++ show symExpr
 
 pick_known_symType :: (SymType,SymType) -> SymType
 pick_known_symType = \case
@@ -334,6 +331,7 @@ getSymExpr = \case
   ER_SymStateMapEntry _ symExpr -> Just symExpr
   ER_FunCall symState -> getReturnSymExpr symState
   ER_ArrayCallExpr _ symExpr -> Just symExpr
+  ER_PredefinedFunCall symExpr -> Just symExpr
   er -> error $ "getSymExpr ~~> TODO: " ++ show er
 
 -- alters the type of a global variable based on the expression and the scope it exists in
@@ -353,10 +351,11 @@ castGlobalVar newType = \case
     let vns :: [String] -- vns are global variables mentioned in val
         vns = filter (flip isGlobalVariable2 theEnv) (nub $ key : getVarNames2 val)
     -- foldM_ :: (Foldable t, Monad m) => (b -> a -> m b) -> b -> t a -> m ()
+    -- search for each occurrence of `vn` in `vns` in `theEnv`
+    --     and adjust its type
     foldM_ (\ma vn -> do
       ma2 <- Map.alterF (\case
             Nothing -> pure $ Just
-              -- $ SymGlobalVar newType vn Nothing
               $ SymVar newType vn
             Just oldSymExpr ->
               let newType2 = pick_known_symType2
@@ -366,17 +365,24 @@ castGlobalVar newType = \case
                  else do
                    let newSymExpr :: SymExpr
                        newSymExpr = cast newType2 oldSymExpr
-                         --error $ printf "W::: (%s,%s)" (show newType2) (show oldSymExpr)
-                         --changeSymExprType newType2 oldSymExpr
                    tell [Log.UpdateVariable (vn,show oldSymExpr,show newSymExpr) "castGlobalVar"]
                    pure $ Just newSymExpr)
             (VarName vn) ma
-      
+      -- the global variable vn may get mentioned in expressions other than VarName,
+      -- and their types may need casting
+      let ma3 = flip Map.mapWithKey ma2 $ \k v -> case (k,v) of
+            (VarName _,_) -> v
+            (_,symExpr) ->
+              let innerSymExprs = lookupPartialSymExprs vn symExpr
+                  newType2 = pick_known_symType2
+                    $ (map toSymType2 innerSymExprs) ++ [toSymType2 val] ++ [newType]
+              in cast2 vn newType2 symExpr
+      -- modify the state accordingly
       modify $ \symState -> SymState {
-        env = ma2,
+        env = ma3,
         pc = pc symState
       }
-      return ma2
+      return ma3
       ) theEnv vns
   _ -> return ()
 
@@ -445,6 +451,14 @@ newSymNum = \case
   Sub -> SymNum (-1)
   _   -> error "won't happen"
 
+isTypeNumeric :: SymType -> Bool
+isTypeNumeric = \case
+  Int -> True
+  Double -> True
+  Float -> True
+  UnknownNumSymType -> True
+  _ -> False
+
 -- The type of the variable in `symExpr` needs to conform to `symType`.
 -- This matters in the context of `AssignExpr`, and `BinOpExpr`
 cast :: SymType -> SymExpr -> SymExpr
@@ -462,8 +476,7 @@ cast symType symExpr = case (symType,symExpr) of
   --(Array t,SymNum num) -> cast t (SymNum num)
   --(Array t, SymNull _) -> 
   ----------
-  (UnknownGlobalVarSymType,SymNum _) -> symExpr
-  (UnknownGlobalVarSymType,SymString str) -> SymString str
+  (UnknownGlobalVarSymType,_) -> symExpr
   ----------
   (UnknownNumSymType,SymNum _) -> symExpr
   ----------
@@ -472,8 +485,9 @@ cast symType symExpr = case (symType,symExpr) of
   (String,SymString str) -> SymString str
   (String,SymNull _) -> SymNull String
   ----------
-  (t,SymUnknown (t2,name,mExpr) reasons) ->
-    SymUnknown (t,name,fmap (\expr -> cast t expr) mExpr) reasons
+  (_,SymUnknown (t2,name,mExpr) reasons) ->
+    let newType = pick_known_symType (symType,t2)
+    in SymUnknown (newType,name,fmap (\expr -> cast newType expr) mExpr) reasons
   ----------
   (t,SBin expr1 op expr2) -> SBin (cast t expr1) op (cast t expr2)
   ----------
@@ -481,18 +495,153 @@ cast symType symExpr = case (symType,symExpr) of
   (t,SymArray _ mInt symExprs) -> SymArray
       (Just t) mInt (map (cast $ arrayElementSymType t) symExprs)
   ----------
-{-
-  (_,SymGlobalVar t s m) ->
-    let t2 = pick_known_symType (symType,t)
-    in maybe (SymGlobalVar t2 s Nothing) (cast symType) m
--}
-  (_,SymVar t s) ->
-    --let t2 = pick_known_symType (symType,t)
-    SymVar symType s
-
+  (String,SymVar t vn)
+    | t /= String -> SymFun ToString $ SymVar (pick_known_symType (t,String)) vn
+  ----------
+  (_,SymVar t s)
+    | symType `isHomogeneousTo` t ->
+        let newType = pick_known_symType (symType,t)
+        in SymVar newType s 
+    | otherwise -> error
+        $ printf "SymbolicExecution.Internal.cast %s %s ==> won't happen"
+            (show symType) (show symExpr)
+  ----------
+  (_,SBin expr1 op expr2) -> SBin (cast symType expr1) op (cast symType expr2)
+  ----------
+  (String, SymFun ToString _) -> symExpr
+  ----------
   (t1,SymFun _ expr) ->
-    SymFun t1 (cast t1 expr)
-  (_,_) -> error $ printf "TODO ~~> cast (%s) (%s)" (show symType) (show symExpr)
+    error $ printf "TODO1 ~~> cast (%s) (%s)" (show symType) (show symExpr)
+  (_,_) -> error $ printf "TODO2 ~~> cast (%s) (%s)" (show symType) (show symExpr)
+
+-- this function checks the relatability of two SymTypes to each other
+-- Int and String are not related (therefore you can't cast one to the other)
+-- `UnknownNumSymType` is related to Int, Double, etc..., but not to String
+-- `UnknownGlobalVarSymType` is related to all types
+isHomogeneousTo :: SymType -> SymType -> Bool
+isHomogeneousTo UnknownGlobalVarSymType _ = True
+isHomogeneousTo _ UnknownGlobalVarSymType = True
+isHomogeneousTo UnknownNumSymType t2 = isTypeNumeric t2
+isHomogeneousTo t1 UnknownNumSymType = isTypeNumeric t1
+
+isHomogeneousTo t1 t2 = t1 == t2
+
+-- the difference between `cast` and `cast2`
+--     is that `cast` adjusts the type of the SymExpr,
+--     while `cast2` adjusts SymExpr partially
+
+-- `vn` is searched in `symExpr`,
+--     and only that parts in `symExpr` which contain `vn`
+--     are being casted
+
+-- SBin is treated as atomic,
+--     which means this functions is only relevant for SIte, SFor, etc
+cast2 :: String -> SymType -> SymExpr -> SymExpr
+cast2 vn newType = \case
+  SIte ifCond ifSymState maybeElseSymState ->
+    let ifCond2 = cast2 vn newType ifCond
+        ifSymState2 = SymState (Map.map (cast2 vn newType) (env ifSymState)) (pc ifSymState)
+        maybeElseSymState2 = flip fmap maybeElseSymState $ \elseSymState ->
+          SymState (Map.map (cast2 vn newType) (env elseSymState)) (pc elseSymState)
+    in SIte ifCond2 ifSymState2 maybeElseSymState2
+  symExpr@(SymVar _ vn2)
+    | vn == vn2 -> cast newType symExpr
+    | otherwise -> symExpr
+  symExpr@(SGlobalVars _) -> symExpr
+  symExpr@(SMethodType _) -> symExpr
+  symExpr@(SFormalParms _) -> symExpr
+  symExpr@(SBin _ op _)
+    | vn `existsIn` symExpr -> cast newType symExpr
+    | otherwise -> symExpr
+  symExpr@(SVarAssignments _) -> symExpr
+  symExpr@(SymUnknown (_,vn2,_) _)
+    | vn == vn2 -> cast newType symExpr
+    | otherwise -> symExpr
+  symExpr@(SVarBindings _) -> symExpr
+  symExpr@(SActions _) -> symExpr
+  symExpr@(SymNum _) -> symExpr
+  symExpr -> error
+    $ printf "SymbolicExecution.Internal.cast2 ==> TODO ==> (%s ,, %s)" vn (show symExpr)
+
+-- A non-atomic SymExpr contains a plural number of SymExprs.
+-- This function returns all inner SymExprs inside that non-atomic SymExpr
+--     which contain that VarName `vn`
+-- So far, this function is relevant in finding out the types of SymExprs
+--     that is why in SymUnknown, the SymExpr gets mutated (SymUnknown is not returned)
+lookupPartialSymExprs :: String -> SymExpr -> [SymExpr]
+lookupPartialSymExprs vn = \case
+  ----------
+  SIte ifCond ifSymState maybeElseSymState ->
+    lookupPartialSymExprs vn ifCond ++
+    foldl' (\l -> lookupPartialSymExprs vn) [] (env ifSymState) ++
+    case maybeElseSymState of
+      Just elseSymState -> foldl' (\l -> lookupPartialSymExprs vn) [] (env elseSymState)
+      Nothing -> []
+  ----------
+  symExpr@(SymVar _ vn2)
+    | vn == vn2 -> [symExpr]
+    | otherwise -> []
+  ----------
+  SGlobalVars _ -> []
+  ----------
+  SMethodType _ -> []
+  ----------
+  SFormalParms _ -> []
+  ----------
+  SVarBindings _ -> []
+  ----------
+  symExpr@(SBin symExpr1 _ symExpr2) ->
+    let one = concatMap (lookupPartialSymExprs vn) [symExpr1,symExpr2]
+    in if null one
+         then []
+       else one ++ [symExpr] -- because SBin is somehow atomic even though it is not :/
+  ----------
+  SVarAssignments _ -> []
+  ----------
+  SymUnknown (_,vn2,mex) _
+    | vn == vn2 -> case fmap (lookupPartialSymExprs vn) mex of
+        Nothing -> []
+        Just li -> li
+    | otherwise -> []
+  ----------
+  SymNum _ -> []
+  ----------
+  SymInt _ -> []
+  ----------
+  SymString _ -> []
+  ----------
+  symExpr@(SymFun pf innerSymExpr) ->
+    let x = lookupPartialSymExprs vn innerSymExpr
+    in if null x
+         then []
+       else x ++ [symExpr]
+  ----------
+  symExpr -> error
+    $ printf "SymbolicExecution.Internal.lookupPartialSymExprs ==> TODO ==> (%s ,, %s)" vn (show symExpr)
+
+-- it tells whether a VarName exists in a SymExpr
+-- This function was originally written to test `castGlobalVar`
+existsIn :: String -> SymExpr -> Bool
+existsIn vn = \case
+  --SIte SymExpr SymState (Maybe SymState)
+  SIte ifCond ifSymState maybeElseSymState ->
+    vn `existsIn` ifCond
+    || any (vn `existsIn`) (env ifSymState)
+    || case (fmap (any (vn `existsIn`) . env) maybeElseSymState) of
+         Nothing -> False
+         Just False -> False
+         Just True -> True
+  SymVar _ vn2 -> vn == vn2
+  SymNum _ -> False
+  SymInt _ -> False
+  SGlobalVars _ -> False
+  SMethodType _ -> False
+  SFormalParms _ -> False
+  SBin symExpr1 _ symExpr2 -> any (vn `existsIn`) [symExpr1,symExpr2]
+  SVarAssignments _ -> False
+  SymUnknown (_,vn2,_) _ -> vn == vn2
+  symExpr -> error
+    $ printf "SymbolicExecution.Internal.existsIn ==> TODO ==> (%s ,, %s)" vn (show symExpr)
 
 isUnknownGlobalVarSymType :: SymType -> Bool
 isUnknownGlobalVarSymType = \case
@@ -627,6 +776,7 @@ getVarNames2 = \case
   SymNum _ -> []
   SException _ _ _ -> []
   SObjAcc [arrName,"length"] -> [arrName]
+  SymFun _ expr -> getVarNames2 expr
   symExpr -> error $ "TODO3:: getVarNames2 ==> " ++ show symExpr
 
 getVarNames3 :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
@@ -634,13 +784,24 @@ getVarNames3 ma = flip Map.filterWithKey ma $ \k _ -> case k of
   VarName _ -> True
   _ -> False
 
+-- `getVarNames4` is to be used exclusively on if, for, and other kinds of `SymExpr`s
+-- which cause new branching
+-- it traverses the inner SymStates, and returns their VarNames
+getVarNames4 :: SymExpr -> [Map.Map SymStateKey SymExpr]
+getVarNames4 = \case
+  SIte _ ifSymState mElseSymState ->
+    getVarNames ifSymState : case mElseSymState of
+      Nothing -> []
+      Just elseSymState -> [getVarNames elseSymState]
+  symExpr -> error $ "TODO: SymbolicExecution.Internal.getVarNames4" ++ show symExpr
+
 getVarNameSymType :: String -> Map.Map SymStateKey SymExpr -> Maybe SymType
 getVarNameSymType varName ma = fmap toSymType2 (Map.lookup (VarName varName) ma)
 
 getVarNameSymExpr :: String -> Map.Map SymStateKey SymExpr -> Maybe SymExpr
 getVarNameSymExpr varName ma = fmap id (Map.lookup (VarName varName) ma)
 
-getActions :: SymState -> [String]
+getActions :: SymState -> [SymExpr]
 getActions = maybe [] (\(SActions li) -> li) . Map.lookup Actions . env
 
 getVarAssignments :: SymState -> [(String,CFGT.Node_Coor)]
@@ -671,70 +832,63 @@ getFormalParms2 ma =
        VarName vn -> vn `elem` formalPs
        _ -> False
 
-{-
-See the following example, and notice how the global vars in `ifFun6Call`
-are being used in `ifFun6`.
-`ifFun6` at the time of visitation is not aware of the values of y,m,c
-`injectGlobalVars` makes the values of y,m,c known to `ifFun6`
-by traversing every SymExpr, and altering it if it contains one of the global variables
+-- `getScopedGlobalVarsSymExpr` returns all the SymExprs
+-- which are related to all Global variables
+-- which occur in a specific scope
 
-public String ifFun6(int n) {
+-- The scope is passed via an SymExpr, such as `SIte SymExpr SymState (Maybe SymState)`
+
+{-
+Example: Observe the following example:
+public int ifFun4(int n) {
   if(y>=0) {
-    m += n;
-    y = (-1) * y;
+    y += n;
   }
-  s = "something";
-  return c;
+  return y;
 }
 
-public String ifFun6Call() {
-  y = 5;
-  m = 1;
-  c = "dangerous";
-  return s + " " + ifFun6(10) + " " + s + m;
-}
- -}
--- toInject: global variables, such as y, m, c.
---     global variables which are re-assigned before the method call.
--- ma: the map whose global variables are to be updated
--- the global variables which should be updated are SymExprs of form SymVar
---     (see replacementAction1)
-{-
-injectGlobalVars :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr -> Typed_Method_R (Map.Map SymStateKey SymExpr)
-injectGlobalVars toInject ma =
-  flip Map.traverseWithKey ma $ \key val -> case key of
-     VarName vn -> replacementAction1 vn val
-     Return -> replacementAction2 val
-     ScopeRange _ -> replacementAction2 val
-     Exception -> throwError $ printf "TODO1 ==> injectGlobalVars ==> (%s ,, %s)" "Exception" (show val)
-     Actions -> throwError $ printf "TODO2 ==> injectGlobalVars ==> (%s ,, %s)" "Actions" (show val)
-     _ -> return val
-  where
-  replacementAction1 :: String -> SymExpr -> Typed_Method_R SymExpr
-  replacementAction1 key val = case Map.lookup (VarName key) toInject of
-    Nothing -> return val
-    Just newVal -> do
-      tell [Log.UpdateVariable (key,show val,show newVal) "injectGlobalVars"]
-      return newVal
-  replacementAction2 :: SymExpr -> Typed_Method_R SymExpr
-  replacementAction2 = \case
-    val@(SymVar _ vn) -> replacementAction1 vn val
- -- SIte    SymExpr SymState (Maybe SymState)
-    SIte ifCond ifState maybeElseState -> do
-      replacementAction2 ifCond >>= \case
-        SBool b -> throwError $ "TODO3 ==> injectGlobalVars ==> replacementAction2"
-        symExpr -> throwError $ "TODO4 ==> injectGlobalVars ==> replacementAction2"
-    SBin expr1 op expr2 -> do
-      newExpr1 <- replacementAction2 expr1
-      newExpr2 <- replacementAction2 expr2
-      let calculator = whichCalculator newExpr1 op newExpr2
-          calculating = calculator $ SBin newExpr1 op newExpr2
-      return calculating 
-    expr -> error $ "TODO5 ==> injectGlobalVars ==> replacementAction2 ==> " ++ show expr
+symExpr =
+    SIte (SBin (SymVar UnknownNumSymType "y") Ge (SymNum 0.0))
+    (SymState {env = fromList [
+        (MethodName "ifFun4",SMethodType Int),
+        (GlobalVars,SGlobalVars ["y"]),
+        (FormalParms,SFormalParms ["n"]),
+        (VarAssignments,SVarAssignments [("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 3}})]),
+        (VarName "n",SymVar Int "n"),
+        (VarName "y",SBin (SymVar Int "y") Add (SymVar Int "n"))
+    ], pc = []})
+    Nothing
+
+getScopedGlobalVarsSymExpr symExpr =
+    [
+     ("y",[SymVar UnknownNumSymType "y",
+           SBin (SymVar UnknownNumSymType "y") Ge (SymNum 0.0),
+           SymVar Int "y",
+           SBin (SymVar Int "y") Add (SymVar Int "n"),
+           SBin (SymVar Int "y") Add (SymVar Int "n")])
+    ]
 -}
-injectGlobalVars :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr -> Typed_Method_R (Config,[CFGT.CFG]) (Map.Map SymStateKey SymExpr)
-injectGlobalVars = undefined
-
+getScopedGlobalVarsSymExprs :: SymExpr -> Typed_Method_R (Config,[CFGT.CFG]) [(String,[SymExpr])]
+getScopedGlobalVarsSymExprs symExpr = do
+  theEnv <- env <$> get
+  let global_vns = getGlobalVars theEnv
+      -- `varNames_with_exprs1` gives me all the SymExprs
+      -- which were mentioned in the ifSymState and elseSymState
+      -- VarNames are excluded. `varNames_with_exprs2` gives me the VarNames
+      varNames_with_exprs1 :: [(String,[SymExpr])]
+      varNames_with_exprs1 = flip map global_vns $ \vn ->
+        (vn,lookupPartialSymExprs vn symExpr)
+      varNames_with_exprs2 :: [(String,SymExpr)]
+      varNames_with_exprs2 = flip concatMap (getVarNames4 symExpr)
+        $ (map (\(VarName vn,e) -> (vn,e))
+           . Map.toList
+           . Map.filterWithKey (\(VarName vn) _ -> vn `elem` global_vns))
+      -- `varNameInfo` returns all its info mentioned in `varNames_with_exprs1` and `varNames_with_exprs1`
+      varNameSymExprs :: [(String,[SymExpr])]
+      varNameSymExprs = flip map global_vns $ \vn -> (,) vn
+        $ concat [symExprs | (vn2,symExprs) <- varNames_with_exprs1, vn2 == vn] ++
+          [symExpr | (vn2,symExpr) <- varNames_with_exprs2, vn2 == vn]
+  return varNameSymExprs
 ------------------------------
 ------------------------------
 ------------------------------

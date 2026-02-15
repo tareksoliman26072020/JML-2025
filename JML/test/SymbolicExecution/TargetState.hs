@@ -71,27 +71,51 @@ voidFun2 = SymState {
 -----------------------------
 
 voidFun3 :: SymState
-voidFun3 = SymState {env = Map.fromList [
-  (MethodName "voidFun3",SMethodType SYT.Void),
-  (GlobalVars,SGlobalVars ["y2","z"]),
-  (FormalParms,SFormalParms ["n"]),
-  (VarBindings,SVarBindings (Map.fromList [
-      ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 10}}),
-      ("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 10}})])),
-  (VarAssignments,SVarAssignments [
-      ("x",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 10}}),
-      ("y",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 10}}),
-      ("y2",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 10}}),
-      ("z",Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 6, branchEnd = 9}}),
-      ("z",Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 6, branchEnd = 9}})]),
-  (VarName "n",SymVar SYT.Int "n"),
-  (VarName "x",SBin (SymInt 1) SYT.Add (SymVar SYT.Int "n")),
-  (VarName "y",SymString "is one"),
-  (VarName "y2",SymString "is not one"),
-  (VarName "z",SymUnknown (SYT.String,"z",Nothing) [
-      ([(If,SR {branchStart = 6, branchEnd = 9})],7),
-      ([(If,SR {branchStart = 6, branchEnd = 9})],8)]),
-  (ScopeRange (SR {branchStart = 6, branchEnd = 9}),SIte (SBin (SBin (SymInt 1) SYT.Add (SymVar SYT.Int "n")) SYT.Eq (SymInt 1)) (SymState {env = Map.fromList [(MethodName "voidFun3",SMethodType SYT.Void),(GlobalVars,SGlobalVars ["y2","z"]),(FormalParms,SFormalParms ["n"]),(VarBindings,SVarBindings (Map.fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 10}}),("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 10}})])),(VarAssignments,SVarAssignments [("x",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 10}}),("y",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 10}}),("y2",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 10}}),("z",Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 6, branchEnd = 9}})]),(VarName "n",SymVar SYT.Int "n"),(VarName "x",SBin (SymInt 1) SYT.Add (SymVar SYT.Int "n")),(VarName "y",SymString "is one"),(VarName "y2",SymString "is not one"),(VarName "z",SBin (SBin (SymFun SYT.UnknownGlobalVarSymType (SBin (SymString "1") SYT.Add (SymVar SYT.UnknownGlobalVarSymType "n"))) SYT.Add (SymString " ")) SYT.Add (SymString "is one"))], pc = []}) (Just (SymState {env = Map.fromList [(MethodName "voidFun3",SMethodType SYT.Void),(GlobalVars,SGlobalVars ["y2","z"]),(FormalParms,SFormalParms ["n"]),(VarBindings,SVarBindings (Map.fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 10}}),("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 10}})])),(VarAssignments,SVarAssignments [("x",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 10}}),("y",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 10}}),("y2",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 10}}),("z",Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 6, branchEnd = 9}})]),(VarName "n",SymVar SYT.Int "n"),(VarName "x",SBin (SymInt 1) SYT.Add (SymVar SYT.Int "n")),(VarName "y",SymString "is one"),(VarName "y2",SymString "is not one"),(VarName "z",SBin (SBin (SymFun SYT.UnknownGlobalVarSymType (SBin (SymString "1") SYT.Add (SymVar SYT.UnknownGlobalVarSymType "n"))) SYT.Add (SymString " ")) SYT.Add (SymString "is not one"))], pc = []})))
+voidFun3 = SymState {
+  env = Map.fromList [
+    (MethodName "voidFun3",SMethodType SYT.Void),
+    (GlobalVars,SGlobalVars ["y2","z"]),
+    (FormalParms,SFormalParms ["n"]),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 10}}),
+        ("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 10}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 10}}),
+        ("y",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 10}}),
+        ("y2",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 10}}),
+        ("z",Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 6, branchEnd = 9}}),
+        ("z",Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 6, branchEnd = 9}})]),
+    (VarName "n",SymVar SYT.Int "n"),
+    (VarName "x",SBin (SymInt 1) SYT.Add (SymVar SYT.Int "n")),
+    (VarName "y",SymString "is one"),
+    (VarName "y2",SymString "is not one"),
+    (VarName "z",SymUnknown (SYT.String,"z",Nothing) [
+        ([(If,SR {branchStart = 6, branchEnd = 9})],7),
+        ([(If,SR {branchStart = 6, branchEnd = 9})],8)]),
+    (ScopeRange (SR {branchStart = 6, branchEnd = 9}),
+     SIte (SBin (SBin (SymInt 1) SYT.Add (SymVar SYT.Int "n")) SYT.Eq (SymInt 1))
+          (SymState {env = Map.fromList [
+              (MethodName "voidFun3",SMethodType SYT.Void),
+              (GlobalVars,SGlobalVars ["y2","z"]),
+              (FormalParms,SFormalParms ["n"]),
+              (VarBindings,SVarBindings (Map.fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 10}}),("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 10}})])),
+              (VarAssignments,SVarAssignments [("x",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 10}}),("y",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 10}}),("y2",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 10}}),("z",Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 6, branchEnd = 9}})]),
+              (VarName "n",SymVar SYT.Int "n"),
+              (VarName "x",SBin (SymInt 1) SYT.Add (SymVar SYT.Int "n")),
+              (VarName "y",SymString "is one"),
+              (VarName "y2",SymString "is not one"),
+              (VarName "z",SBin (SBin (SymFun ToString (SBin (SymString "1") SYT.Add (SymFun ToString (SymVar SYT.Int "n")))) SYT.Add (SymString " ")) SYT.Add (SymString "is one"))], pc = []})
+          (Just (SymState {env = Map.fromList [
+              (MethodName "voidFun3",SMethodType SYT.Void),
+              (GlobalVars,SGlobalVars ["y2","z"]),
+              (FormalParms,SFormalParms ["n"]),
+              (VarBindings,SVarBindings (Map.fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 10}}),("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 10}})])),
+              (VarAssignments,SVarAssignments [("x",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 10}}),("y",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 10}}),("y2",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 10}}),("z",Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 6, branchEnd = 9}})]),
+              (VarName "n",SymVar SYT.Int "n"),
+              (VarName "x",SBin (SymInt 1) SYT.Add (SymVar SYT.Int "n")),
+              (VarName "y",SymString "is one"),
+              (VarName "y2",SymString "is not one"),
+              (VarName "z",SBin (SBin (SymFun ToString (SBin (SymString "1") SYT.Add (SymFun ToString (SymVar SYT.Int "n")))) SYT.Add (SymString " ")) SYT.Add (SymString "is not one"))], pc = []})))
   ], pc = []}
 
 -----------------------------
@@ -105,7 +129,7 @@ voidFun3Call = SymState {
     (GlobalVars,SGlobalVars ["y2","z"]),
     (VarName "y2",SymString "is not one"),
     (VarName "z",SymString "11 is not one"),
-    (Actions,SActions ["11 is not one\n"])
+    (Actions,SActions [SymString "11 is not one\n"])
   ], pc = []}
 
 -----------------------------
@@ -119,7 +143,7 @@ manyArrs = SymState {
     (VarBindings,SVarBindings (Map.fromList [("numbers",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
     (VarAssignments,SVarAssignments [("numbers",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("numbers",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}),("numbers",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 5}})]),
     (VarName "numbers",SymArray (Just (SYT.Array SYT.Int)) (Just 2) [SymInt 99,SymInt 5]),
-    (Actions,SActions ["[99, 5]\n"])
+    (Actions,SActions [SymString "[99, 5]\n"])
   ], pc = []
 }
 
@@ -138,7 +162,7 @@ manyArrs2 = SymState {
     (VarName "numbers2",SymArray (Just (SYT.Array SYT.Int)) (Just 5) [SymInt 51,SymInt 84,SymInt 92,SymInt 87,SymInt 81]),
     (VarName "numbers3",SymArray (Just (SYT.Array SYT.Int)) (Just 5) [SymInt 5,SymInt 75,SymInt 34,SymInt 10,SymInt 6]),
     (VarName "strs",SymArray (Just (SYT.Array SYT.String)) (Just 3) [SymNull SYT.String,SymString "meow",SymNull SYT.String]),
-    (Actions,SActions ["[86, 57, 80, 34, 50, 48, 94]\n","[51, 84, 92, 87, 81]\n","[5, 75, 34, 10, 6]\n"])
+    (Actions,SActions [SymString "[86, 57, 80, 34, 50, 48, 94]\n",SymString "[51, 84, 92, 87, 81]\n",SymString "[5, 75, 34, 10, 6]\n"])
   ], pc = []}
 
 -----------------------------
@@ -166,7 +190,7 @@ manyArrs4 = SymState {
     (VarBindings,SVarBindings (Map.fromList [("numbers",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
     (VarAssignments,SVarAssignments [("numbers",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}}),("numbers",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})]),
     (VarName "numbers",SymArray (Just (SYT.Array SYT.Int)) (Just 2) [SymInt 99,SymNull SYT.Int]),
-    (Actions,SActions ["[99, 0]\n"])
+    (Actions,SActions [SymString "[99, 0]\n"])
   ], pc = []}
 
 
@@ -282,7 +306,17 @@ ifFun4 = SymState {
     (VarAssignments,SVarAssignments [("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 3}})]),
     (VarName "n",SymVar SYT.Int "n"),
     (VarName "y",SymUnknown (SYT.Int,"y",Just (SymVar SYT.Int "y")) [([(If,SR {branchStart = 1, branchEnd = 3})],2)]),
-    (ScopeRange (SR {branchStart = 1, branchEnd = 3}),SIte (SBin (SymVar SYT.UnknownNumSymType "y") SYT.Ge (SymNum 0.0)) (SymState {env = Map.fromList [(MethodName "ifFun4",SMethodType SYT.Int),(GlobalVars,SGlobalVars ["y"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 3}})]),(VarName "n",SymVar SYT.Int "n"),(VarName "y",SBin (SymVar SYT.Int "y") SYT.Add (SymVar SYT.Int "n"))], pc = []}) Nothing),
+    (ScopeRange (SR {branchStart = 1, branchEnd = 3}),
+        SIte (SBin (SymVar SYT.Int "y") SYT.Ge (SymInt 0))
+             (SymState {env = Map.fromList [
+                 (MethodName "ifFun4",SMethodType SYT.Int),
+                 (GlobalVars,SGlobalVars ["y"]),
+                 (FormalParms,SFormalParms ["n"]),
+                 (VarAssignments,SVarAssignments [("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 3}})]),
+                 (VarName "n",SymVar SYT.Int "n"),
+                 (VarName "y",SBin (SymVar SYT.Int "y") SYT.Add (SymVar SYT.Int "n"))
+             ], pc = []}) 
+             Nothing),
     (Return,SymUnknown (SYT.Int,"y",Just (SymVar SYT.Int "y")) [([(If,SR {branchStart = 1, branchEnd = 3})],2)])
   ], pc = []}
 
@@ -446,7 +480,7 @@ ifFun8 = SymState {
     (VarName "n",SymVar SYT.Int "n"),
     (VarName "v",SymUnknown (SYT.String,"v",Nothing) [([(If,SR {branchStart = 1, branchEnd = 6})],2)]),
     (VarName "w",SymUnknown (SYT.String,"w",Nothing) [([(If,SR {branchStart = 1, branchEnd = 6})],4)]),
-    (ScopeRange (SR {branchStart = 1, branchEnd = 6}),SIte (SBin (SBin (SymVar SYT.Int "n") SYT.Mod (SymInt 2)) SYT.Eq (SymInt 0)) (SymState {env = Map.fromList [(MethodName "ifFun8",SMethodType SYT.Void),(GlobalVars,SGlobalVars ["v"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("v",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 6}})]),(VarName "n",SymVar SYT.Int "n"),(VarName "v",SymString "hi"),(Actions,SActions ["hi\n"])], pc = []}) (Just (SymState {env = Map.fromList [(MethodName "ifFun8",SMethodType SYT.Void),(GlobalVars,SGlobalVars ["w"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("w",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 1, branchEnd = 6}})]),(VarName "n",SymVar SYT.Int "n"),(VarName "w",SymString "bye"),(Actions,SActions ["bye\n"])], pc = []})))
+    (ScopeRange (SR {branchStart = 1, branchEnd = 6}),SIte (SBin (SBin (SymVar SYT.Int "n") SYT.Mod (SymInt 2)) SYT.Eq (SymInt 0)) (SymState {env = Map.fromList [(MethodName "ifFun8",SMethodType SYT.Void),(GlobalVars,SGlobalVars ["v"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("v",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 6}})]),(VarName "n",SymVar SYT.Int "n"),(VarName "v",SymString "hi"),(Actions,SActions [SymString "hi\n"])], pc = []}) (Just (SymState {env = Map.fromList [(MethodName "ifFun8",SMethodType SYT.Void),(GlobalVars,SGlobalVars ["w"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("w",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 1, branchEnd = 6}})]),(VarName "n",SymVar SYT.Int "n"),(VarName "w",SymString "bye"),(Actions,SActions [SymString "bye\n"])], pc = []})))
   ], pc = []}
 
 -----------------------------
@@ -460,7 +494,7 @@ ifFun8Call = SymState {
     (GlobalVars,SGlobalVars ["v","w"]),
     (VarName "v",SymString "hi"),
     (VarName "w",SymString "bye"),
-    (Actions,SActions ["hi\n","bye\n","hi\n"])
+    (Actions,SActions [SymString "hi\n",SymString "bye\n",SymString "hi\n"])
   ], pc = []}
 
 -----------------------------

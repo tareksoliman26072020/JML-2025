@@ -190,7 +190,7 @@ expr = AST.BinOpExpr {
 
 symExpr1 :: SYT.SymExpr
 symExpr1 = SYT.SBin
-    (SYT.SymFun SYT.String (SYT.SBin (SYT.SymString "1") SYT.Add (SYT.SymVar SYT.String "n")))
+    (SYT.SymFun SYT.ToString (SYT.SBin (SYT.SymString "1") SYT.Add (SYT.SymVar SYT.String "n")))
     SYT.Add 
     (SYT.SymString " ")
 

@@ -127,7 +127,7 @@ visitStmt sends data to visitNode (this may change in the future so that it also
 visitStmt ==> ReturnStmt: ER_State or (visitExpr ==> expr)
 visitStmt ==> VarStmt: ER_SymStateMapEntry or ER_Expr (look visitExpr ==> VarExpr)
 visitStmt ==> AssignStmt: ER_SymStateMapEntry
-visitStmt ==> FunCallStmt: ER_Print
+visitStmt ==> FunCallStmt: ER_PredefinedFunCall
 
 visitNode ==> Entry: ER_State
 visitNode ==> End: ER_State
@@ -151,7 +151,7 @@ data ExecutionResult =
   | ER_FunCall SymState
   | ER_FunHandle SymType String
   | ER_IfCond SymExpr  -- ^ boolean expressions found in if conditions. Its existance in the environment values map means that the ......
-  | ER_Print String
+  | ER_PredefinedFunCall SymExpr
   | ER_ForLoopDone
   | ER_Void
   | ER_ActualParameterDetected
@@ -175,11 +175,11 @@ data SymExpr =
 --  | SymFormalParam SymType String (Maybe SymExpr) -- ^ declared variable (a formal parameter)
 --  | SymGlobalVar SymType String (Maybe SymExpr) -- ^ variable declared outside the scope of the method
   | SymVar SymType String
-  | SymFun SymType SymExpr
+  | SymFun PredefinedFun SymExpr
   | SVarBindings (Map.Map String CFGT.Node_Coor)
   | SVarAssignments [(String,CFGT.Node_Coor)] 
   | SException SymType String String
-  | SActions [String]
+  | SActions [SymExpr]
   | SArrayIndexAccess String SymExpr
   | SymArray (Maybe SymType) (Maybe Int) [SymExpr]
   | SymUnknown (SymType,String,Maybe SymExpr) [SymReason]
@@ -220,3 +220,11 @@ instance MonadFail (Either String) where
 
 predefinedFuns :: [String]
 predefinedFuns = ["toString","print","println"]
+
+data PredefinedFun = ToString | Print | Println deriving (Show,Eq)
+
+toPredefinedFun :: String -> PredefinedFun
+toPredefinedFun = \case
+  "toString" -> ToString
+  "print"    -> Print
+  "println"  -> Println
