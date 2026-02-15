@@ -345,46 +345,60 @@ but the second expression tells me that both of them are of `UnknownNumSymType`
 so when this function is used on them, for the type
  -}
 castGlobalVar :: SymType -> ExecutionResult -> Typed_Method_R (Config,[CFGT.CFG]) ()
-castGlobalVar newType = \case
-  er@(ER_SymStateMapEntry (VarName key) val) -> do
-    theEnv <- env <$> get
-    let vns :: [String] -- vns are global variables mentioned in val
-        vns = filter (flip isGlobalVariable2 theEnv) (nub $ key : getVarNames2 val)
-    -- foldM_ :: (Foldable t, Monad m) => (b -> a -> m b) -> b -> t a -> m ()
-    -- search for each occurrence of `vn` in `vns` in `theEnv`
-    --     and adjust its type
-    foldM_ (\ma vn -> do
-      ma2 <- Map.alterF (\case
-            Nothing -> pure $ Just
-              $ SymVar newType vn
-            Just oldSymExpr ->
-              let newType2 = pick_known_symType2
-                    $ toSymType2 oldSymExpr : toSymType2 val : [newType]
-              in if newType2 == toSymType2 oldSymExpr
-                   then pure $ Just oldSymExpr
-                 else do
-                   let newSymExpr :: SymExpr
-                       newSymExpr = cast newType2 oldSymExpr
-                   tell [Log.UpdateVariable (vn,show oldSymExpr,show newSymExpr) "castGlobalVar"]
-                   pure $ Just newSymExpr)
-            (VarName vn) ma
-      -- the global variable vn may get mentioned in expressions other than VarName,
-      -- and their types may need casting
-      let ma3 = flip Map.mapWithKey ma2 $ \k v -> case (k,v) of
-            (VarName _,_) -> v
-            (_,symExpr) ->
-              let innerSymExprs = lookupPartialSymExprs vn symExpr
-                  newType2 = pick_known_symType2
-                    $ (map toSymType2 innerSymExprs) ++ [toSymType2 val] ++ [newType]
-              in cast2 vn newType2 symExpr
-      -- modify the state accordingly
-      modify $ \symState -> SymState {
-        env = ma3,
-        pc = pc symState
-      }
-      return ma3
-      ) theEnv vns
-  _ -> return ()
+castGlobalVar newType er = do
+  let loc = "SymbolicExecution.Internal.castGlobalVar"
+  tell [Log.Affected loc ["SymType: " ++ show newType , "ExecutionResult: " ++ show er]]
+  case er of
+    ER_SymStateMapEntry (VarName key) val -> do
+      theEnv <- env <$> get
+      let vns :: [String] -- vns are global variables mentioned in val
+          vns = filter (flip isGlobalVariable2 theEnv) (nub $ key : getVarNames2 val)
+      -- foldM_ :: (Foldable t, Monad m) => (b -> a -> m b) -> b -> t a -> m ()
+      -- search for each occurrence of `vn` in `vns` in `theEnv`
+      --     and adjust its type
+{-
+ER_SymStateMapEntry (VarName "y") (SymVar UnknownGlobalVarSymType "y")
+
+[UnknownGlobalVarSymType,UnknownGlobalVarSymType,UnknownNumSymType]
+= UnknownNumSymType
+ -}
+      foldM_ (\ma vn -> do
+        ma2 <- Map.alterF (\case
+              Nothing -> pure $ Just
+                $ SymVar newType vn
+              Just oldSymExpr ->
+                let newType2 = pick_known_symType2
+                      $ toSymType2 oldSymExpr : toSymType2 val : [newType]
+                in if newType2 == toSymType2 oldSymExpr
+                     then pure $ Just oldSymExpr
+                   else do
+                     let newSymExpr :: SymExpr
+                         newSymExpr = cast newType2 oldSymExpr
+                     {-case er of
+                       ER_SymStateMapEntry (VarName "y") (SymVar UnknownGlobalVarSymType "y") ->
+                         throwError $ printf "WeWe:: %s ==> %s\n\n%s"
+                             (show oldSymExpr) (show newType2)
+                             (show newSymExpr)-}
+                     tell [Log.UpdateVariable (vn,show oldSymExpr,show newSymExpr) "castGlobalVar"]
+                     pure $ Just newSymExpr)
+              (VarName vn) ma
+        -- the global variable vn may get mentioned in expressions other than VarName,
+        -- and their types may need casting
+        let ma3 = flip Map.mapWithKey ma2 $ \k v -> case (k,v) of
+              (VarName _,_) -> v
+              (_,symExpr) ->
+                let innerSymExprs = lookupPartialSymExprs vn symExpr
+                    newType2 = pick_known_symType2
+                      $ (map toSymType2 innerSymExprs) ++ [toSymType2 val] ++ [newType]
+                in cast2 vn newType2 symExpr
+        -- modify the state accordingly
+        modify $ \symState -> SymState {
+          env = ma3,
+          pc = pc symState
+        }
+        return ma3
+        ) theEnv vns
+    _ -> return ()
 
 ------------------------------
 ------------------------------
@@ -464,67 +478,86 @@ isTypeNumeric = \case
 cast :: SymType -> SymExpr -> SymExpr
 cast symType symExpr = case (symType,symExpr) of
   ----------
-  (Int,SymNum num) -> SymInt (round num)
-  (Int,SymInt num) -> SymInt num
-  (Int,SymNull _) -> SymNull Int
+  (_,SymVar t vn)
+    | symType `isInstanceOf` t ->
+        SymVar symType vn
+--    | symType == String && t /= String ->
+--        SymFun ToString $ SymVar t vn
+--    | otherwise -> error
+--        $ printf "SymbolicExecution.Internal.cast %s %s ==> won't happen"
+--            (show symType) (show symExpr)
   ----------
-  (Double,SymNum num) -> SymDouble (toDouble num)
-  (Float,SymNum num) -> SymFloat num
-  (Bool,SymNum num) -> error "cast ~~> won't happen1"
-  (Void,SymNum num) -> error "cast ~~> won't happen2"
-  ----------
-  --(Array t,SymNum num) -> cast t (SymNum num)
-  --(Array t, SymNull _) -> 
-  ----------
-  (UnknownGlobalVarSymType,_) -> symExpr
-  ----------
-  (UnknownNumSymType,SymNum _) -> symExpr
-  ----------
-  (String,SymNum num) -> SymString $ show num
-  (String,SymInt num) -> SymString $ show num
-  (String,SymString str) -> SymString str
-  (String,SymNull _) -> SymNull String
-  ----------
-  (_,SymUnknown (t2,name,mExpr) reasons) ->
-    let newType = pick_known_symType (symType,t2)
-    in SymUnknown (newType,name,fmap (\expr -> cast newType expr) mExpr) reasons
-  ----------
-  (t,SBin expr1 op expr2) -> SBin (cast t expr1) op (cast t expr2)
-  ----------
-  --SymArray (Maybe SymType) (Maybe Int) [SymExpr]
-  (t,SymArray _ mInt symExprs) -> SymArray
-      (Just t) mInt (map (cast $ arrayElementSymType t) symExprs)
-  ----------
-  (String,SymVar t vn)
-    | t /= String -> SymFun ToString $ SymVar (pick_known_symType (t,String)) vn
-  ----------
-  (_,SymVar t s)
-    | symType `isHomogeneousTo` t ->
-        let newType = pick_known_symType (symType,t)
-        in SymVar newType s 
-    | otherwise -> error
-        $ printf "SymbolicExecution.Internal.cast %s %s ==> won't happen"
-            (show symType) (show symExpr)
+  (String,SymString _) -> symExpr
+  (String, SymFun ToString _) -> symExpr
+  (String,_)
+    | not (symType `isInstanceOf` toSymType2 symExpr) ->
+        SymFun ToString symExpr
   ----------
   (_,SBin expr1 op expr2) -> SBin (cast symType expr1) op (cast symType expr2)
   ----------
-  (String, SymFun ToString _) -> symExpr
+  (Int,SymInt num) -> SymInt num
+  (UnknownNumSymType,SymInt _) -> symExpr
+  (UnknownGlobalVarSymType,SymInt _) -> symExpr
   ----------
-  (t1,SymFun _ expr) ->
-    error $ printf "TODO1 ~~> cast (%s) (%s)" (show symType) (show symExpr)
-  (_,_) -> error $ printf "TODO2 ~~> cast (%s) (%s)" (show symType) (show symExpr)
+  (_,SymNull t)
+    | symType `isInstanceOf` t -> SymNull symType
+  ----------
+  (Int,SymNum num) -> SymInt (round num)
+  (Double,SymNum num) -> SymDouble (toDouble num)
+  (Float,SymNum num) -> SymFloat num
+  (UnknownNumSymType, SymNum _) -> symExpr
+  (UnknownGlobalVarSymType,SymNum _) -> symExpr
+  ----------
+  (UnknownNumSymType,SymVar UnknownGlobalVarSymType vn) ->
+    SymVar UnknownNumSymType vn
+  ----------
+  (UnknownGlobalVarSymType,SymString _) -> symExpr
+  ----------
+  (_,SymUnknown (t2,name,mExpr) reasons) ->
+    let t3 = maybe UnknownGlobalVarSymType toSymType2 mExpr
+    in if any (symType `isInstanceOf`) [t2,t3]
+         then let newType = pick_known_symType2 [symType,t2,t3]
+              in SymUnknown (newType,name,fmap (\expr -> cast newType expr) mExpr) reasons
+       else error
+         $ printf "TODO1 ~~> cast (%s) (%s)" (show symType) (show symExpr)
+  ----------
+  --SymArray (Maybe SymType) (Maybe Int) [SymExpr]
+  (t,SymArray (Just t2) mInt symExprs)
+    | any (symType `isInstanceOf`)
+          (t2 : map toSymType2 symExprs) -> SymArray (Just symType) mInt
+        $ map (cast $ arrayElementSymType symType) symExprs
+    | otherwise -> error
+        $ printf "TODO2 ~~> cast (%s) (%s)" (show symType) (show symExpr)
+  (t,SymArray Nothing mInt symExprs)
+    | any (symType `isInstanceOf`)
+          (map toSymType2 symExprs) -> SymArray (Just symType) mInt
+        $ map (cast $ arrayElementSymType symType) symExprs
+    | otherwise -> error
+        $ printf "TODO3 ~~> cast (%s) (%s)" (show symType) (show symExpr)
+  ----------
+  (t1,SymFun pf expr) ->
+    SymFun pf $ cast t1 expr
+  ----------
+  _
+    | toSymType2 symExpr `isInstanceOf` symType -> symExpr
+    | symType `isInstanceOf` toSymType2 symExpr -> error
+        $ printf "TODO4 ~~> make type %s ~~> cast (%s) (%s)" (show symType) (show symType) (show symExpr)
+    | otherwise -> error $ printf "TODO5 ~~> cast (%s) (%s)" (show symType) (show symExpr)
 
 -- this function checks the relatability of two SymTypes to each other
 -- Int and String are not related (therefore you can't cast one to the other)
 -- `UnknownNumSymType` is related to Int, Double, etc..., but not to String
 -- `UnknownGlobalVarSymType` is related to all types
-isHomogeneousTo :: SymType -> SymType -> Bool
-isHomogeneousTo UnknownGlobalVarSymType _ = True
-isHomogeneousTo _ UnknownGlobalVarSymType = True
-isHomogeneousTo UnknownNumSymType t2 = isTypeNumeric t2
-isHomogeneousTo t1 UnknownNumSymType = isTypeNumeric t1
-
-isHomogeneousTo t1 t2 = t1 == t2
+isInstanceOf :: SymType -> SymType -> Bool
+isInstanceOf UnknownGlobalVarSymType UnknownGlobalVarSymType = True
+isInstanceOf UnknownGlobalVarSymType _ = False
+isInstanceOf _ UnknownGlobalVarSymType = True
+----------
+isInstanceOf UnknownNumSymType UnknownNumSymType = True
+isInstanceOf UnknownNumSymType _ = False
+isInstanceOf t1 UnknownNumSymType = isTypeNumeric t1
+----------
+isInstanceOf t1 t2 = t1 == t2
 
 -- the difference between `cast` and `cast2`
 --     is that `cast` adjusts the type of the SymExpr,

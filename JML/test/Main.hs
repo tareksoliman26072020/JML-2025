@@ -1,6 +1,6 @@
 module Main (main) where
 
-import qualified SymbolicExecution.Spec as SYTest (run)
+import qualified SymbolicExecution.Main as SYTest (main)
 
 main :: IO ()
-main = SYTest.run
+main = SYTest.main

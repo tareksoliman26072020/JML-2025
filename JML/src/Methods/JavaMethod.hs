@@ -25,7 +25,7 @@ javaMethodInputs = [
   ("ifFun5", ifFun5),
   ("ifFun5Call1", ifFun5Call1),
   ("ifFun5Call2",ifFun5Call2),
-  ("ifFun6", ifFun6),
+  ("ifFun6", ifFun6), ("ifFun6Call", ifFun6Call),
   ("ifFun7", ifFun7),
   ("ifFun7Call", ifFun7Call),
   ("ifFun7Call2", ifFun7Call2),

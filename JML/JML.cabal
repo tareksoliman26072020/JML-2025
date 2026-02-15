@@ -85,7 +85,7 @@ test-suite JML-test
   main-is: Main.hs
   other-modules:
       Color
-      SymbolicExecution.Spec
+      SymbolicExecution.Main
       SymbolicExecution.TargetState
       Paths_JML
   autogen-modules:
@@ -107,10 +107,10 @@ test-suite JML-test
 
 test-suite SymbolicExecution-test
   type: exitcode-stdio-1.0
-  main-is: SymbolicExecution/Spec.hs
+  main-is: Main.hs
   other-modules:
       Color
-      Main
+      SymbolicExecution.Main
       SymbolicExecution.TargetState
       Paths_JML
   autogen-modules:

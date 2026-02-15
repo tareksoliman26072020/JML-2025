@@ -1,4 +1,4 @@
-module SymbolicExecution.Spec (run) where
+module SymbolicExecution.Main (main) where
 
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -35,6 +35,6 @@ getCFGs :: [(String,String)] -> [(String,CFGT.CFG)]
 getCFGs = map $ \(funName,source) ->
   (funName, CFG1.exec $ fromRight undefined $ parse parseExtDecl "" source)
 
-run :: IO ()
-run = defaultMain javaMethodTests
+main :: IO ()
+main = defaultMain javaMethodTests
 

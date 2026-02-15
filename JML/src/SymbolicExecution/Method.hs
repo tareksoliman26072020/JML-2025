@@ -889,12 +889,6 @@ visitExpr expr@AST.ArrayInstantiationExpr{} = do
       (ER_Expr expr2,Nothing) -> return $ expr2
       (ER_Expr expr2,Just t) -> return $ cast (arrayElementSymType t) expr2
       _ -> throwError $ "visitExpr ==> ArrayInstantiationExpr: " ++ show er
-  {-case exprs of
-    [] -> return ER_Void
-    [SymNum 40.0,SymNum 55.0,SymNum 63.0,SymNum 17.0,SymNum 22.0] -> return ER_Void
-    _ -> throwError $ printf "MEOW::\n1) %s\n\n2) %s"
-        (show expr)
-        (show exprs)-}
   -- get array size
   m_arr_size <- case (AST.arrSize expr,length exprs) of
         (Nothing,l) -> return $ Just l
