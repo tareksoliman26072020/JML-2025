@@ -15,6 +15,7 @@ target name = case lookup name allTargets of
 
 allTargets :: [(String,SymState)]
 allTargets = [
+  ("boo30",boo30),
   ("voidFun1",voidFun1),
   ("voidFun2",voidFun2),
   ("voidFun3",voidFun3),
@@ -49,6 +50,9 @@ allTargets = [
 -----------------------------
 -----------------------------
 -----------------------------
+
+boo30 :: SymState
+boo30 = undefined
 
 voidFun1 :: SymState
 voidFun1 = SymState {

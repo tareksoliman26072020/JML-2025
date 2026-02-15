@@ -8,6 +8,7 @@ module Methods.JavaMethod (javaMethodInputs) where
 
 javaMethodInputs :: [(String, String)]
 javaMethodInputs = [
+  ("boo30", boo30),
   ("voidFun1", voidFun1),
   ("voidFun2", voidFun2),
   ("voidFun3", voidFun3),
@@ -46,6 +47,23 @@ javaMethodInputs = [
   ("for2", for2),
   ("sum1", sum1)
   ]
+
+boo30 :: String
+boo30 = "public int boo30(int z){\n\
+        \  int x1 = 0;\n\
+        \  int x2 = 0;\n\
+        \  y = 0;\n\
+        \  y1 = 0;\n\
+        \  y2 = 0;\n\
+        \  if(z>=0){\n\
+        \    t1 = 7;\n\
+        \    return t1;\n\
+        \  }\n\
+        \  else{\n\
+        \    t2 = 17;\n\
+        \    return t2;\n\
+        \  }\n\
+        \}"
 
 voidFun1 :: String
 voidFun1 = "public void voidFun1() {\n\

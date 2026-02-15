@@ -204,3 +204,7 @@ main = print $ stringCalculator $ SYT.SBin symExpr1 SYT.Add symExpr2
 run :: SYT.SymType
 run = toSymType2
   $ SYT.SymArray (Just SYT.Int) (Just 2) [SYT.SymInt 99,SYT.SymInt 5]
+
+printMethod :: String -> IO ()
+printMethod methodName = maybe (putStrLn "Method does not exist!") putStrLn 
+  $ lookup methodName JavaMethod.javaMethodInputs
