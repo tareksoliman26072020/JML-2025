@@ -290,22 +290,17 @@ instance CFGVisitor Method_SymExec where
                       ma2 = foldl' (\ma (varAssName,coor) ->
                         Map.alter (\case
                           Nothing -> Just $ SymUnknown (
-                            getUnknownVarSymType_in_if_template varAssName,
                             varAssName,
                             SymVar (getUnknownVarSymType_in_if_template varAssName) varAssName)
                               $ newReason_template [coor]
-                          Just (SymUnknown (t,n,v) oldReasons) -> Just $
+                          Just (SymUnknown (n,v) oldReasons) -> Just $
                             SymUnknown
-                              (pick_known_symType (
-                                  t,
-                                  (getUnknownVarSymType_in_if_template varAssName)),
-                              n,v)
+                              (n,cast (getUnknownVarSymType_in_if_template varAssName) v)
                             $ oldReasons ++ newReason_template [coor]
-                          Just val -> Just $ SymUnknown (
-                            pick_known_symType (
+                          Just val -> Just $ SymUnknown (varAssName,
+                            cast (pick_known_symType (
                               toSymType2 val,
-                              (getUnknownVarSymType_in_if_template varAssName)),
-                            varAssName,val)
+                              (getUnknownVarSymType_in_if_template varAssName))) val)
                             $ newReason_template [coor]) (VarName varAssName) ma)
                             ma1 unknownVarAssigns
                   
@@ -1128,7 +1123,7 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
                  [] -> ma
                  _ -> Map.alter (\case
                    ---createSymReason :: (CFGT.Kind,CFGT.ScopeRange) -> CFGT.CFG -> [CFGT.Node_Coor] -> [SymReason]
-                   Nothing -> Just $ SymUnknown (toSymType2 val,vn,SymVar (toSymType2 val) vn)
+                   Nothing -> Just $ SymUnknown (vn,SymVar (toSymType2 val) vn)
                      $ createSymReason (CFGT.For,branchRange) cfg node_coors
                    ---
                    Just (SymUnknown tu reasons) -> Just $ SymUnknown tu
@@ -1146,10 +1141,8 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
                        }
                       -}
                      | oldVal == val -> Just oldVal
-                     | otherwise ->  Just $ SymUnknown (
-                     pick_known_symType (toSymType2 oldVal,toSymType2 val),
-                     vn,
-                     oldVal) $ createSymReason (CFGT.For,branchRange) cfg node_coors 
+                     | otherwise ->  Just $ SymUnknown (vn,
+                     cast (pick_known_symType (toSymType2 oldVal,toSymType2 val)) oldVal) $ createSymReason (CFGT.For,branchRange) cfg node_coors 
                    ) (VarName vn) ma
             ) map_withVarAssignments forBody_Some_VarNames
 

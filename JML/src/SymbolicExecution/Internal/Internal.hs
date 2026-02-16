@@ -288,7 +288,7 @@ toSymType2 = \case
   SObjAcc li -> case li of
     [_,"length"] -> Int
     _ -> error $ "TODO1: toSymType2 ==> " ++ show (SObjAcc li)
-  (SymUnknown (t,_,_) mExpr) -> t
+  (SymUnknown (_,expr) _) -> toSymType2 expr
   SBin a _ b -> pick_known_symType (toSymType2 a,toSymType2 b)
   SymNum _ -> UnknownNumSymType
   SymString _ -> String
@@ -501,11 +501,11 @@ cast symType symExpr = case (symType,symExpr) of
   ----------
   (UnknownGlobalVarSymType,SymString _) -> symExpr
   ----------
-  (_,SymUnknown (t2,name,expr) reasons) ->
+  (_,SymUnknown (name,expr) reasons) ->
     let t3 = toSymType2 expr
-    in if any (symType `isInstanceOf`) [t2,t3]
-         then let newType = pick_known_symType2 [symType,t2,t3]
-              in SymUnknown (newType,name,cast newType expr) reasons
+    in if symType `isInstanceOf` t3
+         then let newType = pick_known_symType2 [symType,t3]
+              in SymUnknown (name,cast newType expr) reasons
        else error
          $ printf "TODO1 ~~> cast (%s) (%s)" (show symType) (show symExpr)
   ----------
@@ -570,7 +570,7 @@ cast2 vn newType = \case
     | vn `existsIn` symExpr -> cast newType symExpr
     | otherwise -> symExpr
   symExpr@(SVarAssignments _) -> symExpr
-  symExpr@(SymUnknown (_,vn2,_) _)
+  symExpr@(SymUnknown (vn2,_) _)
     | vn == vn2 -> cast newType symExpr
     | otherwise -> symExpr
   symExpr@(SVarBindings _) -> symExpr
@@ -618,7 +618,7 @@ lookupPartialSymExprs vn = \case
   ----------
   SVarAssignments _ -> []
   ----------
-  SymUnknown (_,vn2,mex) _
+  SymUnknown (vn2,mex) _
     | vn == vn2 -> lookupPartialSymExprs vn mex
     | otherwise -> []
   ----------
@@ -657,7 +657,7 @@ existsIn vn = \case
   SFormalParms _ -> False
   SBin symExpr1 _ symExpr2 -> any (vn `existsIn`) [symExpr1,symExpr2]
   SVarAssignments _ -> False
-  SymUnknown (_,vn2,_) _ -> vn == vn2
+  SymUnknown (vn2,_) _ -> vn == vn2
   SymFun pf symExpr -> existsIn vn symExpr
   symExpr -> error
     $ printf "SymbolicExecution.Internal.existsIn ==> TODO ==> (%s ,, %s)" vn (show symExpr)
@@ -787,7 +787,7 @@ getVarNames2 = \case
   SArrayIndexAccess s1 s2 -> error $ "TODO1:: getVarNames2 ==> " ++ show (SArrayIndexAccess s1 s2)
   -- SymArray (Just (Array Int)) (Just 2) [SymInt 99,SymInt 5]
   SymArray onw two three -> []
-  SymUnknown (_,vn,_) _ -> [vn]
+  SymUnknown (vn,_) _ -> [vn]
   SymNull _ -> []
   SymDouble _ -> []
   SymInt _ -> []

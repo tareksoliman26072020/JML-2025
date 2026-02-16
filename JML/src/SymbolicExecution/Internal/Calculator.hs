@@ -578,10 +578,10 @@ numericCalculator2 op = \case
   (a@(SException _ _ _),b) -> a
   (a,b@(SException _ _ _)) -> b
 ----------
-  (a@(SymUnknown (t,_,_) _),b) ->
-    SBin a op (cast t b)
-  (a,b@(SymUnknown (t,_,_) _)) ->
-    SBin (cast t a) op b
+  (a@(SymUnknown (_,expr) _),b) ->
+    SBin a op (cast (toSymType2 expr) b)
+  (a,b@(SymUnknown (_,expr) _)) ->
+    SBin (cast (toSymType2 expr) a) op b
 ----------
   (a@(SymFun _ symExpr1),b@(SymFun _ symExpr2)) ->
     let t3 = pick_known_symType (toSymType2 symExpr1, toSymType2 symExpr2)

@@ -182,7 +182,7 @@ data SymExpr =
   | SActions [SymExpr]
   | SArrayIndexAccess String SymExpr
   | SymArray (Maybe SymType) (Maybe Int) [SymExpr]
-  | SymUnknown (SymType,String,SymExpr) [SymReason]
+  | SymUnknown (String,SymExpr) [SymReason]
   | SFormalParms [String]
   | SGlobalVars [String]
   deriving (Eq,Show)
