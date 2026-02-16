@@ -229,6 +229,10 @@ instance CFGVisitor Method_SymExec where
                     flip mapM_ elseLogs $ \log ->
                       tell [Log.Nested "else statement" log]
                     return $ SIte expr2 ifSymState (Just elseSymState)
+                let condBranchRange = CFGT.SR {
+                      CFGT.branchStart = CFGT.id n,
+                      CFGT.branchEnd = CFG.getBranchEnd (CFGT.id n) cfg
+                    }
                 -- condVarAssignments gives me
                 -- 1) the VarAssignments in the if/else branch,
                 --    which were originally defined outside of them
@@ -241,18 +245,15 @@ instance CFGVisitor Method_SymExec where
                         condVarAssignments ifSymState ++
                         maybe [] condVarAssignments mElseSymState
                     newMainGlobalVars = nub $
-                        filter (\vn -> isGlobalVariable2 vn (env state)) (getVarNames2 ifCond)
+                        filter (\vn -> isGlobalVariable2 vn (env state))
+                               (getVarNames2 (ScopeRange condBranchRange,ifCond))
                         ++ getGlobalVars (env ifSymState)
                         ++ maybe [] (getGlobalVars . env) mElseSymState
                 tell [Log.ModifyState "visitNode -> Node -> BooleanExpression if -> recording symbolic branching" (printf "if node num: %d" (CFGT.id n),show symExpr)]
                 modify $ \symState ->
-                  let condBranchRange = CFGT.SR {
-                        CFGT.branchStart = CFGT.id n,
-                        CFGT.branchEnd = CFG.getBranchEnd (CFGT.id n) cfg
-                      }
                       -- `s1` has the new conditional branchs (addNode)
                       --  and has the new VarAssignments from the conditional branches
-                      ma1 =
+                  let ma1 =
                         let addNode = Map.insert
                               (ScopeRange condBranchRange)
                               symExpr (env symState)
@@ -290,14 +291,13 @@ instance CFGVisitor Method_SymExec where
                       ma2 = foldl' (\ma (varAssName,coor) ->
                         Map.alter (\case
                           Nothing -> Just $ SymUnknown (
-                            varAssName,
                             SymVar (getUnknownVarSymType_in_if_template varAssName) varAssName)
                               $ newReason_template [coor]
-                          Just (SymUnknown (n,v) oldReasons) -> Just $
+                          Just (SymUnknown v oldReasons) -> Just $
                             SymUnknown
-                              (n,cast (getUnknownVarSymType_in_if_template varAssName) v)
+                              (cast (getUnknownVarSymType_in_if_template varAssName) v)
                             $ oldReasons ++ newReason_template [coor]
-                          Just val -> Just $ SymUnknown (varAssName,
+                          Just val -> Just $ SymUnknown (
                             cast (pick_known_symType (
                               toSymType2 val,
                               (getUnknownVarSymType_in_if_template varAssName))) val)
@@ -316,7 +316,7 @@ instance CFGVisitor Method_SymExec where
                 -- and use them to cast the global VarNames in the main branch
                 -- symExpr@(SIte ifCond ifSymState mElseSymState)
                 -- varNameSymExprs :: [(String,[SymExpr])]
-                varNameSymExprs <- getScopedGlobalVarsSymExprs symExpr
+                varNameSymExprs <- getScopedGlobalVarsSymExprs (ScopeRange condBranchRange,symExpr)
                 -- `varNameSymExprs` provides all needed info for the most concrete type
                 -- of all global variables available at this point
                 -- record it:
@@ -1123,7 +1123,7 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
                  [] -> ma
                  _ -> Map.alter (\case
                    ---createSymReason :: (CFGT.Kind,CFGT.ScopeRange) -> CFGT.CFG -> [CFGT.Node_Coor] -> [SymReason]
-                   Nothing -> Just $ SymUnknown (vn,SymVar (toSymType2 val) vn)
+                   Nothing -> Just $ SymUnknown (SymVar (toSymType2 val) vn)
                      $ createSymReason (CFGT.For,branchRange) cfg node_coors
                    ---
                    Just (SymUnknown tu reasons) -> Just $ SymUnknown tu
@@ -1141,7 +1141,7 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
                        }
                       -}
                      | oldVal == val -> Just oldVal
-                     | otherwise ->  Just $ SymUnknown (vn,
+                     | otherwise ->  Just $ SymUnknown (
                      cast (pick_known_symType (toSymType2 oldVal,toSymType2 val)) oldVal) $ createSymReason (CFGT.For,branchRange) cfg node_coors 
                    ) (VarName vn) ma
             ) map_withVarAssignments forBody_Some_VarNames
