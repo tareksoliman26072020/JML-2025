@@ -1539,6 +1539,7 @@ public boolean boo29(){
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
 SymState {
   env = fromList [
@@ -1632,6 +1633,8 @@ public int boo30(int z){
 
 ////////////////////////////////////////
 
+//DONE
+//JavaMethod
 /*
 SymState {
   env = fromList [
@@ -1653,6 +1656,7 @@ public int boo31(){
 ///////////////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
 SymState {
   env = fromList [
@@ -1681,6 +1685,8 @@ public int boo31_2(){
 
 ///////////////////////////////////////////////////
 
+//DONE
+//JavaMethod
 /*
 SymState {
   env = fromList [
@@ -1708,13 +1714,19 @@ public int boo31_3(){
 ///////////////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
 SymState {
   env = fromList [
     (MethodName "boo32",SMethodType Int),
-    (VarBindings,SVarBindings (fromList [("x",VarBinding {varDeclAt = 1, varFrame = 0})])),
-    (VarName "x",SBin (SBin (SymGlobalVar Int "y1" Nothing) Add (SymGlobalVar Int "y2" Nothing)) Add (SymGlobalVar Int "y3" Nothing)),
-    (Return,SBin (SBin (SymGlobalVar Int "y1" Nothing) Add (SymGlobalVar Int "y2" Nothing)) Add (SymGlobalVar Int "y3" Nothing))
+    (GlobalVars,SGlobalVars ["y1","y2","y3"]),
+    (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
+    (VarAssignments,SVarAssignments [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})]),
+    (VarName "x",SBin (SBin (SymVar Int "y1") Add (SymVar Int "y2")) Add (SymVar Int "y3")),
+    (VarName "y1",SymVar Int "y1"),
+    (VarName "y2",SymVar Int "y2"),
+    (VarName "y3",SymVar Int "y3"),
+    (Return,SBin (SBin (SymVar Int "y1") Add (SymVar Int "y2")) Add (SymVar Int "y3"))
   ], pc = []
 }
 */
@@ -1726,17 +1738,54 @@ public int boo32(){
 ///////////////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
-[
- (MethodName "elemAt",SMethodType Int),
- (GlobalVars,SGlobalVars []),
- (FormalParms,SFormalParms ["arr","pos"]),
- (VarAssignments,SVarAssignments []),
- (VarName "arr",SymVar (Array Int) "arr"),
- (VarName "pos",SymVar Int "pos"),
- (ScopeRange (SR {branchStart = 1, branchEnd = 3}),SIte (SBin (SObjAcc ["arr","length"]) Le (SymVar Int "pos")) (SymState {env = fromList [(MethodName "elemAt",SMethodType Int),(FormalParms,SFormalParms ["arr","pos"]),(VarName "arr",SymVar (Array Int) "arr"),(VarName "pos",SymVar Int "pos"),(Return,SException Int "Exception" "not found")], pc = []}) Nothing),
- (Return,SArrayIndexAccess "arr" (SymVar Int "pos"))
-]
+SymState {
+  env = fromList [
+    (MethodName "boo32Call",SMethodType Int),
+    (GlobalVars,SGlobalVars ["y1","y2","y3"]),
+    (VarAssignments,SVarAssignments [("y1",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}}),("y2",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}}),("y3",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 4}})]),
+    (VarName "y1",SymNum 1.0),
+    (VarName "y2",SymNum 2.0),
+    (VarName "y3",SymNum 3.0),
+    (Return,SymInt 6)
+  ], pc = []
+}
+*/
+public int boo32Call(){
+  y1 = 1;
+  y2 = 2;
+  y3 = 3;
+  return boo32();
+}
+
+///////////////////////////////////////////////////
+
+//DONE
+//JavaMethod
+/*
+SymState {
+  env = fromList [
+    (MethodName "elemAt",SMethodType Int),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["arr","pos"]),
+    (VarAssignments,SVarAssignments []),
+    (VarName "arr",SymVar (Array Int) "arr"),
+    (VarName "pos",SymVar Int "pos"),
+    (ScopeRange (SR {branchStart = 1, branchEnd = 3}),
+     SIte (SBin (SObjAcc ["arr","length"]) Le (SymVar Int "pos"))
+          (SymState {
+             env = fromList [
+               (MethodName "elemAt",SMethodType Int),
+               (FormalParms,SFormalParms ["arr","pos"]),
+               (VarName "arr",SymVar (Array Int) "arr"),
+               (VarName "pos",SymVar Int "pos"),
+               (Return,SException Int "Exception" "not found")
+             ], pc = []})
+          Nothing),
+    (Return,SArrayIndexAccess "arr" (SymVar Int "pos"))
+  ], pc = []
+}
 */
 public int elemAt(int[] arr, int pos) throws Exception {
   if(arr.length<=pos) {
@@ -1748,6 +1797,7 @@ public int elemAt(int[] arr, int pos) throws Exception {
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
 SymState {
   env = fromList [
@@ -1763,18 +1813,35 @@ public int elemAtCall() throws Exception {
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
-[
- (MethodName "elemAt2",SMethodType Int),
- (GlobalVars,SGlobalVars []),
- (FormalParms,SFormalParms ["pos"]),
- (VarBindings,SVarBindings (fromList [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
- (VarAssignments,SVarAssignments [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})]),
- (VarName "arr",SymArray (Just (Array Int)) (Just 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),
- (VarName "pos",SymVar Int "pos"),
- (ScopeRange (SR {branchStart = 2, branchEnd = 4}),SIte (SBin (SymInt 5) Le (SymVar Int "pos")) (SymState {env = fromList [(MethodName "elemAt2",SMethodType Int),(FormalParms,SFormalParms ["pos"]),(VarBindings,SVarBindings (fromList [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),(VarAssignments,SVarAssignments [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})]),(VarName "arr",SymArray (Just (Array Int)) (Just 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),(VarName "pos",SymVar Int "pos"),(Return,SException Int "Exception" "not found")], pc = []}) Nothing),
- (Return,SArrayIndexAccess "arr" (SymVar Int "pos"))
-]
+SymState {
+  env = fromList [
+    (MethodName "elemAt2",SMethodType Int),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["pos"]),
+    (VarBindings,SVarBindings (fromList [
+      ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+    (VarAssignments,SVarAssignments [
+      ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})]),
+    (VarName "arr",SymArray (Just Int) (Just 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),
+    (VarName "pos",SymVar Int "pos"),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 4}),
+     SIte (SBin (SymInt 5) Le (SymVar Int "pos"))
+          (SymState {
+             env = fromList [
+               (MethodName "elemAt2",SMethodType Int),
+               (FormalParms,SFormalParms ["pos"]),
+               (VarBindings,SVarBindings (fromList [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+               (VarAssignments,SVarAssignments [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})]),
+               (VarName "arr",SymArray (Just Int) (Just 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),
+               (VarName "pos",SymVar Int "pos"),
+               (Return,SException Int "Exception" "not found")
+             ], pc = []})
+          Nothing),
+    (Return,SArrayIndexAccess "arr" (SymVar Int "pos"))
+  ], pc = []
+}
 */
 public int elemAt2(int pos) throws Exception {
   int[] arr = new int[]{6,5,4,7,8};
@@ -1787,42 +1854,46 @@ public int elemAt2(int pos) throws Exception {
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
 SymState {
   env = fromList [
-    (MethodName "elemAt2call",SMethodType Int),
+    (MethodName "elemAt2Call",SMethodType Int),
     (Return,SymInt 4)
   ], pc = []
 }
 */
-public int elemAt2call() {
+public int elemAt2Call() {
   return elemAt2(2);
 }
 
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
 SymState {
   env = fromList [
-    (MethodName "elemAt2call2",SMethodType Int),
-    (Return,SException "Exception" "not found")
+    (MethodName "elemAt2Call2",SMethodType Int),
+    (Return,SException Int "Exception" "not found")
   ], pc = []
 }
 */
-public int elemAt2call2() {
+public int elemAt2Call2() {
   return elemAt2(5);
 }
 
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
 SymState {
   env = fromList [
     (MethodName "elemAt4",SMethodType Int),
-    (VarBindings,SVarBindings (fromList [("arr",VarBinding {varDeclAt = 1, varFrame = 0})])),
-    (VarName "arr",SymArray (Just (Array Int)) (Just 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),
+    (VarBindings,SVarBindings (fromList [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
+    (VarAssignments,SVarAssignments [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})]),
+    (VarName "arr",SymArray (Just Int) (Just 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),
     (Return,SymInt 7)
   ], pc = []
 }
@@ -1835,15 +1906,18 @@ public int elemAt4() {
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
-[
- (MethodName "strFun",SMethodType String),
- (VarBindings,SVarBindings (fromList [("firstName",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}),("lastName",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
- (VarAssignments,SVarAssignments [("firstName",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}),("lastName",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}})]),
- (VarName "firstName",SymString "Tarek"),
- (VarName "lastName",SymString "Soliman"),
- (Return,SymString "Tarek Soliman")
-]
+SymState {
+  env = fromList [
+    (MethodName "strFun",SMethodType String),
+    (VarBindings,SVarBindings (fromList [("firstName",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}),("lastName",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+    (VarAssignments,SVarAssignments [("firstName",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}),("lastName",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}})]),
+    (VarName "firstName",SymString "Tarek"),
+    (VarName "lastName",SymString "Soliman"),
+    (Return,SymString "Tarek Soliman")
+  ], pc = []
+}
 */
 public String strFun() {
   String firstName = "Tarek";

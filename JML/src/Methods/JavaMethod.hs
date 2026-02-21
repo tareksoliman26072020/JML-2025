@@ -12,6 +12,11 @@ javaMethodInputs = [
   ("boo31", boo31),
   ("boo31_2", boo31_2),
   ("boo31_3", boo31_3),
+  ("boo32", boo32), ("boo32Call", boo32Call),
+  ("elemAt", elemAt), ("elemAtCall", elemAtCall),
+  ("elemAt2", elemAt2), ("elemAt2Call", elemAt2Call), ("elemAt2Call2", elemAt2Call2),
+  ("elemAt4", elemAt4),
+  ("strFun", strFun),
   ("voidFun1", voidFun1),
   ("voidFun2", voidFun2),
   ("voidFun3", voidFun3),
@@ -89,6 +94,65 @@ boo31_3 = "public int boo31_3(){\n\
           \  boo30(-1);\n\
           \  return z;\n\
           \}"
+
+boo32 :: String
+boo32 = "public int boo32(){\n\
+        \  int x = y1 + y2 + y3;\n\
+        \  return x;\n\
+        \}"
+
+boo32Call :: String
+boo32Call = "public int boo32Call(){\n\
+            \  y1 = 1;\n\
+            \  y2 = 2;\n\
+            \  y3 = 3;\n\
+            \  return boo32();\n\
+            \}"
+
+elemAt :: String
+elemAt = "public int elemAt(int[] arr, int pos) throws Exception {\n\
+         \  if(arr.length<=pos) {\n\
+         \    throw new Exception(\"not found\");\n\
+         \  }\n\
+         \  return arr[pos];\n\
+         \}"
+
+elemAtCall :: String
+elemAtCall = "public int elemAtCall() throws Exception {\n\
+             \  return elemAt(new int[]{6,5,4,7,8},2);\n\
+             \}"
+
+elemAt2 :: String
+elemAt2 = "public int elemAt2(int pos) throws Exception {\n\
+          \  int[] arr = new int[]{6,5,4,7,8};\n\
+          \  if(arr.length<=pos) {\n\
+          \    throw new Exception(\"not found\");\n\
+          \  }\n\
+          \  return arr[pos];\n\
+          \}"
+
+elemAt2Call :: String
+elemAt2Call = "public int elemAt2Call() {\n\
+              \  return elemAt2(2);\n\
+              \}"
+
+elemAt2Call2 :: String
+elemAt2Call2 = "public int elemAt2Call2() {\n\
+               \  return elemAt2(5);\n\
+               \}"
+
+elemAt4 :: String
+elemAt4 = "public int elemAt4() {\n\
+          \  int[] arr = {6,5,4,7,8};\n\
+          \  return arr[3];\n\
+          \}"
+
+strFun :: String
+strFun = "public String strFun() {\n\
+         \  String firstName = \"Tarek\";\n\
+         \  String lastName = \"Soliman\";\n\
+         \  return firstName + \" \" + lastName;\n\
+         \}"
 
 voidFun1 :: String
 voidFun1 = "public void voidFun1() {\n\

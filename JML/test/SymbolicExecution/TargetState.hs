@@ -19,6 +19,11 @@ allTargets = [
   ("boo31",boo31),
   ("boo31_2", boo31_2),
   ("boo31_3", boo31_3),
+  ("boo32", boo32), ("boo32Call", boo32Call),
+  ("elemAt", elemAt), ("elemAtCall", elemAtCall),
+  ("elemAt2", elemAt2), ("elemAt2Call", elemAt2Call), ("elemAt2Call2", elemAt2Call2),
+  ("elemAt4", elemAt4),
+  ("strFun", strFun),
   ("voidFun1",voidFun1),
   ("voidFun2",voidFun2),
   ("voidFun3",voidFun3),
@@ -188,6 +193,170 @@ boo31_3 = SymState {
     (VarName "z",SymInt 0),
     (Return,SymInt 0)
   ], pc = []}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo32 :: SymState
+boo32 = SymState {
+  env = Map.fromList [
+    (MethodName "boo32",SMethodType SYT.Int),
+    (GlobalVars,SGlobalVars ["y1","y2","y3"]),
+    (VarBindings,SVarBindings (Map.fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
+    (VarAssignments,SVarAssignments [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})]),
+    (VarName "x",SBin (SBin (SymVar SYT.Int "y1") SYT.Add (SymVar SYT.Int "y2")) SYT.Add (SymVar SYT.Int "y3")),
+    (VarName "y1",SymVar SYT.Int "y1"),
+    (VarName "y2",SymVar SYT.Int "y2"),
+    (VarName "y3",SymVar SYT.Int "y3"),
+    (Return,SBin (SBin (SymVar SYT.Int "y1") SYT.Add (SymVar SYT.Int "y2")) SYT.Add (SymVar SYT.Int "y3"))
+  ], pc = []
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo32Call :: SymState
+boo32Call = SymState {
+  env = Map.fromList [
+    (MethodName "boo32Call",SMethodType SYT.Int),
+    (GlobalVars,SGlobalVars ["y1","y2","y3"]),
+    (VarAssignments,SVarAssignments [("y1",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}}),("y2",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}}),("y3",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 4}})]),
+    (VarName "y1",SymNum 1.0),
+    (VarName "y2",SymNum 2.0),
+    (VarName "y3",SymNum 3.0),
+    (Return,SymInt 6)
+  ], pc = []
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+elemAt :: SymState
+elemAt = SymState {
+  env = Map.fromList [
+    (MethodName "elemAt",SMethodType SYT.Int),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["arr","pos"]),
+    (VarAssignments,SVarAssignments []),
+    (VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),
+    (VarName "pos",SymVar SYT.Int "pos"),
+    (ScopeRange (SR {branchStart = 1, branchEnd = 3}),
+     SIte (SBin (SObjAcc ["arr","length"]) SYT.Le (SymVar SYT.Int "pos"))
+          (SymState {
+             env = Map.fromList [
+               (MethodName "elemAt",SMethodType SYT.Int),
+               (FormalParms,SFormalParms ["arr","pos"]),
+               (VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),
+               (VarName "pos",SymVar SYT.Int "pos"),
+               (Return,SException SYT.Int "Exception" "not found")
+             ], pc = []})
+          Nothing),
+    (Return,SArrayIndexAccess "arr" (SymVar SYT.Int "pos"))
+  ], pc = []
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+elemAtCall :: SymState
+elemAtCall = SymState {
+  env = Map.fromList [
+    (MethodName "elemAtCall",SMethodType SYT.Int),
+    (Return,SymInt 4)
+  ], pc = []
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+elemAt2 :: SymState
+elemAt2 = SymState {
+  env = Map.fromList [
+    (MethodName "elemAt2",SMethodType SYT.Int),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["pos"]),
+    (VarBindings,SVarBindings (Map.fromList [
+      ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+    (VarAssignments,SVarAssignments [
+      ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),
+    (VarName "pos",SymVar SYT.Int "pos"),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 4}),
+     SIte (SBin (SymInt 5) SYT.Le (SymVar SYT.Int "pos"))
+          (SymState {
+             env = Map.fromList [
+               (MethodName "elemAt2",SMethodType SYT.Int),
+               (FormalParms,SFormalParms ["pos"]),
+               (VarBindings,SVarBindings (Map.fromList [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+               (VarAssignments,SVarAssignments [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})]),
+               (VarName "arr",SymArray (Just SYT.Int) (Just 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),
+               (VarName "pos",SymVar SYT.Int "pos"),
+               (Return,SException SYT.Int "Exception" "not found")
+             ], pc = []})
+          Nothing),
+    (Return,SArrayIndexAccess "arr" (SymVar SYT.Int "pos"))
+  ], pc = []
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+elemAt2Call :: SymState
+elemAt2Call = SymState {
+  env = Map.fromList [
+    (MethodName "elemAt2Call",SMethodType SYT.Int),
+    (Return,SymInt 4)
+  ], pc = []
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+elemAt2Call2 :: SymState
+elemAt2Call2 = SymState {
+  env = Map.fromList [
+    (MethodName "elemAt2Call2",SMethodType SYT.Int),
+    (Return,SException SYT.Int "Exception" "not found")
+  ], pc = []
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+elemAt4 :: SymState
+elemAt4 = SymState {
+  env = Map.fromList [
+    (MethodName "elemAt4",SMethodType SYT.Int),
+    (VarBindings,SVarBindings (Map.fromList [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
+    (VarAssignments,SVarAssignments [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),
+    (Return,SymInt 7)
+  ], pc = []
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+strFun :: SymState
+strFun = SymState {
+  env = Map.fromList [
+    (MethodName "strFun",SMethodType SYT.String),
+    (VarBindings,SVarBindings (Map.fromList [("firstName",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}),("lastName",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+    (VarAssignments,SVarAssignments [("firstName",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}),("lastName",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}})]),
+    (VarName "firstName",SymString "Tarek"),
+    (VarName "lastName",SymString "Soliman"),
+    (Return,SymString "Tarek Soliman")
+  ], pc = []
+}
 
 -----------------------------
 -----------------------------

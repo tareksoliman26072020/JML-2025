@@ -298,6 +298,7 @@ toSymType2 = \case
   SymFun t symExpr
     | t == ToString -> String
     | otherwise -> toSymType2 symExpr
+  SArrayIndexAccess arrName arrPosSymExpr -> toSymType2 arrPosSymExpr
   symExpr -> error $ "TODO2: toSymType2 ==> " {-++ replicate 50 '\n'-}++ show symExpr
 
 pick_known_symType :: (SymType,SymType) -> SymType
