@@ -1540,44 +1540,24 @@ public boolean boo29(){
 
 //DONE
 /*
-[
- (MethodName "boo30",SMethodType Int),
- (GlobalVars,SGlobalVars ["y","y1","y2","t1","t2"]),
- (FormalParms,SFormalParms ["z"]),
- (VarBindings,SVarBindings (fromList [("x1",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}),("x2",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
- (VarAssignments,SVarAssignments [("x1",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}),("x2",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}}),("y",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 8}}),("y1",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 8}}),("y2",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 8}}),("t1",Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 6, branchEnd = 11}}),("t2",Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 6, branchEnd = 11}})]),
- (VarName "t1",SymUnknown (UnknownNumSymType,"t1",Nothing) [([(If,SR {branchStart = 6, branchEnd = 11})],7)]),
- (VarName "t2",SymUnknown (UnknownNumSymType,"t2",Nothing) [([(If,SR {branchStart = 6, branchEnd = 11})],9)]),
- (VarName "x1",SymInt 0),
- (VarName "x2",SymInt 0),
- (VarName "y",SymNum 0.0),
- (VarName "y1",SymNum 0.0),
- (VarName "y2",SymNum 0.0),
- (VarName "z",SymVar Int "z"),
- (ScopeRange (SR {branchStart = 6, branchEnd = 11}),SIte (SBin (SymVar Int "z") Ge (SymInt 0)) (SymState {env = fromList [(MethodName "boo30",SMethodType Int),(GlobalVars,SGlobalVars ["y","y1","y2","t1"]),(FormalParms,SFormalParms ["z"]),(VarBindings,SVarBindings (fromList [("x1",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}),("x2",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}})])),(VarAssignments,SVarAssignments [("x1",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}),("x2",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}}),("y",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 8}}),("y1",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 8}}),("y2",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 8}}),("t1",Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 6, branchEnd = 11}})]),(VarName "t1",SymNum 7.0),(VarName "x1",SymInt 0),(VarName "x2",SymInt 0),(VarName "y",SymNum 0.0),(VarName "y1",SymNum 0.0),(VarName "y2",SymNum 0.0),(VarName "z",SymVar Int "z"),(Return,SymInt 7)], pc = []}) (Just (SymState {env = fromList [(MethodName "boo30",SMethodType Int),(GlobalVars,SGlobalVars ["y","y1","y2","t2"]),(FormalParms,SFormalParms ["z"]),(VarBindings,SVarBindings (fromList [("x1",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}),("x2",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}})])),(VarAssignments,SVarAssignments [("x1",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}),("x2",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}}),("y",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 8}}),("y1",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 8}}),("y2",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 8}}),("t2",Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 6, branchEnd = 11}})]),(VarName "t2",SymNum 17.0),(VarName "x1",SymInt 0),(VarName "x2",SymInt 0),(VarName "y",SymNum 0.0),(VarName "y1",SymNum 0.0),(VarName "y2",SymNum 0.0),(VarName "z",SymVar Int "z"),(Return,SymInt 17)], pc = []})))
-]
-*/
-/*
 SymState {
   env = fromList [
     (MethodName "boo30",SMethodType Int),
     (GlobalVars,SGlobalVars ["y","y1","y2","t1","t2"]),
     (FormalParms,SFormalParms ["z"]),
     (VarBindings,SVarBindings (fromList [
-        ("x1",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}),
-        ("x2",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
+      ("x1",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}),
+      ("x2",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
     (VarAssignments,SVarAssignments [
-        ("x1",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}),
-        ("x2",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}}),
-        ("y",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 8}}),
-        ("y1",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 8}}),
-        ("y2",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 8}}),
-        ("t1",Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 6, branchEnd = 11}}),
-        ("t2",Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 6, branchEnd = 11}})]),
-    (VarName "t1",SymUnknown (Int,"t1",Nothing) [
-        ([(If,SR {branchStart = 6, branchEnd = 11})],7)]),
-    (VarName "t2",SymUnknown (Int,"t2",Nothing) [
-        ([(If,SR {branchStart = 6, branchEnd = 11})],9)]),
+      ("x1",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}),
+      ("x2",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}}),
+      ("y",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 8}}),
+      ("y1",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 8}}),
+      ("y2",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 8}}),
+      ("t1",Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 6, branchEnd = 11}}),
+      ("t2",Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 6, branchEnd = 11}})]),
+    (VarName "t1",SymUnknown (SymVar Int "t1") [([(If,SR {branchStart = 6, branchEnd = 11})],7)]),
+    (VarName "t2",SymUnknown (SymVar Int "t2") [([(If,SR {branchStart = 6, branchEnd = 11})],9)]),
     (VarName "x1",SymInt 0),
     (VarName "x2",SymInt 0),
     (VarName "y",SymNum 0.0),
@@ -1653,15 +1633,16 @@ public int boo30(int z){
 ////////////////////////////////////////
 
 /*
-[
- (MethodName "boo31",SMethodType Int),
- (GlobalVars,SGlobalVars ["z"]),
- (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
- (VarAssignments,SVarAssignments [("z",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}),("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}})]),
- (VarName "x",SymInt 0),
- (VarName "z",SymInt 0),
- (Return,SymInt 0)
-]
+SymState {
+  env = fromList [
+    (MethodName "boo31",SMethodType Int),
+    (GlobalVars,SGlobalVars ["z"]),
+    (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+    (VarAssignments,SVarAssignments [("z",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}),("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}})]),
+    (VarName "x",SymInt 0),
+    (VarName "z",SymInt 0),
+    (Return,SymInt 0)
+  ], pc = []}
 */
 public int boo31(){
   z = 0;
@@ -1673,24 +1654,55 @@ public int boo31(){
 
 //DONE
 /*
-[
- (MethodName "boo31_2",SMethodType Int),
- (GlobalVars,SGlobalVars ["z","y","y1","y2","t1"]),
- (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
- (VarAssignments,SVarAssignments [("z",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}),("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}})]),
- (VarName "t1",SymInt 7),
- (VarName "x",SymInt 0),
- (VarName "y",SymNum 0.0),
- (VarName "y1",SymNum 0.0),
- (VarName "y2",SymNum 0.0),
- (VarName "z",SymInt 0),
- (Return,SymInt 7)
-]
+SymState {
+  env = fromList [
+    (MethodName "boo31_2",SMethodType Int),
+    (GlobalVars,SGlobalVars ["z","y","y1","y2","t1"]),
+    (VarBindings,SVarBindings (fromList [
+      ("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+    (VarAssignments,SVarAssignments [
+      ("z",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}),
+      ("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}})]),
+    (VarName "t1",SymInt 7),
+    (VarName "x",SymInt 0),
+    (VarName "y",SymNum 0.0),
+    (VarName "y1",SymNum 0.0),
+    (VarName "y2",SymNum 0.0),
+    (VarName "z",SymInt 0),
+    (Return,SymInt 7)
+  ], pc = []
+}
 */
 public int boo31_2(){
   z = 0;
   int x = z;
   return boo30(1);
+}
+
+///////////////////////////////////////////////////
+
+/*
+SymState {
+  env = fromList [
+    (MethodName "boo31_3",SMethodType Int),
+    (GlobalVars,SGlobalVars ["z","y","y1","y2","t2"]),
+    (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
+    (VarAssignments,SVarAssignments [("z",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}}),("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})]),
+    (VarName "t2",SymInt 17),
+    (VarName "x",SymInt 0),
+    (VarName "y",SymNum 0.0),
+    (VarName "y1",SymNum 0.0),
+    (VarName "y2",SymNum 0.0),
+    (VarName "z",SymInt 0),
+    (Return,SymInt 0)
+  ], pc = []
+}
+*/
+public int boo31_3(){
+  z = 0;
+  int x = z;
+  boo30(-1);
+  return z;
 }
 
 ///////////////////////////////////////////////////

@@ -786,7 +786,7 @@ getVarNames :: SymState -> Map.Map SymStateKey SymExpr
 getVarNames symState = flip Map.filterWithKey (env symState) $ \k _ -> case k of
   VarName _ -> True
   _ -> False
---vn
+
 getVarNames2 :: (SymStateKey,SymExpr) -> [String]
 getVarNames2 (symStateKey,symExpr) = (case symStateKey of
   VarName vn -> [vn]

@@ -483,14 +483,15 @@ visitExpr (expr@AST.FunCallExpr{}) = do
       -- See if the method call has parameters
       case CFG.getCFGFormalParams cfg0 of
         formalParms -> do
+          let formalParms_varNames = map AST.getVarName formalParms
           -- get the ExecutionResults of the actual parameters
           let actualParms :: [Method_R]
               actualParms = flip map (AST.funArgs expr) $ \exp ->
                 let logging = Log.Nested (printf "SymExec of actual parameter: %s(%s)" funCallName (AST.getActualParmName exp))
                 in censor (map logging) $ visitExpr exp
                
-        --actualParms of the method call
-        --actualParms1 :: [(SymStateKey,SymExpr)]
+          -- actualParms of the method call
+          -- actualParms1 :: [(SymStateKey,SymExpr)]
           actualParms1 <- zipWithM (\fParm act -> do
             maybeActual <- getSymExpr <$> act
             case maybeActual of
@@ -500,30 +501,30 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                 in return $ (VarName $ AST.getVarName fParm,cast t actual) 
               ) formalParms actualParms
           -- global vars to be inserted into the method call Map.Map
+          -- Global vars which have the same name of formal parms get excluded
           -- (globalVars,globalVarsMap) :: ([String],Map.Map SymStateKey SymExpr)
           (globalVars,globalVarsMap) <- do
             ma0 <- env <$> get
-            let theMap = flip Map.filter (getGlobalVars2 ma0) $ \case
-                  SymVar _ _ -> False
-                  _ -> True
+            let theMap = flip Map.filterWithKey (getGlobalVars2 ma0) $ \case
+                  -- if a global variable has the same name as a formal parameter
+                  -- then we don't want it inserted into the state of the method call
+                  VarName vn
+                    | vn `elem` formalParms_varNames -> const False
+                  _ -> \case
+                    -- `SymVar` occurs when the global variable was not assigned
+                    -- in the method of `ma0`
+                    SymVar _ _ -> False
+                    _ -> True
                 globalVars = flip map (Map.keys theMap) $ \(VarName vn) -> vn
             return (globalVars,theMap)
           let funCallMap0 =
                 Map.union globalVarsMap
                 $ Map.union (Map.fromList actualParms1)
+                $ Map.insert FormalParms (SFormalParms formalParms_varNames)
                 $ Map.insert GlobalVars (SGlobalVars globalVars)
-                $ Map.insert FormalParms (SFormalParms $ map AST.getVarName formalParms)
                 Map.empty
           let (funCallLogs2,funCallSymState2) = runCFG cfgs cfg0 Nothing
                 $ Just $ SymState funCallMap0 []
-          -- tell formalParms
-          tell [Log.Nested ("actual: " ++ funCallName) $ Log.MethodFormalParams
-              (show formalParms)
-              "visitExpr -> FunCallExpr"]
-          -- tell actualParms
-          tell [Log.Nested ("actual: " ++ funCallName) $ Log.MethodActualParms
-              (show actualParms1)
-              "visitExpr -> FunCallExpr"]
           if null globalVars
             then return ER_Void
             else do
@@ -532,6 +533,17 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                   (show $ Map.toList globalVarsMap)
                   "visitExpr -> FunCallExpr"]
               return ER_Void
+          -- tell formalParms
+          tell [Log.Nested ("actual: " ++ funCallName) $ Log.MethodFormalParams
+              (show formalParms_varNames)
+              "visitExpr -> FunCallExpr"]
+          -- tell actualParms
+          tell [Log.Nested ("actual: " ++ funCallName) $ Log.MethodActualParms
+              (show actualParms1)
+              "visitExpr -> FunCallExpr"]
+          -- edit its logs and tell them
+          flip mapM_ funCallLogs2 $ \log ->
+            tell [Log.Nested ("actual: " ++ funCallName) log]
           
           let inherit_actions = getActions funCallSymState2
               inherit_globalVars = getGlobalVars (env funCallSymState2)
@@ -554,7 +566,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                  -}
                 -- pair formals of the funcall `callSuccFun` with formals of the fun `succFun`
                 -- [(n,i)]
-                let funCallFormalParms = zip mainFunFormalParms (map AST.getVarName formalParms)
+                let funCallFormalParms = zip mainFunFormalParms formalParms_varNames
                 -- replace the key `i` with its value `SBin (SymVar Int "n") Add (SymInt 1)`
                 -- [(n,SBin (SymVar Int "n") Add (SymInt 1))]
                     getFunCallFormalVal = flip map funCallFormalParms $
@@ -621,15 +633,6 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                 }
               return ER_Void
           ----------
-          -- edit its logs and tell them
-          flip mapM_ funCallLogs2 $ \log ->
-            tell [Log.Nested ("actual: " ++ funCallName) log]
-          -- TODO
-          {-
-          -- edit the injection logs and tell them
-          -- flip mapM_ globalVarsInjectionLogs $ \log ->
-          --   tell [Log.Nested ("Global Var Injection: " ++ funCallName) log]
-           -}
           tell [Log.RunSymStateActualMethodCall (show funCallSymState2)]
           let toReturn = ER_FunCall funCallSymState2
           tell [Log.Return "visitExpr -> FunCallExpr" (show toReturn)] $> toReturn

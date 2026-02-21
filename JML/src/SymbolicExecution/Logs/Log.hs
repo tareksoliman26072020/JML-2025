@@ -3,7 +3,8 @@ module SymbolicExecution.Logs.Log where
 
 import Text.Printf (printf)
 import Data.List (foldl', intercalate)
--- "\ESC[1;31mTarek\ESC[m"
+-- 🠗 ⮩ ↘ ↳ ⤷ ⮱
+--https://symbl.cc/en/collections/arrow-symbols/
 data Log = FunHandle String String String
          | Expression_2_Handle String String
          | MethodStart String String

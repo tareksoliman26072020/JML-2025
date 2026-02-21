@@ -9,6 +9,9 @@ module Methods.JavaMethod (javaMethodInputs) where
 javaMethodInputs :: [(String, String)]
 javaMethodInputs = [
   ("boo30", boo30),
+  ("boo31", boo31),
+  ("boo31_2", boo31_2),
+  ("boo31_3", boo31_3),
   ("voidFun1", voidFun1),
   ("voidFun2", voidFun2),
   ("voidFun3", voidFun3),
@@ -64,6 +67,28 @@ boo30 = "public int boo30(int z){\n\
         \    return t2;\n\
         \  }\n\
         \}"
+
+boo31 :: String
+boo31 = "public int boo31(){\n\
+        \  z = 0;\n\
+        \  int x = z;\n\
+        \  return x;\n\
+        \}"
+
+boo31_2 :: String
+boo31_2 = "public int boo31_2(){\n\
+          \  z = 0;\n\
+          \  int x = z;\n\
+          \  return boo30(1);\n\
+          \}"
+
+boo31_3 :: String
+boo31_3 = "public int boo31_3(){\n\
+          \  z = 0;\n\
+          \  int x = z;\n\
+          \  boo30(-1);\n\
+          \  return z;\n\
+          \}"
 
 voidFun1 :: String
 voidFun1 = "public void voidFun1() {\n\
