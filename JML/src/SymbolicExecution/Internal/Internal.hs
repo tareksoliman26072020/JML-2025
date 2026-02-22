@@ -1,4 +1,4 @@
-{-# Language LambdaCase #-}
+{-# Language LambdaCase, MultiWayIf #-}
 module SymbolicExecution.Internal.Internal where
 
 import SymbolicExecution.Types
@@ -344,23 +344,22 @@ getNextLogNum :: Typed_Method_R (Config,[CFGT.CFG]) String
 getNextLogNum = do
   a@(Log.Header depth counter) <- logHeader <$> get
   let f = return . intercalate "." . map show
-  if depth == length counter + 1
-    then do
-      let newCounter = counter ++ [1]
-      modify $ \symState -> SymState {
-        env = env symState,
-        logHeader = Log.Header depth newCounter
-      }
-      f newCounter
-    else if depth <= length counter
-      then do
+  if
+    | depth == length counter + 1 -> do
+        let newCounter = counter ++ [1]
+        modify $ \symState -> SymState {
+          env = env symState,
+          logHeader = Log.Header depth newCounter
+        }
+        f newCounter
+    | depth <= length counter -> do
         let newCounter = take (depth-1) counter ++ [(counter !! (depth-1)) + 1]
         modify $ \symState -> SymState {
           env = env symState,
           logHeader = Log.Header depth newCounter
         }
         f newCounter
-      else throwError $ printf "SymbolicExecutionn.Internal.getNextLogNum ==> won't happen ==> %s" (show a)
+    | otherwise -> throwError $ printf "SymbolicExecutionn.Internal.getNextLogNum ==> won't happen ==> %s" (show a)
 
 incrementLogDepth :: Typed_Method_R (Config,[CFGT.CFG]) ()
 incrementLogDepth = do

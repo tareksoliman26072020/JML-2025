@@ -489,10 +489,6 @@ visitExpr (expr@AST.FunCallExpr{}) = do
         formalParms -> do
           let formalParms_varNames = map AST.getVarName formalParms
           -- get the ExecutionResults of the actual parameters
-          {-let actualParms :: [Method_R]
-              actualParms = flip map (AST.funArgs expr) $ \exp ->
-                let logging = Log.Nested (printf "SymExec of actual parameter: %s(%s)" funCallName (AST.getActualParmName exp)) . Log.getLogTag
-                in censor (map logging) $ visitExpr exp-}
           --actualParms :: [ExecutionResult]
           actualParms <- flip mapM (AST.funArgs expr) $ \exp -> do
             let logging = Log.Nested (printf "SymExec of actual parameter: %s(%s)" funCallName (AST.getActualParmName exp)) . Log.getLogTag
@@ -504,14 +500,6 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                
           -- actualParms of the method call
           -- actualParms1 :: [(SymStateKey,SymExpr)]
-          {-actualParms1 <- zipWithM (\fParm act -> do
-            maybeActual <- getSymExpr <$> act
-            case maybeActual of
-              Nothing -> throwError "TODO ==> visitExpr -> FunCallExpr"
-              Just actual ->
-                let Just t = fmap toSymType1 $ AST.varType fParm
-                in return $ (VarName $ AST.getVarName fParm,cast t actual) 
-              ) formalParms actualParms-}
           let actualParms1 :: [(SymStateKey,SymExpr)]
               actualParms1 = zipWith (\fParm act ->
                 let maybeActual = getSymExpr act
@@ -578,16 +566,6 @@ visitExpr (expr@AST.FunCallExpr{}) = do
           mainFunFormalParms <- (getFormalParms . env) <$> get
           let inherit_formalParms :: [(String,SymExpr)]
               inherit_formalParms =
-                {-
-                   public void succFun(int i) {
-                     i += 1;
-                   }
-
-                   public int callSuccFun(int n) {
-                     succFun(n);
-                     return n;
-                   }
-                 -}
                 -- pair formals of the funcall `callSuccFun` with formals of the fun `succFun`
                 -- [(n,i)]
                 let funCallFormalParms = zip mainFunFormalParms formalParms_varNames
@@ -949,9 +927,6 @@ visitForLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma = do
       Just acc -> do
         getReader_Method_R $ visitNode acc
         ER_State <$> get
-  {-ER_Expr forCondExpr_visited <- case fmap (censor (map (Log.Nested "For Loop Condition" . Log.getLogTag)) . visitExpr) mForCondExpr of
-    Nothing -> return $ ER_Expr $ SBool True
-    Just v -> v-}
   ER_Expr forCondExpr_visited <- case mForCondExpr of
     Nothing -> return $ ER_Expr $ SBool True
     Just forCondExpr -> do
@@ -980,9 +955,6 @@ visitForLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma = do
 visitForLoop1 :: Int -> SymState -> CFGT.CFG -> Maybe CFGT.Node -> Maybe AST.Expression -> [CFGT.Node] -> CFGT.ScopeRange -> Map.Map SymStateKey SymExpr -> Method_R
 visitForLoop1 loopCounter originalState cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma = do
   -- whether there's a loop condition
-  {-ER_Expr forCondExpr_visited <- case fmap (censor (map (Log.Nested "For Loop Condition" . Log.getLogTag)) . visitExpr) mForCondExpr of
-    Nothing -> return $ ER_Expr $ SBool True
-    Just v -> v-}
   ER_Expr forCondExpr_visited <- case mForCondExpr of
     Nothing -> return $ ER_Expr $ SBool True
     Just forCondExpr -> do
@@ -1001,7 +973,6 @@ visitForLoop1 loopCounter originalState cfg m_Acc mForCondExpr forBody_forStep_p
           tellNextLog $ Log.ForLoopRound loopCounter "visitForLoop1"
           flip mapM_ forBody_forStep_path $ \node -> do
             incrementLogDepth
-            --censor (map (Log.Nested "For Loop Body" . Log.getLogTag)) $ getReader_Method_R (visitNode node)
             (_,logs) <- listen $ getReader_Method_R (visitNode node)
             mapM_ (tellNextLog . Log.Nested "For Loop Body" . Log.getLogTag) logs
             decrementLogDepth
@@ -1029,19 +1000,6 @@ visitForLoop2 cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma = do
                      CFGT.ForStep _ -> CFG.convert node
                      _ -> Just node)
     originalState <- get
-    {-
-    -- modify `originalState` so that we only keep
-    -- MethodName, GlobalVars, FormalParms, VarBindings, VarNames
-    -- in a new modified Map.Map, because that's all we need
-    -- when we generate the inner state
-    let modifiedOriginalMap = flip Map.filterWithKey (env originalState) $ \k _ -> case k of
-          GlobalVars -> True
-          FormalParms -> True
-          VarBindings -> True
-          VarName _ -> True
-          VarAssignments -> True
-          _ -> False
-     -}
     let (forBodyLogs,forBodySymState) = runCFG cfgs cfg (Just path)
           (Just $ SymState (env originalState) (Log.Header 1 [1] {-this will be ignored-}))
     -- record unregistered logs
@@ -1216,11 +1174,6 @@ runCFG cfgs cfg mPath mSymState =
           Just _ -> tellNextLog (Log.Skip $ printf "%s" (show node)) $> ER_Void
           Nothing -> getReader_Method_R $ visitNode node
       (methodNameKey,methodNameValue) = (MethodName $ CFG.getCFGName cfg , SMethodType $ toSymType1 $ CFG.getCFGType cfg)
-      {-
-      initialSymState = maybe
-          (SymState (Map.insert methodNameKey methodNameValue Map.empty) [])
-          id mSymState
-       -}
       initialSymState = maybe
           (SymState Map.empty $ Log.Header 1 [1])
           id mSymState
