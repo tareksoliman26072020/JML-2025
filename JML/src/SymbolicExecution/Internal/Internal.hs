@@ -14,7 +14,7 @@ import Text.Printf (printf)
 import Control.Applicative (Alternative(empty),asum,(<|>))
 import qualified Data.Map as Map (lookup, empty, Map, filterWithKey, insert, foldMapWithKey, toList, alter, notMember, alterF, traverseWithKey, null, mapWithKey, map)
 import Prelude hiding (negate)
-import Data.List (nub,find,foldl')
+import Data.List (nub,find,foldl',intercalate)
 import Control.Monad (forM_, foldM_)
 
 ------------------------------
@@ -335,6 +335,54 @@ getSymExpr = \case
   ER_PredefinedFunCall symExpr -> Just symExpr
   er -> error $ "getSymExpr ~~> TODO: " ++ show er
 
+tellNextLog :: Log.LogTag -> Typed_Method_R (Config,[CFGT.CFG]) ()
+tellNextLog logTag = do
+  logNum <- getNextLogNum
+  tell [Log.Log logNum logTag]
+--{-# LANGUAGE MultiWayIf #-}
+getNextLogNum :: Typed_Method_R (Config,[CFGT.CFG]) String
+getNextLogNum = do
+  a@(Log.Header depth counter) <- logHeader <$> get
+  let f = return . intercalate "." . map show
+  if depth == length counter + 1
+    then do
+      let newCounter = counter ++ [1]
+      modify $ \symState -> SymState {
+        env = env symState,
+        pc = pc symState,
+        logHeader = Log.Header depth newCounter
+      }
+      f newCounter
+    else if depth <= length counter
+      then do
+        let newCounter = take (depth-1) counter ++ [(counter !! (depth-1)) + 1]
+        modify $ \symState -> SymState {
+          env = env symState,
+          pc = pc symState,
+          logHeader = Log.Header depth newCounter
+        }
+        f newCounter
+      else throwError $ printf "SymbolicExecutionn.Internal.getNextLogNum ==> won't happen ==> %s" (show a)
+
+incrementLogDepth :: Typed_Method_R (Config,[CFGT.CFG]) ()
+incrementLogDepth = do
+  Log.Header depth counter <- logHeader <$> get
+  modify $ \symState -> SymState {
+    env = env symState,
+    pc = pc symState,
+    logHeader = Log.Header (depth+1) counter
+  }
+
+decrementLogDepth :: Typed_Method_R (Config,[CFGT.CFG]) ()
+decrementLogDepth = do
+  Log.Header depth counter <- logHeader <$> get
+  modify $ \symState -> SymState {
+    env = env symState,
+    pc = pc symState,
+    logHeader = Log.Header (depth-1) counter
+  }
+  
+
 -- alters the type of a global variable based on the expression and the scope it exists in
 -- It is used in visitExpr ==> AssignExpr / ==> BinOpExpr
 {-
@@ -348,7 +396,11 @@ so when this function is used on them, for the type
 castGlobalVar :: SymType -> ExecutionResult -> Typed_Method_R (Config,[CFGT.CFG]) ()
 castGlobalVar newType er = do
   let loc = "SymbolicExecution.Internal.castGlobalVar"
-  tell [Log.Affected loc ["SymType: " ++ show newType , "ExecutionResult: " ++ show er]]
+  {-
+  logNum <- getNextLogNum
+  tell [Log.Log logNum $ Log.Affected loc ["SymType: " ++ show newType , "ExecutionResult: " ++ show er]]
+   -}
+  tellNextLog $ Log.Affected loc ["SymType: " ++ show newType , "ExecutionResult: " ++ show er]
   case er of
     ER_SymStateMapEntry (VarName key) val -> do
       theEnv <- env <$> get
@@ -368,12 +420,7 @@ castGlobalVar newType er = do
                    else do
                      let newSymExpr :: SymExpr
                          newSymExpr = cast newType2 oldSymExpr
-                     {-case er of
-                       ER_SymStateMapEntry (VarName "y") (SymVar UnknownGlobalVarSymType "y") ->
-                         throwError $ printf "WeWe:: %s ==> %s\n\n%s"
-                             (show oldSymExpr) (show newType2)
-                             (show newSymExpr)-}
-                     tell [Log.UpdateVariable (vn,show oldSymExpr,show newSymExpr) "castGlobalVar"]
+                     tellNextLog $ Log.UpdateVariable (vn,show oldSymExpr,show newSymExpr) "castGlobalVar"
                      pure $ Just newSymExpr)
               (VarName vn) ma
         -- the global variable vn may get mentioned in expressions other than VarName,
@@ -388,7 +435,8 @@ castGlobalVar newType er = do
         -- modify the state accordingly
         modify $ \symState -> SymState {
           env = ma3,
-          pc = pc symState
+          pc = pc symState,
+          logHeader = logHeader symState
         }
         return ma3
         ) theEnv vns
@@ -565,11 +613,13 @@ cast2 vn newType tu@(symStateKey,symExpr) = case symStateKey of
                ifSymState2 = SymState
                    (Map.map (cast2 vn newType . (,) symStateKey) (env ifSymState))
                    (pc ifSymState)
+                   (logHeader ifSymState)
                maybeElseSymState2 :: Maybe SymState
                maybeElseSymState2 = flip fmap maybeElseSymState $ \elseSymState ->
                  SymState
                      (Map.map (cast2 vn newType . (,) symStateKey) (env elseSymState))
                      (pc elseSymState)
+                     (logHeader elseSymState)
            in SIte ifCond2 ifSymState2 maybeElseSymState2
          SymVar _ vn2
            | vn == vn2 -> cast newType symExpr

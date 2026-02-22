@@ -72,6 +72,7 @@ data SymStateKey = MethodName String
 data SymState = SymState
  { env :: Map.Map SymStateKey SymExpr
  , pc  :: [SymExpr]          -- ^ Path‐conditions: accumulate the conditions under which each execution state is feasible.
+ , logHeader :: Log.Header
  }
  deriving (Eq,Show)
 

@@ -73,7 +73,10 @@ underline htmlText = HTMLText {
   }
 
 ppMarkdownLog :: Log -> String
-ppMarkdownLog = \case
+ppMarkdownLog (Log counter logTag) = printf "%s. %s" counter (ppMarkdownLogTag logTag)
+
+ppMarkdownLogTag :: LogTag -> String
+ppMarkdownLogTag = \case
     FunHandle loc name t    -> printf "(%s): %s: %s %s"
         (show $ cyan $ fromString loc) (show $ orangeRed "Fun infos") (show t) name
     MethodEnd loc           -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangeRed "Method End")
@@ -135,6 +138,6 @@ ppMarkdownLog = \case
       symState              -> printf "%s: %s" (show $ orangeRed "Method Call formal SymState") symState
     RunSymStateActualMethodCall
       symState              -> printf "%s: %s" (show $ orangeRed "Method Call actual SymState") symState
-    Nested funCallTag log   -> printf "%s ==> %s" (show $ underline $ brightPurple $ fromString funCallTag) (ppMarkdownLog log)
-    log -> error "Logs.Markdown ==> TODO"
+    Nested funCallTag logTag-> printf "%s ==> %s" (show $ underline $ brightPurple $ fromString funCallTag) (ppMarkdownLogTag logTag)
+    logTag -> error "Logs.Markdown ==> TODO"
 

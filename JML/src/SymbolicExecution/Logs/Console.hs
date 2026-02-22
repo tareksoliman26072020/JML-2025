@@ -14,7 +14,10 @@ red :: String -> String
 red = printf "\ESC[1;41m%s\ESC[m"
 
 ppConsoleLog :: Log -> String
-ppConsoleLog = \case
+ppConsoleLog (Log counter logTag) = printf "%s. %s" counter (ppConsoleLogTag logTag)
+
+ppConsoleLogTag :: LogTag -> String
+ppConsoleLogTag = \case
     FunHandle loc name t    -> printf "(%s): %s: %s %s"
         (cyan loc) (yellow "Fun infos") (show t) name
     MethodEnd loc           -> printf "(%s): %s" (cyan loc) (yellow "Method End")
@@ -76,5 +79,5 @@ ppConsoleLog = \case
       symState              -> printf "%s: %s" (yellow "Method Call formal SymState") symState
     RunSymStateActualMethodCall
       symState              -> printf "%s: %s" (yellow "Method Call actual SymState") symState
-    Nested funCallTag log   -> printf "%s ==> %s" (red funCallTag) (ppConsoleLog log)
-    log -> error "Logs.Console ==> TODO"
+    Nested funCallTag logTag-> printf "%s ==> %s" (red funCallTag) (ppConsoleLogTag logTag)
+    logTag -> error "Logs.Console ==> TODO"

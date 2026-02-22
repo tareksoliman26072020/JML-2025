@@ -4,8 +4,19 @@ module SymbolicExecution.Logs.Log where
 import Text.Printf (printf)
 import Data.List (foldl', intercalate)
 -- 🠗 ⮩ ↘ ↳ ⤷ ⮱
+
+data Log = Log String LogTag
+         deriving (Show,Eq)
+
+getLogTag :: Log -> LogTag
+getLogTag (Log _ tag) = tag
+
+ppLog :: Log -> String
+ppLog (Log counter logTag) = printf "%s. %s" counter (ppLogTag logTag)
+
 --https://symbl.cc/en/collections/arrow-symbols/
-data Log = FunHandle String String String
+data LogTag =
+           FunHandle String String String
          | Expression_2_Handle String String
          | MethodStart String String
          | MethodEnd String
@@ -41,7 +52,7 @@ data Log = FunHandle String String String
          | Return String String
          | RunCFGFormalMethodCall String
          | RunSymStateActualMethodCall String
-         | Nested String Log
+         | Nested String LogTag
          | SymExpr_2_Handle String String
          | GlobalVar String String
          | GlobalVars String String
@@ -54,8 +65,8 @@ data Log = FunHandle String String String
 
 -- Look up the usage of the function `tell` in SymbolicExecution
 -- to best relate to `Log`
-ppLog :: Log -> String
-ppLog = \case
+ppLogTag :: LogTag -> String
+ppLogTag = \case
     FunHandle loc name t    -> printf "(%s): %s: %s %s" loc "Fun infos" (show t) name
     MethodEnd loc           -> printf "(%s): %s" loc "Method End"
     Void loc                -> printf "(%s): %s" loc "Void"
@@ -116,6 +127,10 @@ ppLog = \case
       symState              -> printf "%s: %s" "Method Call formal SymState" symState
     RunSymStateActualMethodCall
       symState              -> printf "%s: %s" "Method Call actual SymState" symState
-    Nested funCallTag log   -> printf "%s ==> %s" funCallTag (ppLog log)
+    Nested funCallTag logTag-> printf "%s ==> %s" funCallTag (ppLogTag logTag)
     log -> error "Logs.Log ==> TODO"
 
+data Header = Header {
+    logScopeDepth :: Int,
+    logCounter :: [Int]
+  } deriving (Eq,Show)
