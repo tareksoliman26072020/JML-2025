@@ -69,9 +69,9 @@ data SymStateKey = MethodName String
                  | Return | Exception | Actions
                  deriving (Eq,Ord,Show)
 
+type SymStateEnv = Map.Map SymStateKey SymExpr
 data SymState = SymState
- { env :: Map.Map SymStateKey SymExpr
- , pc  :: [SymExpr]          -- ^ Path‐conditions: accumulate the conditions under which each execution state is feasible.
+ { env :: SymStateEnv
  , logHeader :: Log.Header
  }
  deriving (Eq,Show)
@@ -170,7 +170,7 @@ data SymExpr =
   | SObjAcc [String]
   | SBin    SymExpr SymBinOp SymExpr  -- ^ binary operation
   | SNot    SymExpr               -- ^ logical negation
-  | SIte    SymExpr SymState (Maybe SymState)   -- ^ if-then-else (cond, then, else)
+  | SIte    SymExpr SymStateEnv (Maybe SymStateEnv)   -- ^ if-then-else (cond, then, else)
   | SLoop   (Maybe CFGT.Node) (Maybe AST.Expression) [CFGT.Node] -- Loop acc, Loop condition, and loop body. the loop step is the last node in the body
   | SymNull SymType               -- ^ value of an unassigned variable
 --  | SymFormalParam SymType String (Maybe SymExpr) -- ^ declared variable (a formal parameter)

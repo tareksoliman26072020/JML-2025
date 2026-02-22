@@ -65,7 +65,7 @@ isGlobalVariable symExpr ma = case symExpr of
 -- a sign that a global variable exists is that
 -- it either exists in SGlobalVars,
 -- or it does not exist in both SFormalParms or in SVarBindings
-isGlobalVariable2 :: String -> Map.Map SymStateKey SymExpr -> Bool
+isGlobalVariable2 :: String -> SymStateEnv -> Bool
 isGlobalVariable2 varName ma = isGlobalVariable3
   (Map.lookup GlobalVars ma,Map.lookup FormalParms ma,Map.lookup VarBindings ma)
   varName
@@ -349,7 +349,6 @@ getNextLogNum = do
       let newCounter = counter ++ [1]
       modify $ \symState -> SymState {
         env = env symState,
-        pc = pc symState,
         logHeader = Log.Header depth newCounter
       }
       f newCounter
@@ -358,7 +357,6 @@ getNextLogNum = do
         let newCounter = take (depth-1) counter ++ [(counter !! (depth-1)) + 1]
         modify $ \symState -> SymState {
           env = env symState,
-          pc = pc symState,
           logHeader = Log.Header depth newCounter
         }
         f newCounter
@@ -369,7 +367,6 @@ incrementLogDepth = do
   Log.Header depth counter <- logHeader <$> get
   modify $ \symState -> SymState {
     env = env symState,
-    pc = pc symState,
     logHeader = Log.Header (depth+1) counter
   }
 
@@ -378,7 +375,6 @@ decrementLogDepth = do
   Log.Header depth counter <- logHeader <$> get
   modify $ \symState -> SymState {
     env = env symState,
-    pc = pc symState,
     logHeader = Log.Header (depth-1) counter
   }
   
@@ -435,7 +431,6 @@ castGlobalVar newType er = do
         -- modify the state accordingly
         modify $ \symState -> SymState {
           env = ma3,
-          pc = pc symState,
           logHeader = logHeader symState
         }
         return ma3
@@ -478,9 +473,9 @@ findVarName_via_coor :: (String,CFGT.ScopeRange) -> Map.Map SymStateKey SymExpr 
 findVarName_via_coor (varName,br) s = do
   symExpr <- Map.lookup (ScopeRange br) s
   case symExpr of
-    SIte _ ifBranchSymState mElseBranchSymState ->
-      let mSearch1 = Map.lookup (VarName varName) (env ifBranchSymState)
-          mSearch2 = mElseBranchSymState >>= Map.lookup (VarName varName) . env
+    SIte _ ifBranchSymStateEnv mElseBranchSymStateEnv ->
+      let mSearch1 = Map.lookup (VarName varName) ifBranchSymStateEnv
+          mSearch2 = mElseBranchSymStateEnv >>= Map.lookup (VarName varName)
       in mSearch1 <|> mSearch2
     tu -> error $ "TODO: findVarName_via_coor ==> " ++ show tu
 {-
@@ -606,21 +601,16 @@ cast2 vn newType tu@(symStateKey,symExpr) = case symStateKey of
   VarName vn0
     | vn == vn0 -> cast newType symExpr
   _ -> case symExpr of
-         SIte ifCond ifSymState maybeElseSymState ->
+         SIte ifCond ifSymStateEnv maybeElseSymStateEnv ->
            let ifCond2 :: SymExpr
                ifCond2 = cast2 vn newType (symStateKey,ifCond)
-               ifSymState2 :: SymState
-               ifSymState2 = SymState
-                   (Map.map (cast2 vn newType . (,) symStateKey) (env ifSymState))
-                   (pc ifSymState)
-                   (logHeader ifSymState)
-               maybeElseSymState2 :: Maybe SymState
-               maybeElseSymState2 = flip fmap maybeElseSymState $ \elseSymState ->
-                 SymState
-                     (Map.map (cast2 vn newType . (,) symStateKey) (env elseSymState))
-                     (pc elseSymState)
-                     (logHeader elseSymState)
-           in SIte ifCond2 ifSymState2 maybeElseSymState2
+               ifSymStateEnv2 :: SymStateEnv
+               ifSymStateEnv2 = Map.map
+                 (cast2 vn newType . (,) symStateKey) ifSymStateEnv
+               maybeElseSymStateEnv2 :: Maybe SymStateEnv
+               maybeElseSymStateEnv2 = flip fmap maybeElseSymStateEnv $ \elseSymStateEnv ->
+                 Map.map (cast2 vn newType . (,) symStateKey) elseSymStateEnv
+           in SIte ifCond2 ifSymStateEnv2 maybeElseSymStateEnv2
          SymVar _ vn2
            | vn == vn2 -> cast newType symExpr
            | otherwise -> symExpr
@@ -650,11 +640,11 @@ lookupPartialSymExprs vn tu@(symStateKey,symExpr) = case symStateKey of
     | vn0 == vn -> [symExpr]
   _ -> case symExpr of
       ----------
-      SIte ifCond ifSymState maybeElseSymState ->
+      SIte ifCond ifSymStateEnv maybeElseSymStateEnv ->
         lookupPartialSymExprs vn (symStateKey,ifCond) ++
-        foldl' (\l -> lookupPartialSymExprs vn . (,) symStateKey) [] (env ifSymState) ++
-        case maybeElseSymState of
-          Just elseSymState -> foldl' (\l -> lookupPartialSymExprs vn . (,) symStateKey) [] (env elseSymState)
+        foldl' (\l -> lookupPartialSymExprs vn . (,) symStateKey) [] ifSymStateEnv ++
+        case maybeElseSymStateEnv of
+          Just elseSymStateEnv -> foldl' (\l -> lookupPartialSymExprs vn . (,) symStateKey) [] elseSymStateEnv
           Nothing -> []
       ----------
       SymVar _ vn2
@@ -702,10 +692,10 @@ existsIn :: String -> (SymStateKey,SymExpr) -> Bool
 existsIn vn tu@(symStateKey,symExpr) = (case symStateKey of
   VarName vn0 -> vn0 == vn
   _ -> False) || case symExpr of
-    SIte ifCond ifSymState maybeElseSymState ->
+    SIte ifCond ifSymStateEnv maybeElseSymStateEnv ->
       vn `existsIn` (symStateKey,ifCond)
-      || any ((vn `existsIn`) . (,) symStateKey) (env ifSymState)
-      || case (fmap (any ((vn `existsIn`) . (,) symStateKey) . env) maybeElseSymState) of
+      || any ((vn `existsIn`) . (,) symStateKey) ifSymStateEnv
+      || case (fmap (any ((vn `existsIn`) . (,) symStateKey)) maybeElseSymStateEnv) of
            Nothing -> False
            Just False -> False
            Just True -> True
@@ -781,8 +771,8 @@ negateOp = \case
 ------------------------------
 ------------------------------
 
-getVarBindings :: SymState -> Map.Map String CFGT.Node_Coor
-getVarBindings symState = case Map.lookup VarBindings (env symState) of
+getVarBindings :: SymStateEnv -> Map.Map String CFGT.Node_Coor
+getVarBindings symStateEnv = case Map.lookup VarBindings symStateEnv of
   Nothing -> Map.empty
   Just (SVarBindings li) -> li
 
@@ -833,8 +823,8 @@ getNewVarAssignment nodeCoor = \case
   ----------
   stmt -> error $ printf "getNewVarAssignment ==> TODO: (%s,%s)" (show nodeCoor) (show stmt)
 
-getVarNames :: SymState -> Map.Map SymStateKey SymExpr
-getVarNames symState = flip Map.filterWithKey (env symState) $ \k _ -> case k of
+getVarNames :: SymStateEnv -> SymStateEnv
+getVarNames symStateEnv = flip Map.filterWithKey symStateEnv $ \k _ -> case k of
   VarName _ -> True
   _ -> False
 
@@ -859,43 +849,38 @@ getVarNames2 (symStateKey,symExpr) = (case symStateKey of
     SymFun _ expr -> getVarNames2 (symStateKey,expr)
     symExpr -> error $ "TODO3:: getVarNames2 ==> " ++ show symExpr
 
-getVarNames3 :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
-getVarNames3 ma = flip Map.filterWithKey ma $ \k _ -> case k of
-  VarName _ -> True
-  _ -> False
-
 -- `getVarNames4` is to be used exclusively on if, for, and other kinds of `SymExpr`s
 -- which cause new branching
 -- it traverses the inner SymStates, and returns their VarNames
-getVarNames4 :: SymExpr -> [Map.Map SymStateKey SymExpr]
+getVarNames4 :: SymExpr -> [SymStateEnv]
 getVarNames4 = \case
-  SIte _ ifSymState mElseSymState ->
-    getVarNames ifSymState : case mElseSymState of
+  SIte _ ifSymStateEnv mElseSymStateEnv ->
+    getVarNames ifSymStateEnv : case mElseSymStateEnv of
       Nothing -> []
-      Just elseSymState -> [getVarNames elseSymState]
+      Just elseSymStateEnv -> [getVarNames elseSymStateEnv]
   symExpr -> error $ "TODO: SymbolicExecution.Internal.getVarNames4" ++ show symExpr
 
-getVarNameSymType :: String -> Map.Map SymStateKey SymExpr -> Maybe SymType
+getVarNameSymType :: String -> SymStateEnv -> Maybe SymType
 getVarNameSymType varName ma = fmap toSymType2 (Map.lookup (VarName varName) ma)
 
-getVarNameSymExpr :: String -> Map.Map SymStateKey SymExpr -> Maybe SymExpr
+getVarNameSymExpr :: String -> SymStateEnv -> Maybe SymExpr
 getVarNameSymExpr varName ma = fmap id (Map.lookup (VarName varName) ma)
 
-getActions :: SymState -> [SymExpr]
-getActions = maybe [] (\(SActions li) -> li) . Map.lookup Actions . env
+getActions :: SymStateEnv -> [SymExpr]
+getActions = maybe [] (\(SActions li) -> li) . Map.lookup Actions
 
-getVarAssignments :: SymState -> [(String,CFGT.Node_Coor)]
-getVarAssignments = maybe [] (\(SVarAssignments li) -> li) . Map.lookup VarAssignments . env
+getVarAssignments :: SymStateEnv -> [(String,CFGT.Node_Coor)]
+getVarAssignments = maybe [] (\(SVarAssignments li) -> li) . Map.lookup VarAssignments
 
-getVarAssignments2 :: Map.Map SymStateKey SymExpr -> [(String,CFGT.Node_Coor)]
+getVarAssignments2 :: SymStateEnv -> [(String,CFGT.Node_Coor)]
 getVarAssignments2 = maybe [] (\(SVarAssignments li) -> li) . Map.lookup VarAssignments
 
-getGlobalVars :: Map.Map SymStateKey SymExpr -> [String]
+getGlobalVars :: SymStateEnv -> [String]
 getGlobalVars = maybe [] (\(SGlobalVars li) -> li) . Map.lookup GlobalVars
 
-getGlobalVars2 :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
+getGlobalVars2 :: SymStateEnv -> SymStateEnv
 getGlobalVars2 ma =
-  let --isGlobalVariable2 :: String -> Map.Map SymStateKey SymExpr -> Bool
+  let --isGlobalVariable2 :: String -> SymStateEnv -> Bool
       --isGlobalVariable3 :: (Maybe SymExpr,Maybe SymExpr,Maybe SymExpr) -> String -> Bool
       tu@(globals,formals,locals) = (Map.lookup GlobalVars ma,Map.lookup FormalParms ma,Map.lookup VarBindings ma)
   in flip Map.filterWithKey ma $ \k _ -> case k of
