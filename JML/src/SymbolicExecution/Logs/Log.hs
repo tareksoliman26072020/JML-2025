@@ -60,6 +60,9 @@ data LogTag =
          | MethodStatementIfCondition String String
          | ProcessPredefinedFunCall String String String
          | Location String
+         | NextLogNum (Int,String) (Int,String)
+         | IncrementLogDepth Int Int
+         | DecrementLogDepth Int Int
          deriving (Show,Eq)
 
 
@@ -83,7 +86,7 @@ ppLogTag = \case
     AssignStatement str loc -> printf "(%s): %s: %s" loc "handling assign statement" str
     Edge_2_Handle str loc   -> printf "(%s): %s: %s" loc "running CFG" str
     Meow str1 str2          -> printf "Meow: %s %s" str1 str2
-    HorizontalLine str      -> printf ">>>>>>>>>> %s <<<<<<<<<<" str
+    HorizontalLine str      -> printf "\n\n\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %s <<<<<<<<<<<<<<<<<<<<\n" str
     NewVariable tn vn loc   -> printf "(%s): %s %s %s" loc "New Variable" tn vn
     ActualParameterDetected
               tn vn val loc -> printf "(%s): %s %s %s ==> %s" loc "Actual Parameter Detected" tn vn val
@@ -128,6 +131,23 @@ ppLogTag = \case
     RunSymStateActualMethodCall
       symState              -> printf "%s: %s" "Method Call actual SymState" symState
     Nested funCallTag logTag-> printf "%s ==> %s" funCallTag (ppLogTag logTag)
+    NextLogNum
+      (oldDepth,oldCounter)
+      (newDepth,newCounter) -> printf 
+          "NextLogNum:\n\
+          \  oldDepth: %d, oldCounter: %s\n\
+          \  newDepth: %d, newCounter: %s"
+          oldDepth oldCounter newDepth newCounter
+    IncrementLogDepth oldDepth newDepth -> printf
+        "IncrementLogDepth:\n\
+        \  oldDepth: %d\n\
+        \  newDepth: %d"
+        oldDepth newDepth
+    DecrementLogDepth oldDepth newDepth -> printf
+        "DecrementLogDepth:\n\
+        \  oldDepth: %d\n\
+        \  newDepth: %d"
+        oldDepth newDepth
     log -> error "Logs.Log ==> TODO"
 
 data Header = Header {

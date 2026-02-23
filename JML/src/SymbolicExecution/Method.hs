@@ -1,4 +1,4 @@
-{-# Language LambdaCase #-}
+{-# Language LambdaCase, NamedFieldPuns, MultiWayIf #-}
 module SymbolicExecution.Method where
 
 import qualified SymbolicExecution.Logs.Log as Log
@@ -7,6 +7,7 @@ import qualified CFG.Types as CFGT
 import qualified CFG.Internal as CFG
 import qualified Data.Map as Map
 import Data.Maybe (mapMaybe)
+import Control.Monad (foldM)
 import Control.Monad.Reader (runReaderT,ask)
 import Control.Monad.State
 import Control.Monad.Except
@@ -39,7 +40,9 @@ instance CFGVisitor Method_SymExec where
         True  -> tellNextLog (Log.Return "visitNode -> Entry -> method with no args" "()") $> ()
         False -> do
           tellNextLog $ Log.MethodFormalParams (show args) "visitNode -> Entry -> method with args"
-          mapM_ (\arg -> do
+          let argsSize = length args
+          mapM_ (\(logCounter,arg) -> do
+                   incrementLogDepth
                    argVisited <- visitExpr arg
                    case argVisited of
                      ER_SymStateMapEntry (VarName name) val@(SymVar _ _) -> do
@@ -55,7 +58,10 @@ instance CFGVisitor Method_SymExec where
                          Just _ -> return ()
                      ER_ActualParameterDetected -> return ()
                      _ -> throwError $ "visitNode ==> Entry ==> won't happen ==> " ++ show argVisited
-               ) args
+                   decrementLogDepth >> if
+                     | logCounter < argsSize -> incrementLogEnumeration $> ()
+                     | otherwise -> return ()
+               ) $ zip [1 ..] args
       toReturn <- ER_State <$> get
       tellNextLog (Log.Return "visitNode -> Entry -> method has args" (show toReturn)) $> toReturn
     ----------------------------------------
@@ -156,11 +162,17 @@ instance CFGVisitor Method_SymExec where
               SBool b -> do
                 case branches_paths of
                   [ifB] | b -> do
-                    let (logs,condSymState) = runCFG cfgs cfg (Just ifB) (Just state)
+                    let (logs,condSymState) = runCFG cfgs cfg (Just ifB)
+                          (Just $ SymState (env state) (Log.Header 1 [0]))
+                    {- TODELETE
                     incrementLogDepth
                     flip mapM_ logs $ \log ->
                       tellNextLog $ Log.Nested "if statement" $ Log.getLogTag log
                     decrementLogDepth
+                     -}
+                    flip mapM_ logs $ \log -> do
+                      Log.Header _ baseCounter <- logHeader <$> get
+                      tellNextNestedLog baseCounter "if statement" log
                     -- remove vars declared in that scope
                     -- use vars bindings to do so
                     let sEnv = removeDeletedVars stateEnv (env condSymState)
@@ -189,11 +201,17 @@ instance CFGVisitor Method_SymExec where
                     tellNextLog $ Log.NoElseBranch "visitNode -> Node -> BooleanExpression if"
                     return $ ER_Void
                   [ifB,elseB] -> do
-                    let (logs,condSymState) = runCFG cfgs cfg (Just $ if b then ifB else elseB) (Just state)
+                    let (logs,condSymState) = runCFG cfgs cfg (Just $ if b then ifB else elseB)
+                          (Just $ SymState (env state) (Log.Header 1 [0]))
+                    {- TODELETE
                     incrementLogDepth
                     flip mapM_ logs $ \log ->
                       tellNextLog $ Log.Nested (printf "%s statement" $ if b then "if" else "else") $ Log.getLogTag log
                     decrementLogDepth
+                     -}
+                    flip mapM_ logs $ \log -> do
+                      Log.Header _ baseCounter <- logHeader <$> get
+                      tellNextNestedLog baseCounter (printf "%s statement" $ if b then "if" else "else") log
                     -- remove vars declared in that scope
                     -- use vars bindings to do so
                     let sEnv = removeDeletedVars stateEnv (env condSymState)
@@ -219,20 +237,28 @@ instance CFGVisitor Method_SymExec where
                     }
                     ER_State <$> get
               SBin _ _ _ -> do
-                let (ifLogs,ifSymState0) = runCFG cfgs cfg (Just $ branches_paths !! 0) (Just state)
-                incrementLogDepth
-                flip mapM_ ifLogs $ \log ->
-                  tellNextLog $ Log.Nested "if statement" $ Log.getLogTag log
-                decrementLogDepth
+                let (ifLogs,ifSymState0) = runCFG cfgs cfg (Just $ branches_paths !! 0)
+                      (Just $ SymState (env state) (Log.Header 1 [0]))
+
+                tellNextLog (Log.HorizontalLine "if branch")
+                
+                flip mapM_ ifLogs $ \log -> do
+                  Log.Header _ baseCounter <- logHeader <$> get
+                  tellNextNestedLog baseCounter "if statement" log
+                
                 -- symExpr is the SIte with the two conditional states
                 symExpr@(SIte ifCond ifSymStateEnv mElseSymStateEnv) <- case branches_paths of
                   [_] -> return $ SIte expr2 (env ifSymState0) Nothing
                   [_,pElse] -> do
-                    let (elseLogs,elseSymState) = runCFG cfgs cfg (Just pElse) (Just state)
-                    incrementLogDepth
-                    flip mapM_ elseLogs $ \log ->
-                      tellNextLog $ Log.Nested "else statement" $ Log.getLogTag log
-                    decrementLogDepth
+                    let (elseLogs,elseSymState) = runCFG cfgs cfg (Just pElse)
+                          (Just $ SymState (env state) (Log.Header 1 [0]))
+                    
+                    tellNextLog (Log.HorizontalLine "else branch")
+                    
+                    flip mapM_ elseLogs $ \log -> do
+                      Log.Header _ baseCounter <- logHeader <$> get
+                      tellNextNestedLog baseCounter "else statement" log
+
                     return $ SIte expr2 (env ifSymState0) (Just $ env elseSymState)
                 let condBranchRange = CFGT.SR {
                       CFGT.branchStart = CFGT.id n,
@@ -533,7 +559,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                 $ Map.insert GlobalVars (SGlobalVars globalVars)
                 Map.empty
           let (funCallLogs2,funCallSymState2) = runCFG cfgs cfg0 Nothing
-                $ Just $ SymState funCallMap0 (Log.Header 1 [1] {-this will be ignored-})
+                $ Just $ SymState funCallMap0 (Log.Header 1 [0])
           if null globalVars
             then return ER_Void
             else do
@@ -1001,7 +1027,7 @@ visitForLoop2 cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma = do
                      _ -> Just node)
     originalState <- get
     let (forBodyLogs,forBodySymState) = runCFG cfgs cfg (Just path)
-          (Just $ SymState (env originalState) (Log.Header 1 [1] {-this will be ignored-}))
+          (Just $ SymState (env originalState) (Log.Header 1 [0]))
     -- record unregistered logs
     incrementLogDepth
     forM_ forBodyLogs $ \log ->
@@ -1172,10 +1198,11 @@ runCFG cfgs cfg mPath mSymState =
         state_ <- get
         case getReturnSymExpr state_ of
           Just _ -> tellNextLog (Log.Skip $ printf "%s" (show node)) $> ER_Void
-          Nothing -> getReader_Method_R $ visitNode node
+          Nothing ->
+            incrementLogDepth *> getReader_Method_R (visitNode node) <* decrementLogDepth
       (methodNameKey,methodNameValue) = (MethodName $ CFG.getCFGName cfg , SMethodType $ toSymType1 $ CFG.getCFGType cfg)
       initialSymState = maybe
-          (SymState Map.empty $ Log.Header 1 [1])
+          (SymState Map.empty $ Log.Header 1 [0])
           id mSymState
       run_r :: ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))) ()
       run_r = runReaderT runner (defaultConfig,cfgs)

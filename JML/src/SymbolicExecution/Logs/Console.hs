@@ -35,7 +35,7 @@ ppConsoleLogTag = \case
     AssignStatement str loc -> printf "(%s): %s: %s" (cyan loc) (yellow "handling assign statement") str
     Edge_2_Handle str loc   -> printf "(%s): %s: %s" (cyan loc) (yellow "running CFG") str
     Meow str1 str2          -> printf "Meow: %s %s" str1 str2
-    HorizontalLine str      -> printf ">>>>>>>>>> %s <<<<<<<<<<" (yellow str)
+    HorizontalLine str      -> printf "\n\n\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %s <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n" (yellow str)
     NewVariable tn vn loc   -> printf "(%s): %s %s %s" (cyan loc) (yellow "New Variable") tn vn
     ActualParameterDetected
               tn vn val loc -> printf "(%s): %s %s %s ==> %s" (cyan loc) (yellow "Actual Parameter Detected") tn vn val
@@ -80,4 +80,27 @@ ppConsoleLogTag = \case
     RunSymStateActualMethodCall
       symState              -> printf "%s: %s" (yellow "Method Call actual SymState") symState
     Nested funCallTag logTag-> printf "%s ==> %s" (red funCallTag) (ppConsoleLogTag logTag)
+    NextLogNum
+      (oldDepth,oldCounter)
+      (newDepth,newCounter) -> printf 
+          "%s:\n\
+          \  %s: %d, %s: %v\n\
+          \  %s: %d, %s: %v"
+          (yellow "NextLogNum")
+          (yellow "oldDepth") oldDepth (yellow "oldCounter") oldCounter
+          (yellow "newDepth") newDepth (yellow "newCounter") newCounter
+    IncrementLogDepth oldDepth newDepth -> printf
+        "%s:\n\
+        \  %s: %d\n\
+        \  %s: %d"
+        (yellow "IncrementLogDepth")
+        (yellow "oldDepth") oldDepth
+        (yellow "newDepth") newDepth
+    DecrementLogDepth oldDepth newDepth -> printf
+        "%s:\n\
+        \  %s: %d\n\
+        \  %s: %d"
+        (yellow "DecrementLogDepth")
+        (yellow "oldDepth") oldDepth
+        (yellow "newDepth") newDepth
     logTag -> error "Logs.Console ==> TODO"

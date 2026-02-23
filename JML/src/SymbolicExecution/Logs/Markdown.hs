@@ -94,7 +94,7 @@ ppMarkdownLogTag = \case
     AssignStatement str loc -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "handling assign statement") str
     Edge_2_Handle str loc   -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "running CFG") str
     Meow str1 str2          -> printf "Meow: %s %s" str1 str2
-    HorizontalLine str      -> printf "---\n\n\\>\\>\\>\\>\\>\\>\\>\\>\\>\\> %s <<<<<<<<<<\n\n---" (show $ orangeRed $ fromString str)
+    HorizontalLine str      -> printf "\n\n\n---\n\n\\>\\>\\>\\>\\>\\>\\>\\>\\>\\>\\>\\>\\>\\>\\>\\>\\>\\>\\>\\> %s <<<<<<<<<<<<<<<<<<<<\n\n---\n" (show $ orangeRed $ fromString str)
     NewVariable tn vn loc   -> printf "(%s): %s %s %s" (show $ cyan $ fromString loc) (show $ orangeRed "New Variable") tn vn
     ActualParameterDetected
               tn vn val loc -> printf "(%s): %s %s %s ==> %s" (show $ cyan $ fromString loc) (show $ orangeRed "Actual Parameter Detected") tn vn val

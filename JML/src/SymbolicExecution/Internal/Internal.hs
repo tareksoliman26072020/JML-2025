@@ -16,6 +16,7 @@ import qualified Data.Map as Map (lookup, empty, Map, filterWithKey, insert, fol
 import Prelude hiding (negate)
 import Data.List (nub,find,foldl',intercalate)
 import Control.Monad (forM_, foldM_)
+import Data.Functor (($>))
 
 ------------------------------
 ------------------------------
@@ -335,15 +336,24 @@ getSymExpr = \case
   ER_PredefinedFunCall symExpr -> Just symExpr
   er -> error $ "getSymExpr ~~> TODO: " ++ show er
 
-tellNextLog :: Log.LogTag -> Typed_Method_R (Config,[CFGT.CFG]) ()
+tellNextLog :: Log.LogTag -> Typed_Method_R (Config,[CFGT.CFG]) String
 tellNextLog logTag = do
-  logNum <- getNextLogNum
-  tell [Log.Log logNum logTag]
---{-# LANGUAGE MultiWayIf #-}
-getNextLogNum :: Typed_Method_R (Config,[CFGT.CFG]) String
-getNextLogNum = do
+  logNum <- incrementLogEnumeration
+  tell [Log.Log logNum logTag] $> logNum
+
+tellNextNestedLog :: [Int] -> String -> Log.Log -> Typed_Method_R (Config,[CFGT.CFG]) String
+tellNextNestedLog baseCounter newLogTagStr (Log.Log nestedCounterStr logTag) = do
+  let logNum = (intercalate "." $ map show $ baseCounter) ++ "." ++ nestedCounterStr
+  tell [Log.Log logNum $ Log.Nested newLogTagStr logTag] $> logNum
+
+incrementLogEnumeration :: Typed_Method_R (Config,[CFGT.CFG]) String
+incrementLogEnumeration = do
   a@(Log.Header depth counter) <- logHeader <$> get
-  let f = return . intercalate "." . map show
+  let logNum = intercalate "." . map show
+      f = return . logNum
+      --tellingIt :: (Int,String) -> (Int,String) -> Typed_Method_R (Config,[CFGT.CFG]) ()
+      --tellingIt old new = tell [Log.Log "?" $ Log.NextLogNum old new]
+      --oldCounterStr = logNum counter
   if
     | depth == length counter + 1 -> do
         let newCounter = counter ++ [1]
@@ -351,6 +361,7 @@ getNextLogNum = do
           env = env symState,
           logHeader = Log.Header depth newCounter
         }
+        --tellingIt (depth,oldCounterStr) (depth,logNum newCounter)
         f newCounter
     | depth <= length counter -> do
         let newCounter = take (depth-1) counter ++ [(counter !! (depth-1)) + 1]
@@ -358,8 +369,9 @@ getNextLogNum = do
           env = env symState,
           logHeader = Log.Header depth newCounter
         }
+        --tellingIt (depth,oldCounterStr) (depth,logNum newCounter)
         f newCounter
-    | otherwise -> throwError $ printf "SymbolicExecutionn.Internal.getNextLogNum ==> won't happen ==> %s" (show a)
+    | otherwise -> throwError $ printf "SymbolicExecutionn.Internal.incrementLogEnumeration ==> won't happen ==> %s" (show a)
 
 incrementLogDepth :: Typed_Method_R (Config,[CFGT.CFG]) ()
 incrementLogDepth = do
@@ -368,6 +380,7 @@ incrementLogDepth = do
     env = env symState,
     logHeader = Log.Header (depth+1) counter
   }
+  --tell [Log.Log "?" $ Log.IncrementLogDepth depth (depth+1)]
 
 decrementLogDepth :: Typed_Method_R (Config,[CFGT.CFG]) ()
 decrementLogDepth = do
@@ -376,6 +389,7 @@ decrementLogDepth = do
     env = env symState,
     logHeader = Log.Header (depth-1) counter
   }
+  --tell [Log.Log "?" $ Log.DecrementLogDepth depth (depth-1)]
   
 
 -- alters the type of a global variable based on the expression and the scope it exists in
@@ -391,10 +405,6 @@ so when this function is used on them, for the type
 castGlobalVar :: SymType -> ExecutionResult -> Typed_Method_R (Config,[CFGT.CFG]) ()
 castGlobalVar newType er = do
   let loc = "SymbolicExecution.Internal.castGlobalVar"
-  {-
-  logNum <- getNextLogNum
-  tell [Log.Log logNum $ Log.Affected loc ["SymType: " ++ show newType , "ExecutionResult: " ++ show er]]
-   -}
   tellNextLog $ Log.Affected loc ["SymType: " ++ show newType , "ExecutionResult: " ++ show er]
   case er of
     ER_SymStateMapEntry (VarName key) val -> do
