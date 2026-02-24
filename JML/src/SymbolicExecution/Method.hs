@@ -40,10 +40,9 @@ instance CFGVisitor Method_SymExec where
         True  -> tellNextLog (Log.Return "visitNode -> Entry -> method with no args" "()") $> ()
         False -> do
           tellNextLog $ Log.MethodFormalParams (show args) "visitNode -> Entry -> method with args"
-          let argsSize = length args
-          mapM_ (\(logCounter,arg) -> do
-                   incrementLogDepth
-                   argVisited <- visitExpr arg
+          mapM_ (\arg -> do
+                   incrementLogEnumeration
+                   argVisited <- incrementLogDepth *> visitExpr arg
                    case argVisited of
                      ER_SymStateMapEntry (VarName name) val@(SymVar _ _) -> do
                        alreadyExist <- env <$> get >>= return . Map.lookup (VarName name)
@@ -58,10 +57,8 @@ instance CFGVisitor Method_SymExec where
                          Just _ -> return ()
                      ER_ActualParameterDetected -> return ()
                      _ -> throwError $ "visitNode ==> Entry ==> won't happen ==> " ++ show argVisited
-                   decrementLogDepth >> if
-                     | logCounter < argsSize -> incrementLogEnumeration $> ()
-                     | otherwise -> return ()
-               ) $ zip [1 ..] args
+                   decrementLogDepth
+               ) args
       toReturn <- ER_State <$> get
       tellNextLog (Log.Return "visitNode -> Entry -> method has args" (show toReturn)) $> toReturn
     ----------------------------------------
@@ -84,7 +81,9 @@ instance CFGVisitor Method_SymExec where
     n@CFGT.Node{} -> case CFGT.nodeData n of
       CFGT.Statement stmt -> do
         tellNextLog $ Log.MethodStatement "visitNode -> case nodeData of Node -> Statement" (show stmt)
+        incrementLogDepth
         toReturn <- visitStmt stmt
+        decrementLogDepth
         ER_FunHandle _ funName <- getFunHandle
         (_,cfgs) <- ask
         let cfg = case CFG.findCFGByName funName cfgs of
@@ -152,8 +151,13 @@ instance CFGVisitor Method_SymExec where
               in flip takeWhile thePath $ \case
                    CFGT.Node _ (CFGT.Meet CFGT.If) _ -> False
                    _                                 -> True
-        
-        ER_Expr expr2 <- visitExpr expr
+
+        ER_Expr expr2 <- do
+          incrementLogEnumeration
+          incrementLogDepth *>
+            censor (map $ \(Log.Log num tag) -> Log.Log num $ Log.Nested "if condition" tag)
+                   (visitExpr expr)
+              <* decrementLogDepth
         (state,stateEnv) <- (,) <$> get <*> (env <$> get) 
         let mainActions = getActions stateEnv
         let mainVarAssignments = getVarAssignments stateEnv
@@ -164,15 +168,11 @@ instance CFGVisitor Method_SymExec where
                   [ifB] | b -> do
                     let (logs,condSymState) = runCFG cfgs cfg (Just ifB)
                           (Just $ SymState (env state) (Log.Header 1 [0]))
-                    {- TODELETE
-                    incrementLogDepth
-                    flip mapM_ logs $ \log ->
-                      tellNextLog $ Log.Nested "if statement" $ Log.getLogTag log
-                    decrementLogDepth
-                     -}
-                    flip mapM_ logs $ \log -> do
-                      Log.Header _ baseCounter <- logHeader <$> get
-                      tellNextNestedLog baseCounter "if statement" log
+                    do
+                      incrementLogEnumeration
+                      flip mapM_ logs $ \log -> do
+                        Log.Header _ baseCounter <- logHeader <$> get
+                        tellNextNestedLog baseCounter ["if statement"] log
                     -- remove vars declared in that scope
                     -- use vars bindings to do so
                     let sEnv = removeDeletedVars stateEnv (env condSymState)
@@ -203,15 +203,13 @@ instance CFGVisitor Method_SymExec where
                   [ifB,elseB] -> do
                     let (logs,condSymState) = runCFG cfgs cfg (Just $ if b then ifB else elseB)
                           (Just $ SymState (env state) (Log.Header 1 [0]))
-                    {- TODELETE
-                    incrementLogDepth
-                    flip mapM_ logs $ \log ->
-                      tellNextLog $ Log.Nested (printf "%s statement" $ if b then "if" else "else") $ Log.getLogTag log
-                    decrementLogDepth
-                     -}
-                    flip mapM_ logs $ \log -> do
-                      Log.Header _ baseCounter <- logHeader <$> get
-                      tellNextNestedLog baseCounter (printf "%s statement" $ if b then "if" else "else") log
+                        choiceStr = if b then "if" else "else"
+                    do
+                      tellNextLog (Log.HorizontalLine $ printf "In %s branch" choiceStr)
+                      incrementLogEnumeration
+                      flip mapM_ logs $ \log -> do
+                        Log.Header _ baseCounter <- logHeader <$> get
+                        tellNextNestedLog baseCounter [printf "%s statement" choiceStr] log
                     -- remove vars declared in that scope
                     -- use vars bindings to do so
                     let sEnv = removeDeletedVars stateEnv (env condSymState)
@@ -242,9 +240,11 @@ instance CFGVisitor Method_SymExec where
 
                 tellNextLog (Log.HorizontalLine "if branch")
                 
-                flip mapM_ ifLogs $ \log -> do
-                  Log.Header _ baseCounter <- logHeader <$> get
-                  tellNextNestedLog baseCounter "if statement" log
+                do
+                  incrementLogEnumeration
+                  flip mapM_ ifLogs $ \log -> do
+                    Log.Header _ baseCounter <- logHeader <$> get
+                    tellNextNestedLog baseCounter ["if statement"] log
                 
                 -- symExpr is the SIte with the two conditional states
                 symExpr@(SIte ifCond ifSymStateEnv mElseSymStateEnv) <- case branches_paths of
@@ -257,7 +257,7 @@ instance CFGVisitor Method_SymExec where
                     
                     flip mapM_ elseLogs $ \log -> do
                       Log.Header _ baseCounter <- logHeader <$> get
-                      tellNextNestedLog baseCounter "else statement" log
+                      tellNextNestedLog baseCounter ["else statement"] log
 
                     return $ SIte expr2 (env ifSymState0) (Just $ env elseSymState)
                 let condBranchRange = CFGT.SR {
@@ -446,13 +446,15 @@ visitStmt :: AST.Statement -> Method_R
 --ReturnStmt {returnS :: Maybe Expression}
 visitStmt (AST.ReturnStmt (Just expr)) = do
   tellNextLog $ Log.ReturnStatement (show expr) "visitStmt -> ReturnStmt"
-  er <- visitExpr expr
+  er <- incrementLogDepth *> visitExpr expr <* decrementLogDepth
   ER_FunHandle t _ <- getFunHandle
   let symExpr = cast t $ case getSymExpr er of
         Just symExpr -> symExpr
         Nothing      -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show er
 
-  castGlobalVar t er
+  incrementLogEnumeration >>
+    incrementLogDepth *> inferGlobalVarType t er <* decrementLogDepth
+  
   tellNextLog $ Log.ModifyState "visitStmt -> ReturnStmt -> method with args" ("return",show symExpr)
   modify $ \symState ->
     SymState {
@@ -477,7 +479,6 @@ visitStmt stmt@(AST.FunCallStmt expr) = case expr of
         tellNextLog (Log.ModifyState "visitStmt -> FunCallStmt" ("SActions",show symExpr))
         modify $ \symState ->
           SymState {
-            -- alter :: Ord k => (Maybe a -> Maybe a) -> k -> Map k a -> Map k a 
             env = Map.alter (\case
                     Nothing -> Just $ SActions [symExpr]
                     Just (SActions li) -> Just $ SActions $ li ++ [symExpr]) Actions (env symState),
@@ -516,14 +517,20 @@ visitExpr (expr@AST.FunCallExpr{}) = do
           let formalParms_varNames = map AST.getVarName formalParms
           -- get the ExecutionResults of the actual parameters
           --actualParms :: [ExecutionResult]
-          actualParms <- flip mapM (AST.funArgs expr) $ \exp -> do
-            let logging = Log.Nested (printf "SymExec of actual parameter: %s(%s)" funCallName (AST.getActualParmName exp)) . Log.getLogTag
-            (re,logs) <- listen $ visitExpr exp
-            incrementLogDepth
-            mapM_ (tellNextLog . logging) logs 
-            decrementLogDepth
-            return re
-               
+          actualParms <- do
+            flip mapM (AST.funArgs expr) $ \exp -> do
+              incrementLogEnumeration
+              let newLogTagStrs = [
+                    printf "%s(%s)" funCallName (AST.getActualParmName exp),
+                    "actual parameter in Method Call"]
+              let prependLogs :: [Log.Log] -> [Log.Log]
+                  prependLogs = map (\(Log.Log innerCounterStr logTag) ->
+                    Log.Log innerCounterStr $ foldl' (\tag str ->
+                      Log.Nested str tag) logTag newLogTagStrs)
+              censor prependLogs $ do
+                er <- incrementLogDepth *> visitExpr exp <* decrementLogDepth
+                return er
+                
           -- actualParms of the method call
           -- actualParms1 :: [(SymStateKey,SymExpr)]
           let actualParms1 :: [(SymStateKey,SymExpr)]
@@ -563,13 +570,12 @@ visitExpr (expr@AST.FunCallExpr{}) = do
           if null globalVars
             then return ER_Void
             else do
-              incrementLogDepth
               -- tell global vars
               tellNextLog $ Log.Nested ("actual: " ++ funCallName) $ Log.GlobalVars
                   (show $ Map.toList globalVarsMap)
                   "visitExpr -> FunCallExpr"
-              decrementLogDepth $> ER_Void
-          incrementLogDepth
+              return ER_Void
+          
           -- tell formalParms
           tellNextLog $ Log.Nested ("actual: " ++ funCallName) $ Log.MethodFormalParams
               (show formalParms_varNames)
@@ -579,9 +585,9 @@ visitExpr (expr@AST.FunCallExpr{}) = do
               (show actualParms1)
               "visitExpr -> FunCallExpr"
           -- edit its logs and tell them
-          flip mapM_ funCallLogs2 $ \log ->
-            tellNextLog $ Log.Nested ("actual: " ++ funCallName) $ Log.getLogTag log
-          decrementLogDepth
+          flip mapM_ funCallLogs2 $ \log -> do
+            Log.Header _ baseCounter <- logHeader <$> get
+            tellNextNestedLog baseCounter ["actual: " ++ funCallName] log
           
           let inherit_actions = getActions $ env funCallSymState2
               inherit_globalVars = getGlobalVars (env funCallSymState2)
@@ -682,15 +688,27 @@ visitExpr (expr@AST.FunCallExpr{}) = do
 --BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
 visitExpr expr@AST.BinOpExpr{} = do
   tellNextLog $ Log.Expression_2_Handle (show expr) "visitExpr -> BinOpExpr"
-  er_one <- visitExpr (AST.expr1 expr)
-  er_two <- visitExpr (AST.expr2 expr)
+  er_one <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      censor (map $ \(Log.Log num tag) -> Log.Log num $ Log.Nested "Left operand" tag)
+             (visitExpr (AST.expr1 expr))
+        <* decrementLogDepth
+  
+  er_two <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      censor (map $ \(Log.Log num tag) -> Log.Log num $ Log.Nested "Right operand" tag)
+             (visitExpr (AST.expr2 expr)) <* decrementLogDepth
 
   let mOne = getSymExpr er_one
       mTwo = getSymExpr er_two
   case (mOne,mTwo) of
     (Just one,Just two) -> do
       let newUnifiedSymType = pick_known_symType (toSymType2 one,toSymType2 two)
-      mapM_ (castGlobalVar newUnifiedSymType) [er_one,er_two]
+      flip mapM_ [er_one,er_two] $ \expr -> do
+        incrementLogEnumeration
+        incrementLogDepth *> inferGlobalVarType newUnifiedSymType expr <* decrementLogDepth
 
       tellNextLog $ Log.Affected "visitExpr -> BinOpExpr" [show one,show $ AST.binOp expr,show two]
       let op1 = cast newUnifiedSymType one
@@ -713,7 +731,12 @@ visitExpr expr@AST.UnOpExpr{} = throwError "visitExpr ==> UnOpExpr ==> TODO"
 visitExpr expr@AST.AssignExpr{} = do
   tellNextLog $ Log.Expression_2_Handle (show expr) "visitExpr -> AssignExpr"
 
-  one <- visitExpr (AST.assEleft expr)
+  one <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      censor (map $ \(Log.Log num tag) -> Log.Log num $ Log.Nested "Left Operand" tag)
+             (visitExpr (AST.assEleft expr))
+        <* decrementLogDepth
 
   -- one_val's sole purpose is its type
   -- one_svn is important to find key in the map
@@ -726,7 +749,12 @@ visitExpr expr@AST.AssignExpr{} = do
        ER_Expr ex -> error $ printf "visitExpr ==> AssignExpr: (%s,%s,%s)"
            (show expr) (show ex) (show $ AST.assEleft expr)
 
-  two <- visitExpr (AST.assEright expr)
+  two <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      censor (map $ \(Log.Log num tag) -> Log.Log num $ Log.Nested "Right Operand" tag)
+             (visitExpr (AST.assEright expr))
+        <* decrementLogDepth
 
   let two_val = case two of
           ER_Expr e2_@(SymArray mType1 mSize1 elms1) -> case one_val of
@@ -799,14 +827,15 @@ two_newVal = SymArray (Just (Array Int)) (Just 2) [SymNull Int,SymNull Int]
   -- The following takes care of t in that context while z = 1 gets processed.
   -- one: the value of z before it gets updated to 1
   --s1 <- env <$> get
-  castGlobalVar (toSymType2 two_newVal) one
+  incrementLogDepth *> inferGlobalVarType (toSymType2 two_newVal) one <* decrementLogDepth
 
   -- consider the AssignExpr:
   --   double x;
   --   x = c;
   -- c is a global variable, used for the first time in this assignment
   -- c is a double, and its VarName in the SymState need to be updated accordingly
-  castGlobalVar (toSymType2 two_newVal) two
+  incrementLogEnumeration >>
+    incrementLogDepth *> inferGlobalVarType (toSymType2 two_newVal) two <* decrementLogDepth
   
   let toReturn = ER_SymStateMapEntry one_svn two_val
   tellNextLog (Log.Return "visitExpr -> AssignExpr" (show toReturn)) $> toReturn
@@ -827,7 +856,6 @@ visitExpr expr@AST.VarExpr{} = do
               tellNextLog (Log.Return "visitExpr -> VarExpr -> Updating" (show toReturn)) $> toReturn
             Nothing -> do
               tellNextLog $ Log.GlobalVar varName_ "visitExpr -> VarExpr"
-              -- TODELETE let symExpr = SymGlobalVar UnknownGlobalVarSymType varName_ Nothing
               let symExpr = SymVar UnknownGlobalVarSymType varName_
                   toReturn = ER_SymStateMapEntry
                     (VarName varName_)
@@ -843,7 +871,7 @@ visitExpr expr@AST.VarExpr{} = do
           alreadyExist <- env <$> get >>= return . Map.lookup (VarName varName_)
           case alreadyExist of
             Just expr -> do
-              tellNextLog $ Log.ActualParameterDetected (show t) varName_ (show expr) "visitExpr -> VarExpr -> "
+              tellNextLog $ Log.ActualParameterDetected (show t) varName_ (show expr) "visitExpr -> VarExpr"
               return ER_ActualParameterDetected
             Nothing -> do
               tellNextLog $ Log.NewVariable (show t) varName_ "visitExpr -> VarExpr"
@@ -870,13 +898,25 @@ ArrayCallExpr {
 }
 -}
 visitExpr expr@AST.ArrayCallExpr{} = do
+  tellNextLog
+    $ Log.Expression_2_Handle (show expr) "SymbolicExecution.Method.visitExpr.ArrayCallExpr"
   -- Array name
-  ER_SymStateMapEntry (VarName arrName) _ <- visitExpr $ AST.arrName expr
+  ER_SymStateMapEntry (VarName arrName) _ <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      censor (map $ \(Log.Log str tag) -> Log.Log str $ Log.Nested ("calling array " ++ AST.getVarName expr) tag)
+             (visitExpr $ AST.arrName expr)
+        <* decrementLogDepth
   -- Array index
   index_er <- case AST.index expr of
     Nothing -> throwError "visitExpr ==> ArrayCallExpr ==> won't happen"
     Just expr_ -> do
-      indexExpr <- visitExpr expr_
+      indexExpr <- do
+        incrementLogEnumeration
+        incrementLogDepth *>
+          censor (map $ \(Log.Log str tag) -> Log.Log str $ Log.Nested ("at pos " ++ AST.getVarName expr_) tag)
+                 (visitExpr expr_)
+            <* decrementLogDepth
       return $ case indexExpr of
         ER_SymStateMapEntry _ indexExpr2 -> indexExpr2
         ER_Expr indexExpr2 -> cast Int indexExpr2
@@ -910,19 +950,26 @@ visitExpr expr@AST.ArrayInstantiationExpr{} = do
   tellNextLog $ Log.Expression_2_Handle (show expr) "visitStmt -> ArrayInstantiationExpr"
   let mArrType = fmap toSymType1 $ AST.arrType expr
   -- process elements in the array, if they exist
-  exprs <- flip mapM (AST.arrElems expr) $ \ex -> do
-    er <- visitExpr ex
-    case (er,mArrType) of
-      (ER_Expr expr2,Nothing) -> return $ expr2
-      (ER_Expr expr2,Just t) -> return $ cast (arrayElementSymType t) expr2
-      _ -> throwError $ "visitExpr ==> ArrayInstantiationExpr: " ++ show er
+  exprs <- do
+    flip mapM (zip [0 :: Int ..] $ AST.arrElems expr) $ \(i,ex) -> do
+      incrementLogEnumeration
+      er <- incrementLogDepth *>
+              censor (map $ \(Log.Log num tag) ->
+                Log.Log num $ Log.Nested (printf "<arr>[%d]" i) tag)
+                (visitExpr ex)
+                              <* decrementLogDepth
+      case (er,mArrType) of
+        (ER_Expr expr2,Nothing) -> return $ expr2
+        (ER_Expr expr2,Just t) -> return $ cast (arrayElementSymType t) expr2
+        _ -> throwError $ "visitExpr ==> ArrayInstantiationExpr: " ++ show er
   -- get array size
   m_arr_size <- case (AST.arrSize expr,length exprs) of
         (Nothing,l) -> return $ Just l
         (Just ex,l)
           | l > 0 -> return $ Just l
           | otherwise -> do
-              er <- visitExpr ex
+              er <- do incrementLogEnumeration
+                       incrementLogDepth *> visitExpr ex <* decrementLogDepth
               case er of
                 ER_Expr (SymNum num) -> return $ Just $ round num
                 _ -> throwError $ "visitExpr ==> ArrayInstantiationExpr: " ++ show (expr,er)
@@ -939,26 +986,41 @@ visitExpr expr@AST.ArrayInstantiationExpr{} = do
         m_arr_size
         exprs_
 
-  return $ ER_Expr symExpr
+  let toReturn = ER_Expr symExpr
+  tellNextLog (Log.Return "SymbolicExecution.Method.visitExpr.ArrayInstantiationExpr" (show toReturn)) $> toReturn
+
 visitExpr expr = error $ "What this is: " ++ show expr
 
 ------------------------------
 
 visitForLoop :: CFGT.CFG -> Maybe CFGT.Node -> Maybe AST.Expression -> [CFGT.Node] -> CFGT.ScopeRange -> Map.Map SymStateKey SymExpr -> Method_R
 visitForLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma = do
+  tellNextLog (Log.Location "SymbolicExecution.Method.visitForLoop")
   originalState <- get
-  ER_State state_With_Acc <- do
+  let prependLogs :: String -> [Log.Log] -> [Log.Log]
+      prependLogs newLogTagStr = map (\(Log.Log innerCounterStr logTag) ->
+        Log.Log innerCounterStr $ Log.Nested newLogTagStr logTag)
+  (hasAcc,ER_State state_With_Acc) <- do
     case m_Acc of
-      Nothing -> ER_State <$> get
+      Nothing -> ((,) False . ER_State) <$> get
       Just acc -> do
-        getReader_Method_R $ visitNode acc
-        ER_State <$> get
-  ER_Expr forCondExpr_visited <- case mForCondExpr of
-    Nothing -> return $ ER_Expr $ SBool True
+        tellNextLog (Log.HorizontalLine "For Accumulator")
+        incrementLogDepth *>
+          censor (prependLogs "For Accumulator") (getReader_Method_R $ visitNode acc)
+                           <* decrementLogDepth
+        ((,) True . ER_State) <$> get
+  (hasCond,ER_Expr forCondExpr_visited) <- case mForCondExpr of
+    Nothing -> return (False,ER_Expr $ SBool True)
     Just forCondExpr -> do
-      (res,logs) <- listen $ visitExpr forCondExpr
-      mapM_ (tellNextLog . Log.Nested "For Loop Condition" . Log.getLogTag) logs
-      return res
+       tellNextLog (Log.HorizontalLine "For Cond")
+       if hasAcc
+         then incrementLogEnumeration $> ER_Void
+         else return ER_Void
+       re <- incrementLogDepth *>
+         censor (prependLogs "For Loop Condition") (visitExpr forCondExpr)
+                          <* decrementLogDepth
+       return (True,re)
+  
   case forCondExpr_visited of
     -- visit for loop body
     SBool True -> do
@@ -971,9 +1033,9 @@ visitForLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma = do
     -- for loop condition was not met
     SBool False -> do
       tellNextLog $ Log.ForLoopDone "visitForLoop1"
-      modify (const originalState)
+      modify $ \symState -> SymState (env originalState) (logHeader symState)
       return ER_ForLoopDone
-    _ -> do modify (const originalState)
+    _ -> do modify $ \symState -> SymState (env originalState) (logHeader symState)
             visitForLoop2 cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma
 
 ------------------------------
@@ -1029,10 +1091,9 @@ visitForLoop2 cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma = do
     let (forBodyLogs,forBodySymState) = runCFG cfgs cfg (Just path)
           (Just $ SymState (env originalState) (Log.Header 1 [0]))
     -- record unregistered logs
-    incrementLogDepth
-    forM_ forBodyLogs $ \log ->
-      tellNextLog $ Log.Nested "For Loop Body" $ Log.Nested "Unregistered" $ Log.getLogTag log
-    decrementLogDepth
+    flip mapM_ forBodyLogs $ \log -> do
+      Log.Header _ baseCounter <- logHeader <$> get
+      tellNextNestedLog baseCounter ["For Loop Body","Unregistered"] log
 {-
 Seien
   1) env originalState

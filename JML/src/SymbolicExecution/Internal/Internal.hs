@@ -337,14 +337,19 @@ getSymExpr = \case
   er -> error $ "getSymExpr ~~> TODO: " ++ show er
 
 tellNextLog :: Log.LogTag -> Typed_Method_R (Config,[CFGT.CFG]) String
-tellNextLog logTag = do
-  logNum <- incrementLogEnumeration
-  tell [Log.Log logNum logTag] $> logNum
+tellNextLog logTag
+  | Log.isHorizontalLine logTag =
+      tell [Log.Log "?" logTag] $> "?"
+  | otherwise = do
+      logNum <- incrementLogEnumeration
+      tell [Log.Log logNum logTag] $> logNum
 
-tellNextNestedLog :: [Int] -> String -> Log.Log -> Typed_Method_R (Config,[CFGT.CFG]) String
-tellNextNestedLog baseCounter newLogTagStr (Log.Log nestedCounterStr logTag) = do
+tellNextNestedLog :: [Int] -> [String] -> Log.Log -> Typed_Method_R (Config,[CFGT.CFG]) String
+tellNextNestedLog baseCounter nestedLogTagStrs (Log.Log nestedCounterStr logTag) = do
   let logNum = (intercalate "." $ map show $ baseCounter) ++ "." ++ nestedCounterStr
-  tell [Log.Log logNum $ Log.Nested newLogTagStr logTag] $> logNum
+      nestedLogTag = foldl' (\tag str ->
+        Log.Nested str tag) logTag nestedLogTagStrs
+  tell [Log.Log logNum nestedLogTag] $> logNum
 
 incrementLogEnumeration :: Typed_Method_R (Config,[CFGT.CFG]) String
 incrementLogEnumeration = do
@@ -402,49 +407,52 @@ in the first expression, both z and t are of `UnknownGlobalVarSymType`
 but the second expression tells me that both of them are of `UnknownNumSymType`
 so when this function is used on them, for the type
  -}
-castGlobalVar :: SymType -> ExecutionResult -> Typed_Method_R (Config,[CFGT.CFG]) ()
-castGlobalVar newType er = do
-  let loc = "SymbolicExecution.Internal.castGlobalVar"
+inferGlobalVarType :: SymType -> ExecutionResult -> Typed_Method_R (Config,[CFGT.CFG]) ()
+inferGlobalVarType newType er = do
+  let loc = "SymbolicExecution.Internal.inferGlobalVarType"
   tellNextLog $ Log.Affected loc ["SymType: " ++ show newType , "ExecutionResult: " ++ show er]
   case er of
     ER_SymStateMapEntry (VarName key) val -> do
       theEnv <- env <$> get
       let vns :: [String] -- vns are global variables mentioned in val
           vns = filter (flip isGlobalVariable2 theEnv) (nub $ key : getVarNames2 (VarName key,val))
-      -- search for each occurrence of `vn` in `vns` in `theEnv`
-      --     and adjust its type
-      foldM_ (\ma vn -> do
-        ma2 <- Map.alterF (\case
-              Nothing -> pure $ Just
-                $ SymVar newType vn
-              Just oldSymExpr ->
-                let newType2 = pick_known_symType2
-                      $ toSymType2 oldSymExpr : toSymType2 val : [newType]
-                in if newType2 == toSymType2 oldSymExpr
-                     then pure $ Just oldSymExpr
-                   else do
-                     let newSymExpr :: SymExpr
-                         newSymExpr = cast newType2 oldSymExpr
-                     tellNextLog $ Log.UpdateVariable (vn,show oldSymExpr,show newSymExpr) "castGlobalVar"
-                     pure $ Just newSymExpr)
-              (VarName vn) ma
-        -- the global variable vn may get mentioned in expressions other than VarName,
-        -- and their types may need casting
-        let ma3 = flip Map.mapWithKey ma2 $ \k v -> case (k,v) of
-              (VarName _,_) -> v
-              (_,symExpr) ->
-                let innerSymExprs = lookupPartialSymExprs vn (k,symExpr)
-                    newType2 = pick_known_symType2
-                      $ (map toSymType2 innerSymExprs) ++ [toSymType2 val] ++ [newType]
-                in cast2 vn newType2 (k,symExpr)
-        -- modify the state accordingly
-        modify $ \symState -> SymState {
-          env = ma3,
-          logHeader = logHeader symState
-        }
-        return ma3
-        ) theEnv vns
-    _ -> return ()
+      case vns of
+        [] -> tellNextLog (Log.Skip "Nothing to infer") $> ()
+        _ ->
+          -- search for each occurrence of `vn` in `vns` in `theEnv`
+          --     and adjust its type
+          foldM_ (\ma vn -> do
+            ma2 <- Map.alterF (\case
+                  Nothing -> pure $ Just
+                    $ SymVar newType vn
+                  Just oldSymExpr ->
+                    let newType2 = pick_known_symType2
+                          $ toSymType2 oldSymExpr : toSymType2 val : [newType]
+                    in if newType2 == toSymType2 oldSymExpr
+                         then pure $ Just oldSymExpr
+                       else do
+                         let newSymExpr :: SymExpr
+                             newSymExpr = cast newType2 oldSymExpr
+                         tellNextLog $ Log.UpdateVariable (vn,show oldSymExpr,show newSymExpr) "inferGlobalVarType"
+                         pure $ Just newSymExpr)
+                  (VarName vn) ma
+            -- the global variable vn may get mentioned in expressions other than VarName,
+            -- and their types may need casting
+            let ma3 = flip Map.mapWithKey ma2 $ \k v -> case (k,v) of
+                  (VarName _,_) -> v
+                  (_,symExpr) ->
+                    let innerSymExprs = lookupPartialSymExprs vn (k,symExpr)
+                        newType2 = pick_known_symType2
+                          $ (map toSymType2 innerSymExprs) ++ [toSymType2 val] ++ [newType]
+                    in cast2 vn newType2 (k,symExpr)
+            -- modify the state accordingly
+            modify $ \symState -> SymState {
+              env = ma3,
+              logHeader = logHeader symState
+            }
+            return ma3
+            ) theEnv vns
+    _ -> tellNextLog (Log.Skip "Nothing to infer") $> ()
 
 ------------------------------
 ------------------------------
@@ -696,7 +704,7 @@ lookupPartialSymExprs vn tu@(symStateKey,symExpr) = case symStateKey of
         $ printf "SymbolicExecution.Internal.lookupPartialSymExprs ==> TODO ==> (%s ,, %s)" vn (show tu)
 
 -- it tells whether a VarName exists in a SymExpr
--- This function was originally written to test `castGlobalVar`
+-- This function was originally written to test `inferGlobalVarType`
 existsIn :: String -> (SymStateKey,SymExpr) -> Bool
 existsIn vn tu@(symStateKey,symExpr) = (case symStateKey of
   VarName vn0 -> vn0 == vn

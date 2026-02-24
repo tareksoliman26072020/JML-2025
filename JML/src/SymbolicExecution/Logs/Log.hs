@@ -12,7 +12,15 @@ getLogTag :: Log -> LogTag
 getLogTag (Log _ tag) = tag
 
 ppLog :: Log -> String
-ppLog (Log counter logTag) = printf "%s. %s" counter (ppLogTag logTag)
+ppLog (Log counter logTag)
+  | isHorizontalLine logTag = ppLogTag logTag
+  | otherwise = printf "%s. %s" counter (ppLogTag logTag)
+
+isHorizontalLine :: LogTag -> Bool
+isHorizontalLine = \case
+  HorizontalLine _ -> True
+  Nested _ log -> isHorizontalLine log
+  _ -> False
 
 --https://symbl.cc/en/collections/arrow-symbols/
 data LogTag =
@@ -86,7 +94,7 @@ ppLogTag = \case
     AssignStatement str loc -> printf "(%s): %s: %s" loc "handling assign statement" str
     Edge_2_Handle str loc   -> printf "(%s): %s: %s" loc "running CFG" str
     Meow str1 str2          -> printf "Meow: %s %s" str1 str2
-    HorizontalLine str      -> printf "\n\n\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %s <<<<<<<<<<<<<<<<<<<<\n" str
+    HorizontalLine str      -> printf "\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %s <<<<<<<<<<<<<<<<<<<<\n" str
     NewVariable tn vn loc   -> printf "(%s): %s %s %s" loc "New Variable" tn vn
     ActualParameterDetected
               tn vn val loc -> printf "(%s): %s %s %s ==> %s" loc "Actual Parameter Detected" tn vn val

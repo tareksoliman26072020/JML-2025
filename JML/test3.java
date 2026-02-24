@@ -44,6 +44,9 @@ public int boo23_3(){
   return 5;
 }
 
+public int boo23_3_1() {
+  return 3 + 5;
+}
 ////////////////////////////////////////
 
 //DONE
@@ -859,6 +862,11 @@ SymState {
 public double boo33_4_i(double i, double j){
   double x = 1 + i;
   x = x + 0.1 + j;
+  return x;
+}
+
+public double boo33_4_i_call(){
+  double x = 1 + boo33_4_i(8.8,7.6);
   return x;
 }
 

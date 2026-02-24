@@ -14,7 +14,7 @@ ppLogs logKind =
   let whichFun = case logKind of
         Console -> ppConsoleLog
         Markdown -> ppMarkdownLog
-  in addHeader . intercalate "\n\n" . map whichFun--snd . foldl' (enumerated whichFun) (1,[])
+  in addHeader . intercalate "\n\n" . map whichFun
   where
   addHeader :: String -> String
   addHeader logs = case logKind of

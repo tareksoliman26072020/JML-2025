@@ -51,7 +51,7 @@ library
       Paths_JML
   hs-source-dirs:
       src
-  ghc-options: -Wall -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-home-modules -Wredundant-constraints
+  ghc-options: -Wall -Widentities -Wincomplete-record-updates -Wno-incomplete-uni-patterns -Wno-missing-home-modules -Wredundant-constraints -Wno-unused-imports -Wno-overlapping-patterns -Wname-shadowing -Wno-unused-do-bind -Wno-name-shadowing -Wno-unused-matches -Wno-unused-local-binds -Wno-incomplete-patterns -Wno-missing-signatures -Wno-orphans
   build-depends:
       base >=4.7 && <5
     , containers
@@ -69,7 +69,7 @@ executable JML-exe
       Paths_JML
   hs-source-dirs:
       app
-  ghc-options: -Wall -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-home-modules -Wredundant-constraints -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Widentities -Wincomplete-record-updates -Wno-incomplete-uni-patterns -Wno-missing-home-modules -Wredundant-constraints -Wno-unused-imports -Wno-overlapping-patterns -Wname-shadowing -Wno-unused-do-bind -Wno-name-shadowing -Wno-unused-matches -Wno-unused-local-binds -Wno-incomplete-patterns -Wno-missing-signatures -Wno-orphans -rtsopts -with-rtsopts=-N
   build-depends:
       JML
     , base >=4.7 && <5
@@ -92,7 +92,7 @@ test-suite JML-test
       Paths_JML
   hs-source-dirs:
       test
-  ghc-options: -Wall -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-home-modules -Wredundant-constraints -rtsopts -with-rtsopts=-N -threaded
+  ghc-options: -Wall -Widentities -Wincomplete-record-updates -Wno-incomplete-uni-patterns -Wno-missing-home-modules -Wredundant-constraints -Wno-unused-imports -Wno-overlapping-patterns -Wname-shadowing -Wno-unused-do-bind -Wno-name-shadowing -Wno-unused-matches -Wno-unused-local-binds -Wno-incomplete-patterns -Wno-missing-signatures -Wno-orphans -rtsopts -with-rtsopts=-N -threaded
   build-depends:
       JML
     , base >=4.7 && <5
@@ -117,7 +117,7 @@ test-suite SymbolicExecution-test
       Paths_JML
   hs-source-dirs:
       test
-  ghc-options: -Wall -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-home-modules -Wredundant-constraints -rtsopts -with-rtsopts=-N -threaded
+  ghc-options: -Wall -Widentities -Wincomplete-record-updates -Wno-incomplete-uni-patterns -Wno-missing-home-modules -Wredundant-constraints -Wno-unused-imports -Wno-overlapping-patterns -Wname-shadowing -Wno-unused-do-bind -Wno-name-shadowing -Wno-unused-matches -Wno-unused-local-binds -Wno-incomplete-patterns -Wno-missing-signatures -Wno-orphans -rtsopts -with-rtsopts=-N -threaded
   build-depends:
       JML
     , base >=4.7 && <5

@@ -31,9 +31,19 @@ ghc-options:
 - -Wall
 - -Widentities
 - -Wincomplete-record-updates
-- -Wincomplete-uni-patterns
-- -Wmissing-home-modules
+- -Wno-incomplete-uni-patterns
+- -Wno-missing-home-modules
 - -Wredundant-constraints
+- -Wno-unused-imports
+- -Wno-overlapping-patterns
+- -Wname-shadowing
+- -Wno-unused-do-bind
+- -Wno-name-shadowing
+- -Wno-unused-matches
+- -Wno-unused-local-binds
+- -Wno-incomplete-patterns
+- -Wno-missing-signatures
+- -Wno-orphans
 
 library:
   source-dirs:

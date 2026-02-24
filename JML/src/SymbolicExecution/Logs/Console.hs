@@ -14,7 +14,9 @@ red :: String -> String
 red = printf "\ESC[1;41m%s\ESC[m"
 
 ppConsoleLog :: Log -> String
-ppConsoleLog (Log counter logTag) = printf "%s. %s" counter (ppConsoleLogTag logTag)
+ppConsoleLog (Log counter logTag)
+  | isHorizontalLine logTag = ppConsoleLogTag logTag
+  | otherwise = printf "%s. %s" counter (ppConsoleLogTag logTag)
 
 ppConsoleLogTag :: LogTag -> String
 ppConsoleLogTag = \case
@@ -35,7 +37,7 @@ ppConsoleLogTag = \case
     AssignStatement str loc -> printf "(%s): %s: %s" (cyan loc) (yellow "handling assign statement") str
     Edge_2_Handle str loc   -> printf "(%s): %s: %s" (cyan loc) (yellow "running CFG") str
     Meow str1 str2          -> printf "Meow: %s %s" str1 str2
-    HorizontalLine str      -> printf "\n\n\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %s <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n" (yellow str)
+    HorizontalLine str      -> printf "\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %s <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n" (yellow str)
     NewVariable tn vn loc   -> printf "(%s): %s %s %s" (cyan loc) (yellow "New Variable") tn vn
     ActualParameterDetected
               tn vn val loc -> printf "(%s): %s %s %s ==> %s" (cyan loc) (yellow "Actual Parameter Detected") tn vn val

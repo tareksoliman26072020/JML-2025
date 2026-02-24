@@ -18,18 +18,15 @@ import SymbolicExecution.Types
 import qualified SymbolicExecution.TargetState as Correct (target)
 import qualified SymbolicExecution.Logs.PrettyPrint as Log
 
-validateJavaMethod :: String -> Bool
-validateJavaMethod _ = True
-
 javaMethodTests :: TestTree
 javaMethodTests =
   let li = getCFGs javaMethodInputs
       cfgs = map snd li
   in testGroup "All tests" (do
        (name, cfg) <- li
-       let (logs,s) = runCFG cfgs cfg Nothing Nothing--([],SymState Map.empty [])
+       let (logs,s) = runCFG cfgs cfg Nothing Nothing
        return $ testCase (printf "Testing %s" (yellow name)) $
-         assertBool (printf "\n\n%s\n\n" (show $ env s){-(Log.ppLogs Log.Console logs)-}) (env s == Correct.target name))
+         assertBool (printf "\n\n%s\n\n" (show $ env s)) (env s == Correct.target name))
 
 getCFGs :: [(String,String)] -> [(String,CFGT.CFG)]
 getCFGs = map $ \(funName,source) ->

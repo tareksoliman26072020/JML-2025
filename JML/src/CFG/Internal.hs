@@ -68,6 +68,7 @@ getEndIfNode cfg node
   | isIfStartNode node = helper cfg node 1
   | otherwise = error $ "getEndIfNode: won't happen: " ++ show node
   where
+  helper :: CFG -> Node -> Int -> Node
   helper cfg currentNode 0 = currentNode
   helper cfg currentNode counter = case findEdge_via_id cfg (getNodeId currentNode) of
       Nothing -> error "getEndIfNode: won't happen"

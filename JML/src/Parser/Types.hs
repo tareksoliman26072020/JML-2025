@@ -149,10 +149,12 @@ getExpressionType = \case
 -- VarExpr {varType = Nothing, varObj = [], varName = "i"}
 -- ArrayCallExpr {arrName :: Expression, index :: Maybe Expression}
 getVarName :: Expression -> String
-getVarName expr@VarExpr{} = varName expr
-getVarName expr@ArrayCallExpr{} = getVarName (arrName expr)
-getVarName expr@AssignExpr{} = getVarName $ assEleft expr
-getVarName expr = error $ "getVarName ==> won't happen: " ++ show expr
+getVarName expr = case expr of
+  VarExpr{} -> varName expr
+  ArrayCallExpr{} -> getVarName (arrName expr)
+  AssignExpr{} -> getVarName $ assEleft expr
+  NumberLiteral num -> show num
+  _ -> error $ "getVarName ==> won't happen: " ++ show expr
 
 getVarNames :: Expression -> [String]
 getVarNames = \case
