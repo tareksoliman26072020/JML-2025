@@ -32,6 +32,7 @@ allTargets = [
   ("manyArrs2",manyArrs2),
   ("manyArrs3",manyArrs3),
   ("manyArrs4", manyArrs4),
+  ("manyArrs5", manyArrs5),
   ("ifFun",ifFun),
   ("ifFun2",ifFun2),
   ("ifFunCall",ifFunCall), ("ifFun2Call",ifFun2Call), ("ifFun2Call2",ifFun2Call2),
@@ -472,6 +473,25 @@ manyArrs4 = Map.fromList [
     (Actions,SActions [SymString "[99, 0]\n"])
   ]
 
+-----------------------------
+-----------------------------
+-----------------------------
+
+manyArrs5 :: SymStateEnv
+manyArrs5 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "manyArrs5"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("brand",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
+    (VarAssignments,SVarAssignments [
+        ("brand",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}),
+        ("brand",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}}),
+        ("brand",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}}),
+        ("brand",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}}),
+        ("brand",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}}),
+        ("brand",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}})]),
+    (VarName "brand",SymArray (Just SYT.String) (Just 5) [SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",SymString "4. Volkswagen",SymString "5. Skoda"]),
+    (Actions,SActions [SymString "[1. Toyota, 2. Mercedes, 3. BMW, 4. Volkswagen, 5. Skoda]\n"])
+  ]
 
 -----------------------------
 -----------------------------

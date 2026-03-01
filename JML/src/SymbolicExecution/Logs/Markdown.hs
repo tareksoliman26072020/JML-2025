@@ -138,7 +138,8 @@ ppMarkdownLogTag = \case
     ForLoopConditionUndetermined loc val
                             -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "For Loop Condition Undetermined") val
     ForLoopRound n loc      -> printf "(%s): %s: %d" (show $ cyan $ fromString loc) (show $ orangeRed "For Loop count") n
-    ForLoopLimitReached loc -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangeRed "For Loop limit reached")
+    ForLoopLimitReached loc limit
+                            -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "For Loop limit reached") limit
     Return loc val          -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "Returning") val
     RunCFGFormalMethodCall
       symState              -> printf "%s: %s" (show $ orangeRed "Method Call formal SymState") symState

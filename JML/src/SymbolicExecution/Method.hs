@@ -1070,7 +1070,7 @@ visitForLoop :: CFGT.CFG -> Maybe CFGT.Node -> Maybe AST.Expression -> [CFGT.Nod
 visitForLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma = do
   let loc = "SymbolicExecution.Method.visitForLoop"
   tellNextLog (Log.Location "SymbolicExecution.Method.visitForLoop")
-  originalState <- get
+  originalEnv <- env <$> get
   let prependLogs :: String -> [Log.Log] -> [Log.Log]
       prependLogs newLogTagStr = map (\(Log.Log innerCounterStr logTag) ->
         Log.Log innerCounterStr $ Log.Nested newLogTagStr logTag)
@@ -1104,14 +1104,46 @@ visitForLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma = do
       case forLoopVisited of
         -- for visitation was completed
         ER_ForLoopDone -> do
-          s <- get
-          throwError $ printf "visitForLoop ==> TODO ::\n\n%s\n\n%s" (show originalState) (show s)
+          newEnv <- env <$> get
+              -- TODO: `varnames_to_delete`: collect varnames in `newEnv` which are not present in originalEnv
+          let varnames_to_delete :: [String]
+              varnames_to_delete = Map.foldlWithKey' (\acc k _ -> case k of
+                VarName vn
+                  | Map.notMember k originalEnv -> acc ++ [vn]
+                _ -> acc
+                  ) [] newEnv
+              -- `newEnv2`:
+              --     1) delete all `varnames_to_delete` mentioned in `newEnv`
+              --     2) delete `varnames_to_delete` mentioned in VarBindings in `newEnv`
+              --     3) delete `varnames_to_delete` mentioned in VarAssignments in `newEnv`
+              newEnv2 = Map.foldMapWithKey (\case
+                k@(VarName vn)
+                  | vn `notElem` varnames_to_delete -> Map.singleton k
+                  | otherwise -> const Map.empty
+                k@VarBindings -> \case
+                  SVarBindings li -> Map.singleton k $ SVarBindings
+                    $ flip Map.filterWithKey li $
+                      (const . (`notElem` varnames_to_delete))
+                  x -> error $ printf "%s: won't happen2: %s" loc (show x)
+                k@VarAssignments -> \case
+                  SVarAssignments li -> Map.singleton k $ SVarAssignments
+                    $ filter ((`notElem` varnames_to_delete) . fst) li
+                  x -> error $ printf "%s: won't happen3: %s" loc (show x)
+                k -> Map.singleton k) newEnv
+          tellNextLog $ Log.ModifyState loc ("deleting",show varnames_to_delete)
+          modify $ \symState -> SymState {
+            env = newEnv2,
+            logHeader = logHeader symState
+            }
+          return ER_ForLoopDone
+              --throwError $ printf "visitForLoop ==> TODO ::\n\n%s\n\n%s" (show originalEnv) (show s)
+          --throwError $ "MEOW: " ++ show varnames_to_delete
     -- for loop condition was not met
     SBool False -> do
       tellNextLog $ Log.ForLoopDone "visitForLoop1"
-      modify $ \symState -> SymState (env originalState) (logHeader symState)
+      modify $ \symState -> SymState originalEnv (logHeader symState)
       return ER_ForLoopDone
-    _ -> do modify $ \symState -> SymState (env originalState) (logHeader symState)
+    _ -> do modify $ \symState -> SymState originalEnv (logHeader symState)
             visitForLoop2 cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma
 
 ------------------------------
@@ -1137,8 +1169,8 @@ visitForLoop1 loopCounter originalState cfg m_Acc mForCondExpr forBody_forStep_p
   case forCondExpr_visited of
     -- it's atomic, and do a round
     SBool True -> do
-      (config,_) <- ask
-      if iterationMaxBound config >= loopCounter
+      forLoopLimit <- iterationMaxBound . fst <$> ask
+      if forLoopLimit >= loopCounter
         then do
           tellNextLog $ Log.ForLoopRound loopCounter "visitForLoop1"
           flip mapM_ forBody_forStep_path $ \node -> do
@@ -1153,7 +1185,9 @@ visitForLoop1 loopCounter originalState cfg m_Acc mForCondExpr forBody_forStep_p
           tellNextLog $ Log.ReportTheState loc (show theEnv)
           visitForLoop1 (loopCounter+1) originalState cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma
       else do
-        tellNextLog $ Log.ForLoopLimitReached "visitForLoop1"
+        tellNextLog $ Log.ForLoopLimitReached loc (show forLoopLimit)
+        theEnv <- env <$> get
+        tellNextLog $ Log.Skip loc $ printf "The following state will be ignored due to the limit set for for loop: %d:\n%s" forLoopLimit (show theEnv)
         visitForLoop2 cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma
     -- it's atomic, and terminate
     SBool False -> do

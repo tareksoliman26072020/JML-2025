@@ -116,6 +116,11 @@ visitNode ==> Node ==> ForInitialization ==> no accumulation variable ==> ER_Tri
 visitNode ==> Node ==> ForStep ==> no statement ==> ER_Void
 visitNode ==> Node ==> ForStep ==> yes statement ==> ER_Void
 
+visitForLoop ==> loop can be processed ==> visitForLoop1 ==> ER_ForLoopDone
+visitForLoop ==> loop can't be processed ==> visitForLoop2 ==> ER_SymStateMapEntry
+
+visitForLoop2 ==> ER_SymStateMapEntry
+
 visitSymExpr ==> SymFormalParam: ER_SymStateMapEntry
 visitSymExpr ==> SBin: ER_SymStateMapEntry
 visitSymExpr ==> SymInt: ER_SymStateMapEntry
@@ -198,6 +203,7 @@ ppSymExpr = \case
   SymDouble num -> show num
   SymFloat  num -> show num
   SBool b -> show b
+  SymString str -> str
   SBin e1 op e2 -> printf "(%s) %s (%s)" (ppSymExpr e1) (show op) (ppSymExpr e2)
   SNot e -> printf "!(%s)" (ppSymExpr e)
   SymNull t -> case t of

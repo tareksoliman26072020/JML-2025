@@ -24,6 +24,7 @@ javaMethodInputs = [
   ("manyArrs2", manyArrs2),
   ("manyArrs3", manyArrs3),
   ("manyArrs4", manyArrs4),
+  ("manyArrs5", manyArrs5),
   ("ifFun", ifFun),
   ("ifFunCall", ifFunCall),
   ("ifFun2", ifFun2),
@@ -237,6 +238,15 @@ manyArrs4 = "public void manyArrs4() {\n\
             \  int[] numbers = new int[2];\n\
             \  numbers[0] = 99;\n\
             \  println(numbers);\n\
+            \}"
+
+manyArrs5 :: String
+manyArrs5 = "public void manyArrs5() {\n\
+            \  String[] brand = new String[] {\"Toyota\",\"Mercedes\",\"BMW\",\"Volkswagen\",\"Skoda\"};\n\
+            \  for(int i=0; i<brand.length; i++) {\n\
+            \    brand[i] = toString(i+1) + \". \" + brand[i];\n\
+            \  }\n\
+            \  println(brand);\n\
             \}"
 
 ifFun :: String

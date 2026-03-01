@@ -79,7 +79,8 @@ ppConsoleLogTag = \case
     ForLoopConditionUndetermined loc val
                             -> printf "(%s): %s: %s" (cyan loc) (yellow "For Loop Condition Undetermined") val
     ForLoopRound n loc      -> printf "(%s): %s: %d" (cyan loc) (yellow "For Loop count") n
-    ForLoopLimitReached loc -> printf "(%s): %s" (cyan loc) (yellow "For Loop limit reached")
+    ForLoopLimitReached loc limit
+                            -> printf "(%s): %s: %s" (cyan loc) (yellow "For Loop limit reached") limit
     Return loc val          -> printf "(%s): %s: %s" (cyan loc) (yellow "Returning") val
     RunCFGFormalMethodCall
       symState              -> printf "%s: %s" (yellow "Method Call formal SymState") symState

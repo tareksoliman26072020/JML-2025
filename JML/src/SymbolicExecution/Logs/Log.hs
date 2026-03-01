@@ -56,7 +56,7 @@ data LogTag =
          | UnvisitedForLoop String String
          | ForLoopConditionUndetermined String String
          | ForLoopRound Int String
-         | ForLoopLimitReached String
+         | ForLoopLimitReached String String
          | Return String String
          | RunCFGFormalMethodCall String
          | RunSymStateActualMethodCall String
@@ -138,7 +138,8 @@ ppLogTag = \case
     ForLoopConditionUndetermined loc val
                             -> printf "(%s): %s: %s" loc "For Loop Condition Undetermined" val
     ForLoopRound n loc      -> printf "(%s): %s: %d" loc "For Loop count" n
-    ForLoopLimitReached loc -> printf "(%s): %s" loc "For Loop limit reached"
+    ForLoopLimitReached loc limit
+                            -> printf "(%s): %s: %s" loc "For Loop limit reached" limit
     Return loc val          -> printf "(%s): %s: %s" loc "Returning" val
     RunCFGFormalMethodCall
       symState              -> printf "%s: %s" "Method Call formal SymState" symState
