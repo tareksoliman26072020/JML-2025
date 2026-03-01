@@ -80,9 +80,15 @@ printSymState1 :: String -> IO SYT.SymState
 printSymState1 funName = readFile "test3.java" >>=
   (\cfgs -> case CFG2.findCFGByName funName cfgs of
               Just cfg0 ->
-                let (logs,s) = SYM.runCFG cfgs cfg0 Nothing Nothing
-                in do putStrLn $ (SYT.Log.ppLogs SYT.Log.Console logs)
-                      return s
+                let (er,logs,s) = SYM.runCFG cfgs cfg0 Nothing Nothing
+                in case er of
+                     "" -> do putStrLn $ (SYT.Log.ppLogs SYT.Log.Console logs)
+                              return s
+                     _  -> do putStrLn $ (SYT.Log.ppLogs SYT.Log.Console logs)
+                              putStrLn $ replicate 50 '='
+                              print s
+                              putStrLn $ replicate 50 '='
+                              putStrLn $ "Error: " ++ er
               Nothing   -> error $ "method " ++ funName ++ " does not exist")
   . map CFG1.exec
   . fromRight undefined . parse parseDeclList ""
@@ -91,9 +97,15 @@ printSymState1 funName = readFile "test3.java" >>=
 printSymState2 :: String -> IO SYT.SymState
 printSymState2 funName =
   (\(cfg,cfgs) ->
-      let (logs,s) = SYM.runCFG cfgs cfg Nothing Nothing
-      in do putStrLn $ (SYT.Log.ppLogs SYT.Log.Console logs)
-            return s)
+      let (er,logs,s) = SYM.runCFG cfgs cfg Nothing Nothing
+      in case er of
+           "" -> do putStrLn $ (SYT.Log.ppLogs SYT.Log.Console logs)
+                    return s
+           _  -> do putStrLn $ (SYT.Log.ppLogs SYT.Log.Console logs)
+                    putStrLn $ replicate 50 '='
+                    print s
+                    putStrLn $ replicate 50 '='
+                    putStrLn $ "Error: " ++ er)
   -- (CFGT.CFG,[CFGT.CFG])
   $ (\li ->
       let li2 = map (\(funName,source) ->
@@ -110,12 +122,14 @@ writeSymStates1 fileName = readFile fileName >>=
   (\cfgs ->
       let size = length cfgs
       in mapM_ (\(counter,cfg) ->
-           let (logs,s) = SYM.runCFG cfgs cfg Nothing Nothing
+           let (er,logs,s) = SYM.runCFG cfgs cfg Nothing Nothing
                funName = CFG2.getCFGName cfg
            in do putStrLn $ printf "%d/%d ==> %s" counter size funName
                  let writingFun = writeFile
                        (printf "logs/%s.md" funName)
-                       (SYT.Log.ppLogs SYT.Log.Markdown logs ++ "\n\n# SymState:\n" ++ show s)
+                       (case er of
+                          "" -> SYT.Log.ppLogs SYT.Log.Markdown logs ++ "\n\n# SymState:\n" ++ show s
+                          _  -> SYT.Log.ppLogs SYT.Log.Markdown logs ++ "\n\n# SymState:\n" ++ show s ++  "\n\n# error:\n" ++ er)
                  isFolderThere <- doesDirectoryExist "logs"
                  if isFolderThere
                    then writingFun
@@ -130,11 +144,13 @@ writeSymStates2 =
   (\(li,cfgs) ->
       let size = length cfgs
       in mapM_ (\(counter,(funName,cfg)) ->
-           let (logs,s) = SYM.runCFG cfgs cfg Nothing Nothing
+           let (er,logs,s) = SYM.runCFG cfgs cfg Nothing Nothing
            in do putStrLn $ printf "%d/%d ==> %s" counter size funName
                  let writingFun = writeFile
                        (printf "logs/%s.md" funName)
-                       (SYT.Log.ppLogs SYT.Log.Markdown logs ++ "\n\n# SymState:\n" ++ show s)
+                       (case er of
+                          "" -> SYT.Log.ppLogs SYT.Log.Markdown logs ++ "\n\n# SymState:\n" ++ show s
+                          _  -> SYT.Log.ppLogs SYT.Log.Markdown logs ++ "\n\n# SymState:\n" ++ show s ++  "\n\n# error:\n" ++ er)
                  isFolderThere <- doesDirectoryExist "logs"
                  if isFolderThere
                    then writingFun
@@ -151,10 +167,12 @@ writeSymState :: String -> IO SYT.SymState
 writeSymState funName = readFile "test3.java" >>=
   (\cfgs -> case CFG2.findCFGByName funName cfgs of
               Just cfg0 -> do
-                let (logs,s) = SYM.runCFG cfgs cfg0 Nothing Nothing
+                let (er,logs,s) = SYM.runCFG cfgs cfg0 Nothing Nothing
                     writingFun = writeFile
                        (printf "logs/%s.md" funName)
-                       (SYT.Log.ppLogs SYT.Log.Markdown logs ++ "\n\n# SymState:\n" ++ show s)
+                       (case er of
+                          "" -> SYT.Log.ppLogs SYT.Log.Markdown logs ++ "\n\n# SymState:\n" ++ show s
+                          _  -> SYT.Log.ppLogs SYT.Log.Markdown logs ++ "\n\n# SymState:\n" ++ show s ++  "\n\n# error:\n" ++ er)
                 isFolderThere <- doesDirectoryExist "logs"
                 if isFolderThere
                   then writingFun

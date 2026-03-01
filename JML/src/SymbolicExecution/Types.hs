@@ -12,58 +12,35 @@ import qualified Data.Map as Map (Map)
 import Text.Printf (printf)
 import Data.List (intercalate)
 
+{-
 type Typed_Method_R r =
     ReaderT r
     (ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))))
+-}
 
+type SymbolicExecutionMonad =
+    ExceptT String (ReaderT (Config,[CFGT.CFG]) (WriterT [Log.Log] (State SymState)))
 ----------
 ----------
 ----------
     
-type Method_R = Typed_Method_R (Config,[CFGT.CFG]) ExecutionResult
+--type Method_R = SymbolicExecutionMonad ExecutionResult
 
 ----------
 ----------
 ----------
 
-type FormalParm = (SymType,String)
-type ActualParm_post_Visitation = ExecutionResult
-type MethodName = String
-type MethodCall_R = Typed_Method_R
-    (Config,MethodName,[(FormalParm, ActualParm_post_Visitation)])
-    ExecutionResult
+--newtype Method_SymExec = Method_SymExec Method_R
+newtype MethodProcessor = MethodProcessor {
+  methodProcessorMonad :: SymbolicExecutionMonad ExecutionResult
+}
 
-----------
-----------
-----------
-
-type ToInject = Map.Map SymStateKey SymExpr
-type VarsInjection_R = Typed_Method_R
-  (Config,MethodName,ToInject)
-  ExecutionResult
-
-----------
-----------
-----------
-
-newtype Method_SymExec = Method_SymExec Method_R
-
-newtype MethodCall_SymExec = MethodCall_SymExec MethodCall_R
-
-newtype VarsInjection_SymExec = VarsInjection_SymExec VarsInjection_R
-
-getReader_Method_R :: Method_SymExec -> Method_R
-getReader_Method_R (Method_SymExec r) = r
-
-getReader_MethodCall_R :: MethodCall_SymExec -> MethodCall_R
-getReader_MethodCall_R (MethodCall_SymExec r) = r
-
-getReader_VarsInjection_R :: VarsInjection_SymExec -> VarsInjection_R
-getReader_VarsInjection_R (VarsInjection_SymExec r) = r
+--getReader_Method_R :: Method_SymExec -> Method_R
+--getReader_Method_R (Method_SymExec r) = r
 
 ----------
 
-data SymStateKey = MethodName String
+data SymStateKey = MethodHandle
                  | GlobalVars | FormalParms | VarBindings | VarAssignments
                  | VarName String | ScopeRange CFGT.ScopeRange
                  | Return | Exception | Actions
@@ -141,6 +118,7 @@ visitSymExpr ==> SymFormalParam: ER_SymStateMapEntry
 visitSymExpr ==> SBin: ER_SymStateMapEntry
 visitSymExpr ==> SymInt: ER_SymStateMapEntry
 -}
+{-
 data ExecutionResult =
     ER_Expr SymExpr
   | ER_Node {er_Node_id :: CFGT.NodeID, nodeName :: String}
@@ -156,11 +134,47 @@ data ExecutionResult =
   | ER_ForLoopDone
   | ER_Void
   | ER_ActualParameterDetected
+  deriving Show-}
+
+type ExecutionResult = (ExecutionResultKey,ExecutionResultValue)
+
+data ExecutionResultKey =
+   ER_Expr_key
+ | ER_Node_key
+ | ER_SymStateMapEntry_key
+ | ER_ArrayCallExpr_key
+ | ER_State_key
+ | ER_Logs_key
+ | ER_Triplet_key
+ | ER_FunCall_key
+ | ER_FunHandle_key
+ | ER_IfCond_key
+ | ER_PredefinedFunCall_key
+ | ER_ForLoopDone_key
+ | ER_Void_key
+ | ER_ActualParameterDetected_key
+ deriving (Eq,Show)
+
+data ExecutionResultValue =
+    ER_Expr_value SymExpr
+  | ER_Node_value {er_Node_id :: CFGT.NodeID, nodeName :: String}
+  | ER_SymStateMapEntry_value {er_key :: SymStateKey, er_val :: SymExpr}
+  | ER_ArrayCallExpr_value {arrayIndexCall :: SymExpr, arrayIndexCallValue :: SymExpr}
+  | ER_State_value SymState
+  | ER_Logs_value [Log.Log]
+  | ER_Triplet_value (ExecutionResult,ExecutionResult,ExecutionResult)
+  | ER_FunCall_value SymState
+  | ER_FunHandle_value SymType String
+  | ER_IfCond_value SymExpr  -- ^ boolean expressions found in if conditions. Its existance in the environment values map means that the ......
+  | ER_PredefinedFunCall_value SymExpr
+  | ER_ForLoopDone_value
+  | ER_Void_value
+  | ER_ActualParameterDetected_value
   deriving Show
 
 data SymExpr =
 -- | A (tiny) symbolic expression language
-    SMethodType SymType
+    SMethodHandle (SymType,String)
   | SymNum    Float
   | SymInt    Integer             -- ^ concrete integer literal
   | SymDouble Double              -- ^ concrete double literal

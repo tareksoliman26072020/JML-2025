@@ -327,16 +327,16 @@ pick_known_symType2 = \case
 getReturnSymExpr :: SymState -> Maybe SymExpr
 getReturnSymExpr = Map.lookup Return . env
 
-getSymExpr :: ExecutionResult -> Maybe SymExpr
+getSymExpr :: ExecutionResultValue -> Maybe SymExpr
 getSymExpr = \case
-  ER_Expr symExpr -> Just symExpr
-  ER_SymStateMapEntry _ symExpr -> Just symExpr
-  ER_FunCall symState -> getReturnSymExpr symState
-  ER_ArrayCallExpr _ symExpr -> Just symExpr
-  ER_PredefinedFunCall symExpr -> Just symExpr
+  ER_Expr_value symExpr -> Just symExpr
+  ER_SymStateMapEntry_value _ symExpr -> Just symExpr
+  ER_FunCall_value symState -> getReturnSymExpr symState
+  ER_ArrayCallExpr_value _ symExpr -> Just symExpr
+  ER_PredefinedFunCall_value symExpr -> Just symExpr
   er -> error $ "getSymExpr ~~> TODO: " ++ show er
 
-tellNextLog :: Log.LogTag -> Typed_Method_R (Config,[CFGT.CFG]) String
+tellNextLog :: Log.LogTag -> SymbolicExecutionMonad String
 tellNextLog logTag
   | Log.isHorizontalLine logTag =
       tell [Log.Log "?" logTag] $> "?"
@@ -344,19 +344,19 @@ tellNextLog logTag
       logNum <- incrementLogEnumeration
       tell [Log.Log logNum logTag] $> logNum
 
-tellNextNestedLog :: [Int] -> [String] -> Log.Log -> Typed_Method_R (Config,[CFGT.CFG]) String
+tellNextNestedLog :: [Int] -> [String] -> Log.Log -> SymbolicExecutionMonad String
 tellNextNestedLog baseCounter nestedLogTagStrs (Log.Log nestedCounterStr logTag) = do
   let logNum = (intercalate "." $ map show $ baseCounter) ++ "." ++ nestedCounterStr
       nestedLogTag = foldl' (\tag str ->
         Log.Nested str tag) logTag nestedLogTagStrs
   tell [Log.Log logNum nestedLogTag] $> logNum
 
-incrementLogEnumeration :: Typed_Method_R (Config,[CFGT.CFG]) String
+incrementLogEnumeration :: SymbolicExecutionMonad String
 incrementLogEnumeration = do
   a@(Log.Header depth counter) <- logHeader <$> get
   let logNum = intercalate "." . map show
       f = return . logNum
-      --tellingIt :: (Int,String) -> (Int,String) -> Typed_Method_R (Config,[CFGT.CFG]) ()
+      --tellingIt :: (Int,String) -> (Int,String) -> SymbolicExecutionMonad ()
       --tellingIt old new = tell [Log.Log "?" $ Log.NextLogNum old new]
       --oldCounterStr = logNum counter
   if
@@ -378,7 +378,7 @@ incrementLogEnumeration = do
         f newCounter
     | otherwise -> throwError $ printf "SymbolicExecutionn.Internal.incrementLogEnumeration ==> won't happen ==> %s" (show a)
 
-incrementLogDepth :: Typed_Method_R (Config,[CFGT.CFG]) ()
+incrementLogDepth :: SymbolicExecutionMonad ()
 incrementLogDepth = do
   Log.Header depth counter <- logHeader <$> get
   modify $ \symState -> SymState {
@@ -387,7 +387,7 @@ incrementLogDepth = do
   }
   --tell [Log.Log "?" $ Log.IncrementLogDepth depth (depth+1)]
 
-decrementLogDepth :: Typed_Method_R (Config,[CFGT.CFG]) ()
+decrementLogDepth :: SymbolicExecutionMonad ()
 decrementLogDepth = do
   Log.Header depth counter <- logHeader <$> get
   modify $ \symState -> SymState {
@@ -407,12 +407,12 @@ in the first expression, both z and t are of `UnknownGlobalVarSymType`
 but the second expression tells me that both of them are of `UnknownNumSymType`
 so when this function is used on them, for the type
  -}
-inferGlobalVarType :: SymType -> ExecutionResult -> Typed_Method_R (Config,[CFGT.CFG]) ()
+inferGlobalVarType :: SymType -> ExecutionResultValue -> SymbolicExecutionMonad ()
 inferGlobalVarType newType er = do
   let loc = "SymbolicExecution.Internal.inferGlobalVarType"
   tellNextLog $ Log.Affected loc ["SymType: " ++ show newType , "ExecutionResult: " ++ show er]
   case er of
-    ER_SymStateMapEntry (VarName key) val -> do
+    ER_SymStateMapEntry_value (VarName key) val -> do
       theEnv <- env <$> get
       let vns :: [String] -- vns are global variables mentioned in val
           vns = filter (flip isGlobalVariable2 theEnv) (nub $ key : getVarNames2 (VarName key,val))
@@ -632,7 +632,7 @@ cast2 vn newType tu@(symStateKey,symExpr) = case symStateKey of
            | vn == vn2 -> cast newType symExpr
            | otherwise -> symExpr
          SGlobalVars _ -> symExpr
-         SMethodType _ -> symExpr
+         SMethodHandle _ -> symExpr
          SFormalParms _ -> symExpr
          SBin _ op _
            | vn `existsIn` tu -> cast newType symExpr
@@ -672,7 +672,7 @@ lookupPartialSymExprs vn tu@(symStateKey,symExpr) = case symStateKey of
       ----------
       SActions symExprs -> concatMap (lookupPartialSymExprs vn . (,) symStateKey) symExprs
       ----------
-      SMethodType _ -> []
+      SMethodHandle _ -> []
       ----------
       SFormalParms _ -> []
       ----------
@@ -721,7 +721,7 @@ existsIn vn tu@(symStateKey,symExpr) = (case symStateKey of
     SymInt _ -> False
     SymString _ -> False
     SGlobalVars _ -> False
-    SMethodType _ -> False
+    SMethodHandle _ -> False
     SFormalParms _ -> False
     SBin symExpr1 _ symExpr2 -> any ((vn `existsIn`) . (,) symStateKey) [symExpr1,symExpr2]
     SVarAssignments _ -> False
@@ -932,7 +932,7 @@ public int ifFun4(int n) {
 symExpr =
     SIte (SBin (SymVar UnknownNumSymType "y") Ge (SymNum 0.0))
     (SymState {env = fromList [
-        (MethodName "ifFun4",SMethodType Int),
+        (MethodHandle,SMethodHandle (Int,"ifFun4")),
         (GlobalVars,SGlobalVars ["y"]),
         (FormalParms,SFormalParms ["n"]),
         (VarAssignments,SVarAssignments [("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 3}})]),
@@ -950,7 +950,7 @@ getScopedGlobalVarsSymExpr symExpr =
            SBin (SymVar Int "y") Add (SymVar Int "n")])
     ]
 -}
-getScopedGlobalVarsSymExprs :: (SymStateKey,SymExpr) -> Typed_Method_R (Config,[CFGT.CFG]) [(String,[SymExpr])]
+getScopedGlobalVarsSymExprs :: (SymStateKey,SymExpr) -> SymbolicExecutionMonad [(String,[SymExpr])]
 getScopedGlobalVarsSymExprs (symStateKey,symExpr) = do
   theEnv <- env <$> get
   let global_vns = getGlobalVars theEnv
@@ -1004,3 +1004,35 @@ createSymReason (kind,sr) cfg = map $ \node_coor ->
 ------------------------------
 ------------------------------
 ------------------------------
+
+-- An expression of the form `ER_Expr <- visitExpr <something>` is not possible
+-- because MonadFail has no instance for `Data.Functor.Identity.Identity` in case of failure
+-- Therefore I need to avoid using „pattern binding“
+-- and instead, explicite pattern matching needs to be done
+
+-- `loc` is the calling monad transformer
+-- `executionResultKey` is used to denote, in advance, the expected value
+--     and if the value doesn't match what is expected, then this is an error to be handled elsewhere
+-- `transformer` is the function in question, the function whose „ExecutionResult“ to be bound
+--     by using pattern matching instead of pattern binding.
+unbind :: String -> ExecutionResultKey -> ExecutionResult
+       -> SymbolicExecutionMonad ExecutionResultValue
+unbind loc executionResultKey visited@(key,value) = do
+  if | key == executionResultKey -> return value
+     | otherwise -> throwError $ printf
+           "won't happen: %s ==> SymbolicExecution.Internal.deconstruct_getFunHandle:\n\
+           \1) %s\n\
+           \2) %s\n\
+           \3) %s"
+           loc (show executionResultKey) (show visited)
+
+unbind2 :: String -> ExecutionResultKey -> ExecutionResult
+        -> ExecutionResultValue
+unbind2 loc executionResultKey visited@(key,value)
+  | key == executionResultKey = value
+  | otherwise = error $ printf
+           "won't happen: %s ==> SymbolicExecution.Internal.deconstruct_getFunHandle:\n\
+           \1) %s\n\
+           \2) %s\n\
+           \3) %s"
+           loc (show executionResultKey) (show visited)
