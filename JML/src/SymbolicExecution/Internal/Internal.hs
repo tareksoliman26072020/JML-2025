@@ -417,7 +417,7 @@ inferGlobalVarType newType er = do
       let vns :: [String] -- vns are global variables mentioned in val
           vns = filter (flip isGlobalVariable2 theEnv) (nub $ key : getVarNames2 (VarName key,val))
       case vns of
-        [] -> tellNextLog (Log.Skip "Nothing to infer") $> ()
+        [] -> tellNextLog (Log.Skip loc "Nothing to infer") $> ()
         _ ->
           -- search for each occurrence of `vn` in `vns` in `theEnv`
           --     and adjust its type
@@ -452,7 +452,7 @@ inferGlobalVarType newType er = do
             }
             return ma3
             ) theEnv vns
-    _ -> tellNextLog (Log.Skip "Nothing to infer") $> ()
+    _ -> tellNextLog (Log.Skip loc "Nothing to infer") $> ()
 
 ------------------------------
 ------------------------------

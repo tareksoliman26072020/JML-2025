@@ -29,6 +29,10 @@ ppConsoleLogTag = \case
     MethodStatement loc str -> printf "(%s): %s: %s" (cyan loc) (yellow "Method Statement") str
     MethodStatementIfCondition loc str
                             -> printf "(%s): %s: %s" (cyan loc) (yellow "If condition") str
+    MethodStatementForInitialization loc str
+                            -> printf "(%s): %s: %s" (cyan loc) (yellow "For Initialization") str
+    MethodStatementForStep loc str
+                            -> printf "(%s): %s: %s" (cyan loc) (yellow "For Step") str
     Expression_2_Handle
       str loc               -> printf "(%s): %s: %s" (cyan loc) (yellow "handling expression") str
     SymExpr_2_Handle
@@ -67,14 +71,14 @@ ppConsoleLogTag = \case
     NoElseBranch loc        -> printf "(%s): %s" (cyan loc) (yellow "No Else Branch")
     AddVarBinding loc val   -> printf "(%s): %s: %s" (cyan loc) (yellow "Adding Var Binding") val
     AddVarAssignment loc val-> printf "(%s): %s: %s" (cyan loc) (yellow "Adding Var Assignment") val
-    ReportTheState s        -> printf "(%s):\n%s" (yellow "Reporting The State") (show s)
-    Skip thing              -> printf "(%s):\n%s" (yellow "Skip") (show thing)
+    ReportTheState loc s    -> printf "(%s): %s\n%s" (cyan loc) (yellow "Reporting The State") s
+    Skip loc thing          -> printf "(%s):%s ==> %s" (yellow "Skip") (cyan loc) (show thing)
     ForLoopDone loc         -> printf "(%s): %s" (cyan loc) (yellow "For Loop Done")
     UnvisitedForLoop loc expr
                             -> printf "(%s): %s: %s" (cyan loc) (yellow "Unregistered For Loop") expr
     ForLoopConditionUndetermined loc val
                             -> printf "(%s): %s: %s" (cyan loc) (yellow "For Loop Condition Undetermined") val
-    ForLoopRound n loc      -> printf "(%s): %s: %d" (cyan loc) (yellow "For Loop cound") n
+    ForLoopRound n loc      -> printf "(%s): %s: %d" (cyan loc) (yellow "For Loop count") n
     ForLoopLimitReached loc -> printf "(%s): %s" (cyan loc) (yellow "For Loop limit reached")
     Return loc val          -> printf "(%s): %s: %s" (cyan loc) (yellow "Returning") val
     RunCFGFormalMethodCall

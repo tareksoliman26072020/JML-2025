@@ -113,6 +113,8 @@ visitNode ==> Node ==> Statement: ER_State
 visitNode ==> Node ==> BooleanExpression if ==> SBool: ER_State
 visitNode ==> Node ==> BooleanExpression if ==> SBin: ER_Expr SIte
 visitNode ==> Node ==> ForInitialization ==> no accumulation variable ==> ER_Triplet
+visitNode ==> Node ==> ForStep ==> no statement ==> ER_Void
+visitNode ==> Node ==> ForStep ==> yes statement ==> ER_Void
 
 visitSymExpr ==> SymFormalParam: ER_SymStateMapEntry
 visitSymExpr ==> SBin: ER_SymStateMapEntry

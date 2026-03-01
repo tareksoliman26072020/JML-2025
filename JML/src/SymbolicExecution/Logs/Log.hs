@@ -50,8 +50,8 @@ data LogTag =
          | NoElseBranch String
          | AddVarBinding String String
          | AddVarAssignment String String
-         | ReportTheState String
-         | Skip String
+         | ReportTheState String String
+         | Skip String String
          | ForLoopDone String
          | UnvisitedForLoop String String
          | ForLoopConditionUndetermined String String
@@ -66,6 +66,8 @@ data LogTag =
          | GlobalVars String String
          | Meow String String
          | MethodStatementIfCondition String String
+         | MethodStatementForInitialization String String
+         | MethodStatementForStep String String
          | ProcessPredefinedFunCall String String String
          | Location String
          | NextLogNum (Int,String) (Int,String)
@@ -86,6 +88,10 @@ ppLogTag = \case
     MethodStatement loc str -> printf "(%s): %s: %s" loc "Method Statement" str
     MethodStatementIfCondition loc str
                             -> printf "(%s): %s: %s" loc "If condition" str
+    MethodStatementForInitialization loc str
+                            -> printf "(%s): %s: %s" loc "For Initialization" str
+    MethodStatementForStep loc str
+                            -> printf "(%s): %s: %s" loc "For Step" str
     Expression_2_Handle
       str loc               -> printf "(%s): %s: %s" loc "handling expression" str
     SymExpr_2_Handle
@@ -124,14 +130,14 @@ ppLogTag = \case
     NoElseBranch loc        -> printf "(%s): %s" loc "No Else Branch"
     AddVarBinding loc val   -> printf "(%s): %s: %s" loc "Adding Var Binding" val
     AddVarAssignment loc val-> printf "(%s): %s: %s" loc "Adding Var Assignment" val
-    ReportTheState s        -> printf "(%s):\n%s" "Reporting The State" (show s)
-    Skip thing              -> printf "(%s):\n%s" "Skip" (show thing)
+    ReportTheState loc s    -> printf "(%s): %s\n%s" loc "Reporting The State" s
+    Skip loc thing          -> printf "(%s): %s ==> %s" "Skip" loc (show thing)
     ForLoopDone loc         -> printf "(%s): %s" loc "For Loop Done"
     UnvisitedForLoop loc expr
                             -> printf "(%s): %s: %s" loc "Unregistered For Loop" expr
     ForLoopConditionUndetermined loc val
                             -> printf "(%s): %s: %s" loc "For Loop Condition Undetermined" val
-    ForLoopRound n loc      -> printf "(%s): %s: %d" loc "For Loop cound" n
+    ForLoopRound n loc      -> printf "(%s): %s: %d" loc "For Loop count" n
     ForLoopLimitReached loc -> printf "(%s): %s" loc "For Loop limit reached"
     Return loc val          -> printf "(%s): %s: %s" loc "Returning" val
     RunCFGFormalMethodCall

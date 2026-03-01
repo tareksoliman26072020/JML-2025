@@ -405,7 +405,7 @@ instance CFGVisitor MethodProcessor where
       ----------------------------------------
       CFGT.ForInitialization mAccumulationVar -> do
         let loc = "SymbolicExecution.Method.visitNode.Node.ForInitialization"
-        tellNextLog $ Log.MethodStatementIfCondition (printf "%s ==> Accumulation Variable ==> Node num: %d" loc (CFGT.id n)) (show mAccumulationVar)
+        tellNextLog $ Log.MethodStatementForInitialization (printf "%s ==> Accumulation Variable ==> Node num: %d" loc (CFGT.id n)) (show mAccumulationVar)
         -- get fun name
         funName <- do
           visited <- getFunHandle
@@ -445,6 +445,21 @@ instance CFGVisitor MethodProcessor where
           (CFGT.SR (CFGT.id n)
               (CFG.getNodeId $ CFG.getEndForNode cfg $ (CFG.findNode_via_id cfg $ CFGT.id n)))
           originalStateEnv
+      ----------------------------------------
+      ----------------------------------------
+      ----------------------------------------
+      CFGT.ForStep mStmt -> do
+        let loc = "SymbolicExecution.Method.visitNode.Node.ForStep"
+        tellNextLog $ Log.MethodStatementForStep (printf "%s ==> Node num: %d" loc (CFGT.id n)) (show mStmt)
+        case fmap visitStmt mStmt of
+          Nothing -> do
+            tellNextLog $ Log.Skip loc "there exists no ForStep"
+            return ER_Void
+          Just symbolicExecutionMonadValue -> do
+            er <- symbolicExecutionMonadValue
+            case er of
+              ER_SymStateMapEntry _ _ -> return er
+              _ -> throwError $ printf "%s ==> TODO: %s" loc (show er)
       ----------------------------------------
       ----------------------------------------
       ----------------------------------------
@@ -1104,6 +1119,7 @@ visitForLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma = do
 visitForLoop1 :: Int -> SymState -> CFGT.CFG -> Maybe CFGT.Node -> Maybe AST.Expression -> [CFGT.Node] -> CFGT.ScopeRange -> Map.Map SymStateKey SymExpr -> SymbolicExecutionMonad ExecutionResult
 visitForLoop1 loopCounter originalState cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma = do
   let loc = "SymbolicExecution.Method.visitForLoop1"
+  tellNextLog $ Log.Location loc
   -- whether there's a loop condition
   forCondExpr_visited <- case mForCondExpr of
     Nothing -> return $ SBool True
@@ -1116,14 +1132,7 @@ visitForLoop1 loopCounter originalState cfg m_Acc mForCondExpr forBody_forStep_p
       return $ case res of
         ER_Expr forCondExpr_visited -> forCondExpr_visited
         _ -> error $ printf "won't happen1: %s ==> %s" loc (show res)
-  
-{-
-incrementLogDepth *>
-  censor (map $ \(Log.Log num tag) ->
-    Log.Log num $ Log.Nested (printf "<arr>[%d]" i) tag)
-    (visitExpr ex)
-    <* decrementLogDepth
- -}
+
   -- whether the loop condition is atomic
   case forCondExpr_visited of
     -- it's atomic, and do a round
@@ -1135,16 +1144,20 @@ incrementLogDepth *>
           flip mapM_ forBody_forStep_path $ \node -> do
             incrementLogDepth
             censor (map (\(Log.Log num tag) ->
-              Log.Log num $ Log.Nested "For Loop Body" tag))
+              Log.Log num $ Log.Nested "For Loop Body" $ Log.Nested "Registering" tag))
               (methodProcessorMonad (visitNode node))
             decrementLogDepth
+          -- it's a good idea to log the current state before staring the next loop round
+          --tellNextLog . Log.ReportTheState loc . show . env <$> get
+          theEnv <- env <$> get
+          tellNextLog $ Log.ReportTheState loc (show theEnv)
           visitForLoop1 (loopCounter+1) originalState cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma
       else do
         tellNextLog $ Log.ForLoopLimitReached "visitForLoop1"
         visitForLoop2 cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma
     -- it's atomic, and terminate
     SBool False -> do
-      tellNextLog $ Log.ForLoopDone "visitForLoop1"
+      tellNextLog $ Log.ForLoopDone loc
       return ER_ForLoopDone
    -- it's not atomic
     _ -> do tellNextLog $ Log.ForLoopConditionUndetermined "visitForLoop1" (show forCondExpr_visited)
@@ -1331,14 +1344,15 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
 type Path = [CFGT.Node]
 runCFG :: [CFGT.CFG] -> CFGT.CFG -> Maybe Path -> Maybe SymState -> (String,[Log.Log],SymState)
 runCFG cfgs cfg mPath mSymState =
-  let path :: [CFGT.Node]
+  let loc = "SymbolicExecution.Method.runCFG"
+      path :: [CFGT.Node]
       path = maybe (CFG.getPath 0 cfg) id mPath
       runner :: SymbolicExecutionMonad ()
       runner = flip mapM_ path $ \node -> do
         tellNextLog $ Log.NextNode (show node)
         state_ <- get
         case getReturnSymExpr state_ of
-          Just _ -> tellNextLog (Log.Skip $ printf "%s" (show node))
+          Just _ -> tellNextLog (Log.Skip loc ("The following node doesn't return a SymExpr: " ++ show node))
                       $> ER_Void
           Nothing ->
             incrementLogDepth *> methodProcessorMonad (visitNode node) <* decrementLogDepth
@@ -1362,65 +1376,3 @@ runCFG cfgs cfg mPath mSymState =
       run_s@((er,logs),s) = runState run_w initialSymState
       
   in (either id (const "") er,logs,s)
-  
-  
-  {-    
-      
-      run_r :: ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))) ()
-      run_r = runReaderT runner (defaultConfig,cfgs)
-      run_e :: WriterT [Log.Log] (StateT SymState (Either String)) (Either String ())
-      run_e = runExceptT run_r
-      run_w :: StateT SymState (Either String) (Either String (),[Log.Log])
-      run_w = runWriterT run_e
-      mRun_s :: Either String ((Either String (),[Log.Log]),SymState)
-      mRun_s = runStateT run_w initialSymState
-  in case mRun_s of
-       Left str -> error str
-       Right ((ei,logs),SymState m lh) ->
-         let m2 = flip Map.mapWithKey m $ \k v -> case (CFG.getCFGType cfg,k,v) of
-                    (AST.BuiltInType AST.Int, Return, SymNum float)    ->
-                        SymInt (round float)
-                    (AST.BuiltInType AST.Double, Return, SymNum float) ->
-                        SymDouble (realToFrac float)
-                    (AST.BuiltInType AST.Float, Return, SymNum float)  ->
-                        SymFloat float
-                    (_,_,_) -> v
-         in (logs,either (\l -> error $ printf "error in method name (%s) thrown from Method.hs:\n%s" (CFG.getCFGName cfg) l) (const (SymState m2 lh)) ei)
- -}
-{-
-runCFG :: [CFGT.CFG] -> CFGT.CFG -> Maybe Path -> Maybe SymState -> ([Log.Log],SymState)
-runCFG cfgs cfg mPath mSymState =
-  let path :: [CFGT.Node]
-      path = maybe (CFG.getPath 0 cfg) id mPath
-      runner = flip mapM_ path $ \node -> do
-        tellNextLog $ Log.NextNode (show node)
-        state_ <- get
-        case getReturnSymExpr state_ of
-          Just _ -> tellNextLog (Log.Skip $ printf "%s" (show node)) $> ER_Void
-          Nothing ->
-            incrementLogDepth *> getReader_Method_R (visitNode node) <* decrementLogDepth
-      (methodNameKey,methodNameValue) = (MethodName $ CFG.getCFGName cfg , SMethodType $ toSymType1 $ CFG.getCFGType cfg)
-      initialSymState = maybe
-          (SymState Map.empty $ Log.Header 1 [0])
-          id mSymState
-      run_r :: ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))) ()
-      run_r = runReaderT runner (defaultConfig,cfgs)
-      run_e :: WriterT [Log.Log] (StateT SymState (Either String)) (Either String ())
-      run_e = runExceptT run_r
-      run_w :: StateT SymState (Either String) (Either String (),[Log.Log])
-      run_w = runWriterT run_e
-      mRun_s :: Either String ((Either String (),[Log.Log]),SymState)
-      mRun_s = runStateT run_w initialSymState
-  in case mRun_s of
-       Left str -> error str
-       Right ((ei,logs),SymState m lh) ->
-         let m2 = flip Map.mapWithKey m $ \k v -> case (CFG.getCFGType cfg,k,v) of
-                    (AST.BuiltInType AST.Int, Return, SymNum float)    ->
-                        SymInt (round float)
-                    (AST.BuiltInType AST.Double, Return, SymNum float) ->
-                        SymDouble (realToFrac float)
-                    (AST.BuiltInType AST.Float, Return, SymNum float)  ->
-                        SymFloat float
-                    (_,_,_) -> v
-         in (logs,either (\l -> error $ printf "error in method name (%s) thrown from Method.hs:\n%s" (CFG.getCFGName cfg) l) (const (SymState m2 lh)) ei)
--}

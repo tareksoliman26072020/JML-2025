@@ -88,6 +88,10 @@ ppMarkdownLogTag = \case
     MethodStatement loc str -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "Method Statement") str
     MethodStatementIfCondition loc str
                             -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "If condition") str
+    MethodStatementForInitialization loc str
+                            -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "For Initialization") str
+    MethodStatementForStep loc str
+                            -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "For Step") str
     Expression_2_Handle
       str loc               -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "handling expression") str
     SymExpr_2_Handle
@@ -126,14 +130,14 @@ ppMarkdownLogTag = \case
     NoElseBranch loc        -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangeRed "No Else Branch")
     AddVarBinding loc val   -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "Adding Var Binding") val
     AddVarAssignment loc val-> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "Adding Var Assignment") val
-    ReportTheState s        -> printf "(%s):\n%s" (show $ orangeRed "Reporting The State") (show s)
-    Skip thing              -> printf "(%s):\n%s" (show $ orangeRed "Skip") (show thing)
+    ReportTheState loc s    -> printf "(%s): %s\n%s" (show $ cyan $ fromString loc) (show $ orangeRed "Reporting The State") s
+    Skip loc thing          -> printf "(%s):%s ==> %s" (show $ orangeRed "Skip") (show $ cyan $ fromString loc) (show thing)
     ForLoopDone loc         -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangeRed "For Loop Done")
     UnvisitedForLoop loc expr
                             -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "Unregistered For Loop") expr
     ForLoopConditionUndetermined loc val
                             -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "For Loop Condition Undetermined") val
-    ForLoopRound n loc      -> printf "(%s): %s: %d" (show $ cyan $ fromString loc) (show $ orangeRed "For Loop cound") n
+    ForLoopRound n loc      -> printf "(%s): %s: %d" (show $ cyan $ fromString loc) (show $ orangeRed "For Loop count") n
     ForLoopLimitReached loc -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangeRed "For Loop limit reached")
     Return loc val          -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "Returning") val
     RunCFGFormalMethodCall
