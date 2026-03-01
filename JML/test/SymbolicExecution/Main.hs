@@ -24,7 +24,7 @@ javaMethodTests =
       cfgs = map snd li
   in testGroup "All tests" (do
        (name, cfg) <- li
-       let (logs,s) = runCFG cfgs cfg Nothing Nothing
+       let (_,logs,s) = runCFG cfgs cfg Nothing Nothing
        return $ testCase (printf "Testing %s" (yellow name)) $
          assertBool (printf "\n\n%s\n\n" (show $ env s)) (env s == Correct.target name))
 

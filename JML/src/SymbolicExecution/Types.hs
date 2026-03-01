@@ -136,45 +136,26 @@ data ExecutionResult =
   | ER_ActualParameterDetected
   deriving Show-}
 
-type ExecutionResult = (ExecutionResultKey,ExecutionResultValue)
-
-data ExecutionResultKey =
-   ER_Expr_key
- | ER_Node_key
- | ER_SymStateMapEntry_key
- | ER_ArrayCallExpr_key
- | ER_State_key
- | ER_Logs_key
- | ER_Triplet_key
- | ER_FunCall_key
- | ER_FunHandle_key
- | ER_IfCond_key
- | ER_PredefinedFunCall_key
- | ER_ForLoopDone_key
- | ER_Void_key
- | ER_ActualParameterDetected_key
- deriving (Eq,Show)
-
-data ExecutionResultValue =
-    ER_Expr_value SymExpr
-  | ER_Node_value {er_Node_id :: CFGT.NodeID, nodeName :: String}
-  | ER_SymStateMapEntry_value {er_key :: SymStateKey, er_val :: SymExpr}
-  | ER_ArrayCallExpr_value {arrayIndexCall :: SymExpr, arrayIndexCallValue :: SymExpr}
-  | ER_State_value SymState
-  | ER_Logs_value [Log.Log]
-  | ER_Triplet_value (ExecutionResult,ExecutionResult,ExecutionResult)
-  | ER_FunCall_value SymState
-  | ER_FunHandle_value SymType String
-  | ER_IfCond_value SymExpr  -- ^ boolean expressions found in if conditions. Its existance in the environment values map means that the ......
-  | ER_PredefinedFunCall_value SymExpr
-  | ER_ForLoopDone_value
-  | ER_Void_value
-  | ER_ActualParameterDetected_value
+data ExecutionResult =
+    ER_Expr SymExpr
+  | ER_Node {er_Node_id :: CFGT.NodeID, nodeName :: String}
+  | ER_SymStateMapEntry {er_key :: SymStateKey, er_val :: SymExpr}
+  | ER_ArrayCallExpr {arrayIndexCall :: SymExpr, arrayIndexCallValue :: SymExpr}
+  | ER_State SymState
+  | ER_Logs [Log.Log]
+  | ER_Triplet (ExecutionResult,ExecutionResult,ExecutionResult)
+  | ER_FunCall SymState
+  | ER_FunHandle SymType String
+  | ER_IfCond SymExpr  -- ^ boolean expressions found in if conditions. Its existance in the environment values map means that the ......
+  | ER_PredefinedFunCall SymExpr
+  | ER_ForLoopDone
+  | ER_Void
+  | ER_ActualParameterDetected
   deriving Show
 
 data SymExpr =
 -- | A (tiny) symbolic expression language
-    SMethodHandle (SymType,String)
+    SMethodHandle SymType String
   | SymNum    Float
   | SymInt    Integer             -- ^ concrete integer literal
   | SymDouble Double              -- ^ concrete double literal

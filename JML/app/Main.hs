@@ -89,6 +89,7 @@ printSymState1 funName = readFile "test3.java" >>=
                               print s
                               putStrLn $ replicate 50 '='
                               putStrLn $ "Error: " ++ er
+                              return s
               Nothing   -> error $ "method " ++ funName ++ " does not exist")
   . map CFG1.exec
   . fromRight undefined . parse parseDeclList ""
@@ -105,7 +106,8 @@ printSymState2 funName =
                     putStrLn $ replicate 50 '='
                     print s
                     putStrLn $ replicate 50 '='
-                    putStrLn $ "Error: " ++ er)
+                    putStrLn $ "Error: " ++ er
+                    return s)
   -- (CFGT.CFG,[CFGT.CFG])
   $ (\li ->
       let li2 = map (\(funName,source) ->
