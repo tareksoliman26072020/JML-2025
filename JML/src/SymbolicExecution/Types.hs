@@ -180,7 +180,7 @@ data SymExpr =
   | SymVar SymType String
   | SymFun PredefinedFun SymExpr
   | SVarBindings (Map.Map String CFGT.Node_Coor)
-  | SVarAssignments [(String,CFGT.Node_Coor)] 
+  | SVarAssignments [(String,(SymExpr,CFGT.Node_Coor))] 
   | SException SymType String String
   | SActions [SymExpr]
   | SArrayIndexAccess String SymExpr

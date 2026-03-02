@@ -817,16 +817,19 @@ getNewVarBinding nodeCoor = \case
   ----------
   _ -> Nothing
 
-getNewVarAssignment :: CFGT.Node_Coor -> AST.Statement -> Maybe (String,CFGT.Node_Coor)
-getNewVarAssignment nodeCoor = \case
+-- `allVarNames` are all VarNames. I search that one specific SymExpr from it using `itsSymExpr`
+getNewVarAssignment :: (Map.Map SymStateKey SymExpr,CFGT.Node_Coor) -> AST.Statement -> Maybe (String,(SymExpr,CFGT.Node_Coor))
+getNewVarAssignment (allVarNames,nodeCoor) = \case
   -- AssignStmt {varModifier :: [Modifier], assign :: Expression}
   AST.AssignStmt _ expr -> case expr of
     --AssignExpr {assEleft :: Expression, assEright :: Expression}
     AST.AssignExpr left _ -> case left of
       AST.VarExpr{} ->
-        Just (AST.varName left,nodeCoor)
+        let vn = AST.varName left
+        in Just (vn,(itsSymExpr vn,nodeCoor))
       AST.ArrayCallExpr{} ->
-          Just (AST.getVarName left,nodeCoor)
+        let vn = AST.getVarName left
+        in Just (vn,(itsSymExpr vn,nodeCoor))
       _ -> error $ "TODO :: getNewVarAssignment: " ++ show left
     _ -> error "getNewVarAssignment -> won't happen1"
   ----------
@@ -839,6 +842,11 @@ getNewVarAssignment nodeCoor = \case
   stmt@AST.FunCallStmt{} -> Nothing
   ----------
   stmt -> error $ printf "getNewVarAssignment ==> TODO: (%s,%s)" (show nodeCoor) (show stmt)
+  where
+  itsSymExpr :: String -> SymExpr
+  itsSymExpr vn = case Map.lookup (VarName vn) allVarNames of
+    Nothing -> error $ printf "SymbolicExecution.Internal.getNewVarAssignment ==> won't happen:\n%s\n%s" vn (show allVarNames)
+    Just symExpr -> symExpr
 
 getVarNames :: SymStateEnv -> SymStateEnv
 getVarNames symStateEnv = flip Map.filterWithKey symStateEnv $ \k _ -> case k of
@@ -886,10 +894,10 @@ getVarNameSymExpr varName ma = fmap id (Map.lookup (VarName varName) ma)
 getActions :: SymStateEnv -> [SymExpr]
 getActions = maybe [] (\(SActions li) -> li) . Map.lookup Actions
 
-getVarAssignments :: SymStateEnv -> [(String,CFGT.Node_Coor)]
+getVarAssignments :: SymStateEnv -> [(String,(SymExpr,CFGT.Node_Coor))]
 getVarAssignments = maybe [] (\(SVarAssignments li) -> li) . Map.lookup VarAssignments
 
-getVarAssignments2 :: SymStateEnv -> [(String,CFGT.Node_Coor)]
+getVarAssignments2 :: SymStateEnv -> [(String,(SymExpr,CFGT.Node_Coor))]
 getVarAssignments2 = maybe [] (\(SVarAssignments li) -> li) . Map.lookup VarAssignments
 
 getGlobalVars :: SymStateEnv -> [String]

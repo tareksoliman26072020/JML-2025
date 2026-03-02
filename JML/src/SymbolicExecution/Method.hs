@@ -105,32 +105,37 @@ instance CFGVisitor MethodProcessor where
                 let bStart = CFGT.parent n
                 in CFGT.SR bStart $ CFG.getBranchEnd bStart cfg
             }
-        case getNewVarBinding newVarCoor stmt of
-          Just new -> do          
-            old <- (getVarBindings . env) <$> get
-            tellNextLog $ Log.AddVarBinding loc (show new)
-            modify $ \symState ->
-              SymState {
-                env = Map.insert VarBindings (SVarBindings $ Map.insert (fst new) (snd new) old) (env symState),
-                logHeader = logHeader symState
-              }
-            return ER_Void
-          _ -> return ER_Void
-        case getNewVarAssignment newVarCoor stmt of
-          Just new -> do
-            tellNextLog $ Log.AddVarAssignment loc (show new)
-            state_map <- env <$> get
-            let varAssignmentsList = case Map.lookup VarAssignments state_map of
-                  Nothing -> []
-                  Just (SVarAssignments li) -> li
-            modify $ \s ->
-              SymState {
-                env = Map.insert VarAssignments (SVarAssignments $ varAssignmentsList ++ [new]) (env s),
-                logHeader = logHeader s
-              }
-            return ER_Void
-            -- Just ("y",Node_Coor {varDeclAt = 2, varFrame = 1})
-          _ -> return ER_Void
+        env <$> get >>= \theEnv -> do
+          case getNewVarBinding newVarCoor stmt of
+            Just new -> do          
+              old <- (getVarBindings . env) <$> get
+              tellNextLog $ Log.AddVarBinding loc (show new)
+              modify $ \symState ->
+                SymState {
+                  env = Map.insert VarBindings (SVarBindings $ Map.insert (fst new) (snd new) old) (env symState),
+                  logHeader = logHeader symState
+                }
+              return ER_Void
+            _ -> return ER_Void
+          case getNewVarAssignment (
+              flip Map.filterWithKey theEnv $ \case
+                VarName _ -> (const True)
+                _ -> (const False),
+              newVarCoor) stmt of
+            Just new -> do
+              tellNextLog $ Log.AddVarAssignment loc (show new)
+              state_map <- env <$> get
+              let varAssignmentsList = case Map.lookup VarAssignments state_map of
+                    Nothing -> []
+                    Just (SVarAssignments li) -> li
+              modify $ \s ->
+                SymState {
+                  env = Map.insert VarAssignments (SVarAssignments $ varAssignmentsList ++ [new]) (env s),
+                  logHeader = logHeader s
+                }
+              return ER_Void
+              -- Just ("y",Node_Coor {varDeclAt = 2, varFrame = 1})
+            _ -> return ER_Void
         tellNextLog (Log.Return "visitNode -> Node -> Statement" (show toReturn)) $> toReturn
       ----------------------------------------
       ----------------------------------------
@@ -330,7 +335,7 @@ instance CFGVisitor MethodProcessor where
                       -- if there's a VarName that was assigned between `condBranchRange`
                       -- then make it unknown
                       unknownVarAssigns = flip filter (getVarAssignments2 ma1) $ \case
-                        (_,CFGT.Node_Coor _ frameCoor) ->
+                        (_,(_,CFGT.Node_Coor _ frameCoor)) ->
                           CFGT.branchStart frameCoor == CFGT.branchStart condBranchRange
                       -- will be used in ma2
                       -- gets SymType of `varAssName`,
@@ -353,7 +358,7 @@ instance CFGVisitor MethodProcessor where
                       -- This will yield new SymUnknown as SymExpr to each varAssName
                       -- `getUnknownVarSymType_in_if_template` and `newReason_template`
                       -- will be used inside
-                      ma2 = foldl' (\ma (varAssName,coor) ->
+                      ma2 = foldl' (\ma (varAssName,(_,coor)) ->
                         Map.alter (\case
                           Nothing -> Just $ SymUnknown (
                             SymVar (getUnknownVarSymType_in_if_template varAssName) varAssName)
@@ -1136,8 +1141,6 @@ visitForLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma = do
             logHeader = logHeader symState
             }
           return ER_ForLoopDone
-              --throwError $ printf "visitForLoop ==> TODO ::\n\n%s\n\n%s" (show originalEnv) (show s)
-          --throwError $ "MEOW: " ++ show varnames_to_delete
     -- for loop condition was not met
     SBool False -> do
       tellNextLog $ Log.ForLoopDone "visitForLoop1"
@@ -1332,11 +1335,11 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
         map_withVarNames = Map.foldlWithKey' (\ma key val -> case key of
           VarName vn ->
             let vn_forbody_varAssigns = flip filter forBody_Some_VarAssignments $
-                  \(vn2,node_coor) ->
+                  \(vn2,(_,node_coor)) ->
                       vn2 == vn &&
                       CFGT.varDeclAt node_coor >= CFGT.branchStart branchRange &&
                       CFGT.varDeclAt node_coor <= CFGT.branchEnd branchRange
-                node_coors = map snd vn_forbody_varAssigns
+                node_coors = map (snd . snd) vn_forbody_varAssigns
             in case vn_forbody_varAssigns of
                  [] -> ma
                  _ -> Map.alter (\case
