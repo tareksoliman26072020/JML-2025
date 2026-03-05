@@ -706,6 +706,8 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                   env = Map.union inherit_globalVars_varNames (env symState),
                   logHeader = logHeader symState
                 }
+              flip Map.traverseWithKey inherit_globalVars_varNames $ \k v ->
+                inferGlobalVarType (toSymType2 v) $ ER_SymStateMapEntry k v
               return ()
           ----------
           -- inheriting the method call's actions

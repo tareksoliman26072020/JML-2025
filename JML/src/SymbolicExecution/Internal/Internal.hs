@@ -440,10 +440,18 @@ inferGlobalVarType newType er = do
             -- and their types may need casting
             let ma3 = flip Map.mapWithKey ma2 $ \k v -> case (k,v) of
                   (VarName _,_) -> v
-                  (_,symExpr) ->
-                    let innerSymExprs = lookupPartialSymExprs vn (k,symExpr)
+                  (VarAssignments,SVarAssignments li) -> SVarAssignments $ flip map li
+                    $ \tu@(vn2,(symExpr,coor)) -> if
+                      | vn2 == vn -> let
+                        innerSymExprs = lookupPartialSymExprs vn (k,symExpr)
                         newType2 = pick_known_symType2
                           $ (map toSymType2 innerSymExprs) ++ [toSymType2 val] ++ [newType]
+                        in (vn2,(cast2 vn newType2 (k,symExpr),coor))
+                      | otherwise -> tu
+                  (_,symExpr) -> let
+                    innerSymExprs = lookupPartialSymExprs vn (k,symExpr)
+                    newType2 = pick_known_symType2
+                      $ (map toSymType2 innerSymExprs) ++ [toSymType2 val] ++ [newType]
                     in cast2 vn newType2 (k,symExpr)
             -- modify the state accordingly
             modify $ \symState -> SymState {

@@ -823,8 +823,8 @@ ifFun6Call = Map.fromList [
     (MethodHandle,SMethodHandle SYT.String "ifFun6Call"),
     (GlobalVars,SGlobalVars ["y","m","c","s"]),
     (VarAssignments,SVarAssignments [
-        ("y",(SymNum 5.0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
-        ("m",(SymNum 1.0,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})),
+        ("y",(SymInt 5,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
+        ("m",(SymInt 1,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})),
         ("c",(SymString "dangerous",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
     (VarName "c",SymString "dangerous"),
     (VarName "m",SymInt 11),
