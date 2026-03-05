@@ -2658,16 +2658,34 @@ public String ifFun6Call2() {
 //DONE
 //JavaMethod
 /*
-[
- (MethodName "ifFun7",SMethodType Void),
- (GlobalVars,SGlobalVars ["v","w"]),
- (FormalParms,SFormalParms ["n"]),
- (VarAssignments,SVarAssignments [("v",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 4}}),("w",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 4}})]),
- (VarName "n",SymVar Int "n"),
- (VarName "v",SymUnknown (String,"v",Nothing) [([(If,SR {branchStart = 1, branchEnd = 4})],2)]),
- (VarName "w",SymUnknown (String,"w",Nothing) [([(If,SR {branchStart = 1, branchEnd = 4})],3)]),
- (ScopeRange (SR {branchStart = 1, branchEnd = 4}),SIte (SBin (SBin (SymVar Int "n") Mod (SymInt 2)) Eq (SymInt 0)) (SymState {env = fromList [(MethodName "ifFun7",SMethodType Void),(GlobalVars,SGlobalVars ["v"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("v",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 4}})]),(VarName "n",SymVar Int "n"),(VarName "v",SymString "hi")], pc = []}) (Just (SymState {env = fromList [(MethodName "ifFun7",SMethodType Void),(GlobalVars,SGlobalVars ["w"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("w",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 4}})]),(VarName "n",SymVar Int "n"),(VarName "w",SymString "bye")], pc = []})))
-]
+fromList [
+  (MethodHandle,SMethodHandle Void "ifFun7"),
+  (GlobalVars,SGlobalVars ["v","w","s"]),
+  (FormalParms,SFormalParms ["n"]),
+  (VarAssignments,SVarAssignments [
+      ("v",(SymString "hi",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 4}})),
+      ("w",(SymString "bye",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 4}})),
+      ("s",(SymString "something",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 6}}))]),
+  (VarName "n",SymVar Int "n"),
+  (VarName "s",SymString "something"),
+  (VarName "v",SymUnknown (SymVar String "v") [([(If,SR {branchStart = 1, branchEnd = 4})],2)]),
+  (VarName "w",SymUnknown (SymVar String "w") [([(If,SR {branchStart = 1, branchEnd = 4})],3)]),
+  (ScopeRange (SR {branchStart = 1, branchEnd = 4}),
+   SIte (SBin (SBin (SymVar Int "n") Mod (SymInt 2)) Eq (SymInt 0))
+        (fromList [
+            (MethodHandle,SMethodHandle Void "ifFun7"),
+            (GlobalVars,SGlobalVars ["v"]),
+            (FormalParms,SFormalParms ["n"]),
+            (VarAssignments,SVarAssignments [("v",(SymString "hi",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 4}}))]),
+            (VarName "n",SymVar Int "n"),
+            (VarName "v",SymString "hi")])
+        (Just (fromList [
+            (MethodHandle,SMethodHandle Void "ifFun7"),
+            (GlobalVars,SGlobalVars ["w"]),
+            (FormalParms,SFormalParms ["n"]),
+            (VarAssignments,SVarAssignments [("w",(SymString "bye",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 4}}))]),
+            (VarName "n",SymVar Int "n"),
+            (VarName "w",SymString "bye")])))]
 */
 public void ifFun7(int n) {
   if(n % 2 == 0) {

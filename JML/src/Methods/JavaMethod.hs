@@ -353,6 +353,7 @@ ifFun7 = "public void ifFun7(int n) {\n\
          \  else {\n\
          \    w = \"bye\";\n\
          \  }\n\
+         \  s = \"something\";\n\
          \}"
 
 ifFun7Call :: String

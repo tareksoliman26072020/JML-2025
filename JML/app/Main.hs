@@ -7,6 +7,7 @@ import Data.Either (fromRight)
 import Parser.Types (Method)
 import Data.List (intercalate, find)
 import System.Directory (doesDirectoryExist, createDirectory)
+import qualified Data.Map.Lazy as Map
 
 import qualified Parser.Types as AST
 
@@ -228,3 +229,25 @@ run = toSymType2
 printMethod :: String -> IO ()
 printMethod methodName = maybe (putStrLn "Method does not exist!") putStrLn 
   $ lookup methodName JavaMethod.javaMethodInputs
+
+t :: String -> IO ()
+t funName = readFile "test3.java" >>=
+  (\cfgs -> case CFG2.findCFGByName funName cfgs of
+              Just cfg0 ->
+                let (er,logs,s) = SYM.runCFG cfgs cfg0 Nothing Nothing
+                in case er of
+                     "" -> do --putStrLn $ (SYT.Log.ppLogs SYT.Log.Console logs)
+                              --return s
+                              mapM_ (\tu -> print tu >> putStrLn "") $ t2 $ SYT.env s
+                                 
+                     _  -> undefined
+              Nothing   -> error $ "method " ++ funName ++ " does not exist")
+  . map CFG1.exec
+  . fromRight undefined . parse parseDeclList ""
+
+t2 :: Map.Map SYT.SymStateKey SYT.SymExpr -> [(SYT.SymStateKey,SYT.SymExpr)]
+t2 = Map.foldMapWithKey $ \k v -> case v of
+  SYT.SVarAssignments _ -> [(k,v)]
+  SYT.SIte _ ifSymStateEnv mElseSymStateEnv ->
+    t2 ifSymStateEnv ++ maybe [] t2 mElseSymStateEnv
+  _ -> []
