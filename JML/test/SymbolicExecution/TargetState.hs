@@ -542,6 +542,13 @@ manyArrs5 = Map.fromList [
         ("brand",(SymArray (Just SYT.String) (Just 5) [SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",SymString "4. Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}})),
         ("brand",(SymArray (Just SYT.String) (Just 5) [SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",SymString "4. Volkswagen",SymString "5. Skoda"],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),
     (VarName "brand",SymArray (Just SYT.String) (Just 5) [SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",SymString "4. Volkswagen",SymString "5. Skoda"]),
+    (LoopConditions (SR {branchStart = 2, branchEnd = 6}),
+     SLoopConditions [
+         Map.fromList [("brand.length",SymInt 5),("i",SymInt 1)],
+         Map.fromList [("brand.length",SymInt 5),("i",SymInt 2)],
+         Map.fromList [("brand.length",SymInt 5),("i",SymInt 3)],
+         Map.fromList [("brand.length",SymInt 5),("i",SymInt 4)],
+         Map.fromList [("brand.length",SymInt 5),("i",SymInt 5)]]),
     (Actions,SActions [SymString "[1. Toyota, 2. Mercedes, 3. BMW, 4. Volkswagen, 5. Skoda]\n"])
   ]
 

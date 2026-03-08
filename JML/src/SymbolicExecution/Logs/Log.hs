@@ -56,6 +56,7 @@ data LogTag =
          | UnvisitedForLoop String String
          | ForLoopConditionUndetermined String String
          | ForLoopRound Int String
+         | AtomizeRoundLoopCondition String String
          | ForLoopLimitReached String String
          | Return String String
          | RunCFGFormalMethodCall String
@@ -138,6 +139,8 @@ ppLogTag = \case
     ForLoopConditionUndetermined loc val
                             -> printf "(%s): %s: %s" loc "For Loop Condition Undetermined" val
     ForLoopRound n loc      -> printf "(%s): %s: %d" loc "For Loop count" n
+    AtomizeRoundLoopCondition loc tus
+                            -> printf "(%s): %s: %s" loc "For Loop Condition Atomized" tus
     ForLoopLimitReached loc limit
                             -> printf "(%s): %s: %s" loc "For Loop limit reached" limit
     Return loc val          -> printf "(%s): %s: %s" loc "Returning" val

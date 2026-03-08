@@ -957,7 +957,7 @@ visitExpr expr@AST.VarExpr{} = do
     li -> do
       stateEnv <- env <$> get
       let symExpr0@(SObjAcc exprs) = SObjAcc $ li ++ [AST.varName expr]
-      let toReturn = ER_SymStateMapEntry (VarName $ last $ init exprs) (objAccCalculator (getVarNames stateEnv) symExpr0)
+      let toReturn = ER_VarExprObjAccess (intercalate "." $ li ++ [AST.varName expr]) (objAccCalculator (getVarNames stateEnv) symExpr0)
       tellNextLog (Log.Return "visitExpr ==> VarExpr" (show toReturn)) $> toReturn
 
 -- ArrayCallExpr {arrName :: Expression, index :: Maybe Expression}
@@ -1111,7 +1111,7 @@ visitForLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange = do
         -- for visitation was completed
         ER_ForLoopDone -> do
           newEnv <- env <$> get
-              -- TODO: `varnames_to_delete`: collect varnames in `newEnv` which are not present in originalEnv
+              -- `varnames_to_delete`: collect varnames in `newEnv` which are not present in originalEnv
           let varnames_to_delete :: [String]
               varnames_to_delete = Map.foldlWithKey' (\acc k _ -> case k of
                 VarName vn
@@ -1173,12 +1173,6 @@ visitForLoop1 loopCounter originalState cfg m_Acc mForCondExpr forBody_forStep_p
   case forCondExpr_visited of
     -- it's atomic, and do a round
     SBool True -> do
-      {-let condVarNames = case mForCondExpr of
-            Just forCondExpr -> getVarNames forCondExpr
-            Nothing          -> []
-      let condExprs :: Map.Map String SymExpr
-          condExprs = Map.fromList $ flip map condVarNames $ \condVarName ->
-            Map.lookup-}
       forLoopLimit <- iterationMaxBound . fst <$> ask
       if forLoopLimit >= loopCounter
         then do
@@ -1189,10 +1183,34 @@ visitForLoop1 loopCounter originalState cfg m_Acc mForCondExpr forBody_forStep_p
               Log.Log num $ Log.Nested "For Loop Body" $ Log.Nested "Registering" tag))
               (methodProcessorMonad (visitNode node))
             decrementLogDepth
+          -- add the loop condition entry:
+          do
+            s <- get
+            --loopConditionEntry :: Map.Map String SymExpr
+            loopConditionEntry <- do
+              incrementLogEnumeration
+              incrementLogDepth *>
+                censor
+                  (map $ \(Log.Log num tag) -> Log.Log num $ Log.Nested "Atomizing For Loop Condition Expression" tag)
+                  (createLoopCondition (maybe undefined id mForCondExpr))
+                <* decrementLogDepth
+              
+            let newEnv = Map.alter (\case
+                  Nothing -> Just
+                    $ SLoopConditions [loopConditionEntry]
+                  Just (SLoopConditions li) -> Just
+                    $ SLoopConditions $ li ++ [loopConditionEntry])
+                  (LoopConditions branchRange) (env s)
+            put $ SymState newEnv (logHeader s)
+            -- tell the created loop condition entries:
+            do theEnv <- env <$> get
+               case Map.lookup (LoopConditions branchRange) theEnv of
+                 Nothing -> throwError $ printf "%s ==> won't happen" loc
+                 Just (SLoopConditions mas) ->
+                   tellNextLog $ Log.AtomizeRoundLoopCondition loc
+                                 (show $ Map.toList $ mas !! (loopCounter - 1))
           -- it's a good idea to log the current state before staring the next loop round
-          --tellNextLog . Log.ReportTheState loc . show . env <$> get
-          theEnv <- env <$> get
-          tellNextLog $ Log.ReportTheState loc (show theEnv)
+          (tellNextLog . Log.ReportTheState loc . show . env) <$> get
           visitForLoop1 (loopCounter+1) originalState cfg m_Acc mForCondExpr forBody_forStep_path branchRange
       else do
         tellNextLog $ Log.ForLoopLimitReached loc (show forLoopLimit)
@@ -1205,8 +1223,43 @@ visitForLoop1 loopCounter originalState cfg m_Acc mForCondExpr forBody_forStep_p
       return ER_ForLoopDone
    -- it's not atomic
     _ -> do tellNextLog $ Log.ForLoopConditionUndetermined "visitForLoop1" (show forCondExpr_visited)
-            modify (const originalState)
+            -- restore symState to that or `originalState`
+            modify $ \symState -> SymState (env originalState) (logHeader symState)
             visitForLoop2 cfg m_Acc mForCondExpr forBody_forStep_path branchRange
+
+------------------------------
+
+createLoopCondition :: AST.Expression -> SymbolicExecutionMonad (Map.Map String SymExpr)
+createLoopCondition expr = do
+  let loc = "SymbolicExecution.Internal.createLoopCondition"
+  -- `stateBefore` will only be used to restore the state to its previous state in case
+  -- it was updated due to visitation of expressions
+  stateBefore <- get
+  case expr of
+    AST.BinOpExpr{} -> do
+      map1 <- createLoopCondition (AST.expr1 expr)
+      map2 <- createLoopCondition (AST.expr2 expr)
+      return $ Map.union map1 map2
+  --VarExpr {varType = Nothing, varObj = [], varName = "i"}
+    AST.VarExpr{}
+      | null (AST.varObj expr) -> let
+          varName = AST.varName expr
+          in case Map.lookup (VarName $ AST.varName expr) (env stateBefore) of
+               Just symExpr -> return $ Map.singleton varName symExpr
+               Nothing -> throwError $ printf "%s ==> won't happen" loc
+      -- it's a method call:
+      | otherwise -> do
+          er <- visitExpr expr
+          case er of
+            ER_VarExprObjAccess name value -> return
+              $ Map.singleton name value
+            _ -> throwError
+              $ printf "%s ==> TODO1: %s ==>\n\n%s" loc (show expr) (show er)
+   {-ER_PredefinedFunCall val -> return
+       $ Map.singleton (intercalate "." $ AST.varObj expr ++ [AST.varName expr]) val
+     ER_FunCall funCallSymState -> throwError
+       $ printf "%s ==> TODO: %s" loc (show expr)-}
+    _ -> throwError $ printf "%s ==> TODO: %s" loc (show expr)
 
 ------------------------------
 

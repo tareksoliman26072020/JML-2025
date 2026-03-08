@@ -79,6 +79,8 @@ ppConsoleLogTag = \case
     ForLoopConditionUndetermined loc val
                             -> printf "(%s): %s: %s" (cyan loc) (yellow "For Loop Condition Undetermined") val
     ForLoopRound n loc      -> printf "(%s): %s: %d" (cyan loc) (yellow "For Loop count") n
+    AtomizeRoundLoopCondition loc tus
+                            -> printf "(%s): %s: %s" (cyan loc) (yellow "For Loop Condition Atomized") tus
     ForLoopLimitReached loc limit
                             -> printf "(%s): %s: %s" (cyan loc) (yellow "For Loop limit reached") limit
     Return loc val          -> printf "(%s): %s: %s" (cyan loc) (yellow "Returning") val

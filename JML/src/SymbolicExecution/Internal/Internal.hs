@@ -12,7 +12,7 @@ import qualified CFG.Internal as CFG (getPathToScope)
 import qualified Parser.Types as AST
 import Text.Printf (printf)
 import Control.Applicative (Alternative(empty),asum,(<|>))
-import qualified Data.Map as Map (lookup, empty, Map, filterWithKey, insert, foldMapWithKey, toList, alter, notMember, alterF, traverseWithKey, null, mapWithKey, map, foldlWithKey')
+import qualified Data.Map as Map
 import Prelude hiding (negate)
 import Data.List (nub,find,foldl',intercalate)
 import Control.Monad (forM_, foldM_)
@@ -334,6 +334,7 @@ getSymExpr = \case
   ER_FunCall symState -> getReturnSymExpr symState
   ER_ArrayCallExpr _ symExpr -> Just symExpr
   ER_PredefinedFunCall symExpr -> Just symExpr
+  ER_VarExprObjAccess _ symExpr -> Just symExpr
   er -> error $ "getSymExpr ~~> TODO: " ++ show er
 
 tellNextLog :: Log.LogTag -> SymbolicExecutionMonad String

@@ -138,6 +138,8 @@ ppMarkdownLogTag = \case
     ForLoopConditionUndetermined loc val
                             -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "For Loop Condition Undetermined") val
     ForLoopRound n loc      -> printf "(%s): %s: %d" (show $ cyan $ fromString loc) (show $ orangeRed "For Loop count") n
+    AtomizeRoundLoopCondition loc tus
+                            -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "For Loop Condition Atomized") tus
     ForLoopLimitReached loc limit
                             -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "For Loop limit reached") limit
     Return loc val          -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "Returning") val

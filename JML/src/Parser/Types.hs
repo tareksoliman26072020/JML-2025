@@ -160,7 +160,7 @@ getVarNames :: Expression -> [String]
 getVarNames = \case
   -- BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
   expr@BinOpExpr{} -> getVarNames (expr1 expr) ++ getVarNames (expr2 expr)
-  expr@VarExpr{} -> [varName expr]
+  expr@VarExpr{} -> varObj expr ++ [varName expr]
   expr@AssignExpr{} -> getVarNames (assEleft expr) ++ getVarNames (assEright expr)
   expr@ArrayCallExpr{} -> getVarNames (arrName expr)
   NumberLiteral _ -> []

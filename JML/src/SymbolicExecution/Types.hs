@@ -43,7 +43,7 @@ newtype MethodProcessor = MethodProcessor {
 data SymStateKey = MethodHandle
                  | GlobalVars | FormalParms | VarBindings | VarAssignments
                  | VarName String | ScopeRange CFGT.ScopeRange
-                 | LoopsConditions
+                 | LoopConditions CFGT.ScopeRange
                  | Return | Exception | Actions
                  deriving (Eq,Ord,Show)
 
@@ -130,7 +130,8 @@ visitSymExpr ==> SymInt: ER_SymStateMapEntry
 data ExecutionResult =
     ER_Expr SymExpr
   | ER_Node {er_Node_id :: CFGT.NodeID, nodeName :: String}
-  | ER_SymStateMapEntry {er_key :: SymStateKey, er_val :: SymExpr}
+  | ER_SymStateMapEntry SymStateKey SymExpr
+  | ER_VarExprObjAccess {-object access name-}String {-object access value-}SymExpr
   | ER_ArrayCallExpr {arrayIndexCall :: SymExpr, arrayIndexCallValue :: SymExpr}
   | ER_State SymState
   | ER_Logs [Log.Log]
@@ -159,8 +160,6 @@ data SymExpr =
   | SIte    SymExpr SymStateEnv (Maybe SymStateEnv)   -- ^ if-then-else (cond, then, else)
   | SLoop   (Maybe CFGT.Node) (Maybe AST.Expression) [CFGT.Node] -- Loop acc, Loop condition, and loop body. the loop step is the last node in the body
   | SymNull SymType               -- ^ value of an unassigned variable
---  | SymFormalParam SymType String (Maybe SymExpr) -- ^ declared variable (a formal parameter)
---  | SymGlobalVar SymType String (Maybe SymExpr) -- ^ variable declared outside the scope of the method
   | SymVar SymType String
   | SymFun PredefinedFun SymExpr
   | SVarBindings (Map.Map String CFGT.Node_Coor)
@@ -172,7 +171,7 @@ data SymExpr =
   | SymUnknown SymExpr [SymReason]
   | SFormalParms [String]
   | SGlobalVars [String]
-  | SLoopsConditions (Map.Map CFGT.ScopeRange [Map.Map String SymExpr])
+  | SLoopConditions [Map.Map String SymExpr]
   deriving (Eq,Show)
 
 type SymReason = ([(CFGT.Kind,CFGT.ScopeRange)],Int)
