@@ -2636,6 +2636,23 @@ SymState {
     (Return,SymString "6.0 dangerous something6")
   ], pc = []}
 */
+/*
+SymState {
+  env = fromList [
+    (MethodHandle,SMethodHandle String "ifFun6Call"),
+    (GlobalVars,SGlobalVars ["y","m","c","s"]),
+    (VarAssignments,SVarAssignments [
+        ("y",(SymInt 5,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
+        ("m",(SymInt 1,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})),
+        ("c",(SymString "dangerous",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
+    (VarName "c",SymString "dangerous"),
+    (VarName "m",SymInt 11),
+    (VarName "s",SymString "something"),
+    (VarName "y",SymInt (-5)),
+    (Return,SymString "6.0 dangerous something6")
+  ], logHeader = Header {logScopeDepth = 1, logCounter = [5,7]}
+}
+*/
 public String ifFun6Call() {
   y = 5;
   m = 1;

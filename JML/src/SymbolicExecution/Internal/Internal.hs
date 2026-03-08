@@ -12,7 +12,7 @@ import qualified CFG.Internal as CFG (getPathToScope)
 import qualified Parser.Types as AST
 import Text.Printf (printf)
 import Control.Applicative (Alternative(empty),asum,(<|>))
-import qualified Data.Map as Map (lookup, empty, Map, filterWithKey, insert, foldMapWithKey, toList, alter, notMember, alterF, traverseWithKey, null, mapWithKey, map)
+import qualified Data.Map as Map (lookup, empty, Map, filterWithKey, insert, foldMapWithKey, toList, alter, notMember, alterF, traverseWithKey, null, mapWithKey, map, foldlWithKey')
 import Prelude hiding (negate)
 import Data.List (nub,find,foldl',intercalate)
 import Control.Monad (forM_, foldM_)
@@ -302,6 +302,12 @@ toSymType2 = \case
   SArrayIndexAccess arrName arrPosSymExpr -> toSymType2 arrPosSymExpr
   symExpr -> error $ "TODO2: toSymType2 ==> " {-++ replicate 50 '\n'-}++ show symExpr
 
+maybeToSymType2 :: SymExpr -> Maybe SymType
+maybeToSymType2 = \case
+ SMethodHandle _ _ -> Nothing
+ SGlobalVars _     -> Nothing
+ symExpr -> Just $ toSymType2 symExpr
+
 pick_known_symType :: (SymType,SymType) -> SymType
 pick_known_symType = \case
   -- 2 unknown nums
@@ -414,11 +420,22 @@ inferGlobalVarType newType er = do
   case er of
     ER_SymStateMapEntry (VarName key) val -> do
       theEnv <- env <$> get
+      logH <- logHeader <$> get
       let vns :: [String] -- vns are global variables mentioned in val
           vns = filter (flip isGlobalVariable2 theEnv) (nub $ key : getVarNames2 (VarName key,val))
       case vns of
         [] -> tellNextLog (Log.Skip loc "Nothing to infer") $> ()
         _ ->
+          {-let strongerNewType = Map.foldlWithKey' (\acc k v -> case (k,v) of
+                (VarName vn,symExpr)
+                  | vn == key ->
+                      pick_known_symType2
+                        $ toSymType2 symExpr : toSymType2 val : [acc]
+                  | otherwise -> acc
+                (_,symExpr) -> let
+                  innerSymExprs = lookupPartialSymExprs key (k,symExpr)
+                  in pick_known_symType2
+                    $ (map toSymType2 innerSymExprs) ++ [toSymType2 val] ++ [acc]) newType theEnv-}
           -- search for each occurrence of `vn` in `vns` in `theEnv`
           --     and adjust its type
           foldM_ (\ma vn -> do
@@ -436,18 +453,39 @@ inferGlobalVarType newType er = do
                          tellNextLog $ Log.UpdateVariable (vn,show oldSymExpr,show newSymExpr) "inferGlobalVarType"
                          pure $ Just newSymExpr)
                   (VarName vn) ma
+            let mNewVarType = fmap toSymType2 $ Map.lookup (VarName vn) ma2
             -- the global variable vn may get mentioned in expressions other than VarName,
             -- and their types may need casting
             let ma3 = flip Map.mapWithKey ma2 $ \k v -> case (k,v) of
                   (VarName _,_) -> v
-                  (VarAssignments,SVarAssignments li) -> SVarAssignments $ flip map li
-                    $ \tu@(vn2,(symExpr,coor)) -> if
-                      | vn2 == vn -> let
-                        innerSymExprs = lookupPartialSymExprs vn (k,symExpr)
-                        newType2 = pick_known_symType2
-                          $ (map toSymType2 innerSymExprs) ++ [toSymType2 val] ++ [newType]
-                        in (vn2,(cast2 vn newType2 (k,symExpr),coor))
-                      | otherwise -> tu
+                  {-(VarAssignments,SVarAssignments li) ->
+                    let x = SVarAssignments $ flip map li
+                          $ \tu@(vn2,(symExpr,coor)) -> if
+                            | vn2 == vn -> let
+                              innerSymExprs = lookupPartialSymExprs vn (k,symExpr)
+                              newType2 = pick_known_symType2
+                                $ (map toSymType2 innerSymExprs) ++ [toSymType2 val] ++ maybe [] ((: []) . id) mNewVarType
+                              in (vn2,(cast2 vn newType2 (k,symExpr),coor))
+                            | otherwise -> tu
+                    in if vn == "y" && Log.logCounter logH == [5,3,3,7,1] &&
+                          case Map.lookup VarAssignments ma2 of
+                            Just (SVarAssignments li) -> length li == 3
+                            _ -> False
+                         then error $ printf "MEOW in y:\n\n\
+                                             \1) %s\n\n\
+                                             \2) %s\n\n\
+                                             \3) %s\n\n\
+                                             \4) %s\n\n\
+                                             \5) %s\n\n\
+                                             \6) %s"
+                                             (show (k,v))
+                                             (show ma2)
+                                             (show x)
+                                             (show mNewVarType)
+                                             (show (newType,er))
+                                             (show $ pick_known_symType2
+                                $ [toSymType2 val] ++ [newType])
+                       else x-}
                   (_,symExpr) -> let
                     innerSymExprs = lookupPartialSymExprs vn (k,symExpr)
                     newType2 = pick_known_symType2
@@ -539,6 +577,8 @@ isTypeNumeric = \case
 -- This matters in the context of `AssignExpr`, and `BinOpExpr`
 cast :: SymType -> SymExpr -> SymExpr
 cast symType symExpr = case (symType,symExpr) of
+  ----------
+  
   ----------
   (_,SymVar t vn)
     | symType `isInstanceOf` t ->
@@ -645,13 +685,16 @@ cast2 vn newType tu@(symStateKey,symExpr) = case symStateKey of
          SBin _ op _
            | vn `existsIn` tu -> cast newType symExpr
            | otherwise -> symExpr
-         SVarAssignments _ -> symExpr
+         SVarAssignments li -> SVarAssignments $ flip map li $ \(vn2,(expr,coor)) -> --symExpr
+           (vn2,(cast2 vn newType (VarName vn2,expr),coor))
          SymUnknown expr reasons -> SymUnknown (cast2 vn newType (symStateKey,expr)) reasons 
          SVarBindings _ -> symExpr
          SActions _ -> symExpr
          SymNum _ -> symExpr
          SymInt _ -> symExpr
          SymString _ -> symExpr
+         SymArray mt ms li -> SymArray mt ms $ map (cast2 vn newType . (,) symStateKey) li
+         SymNull _ -> symExpr
          _ -> error $ printf "SymbolicExecution.Internal.cast2 ==> TODO ==> (%s ,, %s)" vn (show tu)
 
 -- A non-atomic SymExpr contains a plural number of SymExprs.
@@ -692,7 +735,9 @@ lookupPartialSymExprs vn tu@(symStateKey,symExpr) = case symStateKey of
              then []
            else one ++ [symExpr] -- because SBin is somehow atomic even though it is not :/
       ----------
-      SVarAssignments _ -> []
+      SVarAssignments li -> flip concatMap li $ \(vn2,(symExpr,_)) ->
+        lookupPartialSymExprs vn (VarName vn2,symExpr)
+        --(lookupPartialSymExprs vn . (,) symStateKey)
       ----------
       SymUnknown ex _ -> lookupPartialSymExprs vn (symStateKey,ex)
       ----------
