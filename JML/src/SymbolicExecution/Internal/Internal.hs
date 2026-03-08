@@ -300,13 +300,7 @@ toSymType2 = \case
     | t == ToString -> String
     | otherwise -> toSymType2 symExpr
   SArrayIndexAccess arrName arrPosSymExpr -> toSymType2 arrPosSymExpr
-  symExpr -> error $ "TODO2: toSymType2 ==> " {-++ replicate 50 '\n'-}++ show symExpr
-
-maybeToSymType2 :: SymExpr -> Maybe SymType
-maybeToSymType2 = \case
- SMethodHandle _ _ -> Nothing
- SGlobalVars _     -> Nothing
- symExpr -> Just $ toSymType2 symExpr
+  symExpr -> error $ "TODO2: toSymType2 ==> " ++ show symExpr
 
 pick_known_symType :: (SymType,SymType) -> SymType
 pick_known_symType = \case
@@ -426,16 +420,6 @@ inferGlobalVarType newType er = do
       case vns of
         [] -> tellNextLog (Log.Skip loc "Nothing to infer") $> ()
         _ ->
-          {-let strongerNewType = Map.foldlWithKey' (\acc k v -> case (k,v) of
-                (VarName vn,symExpr)
-                  | vn == key ->
-                      pick_known_symType2
-                        $ toSymType2 symExpr : toSymType2 val : [acc]
-                  | otherwise -> acc
-                (_,symExpr) -> let
-                  innerSymExprs = lookupPartialSymExprs key (k,symExpr)
-                  in pick_known_symType2
-                    $ (map toSymType2 innerSymExprs) ++ [toSymType2 val] ++ [acc]) newType theEnv-}
           -- search for each occurrence of `vn` in `vns` in `theEnv`
           --     and adjust its type
           foldM_ (\ma vn -> do
@@ -458,38 +442,10 @@ inferGlobalVarType newType er = do
             -- and their types may need casting
             let ma3 = flip Map.mapWithKey ma2 $ \k v -> case (k,v) of
                   (VarName _,_) -> v
-                  {-(VarAssignments,SVarAssignments li) ->
-                    let x = SVarAssignments $ flip map li
-                          $ \tu@(vn2,(symExpr,coor)) -> if
-                            | vn2 == vn -> let
-                              innerSymExprs = lookupPartialSymExprs vn (k,symExpr)
-                              newType2 = pick_known_symType2
-                                $ (map toSymType2 innerSymExprs) ++ [toSymType2 val] ++ maybe [] ((: []) . id) mNewVarType
-                              in (vn2,(cast2 vn newType2 (k,symExpr),coor))
-                            | otherwise -> tu
-                    in if vn == "y" && Log.logCounter logH == [5,3,3,7,1] &&
-                          case Map.lookup VarAssignments ma2 of
-                            Just (SVarAssignments li) -> length li == 3
-                            _ -> False
-                         then error $ printf "MEOW in y:\n\n\
-                                             \1) %s\n\n\
-                                             \2) %s\n\n\
-                                             \3) %s\n\n\
-                                             \4) %s\n\n\
-                                             \5) %s\n\n\
-                                             \6) %s"
-                                             (show (k,v))
-                                             (show ma2)
-                                             (show x)
-                                             (show mNewVarType)
-                                             (show (newType,er))
-                                             (show $ pick_known_symType2
-                                $ [toSymType2 val] ++ [newType])
-                       else x-}
                   (_,symExpr) -> let
                     innerSymExprs = lookupPartialSymExprs vn (k,symExpr)
                     newType2 = pick_known_symType2
-                      $ (map toSymType2 innerSymExprs) ++ [toSymType2 val] ++ [newType]
+                      $ (map toSymType2 innerSymExprs) ++ maybe [] (: []) mNewVarType
                     in cast2 vn newType2 (k,symExpr)
             -- modify the state accordingly
             modify $ \symState -> SymState {
@@ -506,8 +462,6 @@ inferGlobalVarType newType er = do
 
 getVarName :: SymExpr -> String
 getVarName = \case
---  SymFormalParam _ varName _ -> varName
---  SymGlobalVar _ varName _ -> varName
   SymVar _ varName -> varName
   e@(SBin expr1 _ expr2) ->
     let n1 = if isVar expr1 then Just $ getVarName expr1 else Nothing

@@ -43,6 +43,7 @@ newtype MethodProcessor = MethodProcessor {
 data SymStateKey = MethodHandle
                  | GlobalVars | FormalParms | VarBindings | VarAssignments
                  | VarName String | ScopeRange CFGT.ScopeRange
+                 | LoopsConditions
                  | Return | Exception | Actions
                  deriving (Eq,Ord,Show)
 
@@ -143,6 +144,7 @@ data ExecutionResult =
   | ER_ActualParameterDetected
   deriving Show-}
 
+data ExecutionSummary = ER (Map.Map String SymExpr) ExecutionResult
 data ExecutionResult =
     ER_Expr SymExpr
   | ER_Node {er_Node_id :: CFGT.NodeID, nodeName :: String}
@@ -188,12 +190,9 @@ data SymExpr =
   | SymUnknown SymExpr [SymReason]
   | SFormalParms [String]
   | SGlobalVars [String]
+  | SLoopsConditions (Map.Map CFGT.ScopeRange [Map.Map String SymExpr])
   deriving (Eq,Show)
-{-
-data SymReason = IfBranchingReason [CFGT.Node_Coor]
-               | ForBranchingReason [CFGT.Node_Coor]
-               deriving (Eq,Show)
--}
+
 type SymReason = ([(CFGT.Kind,CFGT.ScopeRange)],Int)
 
 ppSymExpr :: SymExpr -> String
@@ -225,7 +224,7 @@ instance MonadFail (Either String) where
 predefinedFuns :: [String]
 predefinedFuns = ["toString","print","println"]
 
-data PredefinedFun = ToString | Print | Println deriving (Show,Eq)
+data PredefinedFun = ToString | Print | Println | PredefinedFun String deriving (Show,Eq)
 
 toPredefinedFun :: String -> PredefinedFun
 toPredefinedFun = \case

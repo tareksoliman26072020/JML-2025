@@ -2234,24 +2234,7 @@ public void manyArrs4() {
 ///////////////////
 
 //TODO
-/*
-SymState {
-  env = fromList [
-    (MethodHandle,SMethodHandle Void "manyArrs5"),
-    (VarBindings,SVarBindings (fromList [
-        ("brand",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
-    (VarAssignments,SVarAssignments [
-        ("brand",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}),
-        ("brand",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}}),
-        ("brand",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}}),
-        ("brand",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}}),
-        ("brand",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}}),
-        ("brand",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}})]),
-    (VarName "brand",SymArray (Just String) (Just 5) [SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",SymString "4. Volkswagen",SymString "5. Skoda"]),
-    (Actions,SActions [SymString "[1. Toyota, 2. Mercedes, 3. BMW, 4. Volkswagen, 5. Skoda]\n"])
-  ], logHeader = Header {logScopeDepth = 1, logCounter = [5,3]}
-}
-*/
+//JavaMethod
 /*
 SymState {
   env = fromList [
@@ -2269,6 +2252,9 @@ SymState {
     (Actions,SActions [SymString "[1. Toyota, 2. Mercedes, 3. BMW, 4. Volkswagen, 5. Skoda]\n"])
   ], logHeader = Header {logScopeDepth = 1, logCounter = [5,3]}
 }
+*/
+/*
+SLoopsConditions $
 */
 public void manyArrs5() {
   String[] brand = new String[] {"Toyota","Mercedes","BMW","Volkswagen","Skoda"};
@@ -2620,22 +2606,6 @@ public String ifFun6(int n) {
 
 //DONE
 //JavaMethod
-/*
-SymState {
-  env = fromList [
-    (MethodName "ifFun6Call",SMethodType String),
-    (GlobalVars,SGlobalVars ["y","m","c","s"]),
-    (VarAssignments,SVarAssignments [
-        ("y",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}}),
-        ("m",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}}),
-        ("c",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 4}})]),
-    (VarName "c",SymString "dangerous"),
-    (VarName "m",SymInt 11),
-    (VarName "s",SymString "something"),
-    (VarName "y",SymInt (-5)),
-    (Return,SymString "6.0 dangerous something6")
-  ], pc = []}
-*/
 /*
 SymState {
   env = fromList [
