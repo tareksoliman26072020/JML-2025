@@ -449,7 +449,6 @@ instance CFGVisitor MethodProcessor where
           forBody_forStep_path
           (CFGT.SR (CFGT.id n)
               (CFG.getNodeId $ CFG.getEndForNode cfg $ (CFG.findNode_via_id cfg $ CFGT.id n)))
-          originalStateEnv
       ----------------------------------------
       ----------------------------------------
       ----------------------------------------
@@ -1073,8 +1072,8 @@ visitExpr expr = error $ "What this is: " ++ show expr
 
 ------------------------------
 
-visitForLoop :: CFGT.CFG -> Maybe CFGT.Node -> Maybe AST.Expression -> [CFGT.Node] -> CFGT.ScopeRange -> Map.Map SymStateKey SymExpr -> SymbolicExecutionMonad ExecutionResult
-visitForLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma = do
+visitForLoop :: CFGT.CFG -> Maybe CFGT.Node -> Maybe AST.Expression -> [CFGT.Node] -> CFGT.ScopeRange -> SymbolicExecutionMonad ExecutionResult
+visitForLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange = do
   let loc = "SymbolicExecution.Method.visitForLoop"
   tellNextLog (Log.Location "SymbolicExecution.Method.visitForLoop")
   originalEnv <- env <$> get
@@ -1107,7 +1106,7 @@ visitForLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma = do
   case forCondExpr_visited of
     -- visit for loop body
     SBool True -> do
-      forLoopVisited <- visitForLoop1 1 state_With_Acc cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma
+      forLoopVisited <- visitForLoop1 1 state_With_Acc cfg m_Acc mForCondExpr forBody_forStep_path branchRange
       case forLoopVisited of
         -- for visitation was completed
         ER_ForLoopDone -> do
@@ -1149,12 +1148,12 @@ visitForLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma = do
       modify $ \symState -> SymState originalEnv (logHeader symState)
       return ER_ForLoopDone
     _ -> do modify $ \symState -> SymState originalEnv (logHeader symState)
-            visitForLoop2 cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma
+            visitForLoop2 cfg m_Acc mForCondExpr forBody_forStep_path branchRange
 
 ------------------------------
 
-visitForLoop1 :: Int -> SymState -> CFGT.CFG -> Maybe CFGT.Node -> Maybe AST.Expression -> [CFGT.Node] -> CFGT.ScopeRange -> Map.Map SymStateKey SymExpr -> SymbolicExecutionMonad ExecutionResult
-visitForLoop1 loopCounter originalState cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma = do
+visitForLoop1 :: Int -> SymState -> CFGT.CFG -> Maybe CFGT.Node -> Maybe AST.Expression -> [CFGT.Node] -> CFGT.ScopeRange -> SymbolicExecutionMonad ExecutionResult
+visitForLoop1 loopCounter originalState cfg m_Acc mForCondExpr forBody_forStep_path branchRange = do
   let loc = "SymbolicExecution.Method.visitForLoop1"
   tellNextLog $ Log.Location loc
   -- whether there's a loop condition
@@ -1174,6 +1173,12 @@ visitForLoop1 loopCounter originalState cfg m_Acc mForCondExpr forBody_forStep_p
   case forCondExpr_visited of
     -- it's atomic, and do a round
     SBool True -> do
+      {-let condVarNames = case mForCondExpr of
+            Just forCondExpr -> getVarNames forCondExpr
+            Nothing          -> []
+      let condExprs :: Map.Map String SymExpr
+          condExprs = Map.fromList $ flip map condVarNames $ \condVarName ->
+            Map.lookup-}
       forLoopLimit <- iterationMaxBound . fst <$> ask
       if forLoopLimit >= loopCounter
         then do
@@ -1188,12 +1193,12 @@ visitForLoop1 loopCounter originalState cfg m_Acc mForCondExpr forBody_forStep_p
           --tellNextLog . Log.ReportTheState loc . show . env <$> get
           theEnv <- env <$> get
           tellNextLog $ Log.ReportTheState loc (show theEnv)
-          visitForLoop1 (loopCounter+1) originalState cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma
+          visitForLoop1 (loopCounter+1) originalState cfg m_Acc mForCondExpr forBody_forStep_path branchRange
       else do
         tellNextLog $ Log.ForLoopLimitReached loc (show forLoopLimit)
         theEnv <- env <$> get
         tellNextLog $ Log.Skip loc $ printf "The following state will be ignored due to the limit set for for loop: %d:\n%s" forLoopLimit (show theEnv)
-        visitForLoop2 cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma
+        visitForLoop2 cfg m_Acc mForCondExpr forBody_forStep_path branchRange
     -- it's atomic, and terminate
     SBool False -> do
       tellNextLog $ Log.ForLoopDone loc
@@ -1201,12 +1206,12 @@ visitForLoop1 loopCounter originalState cfg m_Acc mForCondExpr forBody_forStep_p
    -- it's not atomic
     _ -> do tellNextLog $ Log.ForLoopConditionUndetermined "visitForLoop1" (show forCondExpr_visited)
             modify (const originalState)
-            visitForLoop2 cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma
+            visitForLoop2 cfg m_Acc mForCondExpr forBody_forStep_path branchRange
 
 ------------------------------
 
-visitForLoop2 :: CFGT.CFG -> Maybe CFGT.Node -> Maybe AST.Expression -> [CFGT.Node] -> CFGT.ScopeRange -> Map.Map SymStateKey SymExpr -> SymbolicExecutionMonad ExecutionResult
-visitForLoop2 cfg m_Acc mForCondExpr forBody_forStep_path branchRange ma = do
+visitForLoop2 :: CFGT.CFG -> Maybe CFGT.Node -> Maybe AST.Expression -> [CFGT.Node] -> CFGT.ScopeRange -> SymbolicExecutionMonad ExecutionResult
+visitForLoop2 cfg m_Acc mForCondExpr forBody_forStep_path branchRange = do
     let loc = "SymbolicExecution.Method.visitForLoop2"
     tellNextLog $ Log.UnvisitedForLoop "visitForLoop2" (show mForCondExpr)
     (_,cfgs) <- ask

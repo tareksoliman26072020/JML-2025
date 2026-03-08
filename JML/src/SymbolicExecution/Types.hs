@@ -126,25 +126,7 @@ visitSymExpr ==> SymFormalParam: ER_SymStateMapEntry
 visitSymExpr ==> SBin: ER_SymStateMapEntry
 visitSymExpr ==> SymInt: ER_SymStateMapEntry
 -}
-{-
-data ExecutionResult =
-    ER_Expr SymExpr
-  | ER_Node {er_Node_id :: CFGT.NodeID, nodeName :: String}
-  | ER_SymStateMapEntry {er_key :: SymStateKey, er_val :: SymExpr}
-  | ER_ArrayCallExpr {arrayIndexCall :: SymExpr, arrayIndexCallValue :: SymExpr}
-  | ER_State SymState
-  | ER_Logs [Log.Log]
-  | ER_Triplet (ExecutionResult,ExecutionResult,ExecutionResult)
-  | ER_FunCall SymState
-  | ER_FunHandle SymType String
-  | ER_IfCond SymExpr  -- ^ boolean expressions found in if conditions. Its existance in the environment values map means that the ......
-  | ER_PredefinedFunCall SymExpr
-  | ER_ForLoopDone
-  | ER_Void
-  | ER_ActualParameterDetected
-  deriving Show-}
 
-data ExecutionSummary = ER (Map.Map String SymExpr) ExecutionResult
 data ExecutionResult =
     ER_Expr SymExpr
   | ER_Node {er_Node_id :: CFGT.NodeID, nodeName :: String}
@@ -224,7 +206,7 @@ instance MonadFail (Either String) where
 predefinedFuns :: [String]
 predefinedFuns = ["toString","print","println"]
 
-data PredefinedFun = ToString | Print | Println | PredefinedFun String deriving (Show,Eq)
+data PredefinedFun = ToString | Print | Println deriving (Show,Eq)
 
 toPredefinedFun :: String -> PredefinedFun
 toPredefinedFun = \case
