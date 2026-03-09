@@ -1014,7 +1014,8 @@ createSymReason :: (CFGT.Kind,CFGT.ScopeRange) -> CFGT.CFG -> [CFGT.Node_Coor] -
 createSymReason (kind,sr) cfg = map $ \node_coor ->
   let one
         | CFGT.varFrame node_coor == sr = [(kind,sr)]
-        | otherwise = CFG.getPathToScope (CFGT.varFrame node_coor) cfg
+        | otherwise = flip dropWhile (CFG.getPathToScope (CFGT.varFrame node_coor) cfg)
+            $ \(_,scopeRange) -> CFGT.branchEnd scopeRange < CFGT.branchStart sr
   in (one,CFGT.varDeclAt node_coor)
 
 ------------------------------

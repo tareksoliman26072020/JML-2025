@@ -326,14 +326,6 @@ instance CFGVisitor MethodProcessor where
                                (getVarNames2 (ScopeRange condBranchRange,ifCond))
                         ++ getGlobalVars ifSymStateEnv
                         ++ maybe [] getGlobalVars mElseSymStateEnv
-                {-throwError $ printf
-                  "MEOW:\n\n\
-                  \1) %s\n\n\
-                  \2) %s\n\n\
-                  \3) %s"
-                  (show ifSymStateEnv)
-                  (show mElseSymStateEnv)
-                  (show newMainVarAssignments)-}
                 tellNextLog $ Log.ModifyState (printf "%s ==> recording symbolic branching" loc) (printf "if node num: %d" (CFGT.id n),show symExpr)
                 modify $ \symState ->
                       -- `ma1` has the new conditional branchs (addNode)
@@ -1423,6 +1415,18 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
                    Nothing -> Just $ SymUnknown (SymVar (toSymType2 val) vn)
                      $ createSymReason (CFGT.For,branchRange) cfg node_coors
                    ---
+                   {-
+                   Just (SymUnknown tu reasons) -> error $ printf
+                     "MEOW:\n\n\
+                     \1) %s\n\n\
+                     \2) %s\n\n\
+                     \3) %s\n\n\
+                     \4) %s"
+                     (show reasons)
+                     (show $ createSymReason (CFGT.For,branchRange) cfg node_coors)
+                     (show (CFGT.For,branchRange))
+                     (show node_coors)
+                     -}
                    Just (SymUnknown tu reasons) -> Just $ SymUnknown tu
                      $ reasons ++ createSymReason (CFGT.For,branchRange) cfg node_coors
                    ---
