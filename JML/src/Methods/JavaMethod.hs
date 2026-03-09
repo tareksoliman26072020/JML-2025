@@ -25,6 +25,7 @@ javaMethodInputs = [
   ("manyArrs3", manyArrs3),
   ("manyArrs4", manyArrs4),
   ("manyArrs5", manyArrs5),
+  ("manyArrs6", manyArrs6),
   ("ifFun", ifFun),
   ("ifFunCall", ifFunCall),
   ("ifFun2", ifFun2),
@@ -54,6 +55,7 @@ javaMethodInputs = [
   ("wrongSum5", wrongSum5),
   ("for1", for1),
   ("for2", for2),
+  ("for3", for3),
   ("sum1", sum1)
   ]
 
@@ -245,6 +247,15 @@ manyArrs5 = "public void manyArrs5() {\n\
             \  String[] brand = new String[] {\"Toyota\",\"Mercedes\",\"BMW\",\"Volkswagen\",\"Skoda\"};\n\
             \  for(int i=0; i<brand.length; i++) {\n\
             \    brand[i] = toString(i+1) + \". \" + brand[i];\n\
+            \  }\n\
+            \  println(brand);\n\
+            \}"
+
+manyArrs6 :: String
+manyArrs6 = "public void manyArrs6() {\n\
+            \  String[] brand = new String[] {\"Toyota\",\"Mercedes\",\"BMW\",\"Volkswagen\",\"Skoda\"};\n\
+            \  for(int i=0; i<brand.length; i++) {\n\
+            \    println(toString(i+1) + \". \" + brand[i]);\n\
             \  }\n\
             \  println(brand);\n\
             \}"
@@ -565,6 +576,26 @@ for2 = "public int for2(int n) {\n\
        \    res *= 3;\n\
        \  }\n\
        \  return res;\n\
+       \}"
+
+for3 :: String
+for3 = "public int for3(int n) {\n\
+       \  int a;\n\
+       \  if(n % 2 == 0) {\n\
+       \    a = 10;\n\
+       \  }\n\
+       \  else {\n\
+       \    a = 20;\n\
+       \  }\n\n\
+       \  for(int i=n; i>0; i--) {\n\
+       \    if(i % 2 == 0) {\n\
+       \      a += 5;\n\
+       \    }\n\
+       \  }\n\n\
+       \  if(a % 3 == 0) {\n\
+       \    a *= 3;\n\
+       \  }\n\n\
+       \  return a;\n\
        \}"
 
 sum1 :: String

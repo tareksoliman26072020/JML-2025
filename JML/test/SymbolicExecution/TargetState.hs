@@ -33,6 +33,7 @@ allTargets = [
   ("manyArrs3",manyArrs3),
   ("manyArrs4", manyArrs4),
   ("manyArrs5", manyArrs5),
+  ("manyArrs6", manyArrs6),
   ("ifFun",ifFun),
   ("ifFun2",ifFun2),
   ("ifFunCall",ifFunCall), ("ifFun2Call",ifFun2Call), ("ifFun2Call2",ifFun2Call2),
@@ -54,6 +55,7 @@ allTargets = [
   ("wrongSum5", wrongSum5),
   ("for1", for1),
   ("for2", for2),
+  ("for3", for3),
   ("sum1", sum1)
   ]
 
@@ -544,12 +546,41 @@ manyArrs5 = Map.fromList [
     (VarName "brand",SymArray (Just SYT.String) (Just 5) [SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",SymString "4. Volkswagen",SymString "5. Skoda"]),
     (LoopConditions (SR {branchStart = 2, branchEnd = 6}),
      SLoopConditions [
+         Map.fromList [("brand.length",SymInt 5),("i",SymInt 0)],
          Map.fromList [("brand.length",SymInt 5),("i",SymInt 1)],
          Map.fromList [("brand.length",SymInt 5),("i",SymInt 2)],
          Map.fromList [("brand.length",SymInt 5),("i",SymInt 3)],
-         Map.fromList [("brand.length",SymInt 5),("i",SymInt 4)],
-         Map.fromList [("brand.length",SymInt 5),("i",SymInt 5)]]),
+         Map.fromList [("brand.length",SymInt 5),("i",SymInt 4)]]),
     (Actions,SActions [SymString "[1. Toyota, 2. Mercedes, 3. BMW, 4. Volkswagen, 5. Skoda]\n"])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+manyArrs6 :: SymStateEnv
+manyArrs6 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "manyArrs6"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("brand",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
+    (VarAssignments,SVarAssignments [
+        ("brand",(SymArray (Just SYT.String) (Just 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}))]),
+    (VarName "brand",SymArray (Just SYT.String) (Just 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"]),
+    (LoopConditions (SR {branchStart = 2, branchEnd = 6}),
+     SLoopConditions [
+         Map.fromList [("brand.length",SymInt 5),("i",SymInt 0)],
+         Map.fromList [("brand.length",SymInt 5),("i",SymInt 1)],
+         Map.fromList [("brand.length",SymInt 5),("i",SymInt 2)],
+         Map.fromList [("brand.length",SymInt 5),("i",SymInt 3)],
+         Map.fromList [("brand.length",SymInt 5),("i",SymInt 4)]]),
+    (Actions,
+     SActions [
+         SymString "1. Toyota\n",
+         SymString "2. Mercedes\n",
+         SymString "3. BMW\n",
+         SymString "4. Volkswagen\n",
+         SymString "5. Skoda\n",
+         SymString "[Toyota, Mercedes, BMW, Volkswagen, Skoda]\n"])
   ]
 
 -----------------------------
@@ -1320,6 +1351,13 @@ for2 = Map.fromList [
                 (VarName "res",SBin (SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 8}),(If,SR {branchStart = 4, branchEnd = 6})],5)]) SYT.Mul (SymInt 3)),
                 (ScopeRange (SR {branchStart = 2, branchEnd = 8}),SLoop (Just (Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}), parent = 0})) (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Greater, expr2 = NumberLiteral 0.0})) [Node {id = 4, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Mod, expr2 = NumberLiteral 2.0}, binOp = Eq, expr2 = NumberLiteral 0.0})), parent = 2},Node {id = 7, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Minus, expr2 = NumberLiteral 1.0}}})), parent = 2}])]) Nothing),
     (Return,SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 8}),(If,SR {branchStart = 4, branchEnd = 6})],5),([(If,SR {branchStart = 9, branchEnd = 11})],10)])]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+for3 :: SymStateEnv
+for3 = undefined
 
 -----------------------------
 -----------------------------

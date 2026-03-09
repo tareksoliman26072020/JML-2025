@@ -183,6 +183,7 @@ instance CFGVisitor MethodProcessor where
         (state,stateEnv) <- (,) <$> get <*> (env <$> get) 
         let mainActions = getActions stateEnv
         let mainVarAssignments = getVarAssignments stateEnv
+        let mainVarNames = getVarNames stateEnv
         
         toReturn <- case expr2 of
               SBool b -> do
@@ -308,9 +309,15 @@ instance CFGVisitor MethodProcessor where
                 --    which were originally defined outside of them
                 -- 2) the VarAssignments of global variables
                 let condVarAssignments sEnv = flip filter (getVarAssignments sEnv) $
-                      \(name,_) -> maybe
+                      \(name,_) ->
+                        Map.member (VarName name) mainVarNames ||
+                        (isGlobalVariable2 name sEnv)
+                      
+                      
+                      
+                      {-\(name,_) -> maybe
                           (isGlobalVariable2 name sEnv)
-                          (const True) $ lookup name mainVarAssignments
+                          (const True) $ lookup name mainVarAssignments-}
                     newMainVarAssignments = nub $
                         condVarAssignments ifSymStateEnv ++
                         maybe [] condVarAssignments mElseSymStateEnv
@@ -319,9 +326,17 @@ instance CFGVisitor MethodProcessor where
                                (getVarNames2 (ScopeRange condBranchRange,ifCond))
                         ++ getGlobalVars ifSymStateEnv
                         ++ maybe [] getGlobalVars mElseSymStateEnv
+                {-throwError $ printf
+                  "MEOW:\n\n\
+                  \1) %s\n\n\
+                  \2) %s\n\n\
+                  \3) %s"
+                  (show ifSymStateEnv)
+                  (show mElseSymStateEnv)
+                  (show newMainVarAssignments)-}
                 tellNextLog $ Log.ModifyState (printf "%s ==> recording symbolic branching" loc) (printf "if node num: %d" (CFGT.id n),show symExpr)
                 modify $ \symState ->
-                      -- `s1` has the new conditional branchs (addNode)
+                      -- `ma1` has the new conditional branchs (addNode)
                       --  and has the new VarAssignments from the conditional branches
                   let ma1 =
                         let addNode = Map.insert
@@ -1177,15 +1192,8 @@ visitForLoop1 loopCounter originalState cfg m_Acc mForCondExpr forBody_forStep_p
       if forLoopLimit >= loopCounter
         then do
           tellNextLog $ Log.ForLoopRound loopCounter "visitForLoop1"
-          flip mapM_ forBody_forStep_path $ \node -> do
-            incrementLogDepth
-            censor (map (\(Log.Log num tag) ->
-              Log.Log num $ Log.Nested "For Loop Body" $ Log.Nested "Registering" tag))
-              (methodProcessorMonad (visitNode node))
-            decrementLogDepth
           -- add the loop condition entry:
           do
-            s <- get
             --loopConditionEntry :: Map.Map String SymExpr
             loopConditionEntry <- do
               incrementLogEnumeration
@@ -1195,13 +1203,13 @@ visitForLoop1 loopCounter originalState cfg m_Acc mForCondExpr forBody_forStep_p
                   (createLoopCondition (maybe undefined id mForCondExpr))
                 <* decrementLogDepth
               
-            let newEnv = Map.alter (\case
-                  Nothing -> Just
-                    $ SLoopConditions [loopConditionEntry]
-                  Just (SLoopConditions li) -> Just
-                    $ SLoopConditions $ li ++ [loopConditionEntry])
-                  (LoopConditions branchRange) (env s)
-            put $ SymState newEnv (logHeader s)
+            newEnv <- Map.alter (\case
+              Nothing -> Just
+                $ SLoopConditions [loopConditionEntry]
+              Just (SLoopConditions li) -> Just
+                $ SLoopConditions $ li ++ [loopConditionEntry])
+              (LoopConditions branchRange) . env <$> get
+            modify $ \symState -> SymState newEnv (logHeader symState)
             -- tell the created loop condition entries:
             do theEnv <- env <$> get
                case Map.lookup (LoopConditions branchRange) theEnv of
@@ -1209,6 +1217,13 @@ visitForLoop1 loopCounter originalState cfg m_Acc mForCondExpr forBody_forStep_p
                  Just (SLoopConditions mas) ->
                    tellNextLog $ Log.AtomizeRoundLoopCondition loc
                                  (show $ Map.toList $ mas !! (loopCounter - 1))
+          -- visit for body nodes
+          flip mapM_ forBody_forStep_path $ \node -> do
+            incrementLogDepth
+            censor (map (\(Log.Log num tag) ->
+              Log.Log num $ Log.Nested "For Loop Body" $ Log.Nested "Registering" tag))
+              (methodProcessorMonad (visitNode node))
+            decrementLogDepth
           -- it's a good idea to log the current state before staring the next loop round
           (tellNextLog . Log.ReportTheState loc . show . env) <$> get
           visitForLoop1 (loopCounter+1) originalState cfg m_Acc mForCondExpr forBody_forStep_path branchRange
@@ -1259,6 +1274,7 @@ createLoopCondition expr = do
        $ Map.singleton (intercalate "." $ AST.varObj expr ++ [AST.varName expr]) val
      ER_FunCall funCallSymState -> throwError
        $ printf "%s ==> TODO: %s" loc (show expr)-}
+    AST.NumberLiteral _ -> return $ Map.empty
     _ -> throwError $ printf "%s ==> TODO: %s" loc (show expr)
 
 ------------------------------
