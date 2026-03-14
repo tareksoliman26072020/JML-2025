@@ -2307,6 +2307,32 @@ public void manyArrs6() {
 
 ///////////////////
 
+
+//TODO
+public void manyArrs7(String[] brand) {
+  for(int i=0; i<brand.length; i++) {
+    brand[i] = toString(i+1) + ". " + brand[i];
+  }
+  println(brand);
+}
+
+///////////////////
+
+//TODO
+public void manyArrs7Call1() {
+  manyArrs7(new String[] {"Toyota","Mercedes","BMW","Volkswagen","Skoda"});
+}
+
+///////////////////
+
+//TODO
+public static void manyArrs7Call2() {
+    String[] brand = new String[] {"Toyota","Mercedes","BMW","Volkswagen","Skoda"};
+    manyArrs7(brand);
+  }
+
+///////////////////
+
 //DONE
 //JavaMethod
 /*
@@ -3313,6 +3339,26 @@ public int sum1(int n) {
     res += n;
   }
   return res;
+}
+
+/////////////////////
+
+//TODO
+/*
+[(MethodHandle,SMethodHandle String "sum1Call1"),(Return,SymString "6")]
+*/
+public String sum1Call1() {
+  return toString(sum1(51));
+}
+
+/////////////////////
+
+//TODO
+/*
+[(MethodHandle,SMethodHandle Void "sum1Call2"),(Actions,SActions [SymString "6\n"])]
+*/
+public void sum1Call2() {
+  println(toString(sum1(3)));
 }
 
 /////////////////////

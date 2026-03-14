@@ -859,7 +859,20 @@ visitExpr expr@AST.AssignExpr{} = do
   varNames <- (getVarNames . env) <$> get
   let two_newVal = case (one,two_val) of
         (ER_ArrayCallExpr (SArrayIndexAccess arrName index) _,_) ->
-          let Just theArray@(SymArray mt ml elems) = Map.lookup (VarName arrName) varNames
+          case Map.lookup (VarName arrName) varNames of
+            Just (SymArray mt ml elems) -> case index of
+              SymInt num ->
+                let int = fromIntegral num
+                in SymArray mt ml (
+                    take int elems ++
+                    [cast (toSymType2 one_val) two_val] ++
+                    drop (int+1) elems)
+              _ -> error $ "TODO1: visitExpr ==> AssignExpr: " ++ show index
+            Just e@(SymVar (Array _) arrName) -> error $ printf
+              "1) %s\n\n2) %s\n\n"
+                (show e) (show two_val)
+          
+          {-let Just theArray@(SymArray mt ml elems) = Map.lookup (VarName arrName) varNames
           in case index of
                SymInt num ->
                  let int = fromIntegral num
@@ -867,7 +880,7 @@ visitExpr expr@AST.AssignExpr{} = do
                      take int elems ++
                      [cast (toSymType2 one_val) two_val] ++
                      drop (int+1) elems)
-               _ -> error $ "TODO1: visitExpr ==> AssignExpr: " ++ show index
+               _ -> error $ "TODO1: visitExpr ==> AssignExpr: " ++ show index-}
         (_,SymArray _ _ _) -> -- casting is done during the creation of two_val
           two_val
         _ -> cast (toSymType2 one_val) two_val
@@ -1117,6 +1130,8 @@ visitForLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange = do
       case forLoopVisited of
         -- for visitation was completed
         ER_ForLoopDone -> do
+          -- After leaving the for body,
+          -- variables which were defined locally need to be removed
           newEnv <- env <$> get
               -- `varnames_to_delete`: collect varnames in `newEnv` which are not present in originalEnv
           let varnames_to_delete :: [String]
@@ -1149,6 +1164,9 @@ visitForLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange = do
             logHeader = logHeader symState
             }
           return ER_ForLoopDone
+        -- `ER_SymStateMapEntry` is returned when the for loop is too big
+        -- then `visitForLoop1` leads to `visitForLoop2`
+        ER_SymStateMapEntry _ _ -> return forLoopVisited
     -- for loop condition was not met
     SBool False -> do
       tellNextLog $ Log.ForLoopDone "visitForLoop1"
@@ -1256,7 +1274,11 @@ createLoopCondition expr = do
                Nothing -> throwError $ printf "%s ==> won't happen" loc
       -- it's a method call:
       | otherwise -> do
-          er <- visitExpr expr
+          -- We don't care about the logs, therefore `filter (const False)`
+          -- And we need to restore the state in case it was edited, therefore `put origState`
+          er <- do
+            origState <- get
+            censor (filter $ const False) (visitExpr expr) <* put origState
           case er of
             ER_VarExprObjAccess name value -> return
               $ Map.singleton name value
@@ -1415,18 +1437,6 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
                    Nothing -> Just $ SymUnknown (SymVar (toSymType2 val) vn)
                      $ createSymReason (CFGT.For,branchRange) cfg node_coors
                    ---
-                   {-
-                   Just (SymUnknown tu reasons) -> error $ printf
-                     "MEOW:\n\n\
-                     \1) %s\n\n\
-                     \2) %s\n\n\
-                     \3) %s\n\n\
-                     \4) %s"
-                     (show reasons)
-                     (show $ createSymReason (CFGT.For,branchRange) cfg node_coors)
-                     (show (CFGT.For,branchRange))
-                     (show node_coors)
-                     -}
                    Just (SymUnknown tu reasons) -> Just $ SymUnknown tu
                      $ reasons ++ createSymReason (CFGT.For,branchRange) cfg node_coors
                    ---
