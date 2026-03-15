@@ -706,7 +706,7 @@ objAccCalculator varNames = \case
   expr@(SObjAcc [varName,_]) ->
     let Just varNameVal = Map.lookup (VarName varName) varNames
     in objAccCalculator2 expr varNameVal
-  arr@(SArrayIndexAccess arrName arrIndexSymExpr) ->
+  arr@(SArrayIndexAccess arrType arrName arrIndexSymExpr) ->
     let Just varSymExpr = Map.lookup (VarName arrName) varNames
     in case (varSymExpr,arrIndexSymExpr) of
          (SymArray _ _ elems,SymInt index) -> elems !! fromIntegral index
@@ -764,6 +764,13 @@ stringCalculator2 Add = \case
     SBin e1 Add (cast String e2)
   (e1,e2@(SymFun ToString _)) ->
     SBin (cast String e1) Add e2
+  ----------
+  (e1@(SArrayIndexAccess (Array String) _ _), e2)
+    | toSymType2 e2 == String ->
+        SBin e1 Add e2
+  (e1, e2@(SArrayIndexAccess (Array String) _ _))
+    | toSymType2 e1 == String ->
+        SBin e1 Add e2
   ----------
   expr -> error $ "TODO: stringCalculator2: " ++ show expr
 

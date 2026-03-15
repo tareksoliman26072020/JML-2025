@@ -2307,8 +2307,20 @@ public void manyArrs6() {
 
 ///////////////////
 
-
-//TODO
+//DONE
+//JavaMethod
+/*
+[
+ (MethodHandle,SMethodHandle Void "manyArrs7"),
+ (GlobalVars,SGlobalVars ["length"]),
+ (FormalParms,SFormalParms ["brand"]),
+ (VarAssignments,SVarAssignments [
+     ("brand",(SymVar (Array String) "brand",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 5}}))]),
+ (VarName "brand",SymVar (Array String) "brand"),
+ (ScopeRange (SR {branchStart = 1, branchEnd = 5}),SLoop (Just (Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0})) (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = ["brand"], varName = "length"}})) [Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "brand"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, assEright = BinOpExpr {expr1 = BinOpExpr {expr1 = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "toString"}, funArgs = [BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}]}, binOp = +, expr2 = StringLiteral ". "}, binOp = +, expr2 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "brand"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}}}}), parent = 1},Node {id = 4, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}})), parent = 1}]),
+ (Actions,SActions [SymFun Println (SymFun ToString (SymVar (Array String) "brand"))])
+]
+*/
 public void manyArrs7(String[] brand) {
   for(int i=0; i<brand.length; i++) {
     brand[i] = toString(i+1) + ". " + brand[i];

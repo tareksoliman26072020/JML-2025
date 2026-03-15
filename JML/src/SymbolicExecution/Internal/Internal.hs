@@ -299,8 +299,9 @@ toSymType2 = \case
   SymFun t symExpr
     | t == ToString -> String
     | otherwise -> toSymType2 symExpr
-  SArrayIndexAccess arrName arrPosSymExpr -> toSymType2 arrPosSymExpr
-  symExpr -> error $ "TODO2: toSymType2 ==> " ++ show symExpr
+  SArrayIndexAccess (Array arrElemType) _ _ -> arrElemType
+  SArrayIndexAccess arrType _ _ -> error $ "TODO3: toSymType2 ==> Why is this not of Array Type?: " ++ show arrType
+  symExpr -> error $ "TODO3: toSymType2 ==> " ++ show symExpr
 
 pick_known_symType :: (SymType,SymType) -> SymType
 pick_known_symType = \case
@@ -532,8 +533,6 @@ isTypeNumeric = \case
 -- This matters in the context of `AssignExpr`, and `BinOpExpr`
 cast :: SymType -> SymExpr -> SymExpr
 cast symType symExpr = case (symType,symExpr) of
-  ----------
-  
   ----------
   (_,SymVar t vn)
     | symType `isInstanceOf` t ->
@@ -869,7 +868,7 @@ getVarNames2 (symStateKey,symExpr) = (case symStateKey of
     SBin symExpr1 _ symExpr2 ->
       getVarNames2 (symStateKey,symExpr1) ++ getVarNames2 (symStateKey,symExpr2)
     SNot symExpr -> getVarNames2 (symStateKey,symExpr)
-    SArrayIndexAccess s1 s2 -> error $ "TODO1:: getVarNames2 ==> " ++ show (SArrayIndexAccess s1 s2)
+    SArrayIndexAccess s1 s2 s3 -> error $ "TODO1:: getVarNames2 ==> " ++ show (SArrayIndexAccess s1 s2 s3)
     SymArray onw two three -> []
     SymUnknown _ _ -> []
     SymNull _ -> []

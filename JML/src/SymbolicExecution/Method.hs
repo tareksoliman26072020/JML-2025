@@ -821,7 +821,7 @@ visitExpr expr@AST.AssignExpr{} = do
   -- one_svn is important to find key in the map
   let (one_svn,one_val) = case one of
        ER_SymStateMapEntry svn val -> (svn,val)
-       ER_ArrayCallExpr (SArrayIndexAccess arrName _) val ->
+       ER_ArrayCallExpr (SArrayIndexAccess arrType arrName _) val -> --TOTO ARRAY
          --call = SArrayIndexAccess "strs" (SymInt 1)
          --val = SymNull String
          (VarName arrName,val)
@@ -852,25 +852,30 @@ visitExpr expr@AST.AssignExpr{} = do
           ER_SymStateMapEntry _ e2_ -> e2_
           ER_PredefinedFunCall e2_ -> cast (toSymType2 one_val) e2_
           _ -> error $ "TODO2: SymbolicExecution.Method.visitExpr.AssignExpr.e2 ==> " ++ show two
-
+{-
+  if two_val `notElem` [SymInt 0]
+    then throwError $ printf "MEOW::\n\n1) %s\n\n2) %s\n\n3) %s\n\n4) %s"
+      (show two) (show one_val) (show $ toSymType2 one_val) (show two_val)
+    else return ER_Void
+-}
   tellNextLog $ Log.Affected "visitExpr -> AssignExpr" [show one, show two]
   -- newVal is a transformation of two_val. it's the new value
   -- inside of newVal, casting is done
-  varNames <- (getVarNames . env) <$> get
-  let two_newVal = case (one,two_val) of
-        (ER_ArrayCallExpr (SArrayIndexAccess arrName index) _,_) ->
-          case Map.lookup (VarName arrName) varNames of
-            Just (SymArray mt ml elems) -> case index of
-              SymInt num ->
-                let int = fromIntegral num
-                in SymArray mt ml (
-                    take int elems ++
-                    [cast (toSymType2 one_val) two_val] ++
-                    drop (int+1) elems)
-              _ -> error $ "TODO1: visitExpr ==> AssignExpr: " ++ show index
-            Just e@(SymVar (Array _) arrName) -> error $ printf
-              "1) %s\n\n2) %s\n\n"
-                (show e) (show two_val)
+  two_newVal <- do
+    varNames <- (getVarNames . env) <$> get
+    case (one,two_val) of
+      (ER_ArrayCallExpr (SArrayIndexAccess arrType arrName index) _,_) -> --TOTO ARRAY
+        case Map.lookup (VarName arrName) varNames of
+          Just (SymArray mt ml elems) -> case index of
+            SymInt num ->
+              let int = fromIntegral num
+              in return $ SymArray mt ml (
+                  take int elems ++
+                  [cast (toSymType2 one_val) two_val] ++
+                  drop (int+1) elems)
+            _ -> error $ "TODO1: visitExpr ==> AssignExpr: " ++ show index
+          Just e@(SymVar (Array _) arrName) -> return $
+            cast (pick_known_symType2 [arrType, toSymType2 e, toSymType2 two_val]) e
           
           {-let Just theArray@(SymArray mt ml elems) = Map.lookup (VarName arrName) varNames
           in case index of
@@ -881,9 +886,9 @@ visitExpr expr@AST.AssignExpr{} = do
                      [cast (toSymType2 one_val) two_val] ++
                      drop (int+1) elems)
                _ -> error $ "TODO1: visitExpr ==> AssignExpr: " ++ show index-}
-        (_,SymArray _ _ _) -> -- casting is done during the creation of two_val
-          two_val
-        _ -> cast (toSymType2 one_val) two_val
+      (_,SymArray _ _ _) -> -- casting is done during the creation of two_val
+        return two_val
+      _ -> return $ cast (toSymType2 one_val) two_val
 {-
 two_newVal = SymArray (Just (Array Int)) (Just 2) [SymNull Int,SymNull Int]
 -}
@@ -1002,7 +1007,7 @@ visitExpr expr@AST.ArrayCallExpr{} = do
           ER_SymStateMapEntry (VarName arrName) _ -> arrName
           _ -> error $ printf "won't happen1: %s ==> %s" loc (show visited)
   index_er <- case AST.index expr of
-    Nothing -> throwError $ "won't happen ==> " ++ loc
+    Nothing -> throwError $ "won't happen2 ==> " ++ loc
     Just expr_ -> do
       indexExpr <- do
         incrementLogEnumeration
@@ -1015,7 +1020,12 @@ visitExpr expr@AST.ArrayCallExpr{} = do
         ER_Expr indexExpr2 -> cast Int indexExpr2
         e -> error $ printf "TODO2: %s ==> %s" loc (show e)
   varNames <- (getVarNames . env) <$> get
-  let symExprCall = SArrayIndexAccess arrName index_er
+  arrType <- do
+    theEnv <- env <$> get
+    case Map.lookup (VarName arrName) theEnv of
+      Nothing -> throwError $ "won't happen3 ==> " ++ loc
+      Just symExpr -> return $ toSymType2 symExpr
+  let symExprCall = SArrayIndexAccess arrType arrName index_er
       symExprVal = objAccCalculator varNames symExprCall
       toReturn = ER_ArrayCallExpr symExprCall symExprVal
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn
