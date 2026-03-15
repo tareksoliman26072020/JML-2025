@@ -821,7 +821,7 @@ visitExpr expr@AST.AssignExpr{} = do
   -- one_svn is important to find key in the map
   let (one_svn,one_val) = case one of
        ER_SymStateMapEntry svn val -> (svn,val)
-       ER_ArrayCallExpr (SArrayIndexAccess arrType arrName _) val -> --TOTO ARRAY
+       ER_ArrayCallExpr (SArrayIndexAccess arrType arrName _) val ->
          --call = SArrayIndexAccess "strs" (SymInt 1)
          --val = SymNull String
          (VarName arrName,val)
@@ -864,7 +864,7 @@ visitExpr expr@AST.AssignExpr{} = do
   two_newVal <- do
     varNames <- (getVarNames . env) <$> get
     case (one,two_val) of
-      (ER_ArrayCallExpr (SArrayIndexAccess arrType arrName index) _,_) -> --TOTO ARRAY
+      (ER_ArrayCallExpr (SArrayIndexAccess arrType arrName index) _,_) ->
         case Map.lookup (VarName arrName) varNames of
           Just (SymArray mt ml elems) -> case index of
             SymInt num ->
@@ -874,18 +874,9 @@ visitExpr expr@AST.AssignExpr{} = do
                   [cast (toSymType2 one_val) two_val] ++
                   drop (int+1) elems)
             _ -> error $ "TODO1: visitExpr ==> AssignExpr: " ++ show index
-          Just e@(SymVar (Array _) arrName) -> return $
-            cast (pick_known_symType2 [arrType, toSymType2 e, toSymType2 two_val]) e
-          
-          {-let Just theArray@(SymArray mt ml elems) = Map.lookup (VarName arrName) varNames
-          in case index of
-               SymInt num ->
-                 let int = fromIntegral num
-                 in SymArray mt ml (
-                     take int elems ++
-                     [cast (toSymType2 one_val) two_val] ++
-                     drop (int+1) elems)
-               _ -> error $ "TODO1: visitExpr ==> AssignExpr: " ++ show index-}
+          Just e@(SymVar (Array t) arrName) ->
+            let newType = pick_known_symType2 [arrType, toSymType2 e, toSymType2 two_val]
+            in return $ cast newType e
       (_,SymArray _ _ _) -> -- casting is done during the creation of two_val
         return two_val
       _ -> return $ cast (toSymType2 one_val) two_val

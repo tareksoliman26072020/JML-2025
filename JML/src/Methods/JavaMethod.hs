@@ -26,7 +26,7 @@ javaMethodInputs = [
   ("manyArrs4", manyArrs4),
   ("manyArrs5", manyArrs5),
   ("manyArrs6", manyArrs6),
-  ("manyArrs7", manyArrs7),
+  ("manyArrs7", manyArrs7), ("manyArrs7Call1", manyArrs7Call1),
   ("ifFun", ifFun),
   ("ifFunCall", ifFunCall),
   ("ifFun2", ifFun2),
@@ -268,6 +268,17 @@ manyArrs7 = "public void manyArrs7(String[] brand) {\n\
             \  }\n\
             \  println(brand);\n\
             \}"
+
+manyArrs7Call1 :: String
+manyArrs7Call1 = "public void manyArrs7Call1() {\n\
+                 \  manyArrs7(new String[] {\"Toyota\",\"Mercedes\",\"BMW\",\"Volkswagen\",\"Skoda\"});\n\
+                 \}"
+
+manyArrs7Call2 :: String
+manyArrs7Call2 = "public static void manyArrs7Call2() {\n\
+                 \    String[] brand = new String[] {\"Toyota\",\"Mercedes\",\"BMW\",\"Volkswagen\",\"Skoda\"};\n\
+                 \    manyArrs7(brand);\n\
+                 \}"
 
 ifFun :: String
 ifFun = "public int ifFun(int n) {\n\

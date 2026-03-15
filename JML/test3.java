@@ -2330,18 +2330,35 @@ public void manyArrs7(String[] brand) {
 
 ///////////////////
 
-//TODO
+//DONE
+//JavaMethod
+/*
+[
+ (MethodHandle,SMethodHandle Void "manyArrs7Call1"),
+ (Actions,SActions [SymString "[1. Toyota, 2. Mercedes, 3. BMW, 4. Volkswagen, 5. Skoda]\n"])
+]
+*/
 public void manyArrs7Call1() {
   manyArrs7(new String[] {"Toyota","Mercedes","BMW","Volkswagen","Skoda"});
 }
 
 ///////////////////
 
-//TODO
+//DONE
+//JavaMethod
+/*
+[
+ (MethodHandle,SMethodHandle Void "manyArrs7Call2"),
+ (VarBindings,SVarBindings (fromList [("brand",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+ (VarAssignments,SVarAssignments [("brand",(SymArray (Just String) (Just 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+ (VarName "brand",SymArray (Just String) (Just 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"]),
+ (Actions,SActions [SymString "[1. Toyota, 2. Mercedes, 3. BMW, 4. Volkswagen, 5. Skoda]\n"])
+]
+*/
 public static void manyArrs7Call2() {
     String[] brand = new String[] {"Toyota","Mercedes","BMW","Volkswagen","Skoda"};
     manyArrs7(brand);
-  }
+}
 
 ///////////////////
 

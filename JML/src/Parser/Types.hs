@@ -199,6 +199,7 @@ getActualParmName = \case
   NumberLiteral num -> show num
   ArrayInstantiationExpr _ _ arrElems -> printf "{%s}"
     $ intercalate ", " $ map getActualParmName arrElems
+  StringLiteral str -> str
   expr -> error $ "TODO: getActualParmName: " ++ show expr
 
 data Type a
