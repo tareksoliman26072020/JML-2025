@@ -811,6 +811,7 @@ funCallCalculator = \case
          res
            | res == argExpr -> cast String res
            | otherwise -> funCallCalculator (ToString,[res])
+     SymUnknown _ _ -> SymFun ToString argExpr
      _ -> error $ "TODO1: funCallCalculator ==> " ++ show argExpr
   (funName,[argExpr])        
     | funName `elem` [Print,Println] ->
@@ -824,6 +825,7 @@ funCallCalculator = \case
     flatten symExpr
       | toSymType2 argExpr == String = case symExpr of
           SymString ('\"' : rest) -> SymString (init rest)
+          SymFun ToString e@(SymFun ToString _) -> e
           SymFun _ _ -> error $ "TODO2: funCallCalculator ==> " ++ show symExpr
       | otherwise = symExpr
   tu@(funName,argsExprs) -> error $ "TODO3: funCallCalculator ==> " ++ show tu

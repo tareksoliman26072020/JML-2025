@@ -64,7 +64,7 @@ data Config = Config
   }
 
 defaultConfig :: Config
-defaultConfig = Config 50
+defaultConfig = Config 20
 
 -- | A binary operator in our symbolic language
 data SymBinOp

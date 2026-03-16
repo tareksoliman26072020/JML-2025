@@ -3374,20 +3374,17 @@ public int sum1(int n) {
 
 //TODO
 /*
-[(MethodHandle,SMethodHandle String "sum1Call1"),(Return,SymString "6")]
+[
+ (MethodHandle,SMethodHandle String "sum1Call1"),
+ (Return,SymFun ToString (SymUnknown (SymInt 9) [
+     ([(For,SR {branchStart = 2, branchEnd = 6})],4),
+     ([(For,SR {branchStart = 2, branchEnd = 6})],4),
+     ([(For,SR {branchStart = 2, branchEnd = 6})],4),
+     ([(For,SR {branchStart = 2, branchEnd = 6})],4)]))
+]
 */
 public String sum1Call1() {
-  return toString(sum1(51));
-}
-
-/////////////////////
-
-//TODO
-/*
-[(MethodHandle,SMethodHandle Void "sum1Call2"),(Actions,SActions [SymString "6\n"])]
-*/
-public void sum1Call2() {
-  println(toString(sum1(3)));
+  return toString(sum1(21));
 }
 
 /////////////////////
