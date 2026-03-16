@@ -813,6 +813,7 @@ funCallCalculator = \case
            | otherwise -> funCallCalculator (ToString,[res])
      SymUnknown _ _ -> SymFun ToString argExpr
      SLoopFailure _ _ -> argExpr
+     SymFun _ _ -> SymFun ToString argExpr
      _ -> error $ "TODO1: funCallCalculator ==> " ++ show argExpr
   (funName,[argExpr])        
     | funName `elem` [Print,Println] ->

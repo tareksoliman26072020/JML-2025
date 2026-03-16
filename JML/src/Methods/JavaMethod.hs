@@ -57,7 +57,9 @@ javaMethodInputs = [
   ("for1", for1),
   ("for2", for2),
   ("for3", for3),
-  ("sum1", sum1), ("sum1Call1", sum1Call1),-- ("sum1Call2", sum1Call2),
+  ("sum1", sum1), ("sum1Call1", sum1Call1),
+                  ("sum1Call2", sum1Call2),
+                  ("sum1Call3", sum1Call3),
   ("sum2", sum2)
   ]
 
@@ -631,6 +633,17 @@ sum1 = "public int sum1(int n) {\n\
 sum1Call1 :: String
 sum1Call1 = "public String sum1Call1() {\n\
             \  return toString(sum1(21));\n\
+            \}"
+
+sum1Call2 :: String
+sum1Call2 = "public String sum1Call2() {\n\
+            \  return toString(sum1(x));\n\
+            \}"
+
+sum1Call3 :: String
+sum1Call3 = "public String sum1Call3() {\n\
+            \  x = 3;\n\
+            \  return toString(sum1(x));\n\
             \}"
 
 sum2 :: String

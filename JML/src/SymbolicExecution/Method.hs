@@ -519,25 +519,35 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
       ER_FunHandle t n -> (t,n)
       _ -> error $ printf "won't happen1: %s ==> %s" loc (show visited)
   
+  {-let symExpr = case getSymExpr er of
+        Just symExpr -> case symExpr of
+          SLoopFailure _ _ -> SymFun (UserDefined funName) symExpr
+          SymUnknown _ _   -> SymFun (UserDefined funName) symExpr
+          _                -> cast t symExpr
+        Nothing      -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show er-}
+        {-
+        ER_PredefinedFunCall symExpr@(SLoopFailure _ _) ->
+          SymFun (UserDefined funName) symExpr
+        _ -> cast t $ case getSymExpr er of
+          Just symExpr -> symExpr
+          Nothing      -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show er-}
+
   let symExpr = case er of
         ER_PredefinedFunCall symExpr@(SLoopFailure _ _) ->
+          SymFun (UserDefined funName) symExpr
+        ER_PredefinedFunCall symExpr@(SymUnknown _ _) ->
           SymFun (UserDefined funName) symExpr
         _ -> cast t $ case getSymExpr er of
           Just symExpr -> symExpr
           Nothing      -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show er
   
-  {-
-  case expr of
+  
+  {-case expr of
     AST.FunCallExpr{} -> throwError
       $ printf "MEOW::\n\n1) %s\n\n2) %s\n\n3) %s"
           (show expr) (show er) (show symExpr)
-    _ -> return ER_Void
-   -}
-  {-case er of
-    ER_FunCall symState -> throwError
-      $ printf $ "MEOW:: " ++ (show $ Map.lookup LoopFailure (env symState))
     _ -> return ER_Void-}
-  
+
   incrementLogEnumeration >>
     incrementLogDepth *> inferGlobalVarType t er <* decrementLogDepth
   
@@ -547,7 +557,7 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
       env = Map.insert Return symExpr (env symState),
       logHeader = logHeader symState
     }
-  --env <$> get >>= \theEnv -> throwError $ printf "MEOW:: " ++ show theEnv
+
   tellNextLog (Log.Return "visitStmt -> ReturnStmt" (show er)) $> er
 -- AssignStmt {varModifier :: [Modifier], assign :: Expression}
 visitStmt stmt@AST.AssignStmt{} = do

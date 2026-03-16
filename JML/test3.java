@@ -3389,7 +3389,36 @@ public String sum1Call1() {
 /////////////////////
 
 //TODO
+//JavaMethod
+/*
+[
+ (MethodHandle,SMethodHandle String "sum1Call2"),
+ (GlobalVars,SGlobalVars ["x"]),
+ (VarName "x",SymVar UnknownGlobalVarSymType "x"),
+ (Return,SymFun ToString (
+     SymFun (UserDefined "sum1")
+            (SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 6})],4)])))
+]
+*/
 public String sum1Call2() {
+  return toString(sum1(x));
+}
+
+/////////////////////
+
+//TODO
+//JavaMethod
+/*
+[
+ (MethodHandle,SMethodHandle String "sum1Call3"),
+ (GlobalVars,SGlobalVars ["x"]),
+ (VarAssignments,SVarAssignments [("x",(SymNum 3.0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
+ (VarName "x",SymNum 3.0),
+ (Return,SymString "6")
+]
+*/
+public String sum1Call3() {
+  x = 3;
   return toString(sum1(x));
 }
 

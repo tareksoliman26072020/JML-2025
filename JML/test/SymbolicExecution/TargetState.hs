@@ -22,7 +22,8 @@ allTargets = [
   ("boo31_3", boo31_3),
   ("boo32", boo32), ("boo32Call", boo32Call),
   ("elemAt", elemAt), ("elemAtCall", elemAtCall),
-  ("elemAt2", elemAt2), ("elemAt2Call", elemAt2Call), ("elemAt2Call2", elemAt2Call2),
+  ("elemAt2", elemAt2), ("elemAt2Call", elemAt2Call),
+                        ("elemAt2Call2", elemAt2Call2),
   ("elemAt4", elemAt4),
   ("strFun", strFun),
   ("voidFun1",voidFun1),
@@ -58,6 +59,8 @@ allTargets = [
   ("for2", for2),
   ("for3", for3),
   ("sum1", sum1), ("sum1Call1", sum1Call1),
+                  ("sum1Call2", sum1Call2),
+                  ("sum1Call3", sum1Call3),
   ("sum2", sum2)
   ]
 
@@ -1438,6 +1441,33 @@ sum1Call1 = Map.fromList [
     (UserDefined "sum1Call1")
     (SLoopFailure (SR {branchStart = 2, branchEnd = 6}) 20))
  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+sum1Call2 :: SymStateEnv
+sum1Call2 = Map.fromList [
+  (MethodHandle,SMethodHandle SYT.String "sum1Call2"),
+  (GlobalVars,SGlobalVars ["x"]),
+  (VarName "x",SymVar SYT.Int "x"),
+  (Return,SymFun ToString (
+     SymFun (UserDefined "sum1")
+            (SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 6})],4)])))
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+sum1Call3 :: SymStateEnv
+sum1Call3 = Map.fromList [
+  (MethodHandle,SMethodHandle SYT.String "sum1Call3"),
+  (GlobalVars,SGlobalVars ["x"]),
+  (VarAssignments,SVarAssignments [("x",(SymNum 3.0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
+  (VarName "x",SymInt 3),
+  (Return,SymString "6")
+  ]
 
 -----------------------------
 -----------------------------
