@@ -42,7 +42,7 @@ newtype MethodProcessor = MethodProcessor {
 
 data SymStateKey = MethodHandle
                  | GlobalVars | FormalParms | VarBindings | VarAssignments
-                 | VarName String | ScopeRange CFGT.ScopeRange
+                 | VarName String | ScopeRange CFGT.ScopeRange | LoopFailure
                  | LoopConditions CFGT.ScopeRange
                  | Return | Exception | Actions
                  deriving (Eq,Ord,Show)
@@ -158,10 +158,14 @@ data SymExpr =
   | SBin    SymExpr SymBinOp SymExpr  -- ^ binary operation
   | SNot    SymExpr               -- ^ logical negation
   | SIte    SymExpr SymStateEnv (Maybe SymStateEnv)   -- ^ if-then-else (cond, then, else)
+
   | SLoop   (Maybe CFGT.Node) (Maybe AST.Expression) [CFGT.Node] -- Loop acc, Loop condition, and loop body. the loop step is the last node in the body
+  | SLoopConditions [Map.Map String SymExpr]
+  | SLoopFailure CFGT.ScopeRange Int
+
   | SymNull SymType               -- ^ value of an unassigned variable
   | SymVar SymType String
-  | SymFun PredefinedFun SymExpr
+  | SymFun DefinedFun SymExpr
   | SVarBindings (Map.Map String CFGT.Node_Coor)
   | SVarAssignments [(String,(SymExpr,CFGT.Node_Coor))] 
   | SException SymType String String
@@ -171,7 +175,6 @@ data SymExpr =
   | SymUnknown SymExpr [SymReason]
   | SFormalParms [String]
   | SGlobalVars [String]
-  | SLoopConditions [Map.Map String SymExpr]
   deriving (Eq,Show)
 
 type SymReason = ([(CFGT.Kind,CFGT.ScopeRange)],Int)
@@ -189,8 +192,6 @@ ppSymExpr = \case
   SymNull t -> case t of
     String -> "null"
     Int -> "0"
---  SymFormalParam t s m -> maybe s ppSymExpr m
---  SymGlobalVar t s m -> maybe s ppSymExpr m
   SymVar t s -> s
   SymArray _ _ elems -> printf "[%s]" $ intercalate ", " (map ppSymExpr elems)
   symExpr -> error $ "TODO: ppSymExpr ==> " ++ show symExpr
@@ -205,10 +206,11 @@ instance MonadFail (Either String) where
 predefinedFuns :: [String]
 predefinedFuns = ["toString","print","println"]
 
-data PredefinedFun = ToString | Print | Println deriving (Show,Eq)
+data DefinedFun = ToString | Print | Println | UserDefined String deriving (Show,Eq)
 
-toPredefinedFun :: String -> PredefinedFun
-toPredefinedFun = \case
+toDefinedFun :: String -> DefinedFun
+toDefinedFun = \case
   "toString" -> ToString
   "print"    -> Print
   "println"  -> Println
+  str        -> UserDefined str

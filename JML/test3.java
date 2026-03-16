@@ -3372,19 +3372,57 @@ public int sum1(int n) {
 
 /////////////////////
 
-//TODO
+//DONE
+//JavaMethod
 /*
 [
  (MethodHandle,SMethodHandle String "sum1Call1"),
- (Return,SymFun ToString (SymUnknown (SymInt 9) [
-     ([(For,SR {branchStart = 2, branchEnd = 6})],4),
-     ([(For,SR {branchStart = 2, branchEnd = 6})],4),
-     ([(For,SR {branchStart = 2, branchEnd = 6})],4),
-     ([(For,SR {branchStart = 2, branchEnd = 6})],4)]))
+ (Return,SymFun
+   (UserDefined "sum1Call1")
+   (SLoopFailure (SR {branchStart = 2, branchEnd = 6}) 20))
 ]
 */
 public String sum1Call1() {
   return toString(sum1(21));
+}
+
+/////////////////////
+
+//TODO
+public String sum1Call2() {
+  return toString(sum1(x));
+}
+
+/////////////////////
+
+//DONE
+//JavaMethod
+/*
+[
+ (MethodHandle,SMethodHandle Int "sum2"),
+ (GlobalVars,SGlobalVars []),
+ (VarBindings,SVarBindings (fromList [
+     ("n",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}}),
+     ("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
+ (VarAssignments,SVarAssignments [
+     ("res",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),
+     ("n",(SymInt 21,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}})),
+     ("res",(SymInt 21,Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 3, branchEnd = 7}})),
+     ("n",(SymInt 20,Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 3, branchEnd = 7}}))]),
+ (VarName "n",SymUnknown (SymInt 21) [([(For,SR {branchStart = 3, branchEnd = 7})],6)]),
+ (VarName "res",SymUnknown (SymInt 0) [([(For,SR {branchStart = 3, branchEnd = 7})],5)]),
+ (ScopeRange (SR {branchStart = 3, branchEnd = 7}),SLoop (Just (Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0})) (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = >, expr2 = NumberLiteral 0.0})) [Node {id = 5, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}}), parent = 3},Node {id = 6, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "n"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = -, expr2 = NumberLiteral 1.0}}})), parent = 3}]),
+ (LoopFailure,SLoopFailure (SR {branchStart = 3, branchEnd = 7}) 20),
+ (Return,SymUnknown (SymInt 0) [([(For,SR {branchStart = 3, branchEnd = 7})],5)])
+]
+*/
+public int sum2() {
+  int res = 0;
+  int n = 21;
+  for(int i=0; n>0; n--) {
+    res += n;
+  }
+  return res;
 }
 
 /////////////////////

@@ -26,7 +26,7 @@ javaMethodInputs = [
   ("manyArrs4", manyArrs4),
   ("manyArrs5", manyArrs5),
   ("manyArrs6", manyArrs6),
-  ("manyArrs7", manyArrs7), ("manyArrs7Call1", manyArrs7Call1),
+  ("manyArrs7", manyArrs7), ("manyArrs7Call1", manyArrs7Call1), ("manyArrs7Call2", manyArrs7Call2),
   ("ifFun", ifFun),
   ("ifFunCall", ifFunCall),
   ("ifFun2", ifFun2),
@@ -57,7 +57,8 @@ javaMethodInputs = [
   ("for1", for1),
   ("for2", for2),
   ("for3", for3),
-  ("sum1", sum1)
+  ("sum1", sum1), ("sum1Call1", sum1Call1),-- ("sum1Call2", sum1Call2),
+  ("sum2", sum2)
   ]
 
 boo30 :: String
@@ -622,6 +623,21 @@ sum1 :: String
 sum1 = "public int sum1(int n) {\n\
        \  int res = 0;\n\
        \  for(; n>0; n--) {\n\
+       \    res += n;\n\
+       \  }\n\
+       \  return res;\n\
+       \}"
+
+sum1Call1 :: String
+sum1Call1 = "public String sum1Call1() {\n\
+            \  return toString(sum1(21));\n\
+            \}"
+
+sum2 :: String
+sum2 = "public int sum2() {\n\
+       \  int res = 0;\n\
+       \  int n = 21;\n\
+       \  for(int i=0; n>0; n--) {\n\
        \    res += n;\n\
        \  }\n\
        \  return res;\n\

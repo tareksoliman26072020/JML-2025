@@ -301,6 +301,7 @@ toSymType2 = \case
     | otherwise -> toSymType2 symExpr
   SArrayIndexAccess (Array arrElemType) _ _ -> arrElemType
   SArrayIndexAccess arrType _ _ -> error $ "TODO3: toSymType2 ==> Why is this not of Array Type?: " ++ show arrType
+  --SLoopFailure (SR {branchStart = 2, branchEnd = 6}) 20
   symExpr -> error $ "TODO3: toSymType2 ==> " ++ show symExpr
 
 pick_known_symType :: (SymType,SymType) -> SymType
@@ -332,7 +333,9 @@ getSymExpr :: ExecutionResult -> Maybe SymExpr
 getSymExpr = \case
   ER_Expr symExpr -> Just symExpr
   ER_SymStateMapEntry _ symExpr -> Just symExpr
-  ER_FunCall symState -> getReturnSymExpr symState
+  ER_FunCall symState -> case Map.lookup LoopFailure (env symState) of
+    Just symExpr -> Just symExpr
+    Nothing -> getReturnSymExpr symState
   ER_ArrayCallExpr _ symExpr -> Just symExpr
   ER_PredefinedFunCall symExpr -> Just symExpr
   ER_VarExprObjAccess _ symExpr -> Just symExpr

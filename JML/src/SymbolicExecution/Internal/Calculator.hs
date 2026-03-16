@@ -784,7 +784,7 @@ stringCalculator2 Add = \case
 {-
 toString ==> returns SymString
 -}
-funCallCalculator :: (PredefinedFun,[SymExpr]) -> SymExpr
+funCallCalculator :: (DefinedFun,[SymExpr]) -> SymExpr
 funCallCalculator = \case
   (ToString,[argExpr]) -> case argExpr of
      SymInt num -> SymString $ show num
@@ -812,6 +812,7 @@ funCallCalculator = \case
            | res == argExpr -> cast String res
            | otherwise -> funCallCalculator (ToString,[res])
      SymUnknown _ _ -> SymFun ToString argExpr
+     SLoopFailure _ _ -> argExpr
      _ -> error $ "TODO1: funCallCalculator ==> " ++ show argExpr
   (funName,[argExpr])        
     | funName `elem` [Print,Println] ->
