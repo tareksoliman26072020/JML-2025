@@ -7,7 +7,7 @@ import qualified CFG.Types as CFGT
 import qualified CFG.Internal as CFG
 import qualified Data.Map as Map
 import Data.Maybe (mapMaybe)
-import Control.Monad (foldM)
+import Control.Monad (foldM, zipWithM_)
 import Control.Monad.Reader (ReaderT,runReaderT,ask)
 import Control.Monad.State
 import Control.Monad.Except
@@ -551,6 +551,10 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
   incrementLogEnumeration >>
     incrementLogDepth *> inferGlobalVarType t er <* decrementLogDepth
   
+  {-env <$> get >>= \theEnv -> case Map.lookup MethodHandle theEnv of
+    Just (SMethodHandle String "sum1Call3") -> throwError $ "MEOW::\n\n" ++ show theEnv
+    _ -> return ER_Void-}
+  
   tellNextLog $ Log.ModifyState "visitStmt -> ReturnStmt -> method with args" ("return",show symExpr)
   modify $ \symState ->
     SymState {
@@ -635,11 +639,35 @@ visitExpr (expr@AST.FunCallExpr{}) = do
               actualParms1 = zipWith (\fParm act ->
                 let maybeActual = getSymExpr act
                 in case maybeActual of
-                     Nothing -> error "TODO ==> visitExpr -> FunCallExpr"
+                     Nothing -> error "TODO1 ==> visitExpr -> FunCallExpr"
                      Just actual ->
                        let Just t = fmap toSymType1 $ AST.varType fParm
                        in (VarName $ AST.getVarName fParm,cast t actual) 
                 ) formalParms actualParms
+          
+          {-
+          look at `x` in `sum1Call3`. it is of `UnknownNumSymType`.
+          But the fact that it is passed as actual parameter to `sum1`
+          infers `x` to `Int`.
+          Therefore `inferGlobalVarType` needs to be used on `x` to do that.
+          public int sum1(int n) {
+            int res = 0;
+            for(; n>0; n--) {
+              res += n;
+            }
+            return res;
+          }
+
+          public String sum1Call3() {
+            x = 3;
+            return toString(sum1(x));
+          }
+           -}
+          {-zipWithM_ (\er (_,symExpr) -> case er of
+            ER_SymStateMapEntry vn@(VarName _) _ ->
+              inferGlobalVarType (toSymType2 symExpr) (ER_SymStateMapEntry vn symExpr)
+            _ -> throwError $ "TODO2 ==> visitExpr -> FunCallExpr: " ++ show er) actualParms actualParms1-}
+          
           -- global vars to be inserted into the method call Map.Map
           -- Global vars which have the same name of formal parms get excluded
           -- (globalVars,globalVarsMap) :: ([String],Map.Map SymStateKey SymExpr)
@@ -779,9 +807,16 @@ visitExpr (expr@AST.FunCallExpr{}) = do
       | funCallName `elem` predefinedFuns -> do
           tellNextLog $ Log.ProcessPredefinedFunCall "visitExpr ==> FunCallExpr" (show $ AST.funName expr) (show $ AST.funArgs expr)
           -- get SymExprs of args
+          ers <- flip mapM (AST.funArgs expr) $ \ex -> do
+            er <- visitExpr ex
+            return er
+            --return (er,let Just e = getSymExpr er in e)
+
+          let funArgsExprs = flip map ers $ \er -> let Just e = getSymExpr er in e
+{-
           funArgsExprs <- flip mapM (AST.funArgs expr) $ \ex ->
             ((\m -> let Just e = m in e) . getSymExpr) <$> visitExpr ex
-          
+ -}         
           -- funArgsExprs = [SBin (SymInt 1) Add (SymVar Int "n")]
           -- toReturn = ER_Expr (SBin (SymInt 1) Add (SymVar Int "n"))
           let toReturn =
@@ -789,7 +824,10 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                   $ funCallCalculator (
                       toDefinedFun $ AST.getFunCallName $ AST.FunCallStmt expr,
                       funArgsExprs)
-          
+          {-
+          throwError $ printf "MEOW::\n\n1) %s\n\n2) %s\n\n3) %s"
+            (show ers) (show funArgsExprs) (show toReturn)
+           -}
           tellNextLog (Log.Return "visitExpr ==> FunCallExpr" (show toReturn)) $> toReturn
       | otherwise -> throwError $ "visitExpr => FunCallExpr: Method " ++ funCallName ++ " does not exist"
 --BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}

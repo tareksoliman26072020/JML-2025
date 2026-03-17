@@ -3412,8 +3412,8 @@ public String sum1Call2() {
 [
  (MethodHandle,SMethodHandle String "sum1Call3"),
  (GlobalVars,SGlobalVars ["x"]),
- (VarAssignments,SVarAssignments [("x",(SymNum 3.0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
- (VarName "x",SymNum 3.0),
+ (VarAssignments,SVarAssignments [("x",(SymInt 3,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
+ (VarName "x",SymInt 3),
  (Return,SymString "6")
 ]
 */
