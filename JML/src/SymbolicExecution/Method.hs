@@ -532,16 +532,29 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
           Just symExpr -> symExpr
           Nothing      -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show er-}
 
-  let symExpr = case er of
+  {-env <$> get >>= \theEnv -> case Map.lookup MethodHandle theEnv of
+    Just (SMethodHandle String "sum1Call2") -> throwError $ printf
+      "WOF::\n\n1) %s\n\n2) %s\n\n3) %s\n\n4) %s"
+        (show er)
+        (show $ getSymExpr er)
+        (show $ fmap (toSymFun funName) $ getSymExpr er)
+        (show $ fmap (cast t . toSymFun funName) $ getSymExpr er)
+    _ -> return ER_Void-}
+  
+  {-let symExpr = case er of
         ER_PredefinedFunCall symExpr@(SLoopFailure _ _) ->
           SymFun (UserDefined funName) symExpr
         ER_PredefinedFunCall symExpr@(SymUnknown _ _) ->
           SymFun (UserDefined funName) symExpr
         _ -> cast t $ case getSymExpr er of
           Just symExpr -> symExpr
-          Nothing      -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show er
-  
-  
+          Nothing      -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show er-}
+
+  let symExpr = case getSymExpr er of
+        Just expr@(SLoopFailure _ _) -> expr
+        Just symExpr -> cast t symExpr-- $ toSymFun funName symExpr
+        Nothing      -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show er
+
   {-case expr of
     AST.FunCallExpr{} -> throwError
       $ printf "MEOW::\n\n1) %s\n\n2) %s\n\n3) %s"
@@ -563,6 +576,19 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
     }
 
   tellNextLog (Log.Return "visitStmt -> ReturnStmt" (show er)) $> er
+  where
+  -- `toSymFun` wraps an occurrence of `SLoopFailure` or `SymUnknown`
+  --     within `visitStmt ==> AST.ReturnStmt` with SymFun
+  -- to denote the inability of returning a concrete value
+  toSymFun :: String -> SymExpr -> SymExpr
+  toSymFun funName expr = case expr of
+    SLoopFailure _ _    -> SymFun (UserDefined funName) expr
+    SymUnknown _ _      -> SymFun (UserDefined funName) expr
+    SymFun f symExpr    -> SymFun f $ toSymFun funName symExpr
+    SBin expr1 op expr2 -> SBin (toSymFun funName expr1) op (toSymFun funName expr2)
+    SNot symExpr        -> SNot $ toSymFun funName symExpr
+    _                   -> expr
+
 -- AssignStmt {varModifier :: [Modifier], assign :: Expression}
 visitStmt stmt@AST.AssignStmt{} = do
   tellNextLog $ Log.AssignStatement (show $ AST.assign stmt) "visitStmt -> pattern matching: AssignStmt"
@@ -663,11 +689,23 @@ visitExpr (expr@AST.FunCallExpr{}) = do
             return toString(sum1(x));
           }
            -}
-          {-zipWithM_ (\er (_,symExpr) -> case er of
-            ER_SymStateMapEntry vn@(VarName _) _ ->
-              inferGlobalVarType (toSymType2 symExpr) (ER_SymStateMapEntry vn symExpr)
-            _ -> throwError $ "TODO2 ==> visitExpr -> FunCallExpr: " ++ show er) actualParms actualParms1-}
-          
+          {-
+          actualParms = [ER_SymStateMapEntry (VarName "x") (SymNum 3.0)]
+          actualParms1 = [(VarName "n",SymInt 3)]
+           -}
+          --env1 <- env <$> get
+          zipWithM_ (\er (_,symExpr1) -> case er of
+            ER_SymStateMapEntry vn@(VarName _) symExpr2 ->
+              inferGlobalVarType
+                (pick_known_symType2
+                 $ map toSymType2 [symExpr1,symExpr2])
+                (ER_SymStateMapEntry vn symExpr1)
+            ER_Expr symExpr2 -> return ()
+            _ -> throwError $ "TODO2 ==> visitExpr -> FunCallExpr: " ++ show er)
+            actualParms actualParms1
+          --env2 <- env <$> get
+          --throwError $ printf "MEOW::\n\n1) %s\n\n2) %s\n\n3) %s\n\n4) %s"
+            --(show actualParms) (show actualParms1) (show env1) (show env2)
           -- global vars to be inserted into the method call Map.Map
           -- Global vars which have the same name of formal parms get excluded
           -- (globalVars,globalVarsMap) :: ([String],Map.Map SymStateKey SymExpr)

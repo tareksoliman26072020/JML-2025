@@ -1437,9 +1437,7 @@ sum1 = Map.fromList [
 sum1Call1 :: SymStateEnv
 sum1Call1 = Map.fromList [
   (MethodHandle,SMethodHandle SYT.String "sum1Call1"),
-  (Return,SymFun
-    (UserDefined "sum1Call1")
-    (SLoopFailure (SR {branchStart = 2, branchEnd = 6}) 20))
+  (Return,SLoopFailure (SR {branchStart = 2, branchEnd = 6}) 20)
  ]
 
 -----------------------------
@@ -1452,8 +1450,7 @@ sum1Call2 = Map.fromList [
   (GlobalVars,SGlobalVars ["x"]),
   (VarName "x",SymVar SYT.Int "x"),
   (Return,SymFun ToString (
-     SymFun (UserDefined "sum1")
-            (SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 6})],4)])))
+     (SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 6})],4)])))
   ]
 
 -----------------------------
