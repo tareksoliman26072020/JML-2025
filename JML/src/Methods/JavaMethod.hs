@@ -60,7 +60,9 @@ javaMethodInputs = [
   ("sum1", sum1), ("sum1Call1", sum1Call1),
                   ("sum1Call2", sum1Call2),
                   ("sum1Call3", sum1Call3),
-  ("sum2", sum2)
+  ("sum2", sum2),
+  ("sum4", sum4), ("sum4Call", sum4Call),
+  ("sum1_While", sum1_While), ("sum1_WhileCall", sum1_WhileCall)
   ]
 
 boo30 :: String
@@ -655,3 +657,29 @@ sum2 = "public int sum2() {\n\
        \  }\n\
        \  return res;\n\
        \}"
+
+sum4 = "public int sum4(int n) {\n\
+       \  int res = 0;\n\
+       \  for(;n>0;) {\n\
+       \    res += n;\n\
+       \     n--;\n\
+       \  }\n\
+       \  return res;\n\
+       \}"
+
+sum4Call = "public int sum4Call() {\n\
+           \  return sum4(3);\n\
+           \}"
+
+sum1_While = "public int sum1_While(int n) {\n\
+             \  int res = 0;\n\
+             \  while(n>0) {\n\
+             \    res += n;\n\
+             \    n--;\n\
+             \  }\n\
+             \  return res;\n\
+             \}"
+
+sum1_WhileCall = "public int sum1_WhileCall() {\n\
+                 \  return sum1_While(3);\n\
+                 \}"

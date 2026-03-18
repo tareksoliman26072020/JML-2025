@@ -61,7 +61,9 @@ allTargets = [
   ("sum1", sum1), ("sum1Call1", sum1Call1),
                   ("sum1Call2", sum1Call2),
                   ("sum1Call3", sum1Call3),
-  ("sum2", sum2)
+  ("sum2", sum2),
+  ("sum4", sum4), ("sum4Call", sum4Call),
+  ("sum1_While", sum1_While), ("sum1_WhileCall", sum1_WhileCall)
   ]
 
 -----------------------------
@@ -1487,4 +1489,58 @@ sum2 = Map.fromList [
   (ScopeRange (SR {branchStart = 3, branchEnd = 7}),SLoop (Just (Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0})) (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = Greater, expr2 = NumberLiteral 0.0})) [Node {id = 5, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = Plus, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}}), parent = 3},Node {id = 6, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "n"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = Minus, expr2 = NumberLiteral 1.0}}})), parent = 3}]),
   (LoopFailure,SLoopFailure (SR {branchStart = 3, branchEnd = 7}) 20),
   (Return,SymUnknown (SymInt 0) [([(For,SR {branchStart = 3, branchEnd = 7})],5)])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+sum4 :: SymStateEnv
+sum4 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "sum4"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["n"]),
+    (VarBindings,SVarBindings (Map.fromList [("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
+    (VarAssignments,SVarAssignments [("res",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),("res",(SymVar SYT.Int "n",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 7}})),("n",(SBin (SymVar SYT.Int "n") SYT.Sub (SymInt 1),Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 2, branchEnd = 7}}))]),
+    (VarName "n",SymUnknown (SymVar SYT.Int "n") [([(For,SR {branchStart = 2, branchEnd = 7})],5)]),
+    (VarName "res",SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 7})],4)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 7}),SLoop Nothing (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = Greater, expr2 = NumberLiteral 0.0})) [Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = Plus, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}}), parent = 2},Node {id = 5, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "n"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = Minus, expr2 = NumberLiteral 1.0}}}), parent = 2},Node {id = 6, nodeData = ForStep Nothing, parent = 2}]),
+    (Return,SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 7})],4)])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+sum4Call :: SymStateEnv
+sum4Call = Map.fromList [
+   (MethodHandle,SMethodHandle SYT.Int "sum4Call"),
+   (Return,SymInt 6)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+sum1_While :: SymStateEnv
+sum1_While = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "sum1_While"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["n"]),
+    (VarBindings,SVarBindings (Map.fromList [("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 6}})])),
+    (VarAssignments,SVarAssignments [("res",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 6}})),("res",(SymVar SYT.Int "n",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 5}})),("n",(SBin (SymVar SYT.Int "n") SYT.Sub (SymInt 1),Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 5}}))]),
+    (VarName "n",SymUnknown (SymVar SYT.Int "n") [([(For,SR {branchStart = 2, branchEnd = 5})],4)]),
+    (VarName "res",SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 5})],3)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 5}),SLoop Nothing (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = Greater, expr2 = NumberLiteral 0.0})) [Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = Plus, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}}), parent = 2},Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "n"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = Minus, expr2 = NumberLiteral 1.0}}}), parent = 2}]),
+    (Return,SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 5})],3)])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+sum1_WhileCall :: SymStateEnv
+sum1_WhileCall = Map.fromList [
+   (MethodHandle,SMethodHandle SYT.Int "sum1_WhileCall"),
+   (Return,SymInt 6)
   ]

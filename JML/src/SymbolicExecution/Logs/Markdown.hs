@@ -92,6 +92,8 @@ ppMarkdownLogTag = \case
                             -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "For Initialization") str
     MethodStatementForStep loc str
                             -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "For Step") str
+    MethodStatementWhileCondition loc str
+                            -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "While condition") str
     Expression_2_Handle
       str loc               -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "handling expression") str
     SymExpr_2_Handle

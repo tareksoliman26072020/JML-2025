@@ -12,31 +12,15 @@ import qualified Data.Map as Map (Map)
 import Text.Printf (printf)
 import Data.List (intercalate)
 
-{-
-type Typed_Method_R r =
-    ReaderT r
-    (ExceptT String (WriterT [Log.Log] (StateT SymState (Either String))))
--}
-
 type SymbolicExecutionMonad =
     ExceptT String (ReaderT (Config,[CFGT.CFG]) (WriterT [Log.Log] (State SymState)))
 ----------
 ----------
 ----------
     
---type Method_R = SymbolicExecutionMonad ExecutionResult
-
-----------
-----------
-----------
-
---newtype Method_SymExec = Method_SymExec Method_R
 newtype MethodProcessor = MethodProcessor {
   methodProcessorMonad :: SymbolicExecutionMonad ExecutionResult
 }
-
---getReader_Method_R :: Method_SymExec -> Method_R
---getReader_Method_R (Method_SymExec r) = r
 
 ----------
 

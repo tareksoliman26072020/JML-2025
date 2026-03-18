@@ -3375,6 +3375,47 @@ public int sum1(int n) {
 //DONE
 //JavaMethod
 /*
+SymState {
+  env = fromList [
+    (MethodHandle,SMethodHandle Int "sum4"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["n"]),
+    (VarBindings,SVarBindings (fromList [("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
+    (VarAssignments,SVarAssignments [("res",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),("res",(SymVar Int "n",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 7}})),("n",(SBin (SymVar Int "n") Sub (SymInt 1),Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 2, branchEnd = 7}}))]),
+    (VarName "n",SymUnknown (SymVar Int "n") [([(For,SR {branchStart = 2, branchEnd = 7})],5)]),
+    (VarName "res",SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 7})],4)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 7}),SLoop Nothing (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = >, expr2 = NumberLiteral 0.0})) [Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}}), parent = 2},Node {id = 5, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "n"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = -, expr2 = NumberLiteral 1.0}}}), parent = 2},Node {id = 6, nodeData = ForStep Nothing, parent = 2}]),
+    (Return,SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 7})],4)])], logHeader = Header {logScopeDepth = 1, logCounter = [4,7]}
+}
+*/
+public int sum4(int n) {
+  int res = 0;
+  for(;n>0;) {
+    res += n;
+     n--;
+  }
+  return res;
+}
+
+/////////////////////
+
+//DONE
+//JavaMethod
+/*
+[
+ (MethodHandle,SMethodHandle Int "sum4Call"),
+ (Return,SymInt 6)
+]
+*/
+public int sum4Call() {
+  return sum4(3);
+}
+
+/////////////////////
+
+//DONE
+//JavaMethod
+/*
 [
  (MethodHandle,SMethodHandle String "sum1Call1"),
  (Return,SymFun
@@ -3388,17 +3429,16 @@ public String sum1Call1() {
 
 /////////////////////
 
-//TODO
+//DONE
 //JavaMethod
 /*
 [
- (MethodHandle,SMethodHandle String "sum1Call2"),
- (GlobalVars,SGlobalVars ["x"]),
- (VarName "x",SymVar UnknownGlobalVarSymType "x"),
- (Return,SymFun ToString (
-     SymFun (UserDefined "sum1")
-            (SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 6})],4)])))
-]
+  (MethodHandle,SMethodHandle String "sum1Call2"),
+  (GlobalVars,SGlobalVars ["x"]),
+  (VarName "x",SymVar SYT.Int "x"),
+  (Return,SymFun ToString (
+     (SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 6})],4)])))
+  ]
 */
 public String sum1Call2() {
   return toString(sum1(x));
@@ -3406,16 +3446,16 @@ public String sum1Call2() {
 
 /////////////////////
 
-//TODO
+//DONE
 //JavaMethod
 /*
 [
- (MethodHandle,SMethodHandle String "sum1Call3"),
- (GlobalVars,SGlobalVars ["x"]),
- (VarAssignments,SVarAssignments [("x",(SymInt 3,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
- (VarName "x",SymInt 3),
- (Return,SymString "6")
-]
+  (MethodHandle,SMethodHandle String "sum1Call3"),
+  (GlobalVars,SGlobalVars ["x"]),
+  (VarAssignments,SVarAssignments [("x",(SymInt 3,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
+  (VarName "x",SymInt 3),
+  (Return,SymString "6")
+  ]
 */
 public String sum1Call3() {
   x = 3;
@@ -3512,6 +3552,61 @@ public int sum3(int n) {
       break;
     }
     res += n;
+  }
+  return res;
+}
+
+/////////////////////
+
+//DONE
+//JavaMethod
+/*
+fromList [
+  (MethodHandle,SMethodHandle Int "sum1_While"),
+  (GlobalVars,SGlobalVars []),
+  (FormalParms,SFormalParms ["n"]),
+  (VarBindings,SVarBindings (fromList [("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 6}})])),
+  (VarAssignments,SVarAssignments [("res",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 6}})),("res",(SymVar Int "n",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 5}})),("n",(SBin (SymVar Int "n") Sub (SymInt 1),Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 5}}))]),
+  (VarName "n",SymUnknown (SymVar Int "n") [([(For,SR {branchStart = 2, branchEnd = 5})],4)]),
+  (VarName "res",SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 5})],3)]),
+  (ScopeRange (SR {branchStart = 2, branchEnd = 5}),SLoop Nothing (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = >, expr2 = NumberLiteral 0.0})) [Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}}), parent = 2},Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "n"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = -, expr2 = NumberLiteral 1.0}}}), parent = 2}]),
+  (Return,SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 5})],3)])
+]
+*/
+public int sum1_While(int n) {
+  int res = 0;
+  while(n>0) {
+    res += n;
+    n--;
+  }
+  return res;
+}
+
+/////////////////////
+
+//DONE
+//JavaMethod
+/*
+[
+ (MethodHandle,SMethodHandle Int "sum1_WhileCall"),
+ (Return,SymInt 6)
+]
+*/
+public int sum1_WhileCall() {
+  return sum1_While(3);
+}
+
+/////////////////////
+
+//TODO
+public int sum1_While2(int n) {
+  int res = 0;
+  while(true) {
+    res += n;
+    n--;
+    if(n<=0) {
+      break;
+    }
   }
   return res;
 }

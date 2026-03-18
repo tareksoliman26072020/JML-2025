@@ -33,6 +33,8 @@ ppConsoleLogTag = \case
                             -> printf "(%s): %s: %s" (cyan loc) (yellow "For Initialization") str
     MethodStatementForStep loc str
                             -> printf "(%s): %s: %s" (cyan loc) (yellow "For Step") str
+    MethodStatementWhileCondition loc str
+                            -> printf "(%s): %s: %s" (cyan loc) (yellow "While condition") str
     Expression_2_Handle
       str loc               -> printf "(%s): %s: %s" (cyan loc) (yellow "handling expression") str
     SymExpr_2_Handle

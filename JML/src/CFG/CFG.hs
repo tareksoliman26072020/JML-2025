@@ -172,7 +172,7 @@ visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.WhileStmt{} =
         G.parent   = sourceNodeID
       }
       ((_,trueCurrentID,trueNextID),true_cfg_creator0) =
-        visitStatement0 (sourceNodeID,G.id condNode,G.id condNode+1) (AST.whileBody stmt)
+        visitStatement0 (G.id condNode,G.id condNode,G.id condNode+1) (AST.whileBody stmt)
       true_cfg_creator = case true_cfg_creator0 of
         Nodes cfg -> G.CFG {
           G.nodes = G.nodes cfg,
@@ -188,7 +188,7 @@ visitStatement0 (sourceNodeID,currentNodeID,nextNodeID) stmt@AST.WhileStmt{} =
        (sourceNodeID,G.id meetNode,G.id meetNode+1)
        (Nodes $ G.CFG {
           G.nodes = condNode : G.nodes true_cfg_creator ++ [meetNode],
-          G.edges = [(currentNodeID,[nextNodeID])]
+          G.edges = refineEdges $ [(currentNodeID,[nextNodeID])]
                     ++ G.edges true_cfg_creator
                     ++ [(G.id condNode,[G.id meetNode])]
        })

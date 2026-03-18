@@ -58,9 +58,19 @@ isForCondNode = \case
   Node _ (BooleanExpression For _) _ -> True
   _ -> False
 
+isWhileCondNode :: Node -> Bool
+isWhileCondNode = \case
+  Node _ (BooleanExpression While _) _ -> True
+  _ -> False
+
 isForEndNode :: Node -> Bool
 isForEndNode = \case
   Node _ (Meet For) _ -> True
+  _ -> False
+
+isWhileEndNode :: Node -> Bool
+isWhileEndNode = \case
+  Node _ (Meet While) _ -> True
   _ -> False
 
 getEndIfNode :: CFG -> Node -> Node
@@ -90,6 +100,11 @@ getEndForNode cfg node = case findEdge_via_id cfg (getNodeId node) of
            in if isForEndNode n then n
               else error $ "TODO: getEndForNode ==> " ++ show [next1,next2]
 
+getEndWhileNode :: CFG -> Node -> Node
+getEndWhileNode cfg node = case findEdge_via_id cfg (getNodeId node) of
+  Nothing -> error "getEndWhileNode: won't happen"
+  Just (_,[_,next2]) -> findNode_via_id cfg next2
+
 -----------------------------
 
 findNode_via_id :: CFG -> NodeID -> Node
@@ -118,11 +133,14 @@ getPath startId cfg =
         Nothing -> Nothing
         Just (_,[]) -> error "getPath: won't happen 2"
         Just (_,[next])
-          | not (isIfStartNode currentNode || isForInitNode currentNode) -> Just next
+          | not (isIfStartNode currentNode ||
+                 isForInitNode currentNode ||
+                 isWhileCondNode currentNode) -> Just next
         Just (_,(_ : _)) ->
           let endNode
-               | isIfStartNode currentNode = getEndIfNode cfg currentNode
-               | isForInitNode currentNode = getEndForNode cfg currentNode
+               | isIfStartNode   currentNode = getEndIfNode    cfg currentNode
+               | isForInitNode   currentNode = getEndForNode   cfg currentNode
+               | isWhileCondNode currentNode = getEndWhileNode cfg currentNode
                | otherwise = error $ "getPath: what is this? " ++ show currentNode
           in case findEdge_via_id cfg (getNodeId endNode) of
                Just (_,[next2]) -> Just next2
@@ -380,6 +398,7 @@ getBranchEnd bStart cfg = helper (nodes cfg) where
         | CFG.Types.id node == bStart -> case nodeData node of
             BooleanExpression If _ -> getNodeId $ getEndIfNode cfg node
             ForInitialization _ -> getNodeId $ getEndForNode cfg node
+            BooleanExpression While _ -> getNodeId $ getEndWhileNode cfg node
             _ -> error $ "TODO2 ==> getBranchEnd ==> " ++ show node
         | otherwise -> helper rest
 

@@ -313,11 +313,6 @@ instance CFGVisitor MethodProcessor where
                         Map.member (VarName name) mainVarNames ||
                         (isGlobalVariable2 name sEnv)
                       
-                      
-                      
-                      {-\(name,_) -> maybe
-                          (isGlobalVariable2 name sEnv)
-                          (const True) $ lookup name mainVarAssignments-}
                     newMainVarAssignments = nub $
                         condVarAssignments ifSymStateEnv ++
                         maybe [] condVarAssignments mElseSymStateEnv
@@ -473,6 +468,47 @@ instance CFGVisitor MethodProcessor where
       ----------------------------------------
       ----------------------------------------
       ----------------------------------------
+      CFGT.BooleanExpression CFGT.While mExpr -> do
+        let loc = "SymbolicExecution.Method.visitNode.Node.BooleanExpression While"
+        tellNextLog $ Log.MethodStatementWhileCondition (printf "%s ==> Node num: %d" loc (CFGT.id n)) (show mExpr)
+        -- get fun name
+        funName <- do
+          visited <- getFunHandle
+          return $ case visited of
+            ER_FunHandle _ funName -> funName
+            _ -> error $ printf "won't happen1: %s ==> %s" loc (show visited)
+        (_,cfgs) <- ask
+        varNames <- (getVarNames . env) <$> get
+        let cfg = case CFG.findCFGByName funName cfgs of
+              -- CFG not found
+              Nothing   -> error $ printf "%s %s does not exist" loc funName
+                    -- CFG found
+              Just cfg0 -> cfg0
+        let m_Acc = Nothing
+        -- process SymState of while body
+        -- branches: start id for the while body branch.
+        --           return is a list of one int.
+        let whileCondNodeId = CFGT.id n
+        let whileCondNode = n
+        let whileBodyBranch = case CFG.findEdge_via_id cfg whileCondNodeId of
+                  Just (_,(x : _)) -> x
+                  Nothing     -> error $ printf "%s ==> won't happen" loc
+
+        let whileBody_path :: [CFGT.Node]
+            whileBody_path = flip takeWhile (CFG.getPath whileBodyBranch cfg) $ \case
+              CFGT.Entry _ _ _ -> error $ printf "%s won't happen" loc
+              CFGT.End _ _ _ -> error $ printf "%s won't happen" loc
+              CFGT.Node theId _ _ -> theId /= whileCondNodeId
+        -- implement a helper that takes as input `(accLogs,accState)`
+        -- call it `visitForLoop`
+        visitLoop cfg m_Acc
+          mExpr
+          whileBody_path
+          (CFGT.SR (CFGT.id n)
+              (CFG.getNodeId $ CFG.getEndWhileNode cfg whileCondNode))
+      ----------------------------------------
+      ----------------------------------------
+      ----------------------------------------
       _ -> throwError
         $ "TODO -> visitNode -> Node -> nodeData -> otherwise: " ++ show n
       ----------------------------------------
@@ -518,56 +554,15 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
     return $ case visited of
       ER_FunHandle t n -> (t,n)
       _ -> error $ printf "won't happen1: %s ==> %s" loc (show visited)
-  
-  {-let symExpr = case getSymExpr er of
-        Just symExpr -> case symExpr of
-          SLoopFailure _ _ -> SymFun (UserDefined funName) symExpr
-          SymUnknown _ _   -> SymFun (UserDefined funName) symExpr
-          _                -> cast t symExpr
-        Nothing      -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show er-}
-        {-
-        ER_PredefinedFunCall symExpr@(SLoopFailure _ _) ->
-          SymFun (UserDefined funName) symExpr
-        _ -> cast t $ case getSymExpr er of
-          Just symExpr -> symExpr
-          Nothing      -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show er-}
-
-  {-env <$> get >>= \theEnv -> case Map.lookup MethodHandle theEnv of
-    Just (SMethodHandle String "sum1Call2") -> throwError $ printf
-      "WOF::\n\n1) %s\n\n2) %s\n\n3) %s\n\n4) %s"
-        (show er)
-        (show $ getSymExpr er)
-        (show $ fmap (toSymFun funName) $ getSymExpr er)
-        (show $ fmap (cast t . toSymFun funName) $ getSymExpr er)
-    _ -> return ER_Void-}
-  
-  {-let symExpr = case er of
-        ER_PredefinedFunCall symExpr@(SLoopFailure _ _) ->
-          SymFun (UserDefined funName) symExpr
-        ER_PredefinedFunCall symExpr@(SymUnknown _ _) ->
-          SymFun (UserDefined funName) symExpr
-        _ -> cast t $ case getSymExpr er of
-          Just symExpr -> symExpr
-          Nothing      -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show er-}
 
   let symExpr = case getSymExpr er of
         Just expr@(SLoopFailure _ _) -> expr
-        Just symExpr -> cast t symExpr-- $ toSymFun funName symExpr
+        Just symExpr -> cast t symExpr
         Nothing      -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show er
-
-  {-case expr of
-    AST.FunCallExpr{} -> throwError
-      $ printf "MEOW::\n\n1) %s\n\n2) %s\n\n3) %s"
-          (show expr) (show er) (show symExpr)
-    _ -> return ER_Void-}
 
   incrementLogEnumeration >>
     incrementLogDepth *> inferGlobalVarType t er <* decrementLogDepth
-  
-  {-env <$> get >>= \theEnv -> case Map.lookup MethodHandle theEnv of
-    Just (SMethodHandle String "sum1Call3") -> throwError $ "MEOW::\n\n" ++ show theEnv
-    _ -> return ER_Void-}
-  
+
   tellNextLog $ Log.ModifyState "visitStmt -> ReturnStmt -> method with args" ("return",show symExpr)
   modify $ \symState ->
     SymState {
@@ -576,18 +571,6 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
     }
 
   tellNextLog (Log.Return "visitStmt -> ReturnStmt" (show er)) $> er
-  where
-  -- `toSymFun` wraps an occurrence of `SLoopFailure` or `SymUnknown`
-  --     within `visitStmt ==> AST.ReturnStmt` with SymFun
-  -- to denote the inability of returning a concrete value
-  toSymFun :: String -> SymExpr -> SymExpr
-  toSymFun funName expr = case expr of
-    SLoopFailure _ _    -> SymFun (UserDefined funName) expr
-    SymUnknown _ _      -> SymFun (UserDefined funName) expr
-    SymFun f symExpr    -> SymFun f $ toSymFun funName symExpr
-    SBin expr1 op expr2 -> SBin (toSymFun funName expr1) op (toSymFun funName expr2)
-    SNot symExpr        -> SNot $ toSymFun funName symExpr
-    _                   -> expr
 
 -- AssignStmt {varModifier :: [Modifier], assign :: Expression}
 visitStmt stmt@AST.AssignStmt{} = do
@@ -703,9 +686,6 @@ visitExpr (expr@AST.FunCallExpr{}) = do
             ER_Expr symExpr2 -> return ()
             _ -> throwError $ "TODO2 ==> visitExpr -> FunCallExpr: " ++ show er)
             actualParms actualParms1
-          --env2 <- env <$> get
-          --throwError $ printf "MEOW::\n\n1) %s\n\n2) %s\n\n3) %s\n\n4) %s"
-            --(show actualParms) (show actualParms1) (show env1) (show env2)
           -- global vars to be inserted into the method call Map.Map
           -- Global vars which have the same name of formal parms get excluded
           -- (globalVars,globalVarsMap) :: ([String],Map.Map SymStateKey SymExpr)
@@ -862,10 +842,6 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                   $ funCallCalculator (
                       toDefinedFun $ AST.getFunCallName $ AST.FunCallStmt expr,
                       funArgsExprs)
-          {-
-          throwError $ printf "MEOW::\n\n1) %s\n\n2) %s\n\n3) %s"
-            (show ers) (show funArgsExprs) (show toReturn)
-           -}
           tellNextLog (Log.Return "visitExpr ==> FunCallExpr" (show toReturn)) $> toReturn
       | otherwise -> throwError $ "visitExpr => FunCallExpr: Method " ++ funCallName ++ " does not exist"
 --BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}

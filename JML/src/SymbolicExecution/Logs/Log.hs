@@ -69,6 +69,7 @@ data LogTag =
          | MethodStatementIfCondition String String
          | MethodStatementForInitialization String String
          | MethodStatementForStep String String
+         | MethodStatementWhileCondition String String
          | ProcessPredefinedFunCall String String String
          | Location String
          | NextLogNum (Int,String) (Int,String)
@@ -89,6 +90,8 @@ ppLogTag = \case
     MethodStatement loc str -> printf "(%s): %s: %s" loc "Method Statement" str
     MethodStatementIfCondition loc str
                             -> printf "(%s): %s: %s" loc "If condition" str
+    MethodStatementWhileCondition loc str
+                            -> printf "(%s): %s: %s" loc "While condition" str
     MethodStatementForInitialization loc str
                             -> printf "(%s): %s: %s" loc "For Initialization" str
     MethodStatementForStep loc str
