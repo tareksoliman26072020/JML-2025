@@ -3497,6 +3497,148 @@ public int sum2() {
 /////////////////////
 
 //DONE
+//JavaMethod
+/*
+[
+ (MethodHandle,SMethodHandle Int "getMax"),
+ (GlobalVars,SGlobalVars ["length"]),
+ (FormalParms,SFormalParms ["arr"]),
+ (VarAssignments,SVarAssignments []),
+ (VarName "arr",SymVar (Array Int) "arr"),
+ (ScopeRange (SR {branchStart = 1, branchEnd = 12}),
+  SIte (SBin (SObjAcc ["arr","length"]) Eq (SymInt 0))
+       (fromList [
+           (MethodHandle,SMethodHandle Int "getMax"),
+           (FormalParms,SFormalParms ["arr"]),
+           (VarName "arr",SymVar (Array Int) "arr"),
+           (Return,SException Int "Exception" "empty array")]) 
+       (Just (fromList [
+           (MethodHandle,SMethodHandle Int "getMax"),
+           (GlobalVars,SGlobalVars ["length"]),
+           (FormalParms,SFormalParms ["arr"]),
+           (VarBindings,SVarBindings (fromList [
+               ("max",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 12}})])),
+           (VarAssignments,SVarAssignments [
+               ("max",(SArrayIndexAccess (Array Int) "arr" (SymInt 0),Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 12}})),
+               ("max",(SArrayIndexAccess (Array Int) "arr" (SymInt 1),Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 6, branchEnd = 2}}))]),
+           (VarName "arr",SymVar (Array Int) "arr"),
+           (VarName "max",SymUnknown (SArrayIndexAccess (Array Int) "arr" (SymInt 0)) [
+               ([(If,SR {branchStart = 1, branchEnd = 12}),
+                 (For,SR {branchStart = 4, branchEnd = 10}),
+                 (If,SR {branchStart = 6, branchEnd = 8})],7)]),
+           (ScopeRange (SR {branchStart = 4, branchEnd = 10}),
+            SLoop (Just (Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 1.0}}), parent = 1}))
+                  (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}})) 
+                  [Node {id = 6, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, binOp = >, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "max"}})), parent = 4},Node {id = 9, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}})), parent = 4}]),
+           (Return,SymUnknown (SArrayIndexAccess (Array Int) "arr" (SymInt 0)) [
+               ([(If,SR {branchStart = 1, branchEnd = 12}),
+                 (For,SR {branchStart = 4, branchEnd = 10}),
+                 (If,SR {branchStart = 6, branchEnd = 8})],7)])]))
+ )
+]
+*/
+public static int getMax(int[] arr) throws Exception {
+  if(arr.length == 0) {
+    throw new Exception("empty array");
+  }
+  else {
+    int max = arr[0];
+    for(int i=1; i<arr.length; i++) {
+      if(arr[i] > max) {
+        max = arr[i];
+      }
+    }
+    return max;
+  }
+}
+
+/////////////////////
+
+//DONE
+//JavaMethod
+/*
+fromList [(MethodHandle,SMethodHandle Int "getMaxCall"),(Return,SymInt 9)]
+*/
+public static int getMaxCall() {
+  return getMax(new int[] {5,4,6,4,7,8,9,0,1});
+}
+
+/////////////////////
+
+//TODO
+/*
+fromList [
+    (MethodHandle,SMethodHandle (Array Int) "quickSortCall"),
+    (FormalParms,SFormalParms ["arr"]),
+    (VarName "arr",SymArray (Just Int) (Just 9) [SymInt 0,SymInt 5,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 4,SymInt 1]),
+    (Return,SymArray (Just Int) (Just 9) [SymInt 0,SymInt 5,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 4,SymInt 1])]
+*/
+public static int[] quickSortCall(int[] arr) {
+  return quickSort(new int[] {5,4,6,4,7,8,9,0,1});
+}
+
+//TODO
+public static int[] quickSort(int[] arr) {
+  sort0(arr,0,arr.length-1);
+  return arr;
+}
+
+//TODO
+private static void sort0(int[] arr, int low, int high) {
+  if (low < high) {
+    int pivotIndex = partition(arr, low, high);
+    sort0(arr, low, pivotIndex - 1);
+    sort0(arr, pivotIndex + 1, high);
+  }
+}
+
+//TODO
+private static int partition(int[] arr, int low, int high) {
+  int pivot = arr[high];
+  int i = low - 1;
+  for (int j = low; j < high; j++) {
+    if (arr[j] < pivot) {
+      i++;
+      swap(arr, i, j);
+    }
+  }
+  swap(arr, i + 1, high);
+  return i + 1;
+}
+
+//TODO
+private static void swap(int[] arr, int i, int j) {
+  int temp = arr[i];
+  arr[i] = arr[j];
+  arr[j] = temp;
+}
+
+/////////////////////
+
+//TODO
+public static void bubbleSortCall() {
+  int[] arr = new int[] {5,4,6,4,7,8,9,0,1};
+  bubbleSortCall(arr);
+  return arr;
+}
+
+//TODO
+public static void bubbleSort(int[] arr) {
+  int n = arr.length;
+  for (int i = 0; i < n - 1; i++) {
+    for (int j = 0; j < n - i - 1; j++) {
+      if (arr[j] > arr[j + 1]) {
+        int temp = arr[j];
+        arr[j] = arr[j + 1];
+        arr[j + 1] = temp;
+      }
+    }
+  }
+}
+
+/////////////////////
+
+//TODO
 /*
 SymState {
   env = fromList [

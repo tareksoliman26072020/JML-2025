@@ -931,6 +931,18 @@ visitExpr expr@AST.AssignExpr{} = do
               Just e2_ -> e2_
           ER_SymStateMapEntry _ e2_ -> e2_
           ER_PredefinedFunCall e2_ -> cast (toSymType2 one_val) e2_
+          {-
+          ER_ArrayCallExpr {
+            arrayIndexCall = SArrayIndexAccess (Array Int) "arr" (SymInt 0),
+            arrayIndexCallValue = SArrayIndexAccess (Array Int) "arr" (SymInt 0)
+          }
+           -}
+          ER_ArrayCallExpr _ arrayCallVal ->
+            let t = pick_known_symType (toSymType2 arrayCallVal, toSymType2 one_val)
+            in cast t arrayCallVal{-
+                                             error
+            $ printf "MEOW::\n\n1) %s\n\n2) %s"
+                (show arrayCallVal) (show one_val)-}
           _ -> error $ "TODO2: SymbolicExecution.Method.visitExpr.AssignExpr.e2 ==> " ++ show two
   tellNextLog $ Log.Affected "visitExpr -> AssignExpr" [show one, show two]
   -- newVal is a transformation of two_val. it's the new value

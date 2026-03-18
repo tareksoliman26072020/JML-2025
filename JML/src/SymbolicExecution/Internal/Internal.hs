@@ -652,6 +652,7 @@ cast2 vn newType tu@(symStateKey,symExpr) = case symStateKey of
          SymString _ -> symExpr
          SymArray mt ms li -> SymArray mt ms $ map (cast2 vn newType . (,) symStateKey) li
          SymNull _ -> symExpr
+         SArrayIndexAccess _ _ _ -> symExpr
          _ -> error $ printf "SymbolicExecution.Internal.cast2 ==> TODO ==> (%s ,, %s)" vn (show tu)
 
 -- A non-atomic SymExpr contains a plural number of SymExprs.
@@ -871,7 +872,7 @@ getVarNames2 (symStateKey,symExpr) = (case symStateKey of
     SBin symExpr1 _ symExpr2 ->
       getVarNames2 (symStateKey,symExpr1) ++ getVarNames2 (symStateKey,symExpr2)
     SNot symExpr -> getVarNames2 (symStateKey,symExpr)
-    SArrayIndexAccess s1 s2 s3 -> error $ "TODO1:: getVarNames2 ==> " ++ show (SArrayIndexAccess s1 s2 s3)
+    SArrayIndexAccess s1 s2 s3 -> [s2]
     SymArray onw two three -> []
     SymUnknown _ _ -> []
     SymNull _ -> []

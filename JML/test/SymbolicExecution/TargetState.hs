@@ -63,7 +63,8 @@ allTargets = [
                   ("sum1Call3", sum1Call3),
   ("sum2", sum2),
   ("sum4", sum4), ("sum4Call", sum4Call),
-  ("sum1_While", sum1_While), ("sum1_WhileCall", sum1_WhileCall)
+  ("sum1_While", sum1_While), ("sum1_WhileCall", sum1_WhileCall),
+  ("getMax", getMax), ("getMaxCall", getMaxCall)
   ]
 
 -----------------------------
@@ -1544,3 +1545,60 @@ sum1_WhileCall = Map.fromList [
    (MethodHandle,SMethodHandle SYT.Int "sum1_WhileCall"),
    (Return,SymInt 6)
   ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+getMax :: SymStateEnv
+getMax = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "getMax"),
+    (GlobalVars,SGlobalVars ["length"]),
+    (FormalParms,SFormalParms ["arr"]),
+    (VarAssignments,SVarAssignments []),
+    (VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),
+    (ScopeRange (SR {branchStart = 1, branchEnd = 12}),
+     SIte (SBin (SObjAcc ["arr","length"]) SYT.Eq (SymInt 0))
+          (Map.fromList [
+              (MethodHandle,SMethodHandle SYT.Int "getMax"),
+              (FormalParms,SFormalParms ["arr"]),
+              (VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),
+              (Return,SException SYT.Int "Exception" "empty array")]) 
+          (Just (Map.fromList [
+              (MethodHandle,SMethodHandle SYT.Int "getMax"),
+              (GlobalVars,SGlobalVars ["length"]),
+              (FormalParms,SFormalParms ["arr"]),
+              (VarBindings,SVarBindings (Map.fromList [
+                  ("max",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 12}})])),
+              (VarAssignments,SVarAssignments [
+                  ("max",(SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymInt 0),Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 12}})),
+                  ("max",(SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymInt 1),Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 6, branchEnd = 2}}))]),
+              (VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),
+              (VarName "max",SymUnknown (SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymInt 0)) [
+                  ([(If,SR {branchStart = 1, branchEnd = 12}),
+                    (For,SR {branchStart = 4, branchEnd = 10}),
+                    (If,SR {branchStart = 6, branchEnd = 8})],7)]),
+              (ScopeRange (SR {branchStart = 4, branchEnd = 10}),
+               SLoop (Just (Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 1.0}}), parent = 1}))
+                     (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Less, expr2 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}})) 
+                     [Node {id = 6, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, binOp = Greater, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "max"}})), parent = 4},Node {id = 9, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Plus, expr2 = NumberLiteral 1.0}}})), parent = 4}]),
+              (Return,SymUnknown (SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymInt 0)) [
+                  ([(If,SR {branchStart = 1, branchEnd = 12}),
+                    (For,SR {branchStart = 4, branchEnd = 10}),
+                    (If,SR {branchStart = 6, branchEnd = 8})],7)])]))
+    )
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+getMaxCall :: SymStateEnv
+getMaxCall = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "getMaxCall"),
+    (Return,SymInt 9)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------

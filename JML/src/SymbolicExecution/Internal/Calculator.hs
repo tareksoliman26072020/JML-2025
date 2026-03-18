@@ -688,6 +688,23 @@ booleanCalculator2 op = \case
           | otherwise = pick_known_symType (toSymType2 a,toSymType2 expr2)
         in SBin (cast newType a) op (cast newType b)
   ----------
+  (a@(SArrayIndexAccess (Array t1) arrName1 expr1),
+   b@(SArrayIndexAccess (Array t2) arrName2 expr2)) ->
+    let t3 = pick_known_symType (t1,t2)
+    in SBin (SArrayIndexAccess (Array t3) arrName1 expr1)
+            op
+            (SArrayIndexAccess (Array t3) arrName2 expr2)
+  (a@(SArrayIndexAccess (Array t1) arrName1 expr1),b) ->
+    let t3 = pick_known_symType (t1,toSymType2 b)
+    in SBin (SArrayIndexAccess (Array t3) arrName1 expr1)
+            op
+            (cast t3 b)
+  (a,b@(SArrayIndexAccess (Array t2) arrName2 expr2)) ->
+    let t3 = pick_known_symType (toSymType2 a,t2)
+    in SBin (cast t3 a)
+            op
+            (SArrayIndexAccess (Array t3) arrName2 expr2)
+  ----------
   (p1,p2) -> error $ printf "booleanCalculator2: (%s ,, %s ,, %s)" (show p1) (show op) (show p1)
   ----------
 

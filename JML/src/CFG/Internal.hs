@@ -393,7 +393,7 @@ getBranchEnd bStart cfg = helper (nodes cfg) where
                  Nothing -> error "getBranchEnd ==> won't happen2"
                  Just endId -> endId
         | otherwise -> helper rest
-      End{} -> error "getBranchEnd ==> won't happen3"
+      n@End{} -> getNodeId n--error "getBranchEnd ==> won't happen3"
       Node{}
         | CFG.Types.id node == bStart -> case nodeData node of
             BooleanExpression If _ -> getNodeId $ getEndIfNode cfg node

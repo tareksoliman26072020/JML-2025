@@ -62,7 +62,8 @@ javaMethodInputs = [
                   ("sum1Call3", sum1Call3),
   ("sum2", sum2),
   ("sum4", sum4), ("sum4Call", sum4Call),
-  ("sum1_While", sum1_While), ("sum1_WhileCall", sum1_WhileCall)
+  ("sum1_While", sum1_While), ("sum1_WhileCall", sum1_WhileCall),
+  ("getMax", getMax), ("getMaxCall", getMaxCall)
   ]
 
 boo30 :: String
@@ -683,3 +684,22 @@ sum1_While = "public int sum1_While(int n) {\n\
 sum1_WhileCall = "public int sum1_WhileCall() {\n\
                  \  return sum1_While(3);\n\
                  \}"
+
+getMax = "public static int getMax(int[] arr) throws Exception {\n\
+         \  if(arr.length == 0) {\n\
+         \    throw new Exception(\"empty array\");\n\
+         \  }\n\
+         \  else {\n\
+         \    int max = arr[0];\n\
+         \    for(int i=1; i<arr.length; i++) {\n\
+         \      if(arr[i] > max) {\n\
+         \        max = arr[i];\n\
+         \      }\n\
+         \    }\n\
+         \    return max;\n\
+         \  }\n\
+         \}"
+
+getMaxCall = "public static int getMaxCall() {\n\
+             \  return getMax(new int[] {5,4,6,4,7,8,9,0,1});\n\
+             \}"
