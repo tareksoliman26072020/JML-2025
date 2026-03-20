@@ -2351,7 +2351,8 @@ public void manyArrs7Call1() {
  (MethodHandle,SMethodHandle Void "manyArrs7Call2"),
  (VarBindings,SVarBindings (fromList [("brand",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
  (VarAssignments,SVarAssignments [("brand",(SymArray (Just String) (Just 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
- (VarName "brand",SymArray (Just String) (Just 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"]),
+ (VarName "brand",SymArray (Just String) (Just 5) [
+     SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",SymString "4. Volkswagen",SymString "5. Skoda"]),
  (Actions,SActions [SymString "[1. Toyota, 2. Mercedes, 3. BMW, 4. Volkswagen, 5. Skoda]\n"])
 ]
 */
@@ -3573,7 +3574,7 @@ fromList [
     (VarName "arr",SymArray (Just Int) (Just 9) [SymInt 0,SymInt 5,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 4,SymInt 1]),
     (Return,SymArray (Just Int) (Just 9) [SymInt 0,SymInt 5,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 4,SymInt 1])]
 */
-public static int[] quickSortCall(int[] arr) {
+public static int[] quickSortCall() {
   return quickSort(new int[] {5,4,6,4,7,8,9,0,1});
 }
 
@@ -3607,10 +3608,83 @@ private static int partition(int[] arr, int low, int high) {
 }
 
 //TODO
+// x should be 1
+// arr should be [0, 1, 6, 4, 7, 8, 9, 5, 4]
+/*
+[
+ (MethodHandle,SMethodHandle Void "partitionCall"),
+ (VarBindings,SVarBindings (fromList [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+ (VarAssignments,SVarAssignments [("arr",(SymArray (Just Int) (Just 9) [SymInt 5,SymInt 4,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 1],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),("x",(SymInt 9,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+ (VarName "arr",SymArray (Just Int) (Just 9) [SymInt 5,SymInt 4,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 1,SymInt 0]),
+ (VarName "x",SymInt 9),
+ (Actions,SActions [SymString "[5, 4, 6, 4, 7, 8, 9, 1, 0]\n",SymString "9\n"])
+]                              [5, 4, 6, 4, 7, 8, 9, 0, 1]
+
+*/
+private static void partitionCall() {
+  int[] arr = new int[] {5,4,6,4,7,8,9,0,1};
+  int x = partition(arr,7,arr.length-1);
+  println(arr);
+  println(x);
+}
+
+
+
+
+
+//TODO
+private static int partition2(int[] arr, int low, int high) {
+  if (arr[low] < arr[high]) {
+    swap(arr, low-1, low);
+  }
+  return 0;
+}
+
+//TODO
+// X should be 
+// [1, 4, 6, 4, 7, 8, 9, 0, 5] ==> [1, 4, 6, 4, 7, 8, 9, 0, 5] ==> [1, 4, 5, 4, 7, 8, 9, 0, 6]
+/*
+[
+ (MethodHandle,SMethodHandle Void "partition2Call"),
+ (VarBindings,SVarBindings (fromList [
+     ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}}),("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
+ (VarAssignments,SVarAssignments [
+     ("arr",(SymArray (Just Int) (Just 9) [SymInt 1,SymInt 4,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 5],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),("x",(SymInt 0,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
+ (VarName "arr",SymArray (Just Int) (Just 9) [SymInt 4,SymInt 1,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 5]),
+ (VarName "x",SymInt 0),
+ (Actions,SActions [SymString "[4, 1, 6, 4, 7, 8, 9, 0, 5]\n"])
+]
+*/
+private static void partition2Call() {
+  int[] arr = new int[] {1,4,6,4,7,8,9,0,5};
+  int x = partition2(arr,1,arr.length-1);
+  println(arr);
+}
+
+//DONE
+/*
+[(MethodHandle,SMethodHandle Void "swap"),(FormalParms,SFormalParms ["arr","i","j"]),(VarBindings,SVarBindings (fromList [("temp",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),(VarAssignments,SVarAssignments [("temp",(SArrayIndexAccess (Array Int) "arr" (SymVar Int "i"),Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),("arr",(SymVar (Array Int) "arr",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})),("arr",(SymVar (Array Int) "arr",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),(VarName "arr",SymVar (Array Int) "arr"),(VarName "i",SymVar Int "i"),(VarName "j",SymVar Int "j"),(VarName "temp",SArrayIndexAccess (Array Int) "arr" (SymVar Int "i"))]
+*/
 private static void swap(int[] arr, int i, int j) {
   int temp = arr[i];
   arr[i] = arr[j];
   arr[j] = temp;
+}
+
+//DONE
+/*
+[
+ (MethodHandle,SMethodHandle Void "swapCall"),
+ (VarBindings,SVarBindings (fromList [
+     ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+ (VarAssignments,SVarAssignments [
+     ("arr",(SymArray (Just Int) (Just 9) [SymInt 5,SymInt 4,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 1],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+ (VarName "arr",SymArray (Just Int) (Just 9) [SymInt 4,SymInt 5,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 1])
+]
+*/
+private static void swapCall() {
+  int[] arr = new int[] {5,4,6,4,7,8,9,0,1};
+  swap(arr,0,1);
 }
 
 /////////////////////

@@ -178,6 +178,8 @@ ppSymExpr = \case
     Int -> "0"
   SymVar t s -> s
   SymArray _ _ elems -> printf "[%s]" $ intercalate ", " (map ppSymExpr elems)
+  SArrayIndexAccess _ arrName arrIndexExpr ->
+    printf "%s[%s]" arrName (ppSymExpr arrIndexExpr)
   symExpr -> error $ "TODO: ppSymExpr ==> " ++ show symExpr
 
 data SymType = Int | Double | Float | Bool | Void | Array SymType | String 

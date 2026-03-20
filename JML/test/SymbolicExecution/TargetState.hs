@@ -64,7 +64,8 @@ allTargets = [
   ("sum2", sum2),
   ("sum4", sum4), ("sum4Call", sum4Call),
   ("sum1_While", sum1_While), ("sum1_WhileCall", sum1_WhileCall),
-  ("getMax", getMax), ("getMaxCall", getMaxCall)
+  ("getMax", getMax), ("getMaxCall", getMaxCall),
+  ("swap",swap), ("swapCall",swapCall)
   ]
 
 -----------------------------
@@ -171,7 +172,7 @@ boo31_2 = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "boo31_2"),
     (GlobalVars,SGlobalVars ["z","y","y1","y2","t1"]),
     (VarBindings,SVarBindings (Map.fromList [
-      ("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+        ("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
     (VarAssignments,SVarAssignments [
         ("z",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})),
         ("x",(SymInt 0,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
@@ -626,7 +627,9 @@ manyArrs7Call2 = Map.fromList [
   (MethodHandle,SMethodHandle SYT.Void "manyArrs7Call2"),
   (VarBindings,SVarBindings (Map.fromList [("brand",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
   (VarAssignments,SVarAssignments [("brand",(SymArray (Just SYT.String) (Just 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
-  (VarName "brand",SymArray (Just SYT.String) (Just 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"]),
+  (VarName "brand",SymArray (Just SYT.String) (Just 5) [
+     SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",
+     SymString "4. Volkswagen",SymString "5. Skoda"]),
   (Actions,SActions [SymString "[1. Toyota, 2. Mercedes, 3. BMW, 4. Volkswagen, 5. Skoda]\n"])
   ]
 
@@ -1602,3 +1605,32 @@ getMaxCall = Map.fromList [
 -----------------------------
 -----------------------------
 -----------------------------
+
+swap :: SymStateEnv
+swap = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "swap"),
+    (FormalParms,SFormalParms ["arr","i","j"]),
+    (VarBindings,SVarBindings (Map.fromList [("temp",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
+    (VarAssignments,SVarAssignments [
+        ("temp",(SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymVar SYT.Int "i"),Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
+        ("arr",(SymVar (SYT.Array SYT.Int) "arr",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})),
+        ("arr",(SymVar (SYT.Array SYT.Int) "arr",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
+    (VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),
+    (VarName "i",SymVar SYT.Int "i"),
+    (VarName "j",SymVar SYT.Int "j"),
+    (VarName "temp",SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymVar SYT.Int "i"))
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+swapCall :: SymStateEnv
+swapCall = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "swapCall"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+    (VarAssignments,SVarAssignments [
+        ("arr",(SymArray (Just SYT.Int) (Just 9) [SymInt 5,SymInt 4,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 1],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just 9) [SymInt 4,SymInt 5,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 1])
+  ]

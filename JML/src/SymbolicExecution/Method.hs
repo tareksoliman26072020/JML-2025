@@ -1,4 +1,4 @@
-{-# Language LambdaCase, MultiWayIf #-}
+{-# Language LambdaCase, MultiWayIf, ScopedTypeVariables #-}
 module SymbolicExecution.Method where
 
 import qualified SymbolicExecution.Logs.Log as Log
@@ -405,7 +405,7 @@ instance CFGVisitor MethodProcessor where
                   logHeader = logHeader symState
                 }
                 return $ ER_Expr symExpr
-        
+
         tellNextLog (Log.Return loc (show toReturn)) $> toReturn
       ----------------------------------------
       ----------------------------------------
@@ -595,7 +595,7 @@ visitStmt stmt@(AST.FunCallStmt expr) = case expr of
             logHeader = logHeader symState
           }
         tellNextLog (Log.Return "visitStmt -> FunCallStmt" (show toReturn)) $> toReturn
-      ER_FunCall _ -> do
+      ER_FunCall _ ->
         return ER_Void
       _ -> throwError $ "visitStmt ==> FunCallStmt ==> won't happen 1: " ++ show toReturn
   _ -> throwError $ "visitStmt ==> FunCallStmt ==> won't happen 2: " ++ show expr
@@ -625,25 +625,27 @@ visitExpr (expr@AST.FunCallExpr{}) = do
       -- See if the method call has parameters
       case CFG.getCFGFormalParams cfg0 of
         formalParms -> do
-          let formalParms_varNames = map AST.getVarName formalParms
+          let funCall_formalParms_varNames :: [String]
+              funCall_formalParms_varNames = map AST.getVarName formalParms
           -- get the ExecutionResults of the actual parameters
           --actualParms :: [ExecutionResult]
           actualParms <- do
-            flip mapM (AST.funArgs expr) $ \exp -> do
+            flip mapM (zip formalParms (AST.funArgs expr))
+            $ \tu@(formalParm,actualParm_exp) -> do
               incrementLogEnumeration
               let newLogTagStrs = [
-                    printf "%s(%s)" funCallName (AST.getActualParmName exp),
+                    printf "%s(%s = %s)" funCallName
+                      (AST.ppExpr formalParm) (AST.ppExpr actualParm_exp),
                     "actual parameter in Method Call"]
               let prependLogs :: [Log.Log] -> [Log.Log]
                   prependLogs = map (\(Log.Log innerCounterStr logTag) ->
                     Log.Log innerCounterStr $ foldl' (\tag str ->
                       Log.Nested str tag) logTag newLogTagStrs)
               censor prependLogs $ do
-                er <- incrementLogDepth *> visitExpr exp <* decrementLogDepth
+                er <- incrementLogDepth *> visitExpr actualParm_exp <* decrementLogDepth
                 return er
                 
           -- actualParms of the method call
-          -- actualParms1 :: [(SymStateKey,SymExpr)]
           let actualParms1 :: [(SymStateKey,SymExpr)]
               actualParms1 = zipWith (\fParm act ->
                 let maybeActual = getSymExpr act
@@ -695,7 +697,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                   -- if a global variable has the same name as a formal parameter
                   -- then we don't want it inserted into the state of the method call
                   VarName vn
-                    | vn `elem` formalParms_varNames -> const False
+                    | vn `elem` funCall_formalParms_varNames -> const False
                   _ -> \case
                     -- `SymVar` occurs when the global variable was not assigned
                     -- in the method of `ma0`
@@ -706,7 +708,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
           let funCallMap0 =
                 Map.union globalVarsMap
                 $ Map.union (Map.fromList actualParms1)
-                $ Map.insert FormalParms (SFormalParms formalParms_varNames)
+                $ Map.insert FormalParms (SFormalParms funCall_formalParms_varNames)
                 $ Map.insert GlobalVars (SGlobalVars globalVars)
                 Map.empty
           let (funCallLogs2,funCallSymState2) = let
@@ -726,7 +728,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
           
           -- tell formalParms
           tellNextLog $ Log.Nested ("actual: " ++ funCallName) $ Log.MethodFormalParams
-              (show formalParms_varNames)
+              (show funCall_formalParms_varNames)
               "visitExpr -> FunCallExpr"
           -- tell actualParms
           tellNextLog $ Log.Nested ("actual: " ++ funCallName) $ Log.MethodActualParms
@@ -743,20 +745,64 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                 VarName vn
                   | vn `elem` inherit_globalVars -> True
                 _ -> False
-          mainFunFormalParms <- (getFormalParms . env) <$> get
+          mainFunFormalParms :: [String] <- (getFormalParms . env) <$> get
           let inherit_formalParms :: [(String,SymExpr)]
               inherit_formalParms =
                 -- pair formals of the funcall `callSuccFun` with formals of the fun `succFun`
                 -- [(n,i)]
-                let funCallFormalParms = zip mainFunFormalParms formalParms_varNames
+                let funCallFormalParms :: [(String,String)]
+                    funCallFormalParms = zip mainFunFormalParms funCall_formalParms_varNames
                 -- replace the key `i` with its value `SBin (SymVar Int "n") Add (SymInt 1)`
                 -- [(n,SBin (SymVar Int "n") Add (SymInt 1))]
+                    getFunCallFormalVal :: [(String,SymExpr)]
+                    getFunCallFormalVal = do
+                      (mainFormalParmVarName,funCallFormalParmVarName) <- funCallFormalParms
+                      case findVarName funCallFormalParmVarName (env funCallSymState2) of
+                        Nothing -> error $ loc ++ " -> inherit_formalParms -> won't happen1"
+                        Just symExpr -> return (mainFormalParmVarName,symExpr)
+                    {-
                     getFunCallFormalVal = flip map funCallFormalParms $
                       \tu -> flip fmap tu $ \vn ->
                         case findVarName vn (env funCallSymState2) of
                           Nothing -> error "visitExpr -> FunCallExpr -> inherit_formalParms -> won't happen1"
                           Just symExpr -> symExpr
+                     -}
                 in getFunCallFormalVal
+          ----------
+          -- inheriting the method call's actual parms
+          -- if they are defined outside the method call.
+          -- Example:
+          --     1) notice how `arr` is defined before `swap(arr,0,1)`.
+          --     2) notice how `arr` before and after `swap(arr,0,1)` diverges
+          --     3) `inherit_actualParms` keeps `arr` in sight
+          {-
+          private static void swapCall() {
+            int[] arr = new int[] {5,4,6,4,7,8,9,0,1};
+            swap(arr,0,1);
+            println(arr);
+          }
+          
+          private static void swap(int[] arr, int i, int j) {
+            int temp = arr[i];
+            arr[i] = arr[j];
+            arr[j] = temp;
+          }
+           -}
+        --inherit_actualParms :: Map.Map SymStateKey SymExpr
+          inherit_actualParms <- do
+            theEnv <- env <$> get
+            let mainFunVarNames :: [String]
+                mainFunVarNames = flip foldMap theEnv $ \case
+                  SVarBindings m  -> Map.keys m
+                  SFormalParms li -> li
+                  _ -> []
+            let funCallSymState2Env = env funCallSymState2
+            let relevantActualParms :: [String]
+                relevantActualParms = [ vn
+                  | (VarName vn,_) <- actualParms1
+                  , vn `elem` mainFunVarNames]
+            return $ flip Map.filterWithKey (getVarNames funCallSymState2Env)
+              $ \(VarName vn) _ -> vn `elem` relevantActualParms
           ----------
           -- inheriting the method call's global vars list
           if null inherit_globalVars
@@ -772,7 +818,6 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                         GlobalVars (env symState),
                   logHeader = logHeader symState
                 }
-              return ()
           ----------
           -- inheriting the method call's global vars var names
           if null inherit_globalVars_varNames
@@ -802,7 +847,6 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                         Actions (env symState),
                   logHeader = logHeader symState
                 }
-              return ()
           ----------
           if null inherit_formalParms
             then return ()
@@ -815,7 +859,13 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                     Just _ -> Just newVal) (VarName k) ma) (env symState) inherit_formalParms,
                   logHeader = logHeader symState
                 }
-              return ()
+          ----------
+          if Map.null inherit_actualParms
+            then return ()
+            else do
+              tellNextLog $ Log.ModifyState (loc ++ " -> inheriting actualParms") ("ActualParms",show inherit_actualParms)
+              modify $ \symState -> SymState
+                (Map.union inherit_actualParms (env symState)) (logHeader symState)
           ----------
           tellNextLog $ Log.RunSymStateActualMethodCall (show funCallSymState2)
           let toReturn = ER_FunCall funCallSymState2
@@ -888,7 +938,8 @@ visitExpr expr@AST.BinOpExpr{} = do
 visitExpr expr@AST.UnOpExpr{} = throwError "visitExpr ==> UnOpExpr ==> TODO"
 -- AssignExpr {assEleft :: Expression, assEright :: Expression}
 visitExpr expr@AST.AssignExpr{} = do
-  tellNextLog $ Log.Expression_2_Handle (show expr) "visitExpr -> AssignExpr"
+  let loc = "SymbolicExecution.Method.visitExpr.AssignExpr"
+  tellNextLog $ Log.Expression_2_Handle (show expr) loc
 
   one <- do
     incrementLogEnumeration
@@ -899,13 +950,17 @@ visitExpr expr@AST.AssignExpr{} = do
 
   -- one_val's sole purpose is its type
   -- one_svn is important to find key in the map
-  let (one_svn,one_val) = case one of
-       ER_SymStateMapEntry svn val -> (svn,val)
-       ER_ArrayCallExpr (SArrayIndexAccess arrType arrName _) val ->
+  let (one_svn,one_val,(leftOpKeyStr,leftOpValStr)) = case one of
+       ER_SymStateMapEntry svn val ->
+         let theStr = case svn of
+               VarName s -> (s,ppSymExpr val)
+               _         -> error $ "TODO1: " ++ show one_svn
+         in (svn,val,theStr)
+       ER_ArrayCallExpr s@(SArrayIndexAccess arrType arrName _) val ->
          --call = SArrayIndexAccess "strs" (SymInt 1)
          --val = SymNull String
-         (VarName arrName,val)
-       ER_Expr ex -> error $ printf "visitExpr ==> AssignExpr: (%s,%s,%s)"
+         (VarName arrName,val,(ppSymExpr s,ppSymExpr val))
+       ER_Expr ex -> error $ printf "%s: (%s,%s,%s)" loc
            (show expr) (show ex) (show $ AST.assEleft expr)
 
   two <- do
@@ -923,11 +978,11 @@ visitExpr expr@AST.AssignExpr{} = do
                     : map toSymType2 elms1
                     ++ [type2]
               in cast (Array newType) e2_
-            _ -> error $ "TODO1: SymbolicExecution.Method.visitExpr.AssignExpr.e2 ==> " ++ show one_val
+            _ -> error $ printf "TODO1: %s ==> e2 ==> %s" loc (show one_val)
           ER_Expr e2_ -> cast (toSymType2 one_val) e2_
           ER_FunCall funCallState ->
             case getReturnSymExpr funCallState of
-              Nothing -> error $ printf "visitExpr ~~> AssignExpr ~~> won't happen"
+              Nothing -> error $ printf "%s ~~> won't happen" loc
               Just e2_ -> e2_
           ER_SymStateMapEntry _ e2_ -> e2_
           ER_PredefinedFunCall e2_ -> cast (toSymType2 one_val) e2_
@@ -939,12 +994,10 @@ visitExpr expr@AST.AssignExpr{} = do
            -}
           ER_ArrayCallExpr _ arrayCallVal ->
             let t = pick_known_symType (toSymType2 arrayCallVal, toSymType2 one_val)
-            in cast t arrayCallVal{-
-                                             error
-            $ printf "MEOW::\n\n1) %s\n\n2) %s"
-                (show arrayCallVal) (show one_val)-}
-          _ -> error $ "TODO2: SymbolicExecution.Method.visitExpr.AssignExpr.e2 ==> " ++ show two
-  tellNextLog $ Log.Affected "visitExpr -> AssignExpr" [show one, show two]
+            in cast t arrayCallVal
+          _ -> error $ printf "TODO2: %s ==> e2 ==> %s" loc (show two)
+
+  tellNextLog $ Log.Affected loc [show one, show two]
   -- newVal is a transformation of two_val. it's the new value
   -- inside of newVal, casting is done
   two_newVal <- do
@@ -966,6 +1019,7 @@ visitExpr expr@AST.AssignExpr{} = do
       (_,SymArray _ _ _) -> -- casting is done during the creation of two_val
         return two_val
       _ -> return $ cast (toSymType2 one_val) two_val
+  let rightOpValStr = ppSymExpr two_newVal
 {-
 two_newVal = SymArray (Just (Array Int)) (Just 2) [SymNull Int,SymNull Int]
 -}
@@ -982,13 +1036,13 @@ two_newVal = SymArray (Just (Array Int)) (Just 2) [SymNull Int,SymNull Int]
           tellNextLog $ Log.UpdateVariable (show one_svn,"No previous value",show two_newVal) "visitExpr ==> AssignExpr"
           return ()
   -- inserting new value in map
-  tellNextLog $ Log.ModifyState "visitExpr ==> AssignExpr" (show one_svn,show two_newVal)
+  tellNextLog $ Log.ModifyState "visitExpr ==> AssignExpr" (leftOpKeyStr,rightOpValStr)
   modify $ \symState ->
     SymState {
       env = Map.insert one_svn two_newVal (env symState),
       logHeader = logHeader symState
     }
-
+  
   -- Sometimes, the `two_newVal` of `one_svn` can tell us more about the type of `one_val`
   -- which may be unknown, while the type of `two_newVal` is more known.
   -- This happens mainly only when `one_val` is a global variable of unknown type
@@ -1012,7 +1066,10 @@ two_newVal = SymArray (Just (Array Int)) (Just 2) [SymNull Int,SymNull Int]
     incrementLogDepth *> inferGlobalVarType (toSymType2 two_newVal) two <* decrementLogDepth
   
   let toReturn = ER_SymStateMapEntry one_svn two_val
-  tellNextLog (Log.Return "visitExpr -> AssignExpr" (show toReturn)) $> toReturn
+  tellNextLog (Log.Return "visitExpr -> AssignExpr"
+    (printf "%s\n\n%s was %s\n%s is %s" (show toReturn)
+       leftOpKeyStr leftOpValStr
+       leftOpKeyStr rightOpValStr)) $> toReturn
 
 -- VarExpr {varType :: Maybe (Type Types), varObj :: [String], varName :: String}
 visitExpr expr@AST.VarExpr{} = do
@@ -1321,7 +1378,7 @@ visitRegisteredLoop loopCounter env_Before_Acc cfg m_Acc mForCondExpr forBody_fo
               (methodProcessorMonad (visitNode node))
             decrementLogDepth
           -- it's a good idea to log the current state before staring the next loop round
-          (tellNextLog . Log.ReportTheState loc . show . env) <$> get
+          get >>= tellNextLog . Log.ReportTheState loc . show . env
           visitRegisteredLoop (loopCounter+1) env_Before_Acc cfg m_Acc mForCondExpr forBody_forStep_path branchRange
         else do
           tellNextLog $ Log.ForLoopLimitReached loc (show forLoopLimit)

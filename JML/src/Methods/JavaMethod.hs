@@ -63,7 +63,8 @@ javaMethodInputs = [
   ("sum2", sum2),
   ("sum4", sum4), ("sum4Call", sum4Call),
   ("sum1_While", sum1_While), ("sum1_WhileCall", sum1_WhileCall),
-  ("getMax", getMax), ("getMaxCall", getMaxCall)
+  ("getMax", getMax), ("getMaxCall", getMaxCall),
+  ("swap",swap), ("swapCall",swapCall)
   ]
 
 boo30 :: String
@@ -703,3 +704,14 @@ getMax = "public static int getMax(int[] arr) throws Exception {\n\
 getMaxCall = "public static int getMaxCall() {\n\
              \  return getMax(new int[] {5,4,6,4,7,8,9,0,1});\n\
              \}"
+
+swap = "private static void swap(int[] arr, int i, int j) {\n\
+       \  int temp = arr[i];\n\
+       \  arr[i] = arr[j];\n\
+       \  arr[j] = temp;\n\
+       \}"
+
+swapCall = "private static void swapCall() {\n\
+           \  int[] arr = new int[] {5,4,6,4,7,8,9,0,1};\n\
+           \  swap(arr,0,1);\n\
+           \}"

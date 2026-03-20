@@ -189,18 +189,18 @@ getLeftVarAssignExpr = \case
   expr@AssignExpr{} -> assEleft expr
   expr -> error $ "getLeftVarAssignExpr ==> won't happen ==> " ++ show expr
 
-getActualParmName :: Expression -> String
-getActualParmName = \case
+ppExpr :: Expression -> String
+ppExpr = \case
   --VarExpr {varType = Nothing, varObj = [], varName = "i"}
-  expr@VarExpr{} -> varName expr
+  expr@VarExpr{} -> intercalate "." $ varObj expr ++ [varName expr]
   --BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
   expr@BinOpExpr{} ->
-    printf "%s%s%s" (getActualParmName $ expr1 expr) (show $ binOp expr) (getActualParmName $ expr2 expr)
+    printf "%s%s%s" (ppExpr $ expr1 expr) (show $ binOp expr) (ppExpr $ expr2 expr)
   NumberLiteral num -> show num
   ArrayInstantiationExpr _ _ arrElems -> printf "{%s}"
-    $ intercalate ", " $ map getActualParmName arrElems
+    $ intercalate ", " $ map ppExpr arrElems
   StringLiteral str -> str
-  expr -> error $ "TODO: getActualParmName: " ++ show expr
+  expr -> error $ "TODO: ppExpr: " ++ show expr
 
 data Type a
   = BuiltInType a
