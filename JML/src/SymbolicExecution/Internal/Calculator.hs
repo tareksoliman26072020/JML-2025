@@ -121,15 +121,6 @@ numericCalculator2 op = \case
 --
 --
   (a@(SBin _ _ _), b@(SBin _ _ _)) ->
-    --error $ printf "TODO: numericCalculator: (%s) (%s) (%s)" (show a) (show op) (show b) 
-           -- (x - e12) - (x - e22) == (x - x) - (e12 - e22)
-           -- (x + e12) - (x - e22) == (x - x) + (e12 + e22)
-           -- (x + e12) + (x - e22) == (x + x) + (e12 - e22)
-           -- (x + e12) + (x + e22) == (x + x) + (e12 + e22)
-           -- (x - e12) + (x + e22) == (x + x) - (e12 - e22)
-           -- (x - e12) - (x + e22) == (x - x) - (e12 + e22)
-           -- (x + e12) - (x + e22) == (x - x) + (e12 - e22)
-           -- (x - e12) + (x - e22) == (x + x) - (e12 + e22)
     let a2 = numericCalculator a
         b2 = numericCalculator b
     in case (a2,b2) of
@@ -592,6 +583,9 @@ numericCalculator2 op = \case
   (a,b@(SymFun _ symExpr2)) ->
     let t3 = pick_known_symType (toSymType2 a,toSymType2 symExpr2)
     in SBin (cast t3 a) op (cast t3 b)
+----------
+  (a@(SObjAcc _),b) -> SBin a op b
+  (a,b@(SObjAcc _)) -> SBin a op b
 ----------
   (a,b) -> error $ printf "numericCalculator: (%s ,, %s ,, %s)" (show a) (show op) (show b)
 

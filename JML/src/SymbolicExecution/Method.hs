@@ -652,7 +652,9 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                 er <- incrementLogDepth *> visitExpr actualParm_exp <* decrementLogDepth
                 return er
                 
-          -- actualParms of the method call
+          -- `actualParms1` keeps track of where actual parameters come from
+          -- in the following example, you see how `arr` in `manyArrs7`
+          --     originates from `brand` in `manyArrs7Call2`
           -- actualParms1 = [
           --   (VarName "brand",
           --    (VarName "arr",
@@ -677,6 +679,8 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                       ER_SymStateMapEntry key symExpr -> Just key
                       ER_Expr (SymNum _) -> Nothing
                       ER_Expr (SymArray _ _ _) -> Nothing
+                      ER_Expr (SymInt _) -> Nothing
+                      ER_Expr (SBin _ _ _) -> Nothing
                       _ -> error $ "TODO1 ==> visitExpr -> FunCallExpr -> " ++ show act
                     maybeActual = getSymExpr act
                 in case maybeActual of
@@ -708,7 +712,6 @@ visitExpr (expr@AST.FunCallExpr{}) = do
           actualParms = [ER_SymStateMapEntry (VarName "x") (SymNum 3.0)]
           actualParms1 = [(VarName "x",(VarName "n",SymInt 3))]
            -}
-          --env1 <- env <$> get
           zipWithM_ (\er (_,symExpr1) -> case er of
             ER_SymStateMapEntry vn@(VarName _) symExpr2 ->
               inferGlobalVarType
@@ -775,35 +778,8 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                 VarName vn
                   | vn `elem` inherit_globalVars -> True
                 _ -> False
-          {-inherit_formalParms :: [(String,SymExpr)] <- do
-            mainFunFormalParms :: [String] <- (getFormalParms . env) <$> get
-            -- pair formals of the funcall `callSuccFun` with formals of the fun `succFun`
-            -- [(n,i)]
-            let funCallFormalParms :: [(String,String)]
-                funCallFormalParms = zip mainFunFormalParms funCall_formalParms_varNames
-            -- replace the key `i` with its value `SBin (SymVar Int "n") Add (SymInt 1)`
-            -- [(n,SBin (SymVar Int "n") Add (SymInt 1))]
-                getFunCallFormalVal :: [(String,SymExpr)]
-                getFunCallFormalVal = do
-                  (mainFormalParmVarName,funCallFormalParmVarName) <- funCallFormalParms
-                  case findVarName funCallFormalParmVarName (env funCallSymState2) of
-                    Nothing -> error $ loc ++ " -> inherit_formalParms -> won't happen1"
-                    Just symExpr -> return (mainFormalParmVarName,symExpr)
-            --return getFunCallFormalVal
-            env <$> get >>= \theEnv -> throwError $ printf
-              "MEOW::\n\n\
-              \1) %s\n\n\
-              \2) %s\n\n\
-              \3) %s\n\n\
-              \4) %s\n\n"
-              (show theEnv) (show mainFunFormalParms) (show funCall_formalParms_varNames)
-              (show getFunCallFormalVal)-}
-          {-env <$> get >>= \theEnv ->
-            throwError $ printf "MEOW::\n\n\
-                                \1) %s\n\n"
-              (show inherit_formalParms)-}
           ----------
-          -- inheriting the method call's actual parms
+          -- inheriting the method call's actual parms (only when the actual parameter is an array)
           -- if they are defined outside the method call.
           -- Example:
           --     1) notice how `arr` is defined before `swap(arr,0,1)`.
@@ -822,6 +798,26 @@ visitExpr (expr@AST.FunCallExpr{}) = do
             arr[j] = temp;
           }
            -}
+          {-
+          Why only arrays? look at the following example, sucFun does not update n, because
+            1) n is of primitive type,
+            2) Java passes arguments by value,
+            3) n + 1 is evaluated first, producing a new value,
+            4) that value is copied into i,
+            5) i is local to succFun, so this change is lost when the method ends,
+            6) return n; returns the original n, which is still 1.
+            So n remains unchanged.
+            
+          public static void succFun(int i) {
+            i += 1;
+          }
+
+          public static void succFunCall() {
+            int n = 2;
+            succFun(n);
+            println(n);
+          }
+           -}
         --inherit_actualParms :: Map.Map SymStateKey SymExpr
           inherit_actualParms <- do
             theEnv <- env <$> get
@@ -833,20 +829,17 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                   _ -> []
             let funCallSymState2Env = env funCallSymState2
             let relevantActualParms :: [(String,String)]
-                relevantActualParms = [ (vn2,vn)
-                  | (Just (VarName vn),(VarName vn2,_)) <- actualParms1]
-            {-throwError
-              $ printf "MEOW::\n\n\
-                       \1) %s\n\n\
-                       \2) %s\n\n\
-                       \3) %s" (show actualParms1) (show mainFunVarNames) (show relevantActualParms)-}
+                relevantActualParms = [(vn2,vn)
+                  | (Just (VarName vn),(VarName vn2,symExpr)) <- actualParms1
+                  , case symExpr of
+                      SymArray _ _ _ -> True
+                      _              -> False]
             let funCallVarNames = getVarNames funCallSymState2Env
             return $ Map.fromList $ flip map relevantActualParms
                   $ \(fromCall,fromOrig) -> case Map.lookup (VarName fromCall) funCallVarNames of
                     Just symExpr -> (VarName fromOrig,symExpr)
                     Nothing -> error $ printf "%s ==> relevantMapEntries ==> won't happen" loc
           ----------
-          --throwError $ "MEOW:: " ++ show inherit_actualParms
           -- inheriting the method call's global vars list
           if null inherit_globalVars
             then return ()
@@ -890,18 +883,6 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                         Actions (env symState),
                   logHeader = logHeader symState
                 }
-          ----------
-          {-if null inherit_formalParms
-            then return ()
-            else do
-              tellNextLog $ Log.ModifyState "visitExpr -> FunCallExpr -> inheriting formalParms" ("FormalParms",show inherit_formalParms)
-              modify $ \symState ->
-                SymState {
-                  env = foldl' (\ma (k,newVal) -> Map.alter (\case
-                    Nothing -> error "visitExpr -> FunCallExpr -> inherit_formalParms -> won't happen2"
-                    Just _ -> Just newVal) (VarName k) ma) (env symState) inherit_formalParms,
-                  logHeader = logHeader symState
-                }-}
           ----------
           if Map.null inherit_actualParms
             then return ()

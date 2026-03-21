@@ -3007,6 +3007,25 @@ public void succFun(int i) {
 //DONE
 //JavaMethod
 /*
+[
+ (MethodHandle,SMethodHandle Void "succFunCall"),
+ (VarBindings,SVarBindings (fromList [("n",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
+ (VarAssignments,SVarAssignments [("n",(SymInt 2,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
+ (VarName "n",SymInt 2),
+ (Actions,SActions [SymString "2\n"])
+]
+*/
+public void succFunCall() {
+  int n = 2;
+  succFun(n);
+  println(n);
+}
+
+/////////////////////
+
+//DONE
+//JavaMethod
+/*
 SymState {
   env = fromList [
     (MethodName "callSuccFun",SMethodType Int),
@@ -3015,6 +3034,14 @@ SymState {
     (Return,SBin (SymVar Int "n") Add (SymInt 1))
   ], pc = []
 }
+*/
+/*
+[
+ (MethodHandle,SMethodHandle Int "callSuccFun"),
+ (FormalParms,SFormalParms ["n"]),
+ (VarName "n",SBin (SymVar Int "n") Add (SymInt 1)),
+ (Return,SBin (SymVar Int "n") Add (SymInt 1))
+]
 */
 public int callSuccFun(int n) {
   succFun(n);
@@ -3566,23 +3593,27 @@ public static int getMaxCall() {
 
 /////////////////////
 
-//TODO
+//DONE
+//JavaMethod
 /*
-fromList [
-    (MethodHandle,SMethodHandle (Array Int) "quickSortCall"),
-    (FormalParms,SFormalParms ["arr"]),
-    (VarName "arr",SymArray (Just Int) (Just 9) [SymInt 0,SymInt 5,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 4,SymInt 1]),
-    (Return,SymArray (Just Int) (Just 9) [SymInt 0,SymInt 5,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 4,SymInt 1])]
+[
+ (MethodHandle,SMethodHandle (Array Int) "quickSortCall"),
+ (Return,SymArray (Just Int) (Just 9) [SymInt 0,SymInt 1,SymInt 4,SymInt 4,SymInt 5,SymInt 6,SymInt 7,SymInt 8,SymInt 9])
+]
 */
 public static int[] quickSortCall() {
   return quickSort(new int[] {5,4,6,4,7,8,9,0,1});
 }
+
+/////////////////////
 
 //TODO
 public static int[] quickSort(int[] arr) {
   sort0(arr,0,arr.length-1);
   return arr;
 }
+
+/////////////////////
 
 //TODO
 private static void sort0(int[] arr, int low, int high) {
@@ -3593,32 +3624,30 @@ private static void sort0(int[] arr, int low, int high) {
   }
 }
 
-//TODO
+/////////////////////
+
+//DONE
+//JavaMethod
 /*
 [
- (MethodHandle,SMethodHandle Int "partition"),
- (GlobalVars,SGlobalVars []),
- (FormalParms,SFormalParms ["arr","low","high"]),
- (VarBindings,SVarBindings (fromList [
-     ("i",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 12}}),
-     ("pivot",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 12}})])),
- (VarAssignments,SVarAssignments [
-     ("pivot",(SArrayIndexAccess (Array Int) "arr" (SymVar Int "high"),Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 12}})),
-     ("i",(SBin (SymVar Int "low") Sub (SymInt 1),Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 12}})),
-     ("i",(SymVar Int "low",Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 5, branchEnd = 8}}))]),
- (VarName "arr",SymVar (Array Int) "arr"),
- (VarName "high",SymVar Int "high"),
- (VarName "i",SBin (SymUnknown (SBin (SymVar Int "low") Sub (SymInt 1)) [
-     ([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]) Add (SymInt 1)),
- (VarName "low",SBin
-     (SymUnknown (SBin (SymVar Int "low") Sub (SymInt 1)) [
-         ([(For,SR {branchStart = 3, branchEnd = 10}),
-           (If,SR {branchStart = 5, branchEnd = 8})],6)])
-     Add
-     (SymInt 1)),
- (VarName "pivot",SArrayIndexAccess (Array Int) "arr" (SymVar Int "high")),
- (ScopeRange (SR {branchStart = 3, branchEnd = 10}),SLoop (Just (Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "j"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "low"}}}), parent = 0})) (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "j"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "high"}})) [Node {id = 5, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "j"})}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "pivot"}})), parent = 3},Node {id = 9, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "j"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "j"}, binOp = +, expr2 = NumberLiteral 1.0}}})), parent = 3}]),
- (Return,SBin (SymUnknown (SBin (SymVar Int "low") Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]) Add (SymInt 2))
+    (MethodHandle,SMethodHandle Int "partition"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["arr","low","high"]),
+    (VarBindings,SVarBindings (fromList [
+        ("i",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 12}}),
+        ("pivot",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 12}})])),
+    (VarAssignments,SVarAssignments [
+        ("pivot",(SArrayIndexAccess (Array Int) "arr" (SymVar Int "high"),Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 12}})),
+        ("i",(SBin (SymVar Int "low") Sub (SymInt 1),Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 12}})),
+        ("i",(SymVar Int "low",Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 5, branchEnd = 8}}))]),
+    (VarName "arr",SymVar (Array Int) "arr"),
+    (VarName "high",SymVar Int "high"),
+    (VarName "i",SymUnknown (SBin (SymVar Int "low") Sub (SymInt 1)) [
+        ([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]),
+    (VarName "low",SymVar Int "low"),
+    (VarName "pivot",SArrayIndexAccess (Array Int) "arr" (SymVar Int "high")),
+    (ScopeRange (SR {branchStart = 3, branchEnd = 10}),SLoop (Just (Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "j"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "low"}}}), parent = 0})) (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "j"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "high"}})) [Node {id = 5, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "j"})}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "pivot"}})), parent = 3},Node {id = 9, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "j"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "j"}, binOp = +, expr2 = NumberLiteral 1.0}}})), parent = 3}]),
+    (Return,SBin (SymUnknown (SBin (SymVar Int "low") Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]) Add (SymInt 1))
 ]
 */
 private static int partition(int[] arr, int low, int high) {
@@ -3635,63 +3664,11 @@ private static int partition(int[] arr, int low, int high) {
 }
 
 //TODO
-/*
-[
- (MethodHandle,SMethodHandle Void "partitionCall"),
- (VarBindings,SVarBindings (fromList [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
- (VarAssignments,SVarAssignments [("arr",(SymArray (Just Int) (Just 9) [SymInt 5,SymInt 4,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 1],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),("x",(SymInt 9,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
- (VarName "arr",SymArray (Just Int) (Just 9) [SymInt 5,SymInt 4,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 1,SymInt 0]),
- (VarName "x",SymInt 9),
- (Actions,SActions [
-    SymString "[5, 4, 6, 4, 7, 8, 9, 1, 0]\n",
-    SymString "9\n"])
-]
-*/
-// [5, 4, 6, 4, 7, 8, 9, 0, 1]
 private static void partitionCall() {
   int[] arr = new int[] {5,4,6,4,7,8,9,0,1};
   int x = partition(arr,7,arr.length-1);
   println(arr);
   println(x);
-}
-
-
-
-
-
-//TODO
-private static int partition2(int[] arr, int low, int high) {
-  int pivot = arr[high];
-  int i = low - 1;
-  for (int j = low; j < high; j++) {
-    if (arr[j] < pivot) {
-      i++;
-      swap(arr, i, j);
-    }
-  }
-  swap(arr, i + 1, high);
-  return i + 1;
-}
-
-//TODO
-// X should be 
-// [1, 4, 6, 4, 7, 8, 9, 0, 5] ==> [1, 4, 6, 4, 7, 8, 9, 0, 5] ==> [1, 4, 5, 4, 7, 8, 9, 0, 6]
-/*
-[
- (MethodHandle,SMethodHandle Void "partition2Call"),
- (VarBindings,SVarBindings (fromList [
-     ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}}),("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
- (VarAssignments,SVarAssignments [
-     ("arr",(SymArray (Just Int) (Just 9) [SymInt 1,SymInt 4,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 5],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),("x",(SymInt 0,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
- (VarName "arr",SymArray (Just Int) (Just 9) [SymInt 4,SymInt 1,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 5]),
- (VarName "x",SymInt 0),
- (Actions,SActions [SymString "[4, 1, 6, 4, 7, 8, 9, 0, 5]\n"])
-]
-*/
-private static void partition2Call() {
-  int[] arr = new int[] {1,4,6,4,7,8,9,0,5};
-  int x = partition2(arr,1,arr.length-1);
-  println(arr);
 }
 
 //DONE
@@ -3737,7 +3714,7 @@ private static void swapCall() {
 //TODO
 public static void bubbleSortCall() {
   int[] arr = new int[] {5,4,6,4,7,8,9,0,1};
-  bubbleSortCall(arr);
+  bubbleSort(arr);
   return arr;
 }
 

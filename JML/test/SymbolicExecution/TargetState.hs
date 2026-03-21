@@ -49,7 +49,7 @@ allTargets = [
   ("ifFun10",ifFun10),
   ("ifFun11",ifFun11),
   ("ifFun12",ifFun12),
-  ("succFun", succFun), ("callSuccFun", callSuccFun), ("callCallSuccFun", callCallSuccFun),
+  ("succFun", succFun), ("succFunCall", succFunCall), ("callSuccFun", callSuccFun), ("callCallSuccFun", callCallSuccFun),
   ("wrongSum1", wrongSum1),
   ("wrongSum2", wrongSum2),
   ("wrongSum3", wrongSum3),
@@ -65,7 +65,9 @@ allTargets = [
   ("sum4", sum4), ("sum4Call", sum4Call),
   ("sum1_While", sum1_While), ("sum1_WhileCall", sum1_WhileCall),
   ("getMax", getMax), ("getMaxCall", getMaxCall),
-  ("swap",swap), ("swapCall",swapCall)
+  ("partition", partition),
+  ("swap",swap), ("swapCall",swapCall),
+  ("quickSortCall", quickSortCall)
   ]
 
 -----------------------------
@@ -1183,6 +1185,21 @@ succFun = Map.fromList [
 -----------------------------
 -----------------------------
 
+succFunCall :: SymStateEnv
+succFunCall = Map.fromList [
+   (MethodHandle,SMethodHandle SYT.Void "succFunCall"),
+   (VarBindings,SVarBindings (Map.fromList [
+       ("n",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
+   (VarAssignments,SVarAssignments [
+       ("n",(SymInt 2,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
+   (VarName "n",SymInt 2),
+   (Actions,SActions [SymString "2\n"])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
 callSuccFun :: SymStateEnv
 callSuccFun = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "callSuccFun"),
@@ -1600,6 +1617,41 @@ getMaxCall :: SymStateEnv
 getMaxCall = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "getMaxCall"),
     (Return,SymInt 9)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+quickSortCall :: SymStateEnv
+quickSortCall = Map.fromList [
+    (MethodHandle,SMethodHandle (SYT.Array SYT.Int) "quickSortCall"),
+    (Return,SymArray (Just SYT.Int) (Just 9) [SymInt 0,SymInt 1,SymInt 4,SymInt 4,SymInt 5,SymInt 6,SymInt 7,SymInt 8,SymInt 9])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+partition :: SymStateEnv
+partition = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "partition"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["arr","low","high"]),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("i",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 12}}),
+        ("pivot",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 12}})])),
+    (VarAssignments,SVarAssignments [
+        ("pivot",(SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymVar SYT.Int "high"),Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 12}})),
+        ("i",(SBin (SymVar SYT.Int "low") SYT.Sub (SymInt 1),Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 12}})),
+        ("i",(SymVar SYT.Int "low",Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 5, branchEnd = 8}}))]),
+    (VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),
+    (VarName "high",SymVar SYT.Int "high"),
+    (VarName "i",SymUnknown (SBin (SymVar SYT.Int "low") SYT.Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]),
+    (VarName "low",SymVar SYT.Int "low"),
+    (VarName "pivot",SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymVar SYT.Int "high")),
+    (ScopeRange (SR {branchStart = 3, branchEnd = 10}),SLoop (Just (Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "j"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "low"}}}), parent = 0})) (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "j"}, binOp = Less, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "high"}})) [Node {id = 5, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "j"})}, binOp = Less, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "pivot"}})), parent = 3},Node {id = 9, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "j"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "j"}, binOp = Plus, expr2 = NumberLiteral 1.0}}})), parent = 3}]),
+    (Return,SBin (SymUnknown (SBin (SymVar SYT.Int "low") SYT.Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]) SYT.Add (SymInt 1))
   ]
 
 -----------------------------

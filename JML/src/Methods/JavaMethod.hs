@@ -48,7 +48,7 @@ javaMethodInputs = [
   ("ifFun10", ifFun10),
   ("ifFun11", ifFun11),
   ("ifFun12", ifFun12),
-  ("succFun", succFun), ("callSuccFun", callSuccFun), ("callCallSuccFun", callCallSuccFun),
+  ("succFun", succFun), ("succFunCall", succFunCall), ("callSuccFun", callSuccFun), ("callCallSuccFun", callCallSuccFun),
   ("wrongSum1", wrongSum1),
   ("wrongSum2", wrongSum2),
   ("wrongSum3", wrongSum3),
@@ -64,7 +64,11 @@ javaMethodInputs = [
   ("sum4", sum4), ("sum4Call", sum4Call),
   ("sum1_While", sum1_While), ("sum1_WhileCall", sum1_WhileCall),
   ("getMax", getMax), ("getMaxCall", getMaxCall),
-  ("swap",swap), ("swapCall",swapCall)
+  ("swap", swap), ("swapCall", swapCall),
+--  ("quickSortCall", quickSortCall),
+  ("partition", partition)
+----------Quick sort:
+
   ]
 
 boo30 :: String
@@ -486,6 +490,13 @@ succFun = "public void succFun(int i) {\n\
        \  i += 1;\n\
        \}"
 
+succFunCall :: String
+succFunCall = "public void succFunCall() {\n\
+              \  int n = 2;\n\
+              \  succFun(n);\n\
+              \  println(n);\n\
+              \}"
+
 callSuccFun :: String
 callSuccFun = "public int callSuccFun(int n) {\n\
               \  succFun(n);\n\
@@ -705,6 +716,10 @@ getMaxCall = "public static int getMaxCall() {\n\
              \  return getMax(new int[] {5,4,6,4,7,8,9,0,1});\n\
              \}"
 
+quickSortCall = "public static int[] quickSortCall() {\n\
+                \  return quickSort(new int[] {5,4,6,4,7,8,9,0,1});\n\
+                \}"
+
 swap = "private static void swap(int[] arr, int i, int j) {\n\
        \  int temp = arr[i];\n\
        \  arr[i] = arr[j];\n\
@@ -715,3 +730,17 @@ swapCall = "private static void swapCall() {\n\
            \  int[] arr = new int[] {5,4,6,4,7,8,9,0,1};\n\
            \  swap(arr,0,1);\n\
            \}"
+
+partition = "private static int partition(int[] arr, int low, int high) {\n\
+            \  int pivot = arr[high];\n\
+            \  int i = low - 1;\n\
+            \  for (int j = low; j < high; j++) {\n\
+            \    if (arr[j] < pivot) {\n\
+            \      i++;\n\
+            \      swap(arr, i, j);\n\
+            \    }\n\
+            \  }\n\
+            \  swap(arr, i + 1, high);\n\
+            \  return i + 1;\n\
+            \}"
+
