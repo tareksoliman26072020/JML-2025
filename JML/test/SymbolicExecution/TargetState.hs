@@ -65,9 +65,13 @@ allTargets = [
   ("sum4", sum4), ("sum4Call", sum4Call),
   ("sum1_While", sum1_While), ("sum1_WhileCall", sum1_WhileCall),
   ("getMax", getMax), ("getMaxCall", getMaxCall),
-  ("partition", partition),
   ("swap",swap), ("swapCall",swapCall),
-  ("quickSortCall", quickSortCall)
+  ("partition", partition), ("partitionCall1", partitionCall1),
+                            ("partitionCall2", partitionCall2),
+                            ("partitionCall3", partitionCall3),
+                            ("partitionCall4", partitionCall4),
+                            ("partitionCall5", partitionCall5),
+                            ("partitionCall6", partitionCall6)
   ]
 
 -----------------------------
@@ -1623,10 +1627,33 @@ getMaxCall = Map.fromList [
 -----------------------------
 -----------------------------
 
-quickSortCall :: SymStateEnv
-quickSortCall = Map.fromList [
-    (MethodHandle,SMethodHandle (SYT.Array SYT.Int) "quickSortCall"),
-    (Return,SymArray (Just SYT.Int) (Just 9) [SymInt 0,SymInt 1,SymInt 4,SymInt 4,SymInt 5,SymInt 6,SymInt 7,SymInt 8,SymInt 9])
+swap :: SymStateEnv
+swap = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "swap"),
+    (FormalParms,SFormalParms ["arr","i","j"]),
+    (VarBindings,SVarBindings (Map.fromList [("temp",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
+    (VarAssignments,SVarAssignments [
+        ("temp",(SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymVar SYT.Int "i"),Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
+        ("arr",(SymVar (SYT.Array SYT.Int) "arr",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})),
+        ("arr",(SymVar (SYT.Array SYT.Int) "arr",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
+    (VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),
+    (VarName "i",SymVar SYT.Int "i"),
+    (VarName "j",SymVar SYT.Int "j"),
+    (VarName "temp",SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymVar SYT.Int "i"))
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+swapCall :: SymStateEnv
+swapCall = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "swapCall"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+    (VarAssignments,SVarAssignments [
+        ("arr",(SymArray (Just SYT.Int) (Just 9) [SymInt 5,SymInt 4,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 1],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just 9) [SymInt 4,SymInt 5,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 1])
   ]
 
 -----------------------------
@@ -1658,31 +1685,107 @@ partition = Map.fromList [
 -----------------------------
 -----------------------------
 
-swap :: SymStateEnv
-swap = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Void "swap"),
-    (FormalParms,SFormalParms ["arr","i","j"]),
-    (VarBindings,SVarBindings (Map.fromList [("temp",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
-    (VarAssignments,SVarAssignments [
-        ("temp",(SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymVar SYT.Int "i"),Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
-        ("arr",(SymVar (SYT.Array SYT.Int) "arr",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})),
-        ("arr",(SymVar (SYT.Array SYT.Int) "arr",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
-    (VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),
-    (VarName "i",SymVar SYT.Int "i"),
-    (VarName "j",SymVar SYT.Int "j"),
-    (VarName "temp",SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymVar SYT.Int "i"))
-  ]
-
------------------------------
------------------------------
------------------------------
-
-swapCall :: SymStateEnv
-swapCall = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Void "swapCall"),
+partitionCall1 :: SymStateEnv
+partitionCall1 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "partitionCall1"),
     (VarBindings,SVarBindings (Map.fromList [
-        ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+        ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),
+        ("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
     (VarAssignments,SVarAssignments [
-        ("arr",(SymArray (Just SYT.Int) (Just 9) [SymInt 5,SymInt 4,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 1],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
-    (VarName "arr",SymArray (Just SYT.Int) (Just 9) [SymInt 4,SymInt 5,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 1])
+        ("arr",(SymArray (Just SYT.Int) (Just 1) [SymInt 7],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("x",(SymInt 0,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just 1) [SymInt 7]),
+    (VarName "x",SymInt 0),
+    (Actions,SActions [SymString "[7]\n",SymString "0\n"])
   ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+partitionCall2 :: SymStateEnv
+partitionCall2 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "partitionCall2"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),
+        ("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+    (VarAssignments,SVarAssignments [
+        ("arr",(SymArray (Just SYT.Int) (Just 2) [SymInt 9,SymInt 7],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("x",(SymInt 0,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just 2) [SymInt 7,SymInt 9]),
+    (VarName "x",SymInt 0),
+    (Actions,SActions [SymString "[7, 9]\n",SymString "0\n"])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+partitionCall3 :: SymStateEnv
+partitionCall3 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "partitionCall3"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),
+        ("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+ (VarAssignments,SVarAssignments [
+        ("arr",(SymArray (Just SYT.Int) (Just 2) [SymInt 3,SymInt 7],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("x",(SymInt 1,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just 2) [SymInt 3,SymInt 7]),
+    (VarName "x",SymInt 1),
+    (Actions,SActions [SymString "[3, 7]\n",SymString "1\n"])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+partitionCall4 :: SymStateEnv
+partitionCall4 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "partitionCall4"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),
+        ("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+    (VarAssignments,SVarAssignments [
+        ("arr",(SymArray (Just SYT.Int) (Just 3) [SymInt 9,SymInt 3,SymInt 7],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("x",(SymInt 1,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just 3) [SymInt 3,SymInt 7,SymInt 9]),
+    (VarName "x",SymInt 1),
+    (Actions,SActions [SymString "[3, 7, 9]\n",SymString "1\n"])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+partitionCall5 :: SymStateEnv
+partitionCall5 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "partitionCall5"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),
+        ("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+    (VarAssignments,SVarAssignments [
+        ("arr",(SymArray (Just SYT.Int) (Just 3) [SymInt 1,SymInt 2,SymInt 7],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("x",(SymInt 2,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just 3) [SymInt 1,SymInt 2,SymInt 7]),
+    (VarName "x",SymInt 2),
+    (Actions,SActions [SymString "[1, 2, 7]\n",SymString "2\n"])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+partitionCall6 :: SymStateEnv
+partitionCall6 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "partitionCall6"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),
+        ("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+    (VarAssignments,SVarAssignments [
+        ("arr",(SymArray (Just SYT.Int) (Just 3) [SymInt 9,SymInt 8,SymInt 7],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("x",(SymInt 0,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just 3) [SymInt 7,SymInt 8,SymInt 9]),
+    (VarName "x",SymInt 0),
+    (Actions,SActions [SymString "[7, 8, 9]\n",SymString "0\n"])
+  ]
+

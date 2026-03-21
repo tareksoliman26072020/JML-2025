@@ -3591,40 +3591,81 @@ public static int getMaxCall() {
   return getMax(new int[] {5,4,6,4,7,8,9,0,1});
 }
 
-/////////////////////
+/////////////////
 
-//DONE
-//JavaMethod
 /*
-[
- (MethodHandle,SMethodHandle (Array Int) "quickSortCall"),
- (Return,SymArray (Just Int) (Just 9) [SymInt 0,SymInt 1,SymInt 4,SymInt 4,SymInt 5,SymInt 6,SymInt 7,SymInt 8,SymInt 9])
-]
+public class Main {
+    public static int[] quickSortCall() {
+      return quickSort(new int[] {5,4,6,4,7,8,9,0,1});
+    }
+
+    public static void quickSort(int[] arr) {
+        if (arr == null || arr.length <= 1) {
+            return;
+        }
+
+        // Stack stores pairs: [low, high]
+        int[] stack = new int[arr.length * 2];
+        int top = -1;
+
+        // Push initial full range
+        stack[++top] = 0;
+        stack[++top] = arr.length - 1;
+
+        while (top >= 1) {
+            int high = stack[top--];
+            int low = stack[top--];
+
+            int pivotIndex = partition(arr, low, high);
+
+            // Push left subarray if it exists
+            if (pivotIndex - 1 > low) {
+                stack[++top] = low;
+                stack[++top] = pivotIndex - 1;
+            }
+
+            // Push right subarray if it exists
+            if (pivotIndex + 1 < high) {
+                stack[++top] = pivotIndex + 1;
+                stack[++top] = high;
+            }
+        }
+    }
+
+    private static int partition(int[] arr, int low, int high) {
+        int pivot = arr[high];
+        int i = low - 1;
+
+        for (int j = low; j < high; j++) {
+            if (arr[j] < pivot) {
+                i++;
+                swap(arr, i, j);
+            }
+        }
+
+        swap(arr, i + 1, high);
+        return i + 1;
+    }
+
+    private static void swap(int[] arr, int i, int j) {
+        int temp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = temp;
+    }
+
+    public static void main(String[] args) {
+        int[] arr = {7, 2, 9, 1, 5, 3, 8};
+
+        quickSort(arr);
+
+        for (int x : arr) {
+            System.out.print(x + " ");
+        }
+    }
+}
 */
-public static int[] quickSortCall() {
-  return quickSort(new int[] {5,4,6,4,7,8,9,0,1});
-}
 
-/////////////////////
-
-//TODO
-public static int[] quickSort(int[] arr) {
-  sort0(arr,0,arr.length-1);
-  return arr;
-}
-
-/////////////////////
-
-//TODO
-private static void sort0(int[] arr, int low, int high) {
-  if (low < high) {
-    int pivotIndex = partition(arr, low, high);
-    sort0(arr, low, pivotIndex - 1);
-    sort0(arr, pivotIndex + 1, high);
-  }
-}
-
-/////////////////////
+/////////////////
 
 //DONE
 //JavaMethod
@@ -3663,10 +3704,116 @@ private static int partition(int[] arr, int low, int high) {
   return i + 1;
 }
 
-//TODO
-private static void partitionCall() {
-  int[] arr = new int[] {5,4,6,4,7,8,9,0,1};
-  int x = partition(arr,7,arr.length-1);
+//DONE
+//JavaMethod
+/*
+[
+ (MethodHandle,SMethodHandle Void "partitionCall1"),
+ (VarBindings,SVarBindings (fromList [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+ (VarAssignments,SVarAssignments [("arr",(SymArray (Just Int) (Just 1) [SymInt 7],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),("x",(SymInt 0,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+ (VarName "arr",SymArray (Just Int) (Just 1) [SymInt 7]),
+ (VarName "x",SymInt 0),
+ (Actions,SActions [SymString "[7]\n",SymString "0\n"])
+]
+*/
+private static void partitionCall1() {
+  int[] arr = {7};
+  int x = partition(arr,0,0);
+  println(arr);
+  println(x);
+}
+
+//DONE
+//JavaMethod
+/*
+[
+ (MethodHandle,SMethodHandle Void "partitionCall2"),
+ (VarBindings,SVarBindings (fromList [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+ (VarAssignments,SVarAssignments [("arr",(SymArray (Just Int) (Just 2) [SymInt 9,SymInt 7],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),("x",(SymInt 0,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+ (VarName "arr",SymArray (Just Int) (Just 2) [SymInt 7,SymInt 9]),
+ (VarName "x",SymInt 0),
+ (Actions,SActions [SymString "[7, 9]\n",SymString "0\n"])
+]
+*/
+private static void partitionCall2() {
+  int[] arr = {9,7};
+  int x = partition(arr,0,1);
+  println(arr);
+  println(x);
+}
+
+//DONE
+//JavaMethod
+/*
+[
+ (MethodHandle,SMethodHandle Void "partitionCall3"),
+ (VarBindings,SVarBindings (fromList [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+ (VarAssignments,SVarAssignments [("arr",(SymArray (Just Int) (Just 2) [SymInt 3,SymInt 7],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),("x",(SymInt 1,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+ (VarName "arr",SymArray (Just Int) (Just 2) [SymInt 3,SymInt 7]),
+ (VarName "x",SymInt 1),
+ (Actions,SActions [SymString "[3, 7]\n",SymString "1\n"])
+]
+*/
+private static void partitionCall3() {
+  int[] arr = {3,7};
+  int x = partition(arr,0,1);
+  println(arr);
+  println(x);
+}
+
+//DONE
+//JavaMethod
+/*
+[
+ (MethodHandle,SMethodHandle Void "partitionCall4"),
+ (VarBindings,SVarBindings (fromList [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+ (VarAssignments,SVarAssignments [("arr",(SymArray (Just Int) (Just 3) [SymInt 9,SymInt 3,SymInt 7],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),("x",(SymInt 1,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+ (VarName "arr",SymArray (Just Int) (Just 3) [SymInt 3,SymInt 7,SymInt 9]),
+ (VarName "x",SymInt 1),
+ (Actions,SActions [SymString "[3, 7, 9]\n",SymString "1\n"])
+]
+*/
+private static void partitionCall4() {
+  int[] arr = {9,3,7};
+  int x = partition(arr,0,2);
+  println(arr);
+  println(x);
+}
+
+//DONE
+//JavaMethod
+/*
+[
+ (MethodHandle,SMethodHandle Void "partitionCall5"),
+ (VarBindings,SVarBindings (fromList [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+ (VarAssignments,SVarAssignments [("arr",(SymArray (Just Int) (Just 3) [SymInt 1,SymInt 2,SymInt 7],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),("x",(SymInt 2,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+ (VarName "arr",SymArray (Just Int) (Just 3) [SymInt 1,SymInt 2,SymInt 7]),
+ (VarName "x",SymInt 2),
+ (Actions,SActions [SymString "[1, 2, 7]\n",SymString "2\n"])
+]
+*/
+private static void partitionCall5() {
+  int[] arr = {1,2,7};
+  int x = partition(arr,0,2);
+  println(arr);
+  println(x);
+}
+
+//DONE
+//JavaMethod
+/*
+[
+ (MethodHandle,SMethodHandle Void "partitionCall6"),
+ (VarBindings,SVarBindings (fromList [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+ (VarAssignments,SVarAssignments [("arr",(SymArray (Just Int) (Just 3) [SymInt 9,SymInt 8,SymInt 7],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),("x",(SymInt 0,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+ (VarName "arr",SymArray (Just Int) (Just 3) [SymInt 7,SymInt 8,SymInt 9]),
+ (VarName "x",SymInt 0),
+ (Actions,SActions [SymString "[7, 8, 9]\n",SymString "0\n"])
+]
+*/
+private static void partitionCall6() {
+  int[] arr = {9,8,7};
+  int x = partition(arr,0,2);
   println(arr);
   println(x);
 }

@@ -65,8 +65,12 @@ javaMethodInputs = [
   ("sum1_While", sum1_While), ("sum1_WhileCall", sum1_WhileCall),
   ("getMax", getMax), ("getMaxCall", getMaxCall),
   ("swap", swap), ("swapCall", swapCall),
---  ("quickSortCall", quickSortCall),
-  ("partition", partition)
+  ("partition", partition), ("partitionCall1", partitionCall1),
+                            ("partitionCall2", partitionCall2),
+                            ("partitionCall3", partitionCall3),
+                            ("partitionCall4", partitionCall4),
+                            ("partitionCall5", partitionCall5),
+                            ("partitionCall6", partitionCall6)
 ----------Quick sort:
 
   ]
@@ -716,10 +720,6 @@ getMaxCall = "public static int getMaxCall() {\n\
              \  return getMax(new int[] {5,4,6,4,7,8,9,0,1});\n\
              \}"
 
-quickSortCall = "public static int[] quickSortCall() {\n\
-                \  return quickSort(new int[] {5,4,6,4,7,8,9,0,1});\n\
-                \}"
-
 swap = "private static void swap(int[] arr, int i, int j) {\n\
        \  int temp = arr[i];\n\
        \  arr[i] = arr[j];\n\
@@ -730,6 +730,7 @@ swapCall = "private static void swapCall() {\n\
            \  int[] arr = new int[] {5,4,6,4,7,8,9,0,1};\n\
            \  swap(arr,0,1);\n\
            \}"
+
 
 partition = "private static int partition(int[] arr, int low, int high) {\n\
             \  int pivot = arr[high];\n\
@@ -744,3 +745,44 @@ partition = "private static int partition(int[] arr, int low, int high) {\n\
             \  return i + 1;\n\
             \}"
 
+partitionCall1 = "private static void partitionCall1() {\n\
+                 \  int[] arr = {7};\n\
+                 \  int x = partition(arr,0,0);\n\
+                 \  println(arr);\n\
+                 \  println(x);\n\
+                 \}"
+
+partitionCall2 = "private static void partitionCall2() {\n\
+                 \  int[] arr = {9,7};\n\
+                 \  int x = partition(arr,0,1);\n\
+                 \  println(arr);\n\
+                 \  println(x);\n\
+                 \}"
+
+partitionCall3 = "private static void partitionCall3() {\n\
+                 \  int[] arr = {3,7};\n\
+                 \  int x = partition(arr,0,1);\n\
+                 \  println(arr);\n\
+                 \  println(x);\n\
+                 \}"
+
+partitionCall4 = "private static void partitionCall4() {\n\
+                 \  int[] arr = {9,3,7};\n\
+                 \  int x = partition(arr,0,2);\n\
+                 \  println(arr);\n\
+                 \  println(x);\n\
+                 \}"
+
+partitionCall5 = "private static void partitionCall5() {\n\
+                 \  int[] arr = {1,2,7};\n\
+                 \  int x = partition(arr,0,2);\n\
+                 \  println(arr);\n\
+                 \  println(x);\n\
+                 \}"
+
+partitionCall6 = "private static void partitionCall6() {\n\
+                 \  int[] arr = {9,8,7};\n\
+                 \  int x = partition(arr,0,2);\n\
+                 \  println(arr);\n\
+                 \  println(x);\n\
+                 \}"
