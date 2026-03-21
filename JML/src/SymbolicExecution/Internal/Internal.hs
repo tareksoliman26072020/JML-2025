@@ -649,6 +649,7 @@ cast2 vn newType tu@(symStateKey,symExpr) = case symStateKey of
          SActions _ -> symExpr
          SymNum _ -> symExpr
          SymInt _ -> symExpr
+         SBool _ -> symExpr
          SymString _ -> symExpr
          SymArray mt ms li -> SymArray mt ms $ map (cast2 vn newType . (,) symStateKey) li
          SymNull _ -> symExpr
@@ -883,6 +884,7 @@ getVarNames2 (symStateKey,symExpr) = (case symStateKey of
     SException _ _ _ -> []
     SObjAcc [arrName,"length"] -> [arrName]
     SymFun _ expr -> getVarNames2 (symStateKey,expr)
+    SBool _ -> []
     symExpr -> error $ "TODO3:: getVarNames2 ==> " ++ show symExpr
 
 -- `getVarNames4` is to be used exclusively on if, for, and other kinds of `SymExpr`s
@@ -1024,3 +1026,29 @@ createSymReason (kind,sr) cfg = map $ \node_coor ->
 ------------------------------
 ------------------------------
 ------------------------------
+
+-- pretty print the SymExpr, and ignore the SymType (like in `SymVar`, `SymArray`)
+ppSymExpr_no_symType :: SymExpr -> String
+ppSymExpr_no_symType = \case
+  SymNum num -> show num
+  SymInt num -> show num
+  SymDouble num -> show num
+  SymFloat  num -> show num
+  SBool b -> show b
+  SymString str -> str
+  SBin e1 op e2 -> printf "(%s) %s (%s)"
+      (ppSymExpr_no_symType e1) (show op) (ppSymExpr_no_symType e2)
+  SNot e -> printf "!(%s)" (ppSymExpr_no_symType e)
+  SymNull t -> case t of
+    String -> "null"
+    Int -> "0"
+  SymVar _ s -> s
+  SymArray _ _ elems -> printf "[%s]" $ intercalate ", " (map ppSymExpr_no_symType elems)
+  SArrayIndexAccess _ arrName arrIndexExpr ->
+    printf "%s[%s]" arrName (ppSymExpr_no_symType arrIndexExpr)
+  --SymUnknown (SBin (SymVar Int "low") Sub (SymInt 1)) [
+  --  ([(For,SR {branchStart = 3, branchEnd = 10}),
+  --   (If,SR {branchStart = 5, branchEnd = 8})],6)]
+  SymUnknown symExpr _ -> printf "(Last Known Value: %s)" (ppSymExpr_no_symType symExpr)
+  SObjAcc li -> intercalate "." li
+  symExpr -> error $ "TODO: ppSymExpr_no_symType ==> " ++ show symExpr

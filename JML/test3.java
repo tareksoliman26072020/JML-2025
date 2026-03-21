@@ -3881,6 +3881,82 @@ public static void bubbleSort(int[] arr) {
 
 /////////////////////
 
+//DONE
+/*
+[
+ (MethodHandle,SMethodHandle Bool "isAscending1"),
+ (GlobalVars,SGlobalVars ["length"]),
+ (FormalParms,SFormalParms ["arr"]),
+ (VarBindings,SVarBindings (fromList [
+     ("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 9}})])),
+ (VarAssignments,SVarAssignments [
+     ("res",(SBool True,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 9}})),
+     ("res",(SBool False,Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 4, branchEnd = 6}}))]),
+ (VarName "arr",SymVar (Array Int) "arr"),
+ (VarName "res",SymUnknown (SBool True) [
+     ([(For,SR {branchStart = 2, branchEnd = 8}),(If,SR {branchStart = 4, branchEnd = 6})],5)]),
+ (ScopeRange (SR {branchStart = 2, branchEnd = 8}),
+  SLoop (Just (Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}))
+        (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}, binOp = -, expr2 = NumberLiteral 1.0}}))
+        [Node {id = 4, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, binOp = >, expr2 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0})}})), parent = 2},Node {id = 7, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}})), parent = 2}]),
+ (Return,SymUnknown (SBool True) [
+     ([(For,SR {branchStart = 2, branchEnd = 8}),(If,SR {branchStart = 4, branchEnd = 6})],5)])
+]
+*/
+public boolean isAscending1(int[] arr) {
+  boolean res = true;
+  for(int i = 0; i<arr.length-1; i++) {
+    if(arr[i] > arr[i+1]) {
+      res = false;
+    }
+  }
+  return res;
+}
+
+/////////////////////
+
+//TODO
+public boolean isAscending2(int[] arr) {
+  for(int i = 0; i<arr.length-1; i++) {
+    if(arr[i] > arr[i+1]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/////////////////////
+
+//DONE
+/*
+[
+ (MethodHandle,SMethodHandle Void "isAscending1Call"),
+ (VarBindings,SVarBindings (fromList [("arr1",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("arr2",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+ (VarAssignments,SVarAssignments [("arr1",(SymArray (Just Int) (Just 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 6,SymInt 7,SymInt 99],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),("arr2",(SymArray (Just Int) (Just 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 7,SymInt 6,SymInt 99],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+ (VarName "arr1",SymArray (Just Int) (Just 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 6,SymInt 7,SymInt 99]),
+ (VarName "arr2",SymArray (Just Int) (Just 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 7,SymInt 6,SymInt 99]),
+ (Actions,SActions [SymString "true\n",SymString "false\n"])
+]
+*/
+public void isAscending1Call() {
+  int[] arr1 = new int[]{1,2,4,6,7,99};
+  int[] arr2 = new int[]{1,2,4,7,6,99};
+  println(isAscending1(arr1));
+  println(isAscending1(arr2));
+}
+
+/////////////////////
+
+//TODO
+public void isAscending2Call() {
+  int[] arr1 = new int[]{1,2,4,6,7,99};
+  int[] arr2 = new int[]{1,2,4,7,6,99};
+  println(isAscending2(arr1));
+  println(isAscending2(arr2));
+}
+
+/////////////////////
+
 //TODO
 /*
 SymState {

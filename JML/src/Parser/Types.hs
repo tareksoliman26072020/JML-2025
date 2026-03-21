@@ -189,18 +189,19 @@ getLeftVarAssignExpr = \case
   expr@AssignExpr{} -> assEleft expr
   expr -> error $ "getLeftVarAssignExpr ==> won't happen ==> " ++ show expr
 
-ppExpr :: Expression -> String
-ppExpr = \case
+-- pretty print Expcerrion without its type (such as in VarExpr)
+ppExpr_no_type :: Expression -> String
+ppExpr_no_type = \case
   --VarExpr {varType = Nothing, varObj = [], varName = "i"}
   expr@VarExpr{} -> intercalate "." $ varObj expr ++ [varName expr]
   --BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
   expr@BinOpExpr{} ->
-    printf "%s%s%s" (ppExpr $ expr1 expr) (show $ binOp expr) (ppExpr $ expr2 expr)
+    printf "%s%s%s" (ppExpr_no_type $ expr1 expr) (show $ binOp expr) (ppExpr_no_type $ expr2 expr)
   NumberLiteral num -> show num
   ArrayInstantiationExpr _ _ arrElems -> printf "{%s}"
-    $ intercalate ", " $ map ppExpr arrElems
+    $ intercalate ", " $ map ppExpr_no_type arrElems
   StringLiteral str -> str
-  expr -> error $ "TODO: ppExpr: " ++ show expr
+  expr -> error $ "TODO: Parser.Types.ppExpr_no_type: " ++ show expr
 
 data Type a
   = BuiltInType a

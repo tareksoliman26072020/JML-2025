@@ -802,7 +802,7 @@ funCallCalculator = \case
      SymString str -> SymString $ printf "\"%s\"" str
      -- `SymFun String` is the same as `SymString`
      SymFun ToString _ -> SymFun ToString argExpr
-     SymArray _ _ _ -> SymString $ ppSymExpr argExpr
+     SymArray _ _ _ -> SymString $ ppSymExpr_no_symType argExpr
      SymArray mt ms symExprs ->
        let (areSymStrings,symExprs2) =
              let two = flip map symExprs $ \expr ->
@@ -825,6 +825,8 @@ funCallCalculator = \case
      SymUnknown _ _ -> SymFun ToString argExpr
      SLoopFailure _ _ -> argExpr
      SymFun _ _ -> SymFun ToString argExpr
+     SBool True -> SymString "true"
+     SBool False -> SymString "false"
      _ -> error $ "TODO1: funCallCalculator ==> " ++ show argExpr
   (funName,[argExpr])        
     | funName `elem` [Print,Println] ->

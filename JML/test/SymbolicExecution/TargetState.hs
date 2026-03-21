@@ -71,7 +71,8 @@ allTargets = [
                             ("partitionCall3", partitionCall3),
                             ("partitionCall4", partitionCall4),
                             ("partitionCall5", partitionCall5),
-                            ("partitionCall6", partitionCall6)
+                            ("partitionCall6", partitionCall6),
+  ("isAscending1", isAscending1), ("isAscending1Call", isAscending1Call)
   ]
 
 -----------------------------
@@ -1789,3 +1790,49 @@ partitionCall6 = Map.fromList [
     (Actions,SActions [SymString "[7, 8, 9]\n",SymString "0\n"])
   ]
 
+-----------------------------
+-----------------------------
+-----------------------------
+
+isAscending1 :: SymStateEnv
+isAscending1 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Bool "isAscending1"),
+    (GlobalVars,SGlobalVars ["length"]),
+    (FormalParms,SFormalParms ["arr"]),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 9}})])),
+    (VarAssignments,SVarAssignments [
+        ("res",(SBool True,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 9}})),
+        ("res",(SBool False,Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 4, branchEnd = 6}}))]),
+    (VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),
+    (VarName "res",SymUnknown (SBool True) [
+        ([(For,SR {branchStart = 2, branchEnd = 8}),(If,SR {branchStart = 4, branchEnd = 6})],5)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 8}),
+     SLoop (Just (Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}))
+           (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Less, expr2 = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}, binOp = Minus, expr2 = NumberLiteral 1.0}}))
+           [Node {id = 4, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, binOp = Greater, expr2 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Plus, expr2 = NumberLiteral 1.0})}})), parent = 2},Node {id = 7, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Plus, expr2 = NumberLiteral 1.0}}})), parent = 2}]),
+    (Return,SymUnknown (SBool True) [
+        ([(For,SR {branchStart = 2, branchEnd = 8}),(If,SR {branchStart = 4, branchEnd = 6})],5)])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+isAscending1Call :: SymStateEnv
+isAscending1Call = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "isAscending1Call"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("arr1",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),
+        ("arr2",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+    (VarAssignments,SVarAssignments [
+        ("arr1",(SymArray (Just SYT.Int) (Just 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 6,SymInt 7,SymInt 99],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("arr2",(SymArray (Just SYT.Int) (Just 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 7,SymInt 6,SymInt 99],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+    (VarName "arr1",SymArray (Just SYT.Int) (Just 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 6,SymInt 7,SymInt 99]),
+    (VarName "arr2",SymArray (Just SYT.Int) (Just 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 7,SymInt 6,SymInt 99]),
+    (Actions,SActions [SymString "true\n",SymString "false\n"])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------

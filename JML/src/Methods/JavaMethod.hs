@@ -70,7 +70,8 @@ javaMethodInputs = [
                             ("partitionCall3", partitionCall3),
                             ("partitionCall4", partitionCall4),
                             ("partitionCall5", partitionCall5),
-                            ("partitionCall6", partitionCall6)
+                            ("partitionCall6", partitionCall6),
+  ("isAscending1", isAscending1), ("isAscending1Call", isAscending1Call)
 ----------Quick sort:
 
   ]
@@ -786,3 +787,20 @@ partitionCall6 = "private static void partitionCall6() {\n\
                  \  println(arr);\n\
                  \  println(x);\n\
                  \}"
+
+isAscending1 = "public boolean isAscending1(int[] arr) {\n\
+               \  boolean res = true;\n\
+               \  for(int i = 0; i<arr.length-1; i++) {\n\
+               \    if(arr[i] > arr[i+1]) {\n\
+               \      res = false;\n\
+               \    }\n\
+               \  }\n\
+               \  return res;\n\
+               \}"
+
+isAscending1Call = "public void isAscending1Call() {\n\
+                   \  int[] arr1 = new int[]{1,2,4,6,7,99};\n\
+                   \  int[] arr2 = new int[]{1,2,4,7,6,99};\n\
+                   \  println(isAscending1(arr1));\n\
+                   \  println(isAscending1(arr2));\n\
+                   \}"

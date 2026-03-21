@@ -642,7 +642,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
               incrementLogEnumeration
               let newLogTagStrs = [
                     printf "%s(%s = %s)" funCallName
-                      (AST.ppExpr formalParm) (AST.ppExpr actualParm_exp),
+                      (AST.ppExpr_no_type formalParm) (AST.ppExpr_no_type actualParm_exp),
                     "actual parameter in Method Call"]
               let prependLogs :: [Log.Log] -> [Log.Log]
                   prependLogs = map (\(Log.Log innerCounterStr logTag) ->
@@ -977,13 +977,13 @@ visitExpr expr@AST.AssignExpr{} = do
   let (one_svn,one_val,(leftOpKeyStr,leftOpValStr)) = case one of
        ER_SymStateMapEntry svn val ->
          let theStr = case svn of
-               VarName s -> (s,ppSymExpr val)
+               VarName s -> (s,ppSymExpr_no_symType val)
                _         -> error $ "TODO1: " ++ show one_svn
          in (svn,val,theStr)
        ER_ArrayCallExpr s@(SArrayIndexAccess arrType arrName _) val ->
          --call = SArrayIndexAccess "strs" (SymInt 1)
          --val = SymNull String
-         (VarName arrName,val,(ppSymExpr s,ppSymExpr val))
+         (VarName arrName,val,(ppSymExpr_no_symType s,ppSymExpr_no_symType val))
        ER_Expr ex -> error $ printf "%s: (%s,%s,%s)" loc
            (show expr) (show ex) (show $ AST.assEleft expr)
 
@@ -1019,6 +1019,7 @@ visitExpr expr@AST.AssignExpr{} = do
           ER_ArrayCallExpr _ arrayCallVal ->
             let t = pick_known_symType (toSymType2 arrayCallVal, toSymType2 one_val)
             in cast t arrayCallVal
+          ER_VarExprObjAccess _ e2_ -> e2_
           _ -> error $ printf "TODO2: %s ==> e2 ==> %s" loc (show two)
 
   tellNextLog $ Log.Affected loc [show one, show two]
@@ -1043,7 +1044,7 @@ visitExpr expr@AST.AssignExpr{} = do
       (_,SymArray _ _ _) -> -- casting is done during the creation of two_val
         return two_val
       _ -> return $ cast (toSymType2 one_val) two_val
-  let rightOpValStr = ppSymExpr two_newVal
+  let rightOpValStr = ppSymExpr_no_symType two_newVal
 {-
 two_newVal = SymArray (Just (Array Int)) (Just 2) [SymNull Int,SymNull Int]
 -}
@@ -1170,7 +1171,8 @@ visitExpr expr@AST.ArrayCallExpr{} = do
       indexExpr <- do
         incrementLogEnumeration
         incrementLogDepth *>
-          censor (map $ \(Log.Log str tag) -> Log.Log str $ Log.Nested ("at pos " ++ AST.getVarName expr_) tag)
+          censor (map $ \(Log.Log str tag) -> Log.Log str
+              $ Log.Nested ("at pos " ++ AST.ppExpr_no_type expr_) tag)
                  (visitExpr expr_)
             <* decrementLogDepth
       return $ case indexExpr of

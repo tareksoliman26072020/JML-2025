@@ -163,29 +163,6 @@ data SymExpr =
 
 type SymReason = ([(CFGT.Kind,CFGT.ScopeRange)],Int)
 
-ppSymExpr :: SymExpr -> String
-ppSymExpr = \case
-  SymNum num -> show num
-  SymInt num -> show num
-  SymDouble num -> show num
-  SymFloat  num -> show num
-  SBool b -> show b
-  SymString str -> str
-  SBin e1 op e2 -> printf "(%s) %s (%s)" (ppSymExpr e1) (show op) (ppSymExpr e2)
-  SNot e -> printf "!(%s)" (ppSymExpr e)
-  SymNull t -> case t of
-    String -> "null"
-    Int -> "0"
-  SymVar t s -> s
-  SymArray _ _ elems -> printf "[%s]" $ intercalate ", " (map ppSymExpr elems)
-  SArrayIndexAccess _ arrName arrIndexExpr ->
-    printf "%s[%s]" arrName (ppSymExpr arrIndexExpr)
-  --SymUnknown (SBin (SymVar Int "low") Sub (SymInt 1)) [
-  --  ([(For,SR {branchStart = 3, branchEnd = 10}),
-  --   (If,SR {branchStart = 5, branchEnd = 8})],6)]
-  SymUnknown symExpr _ -> printf "(Last Known Value: %s)" (ppSymExpr symExpr)
-  symExpr -> error $ "TODO: ppSymExpr ==> " ++ show symExpr
-
 data SymType = Int | Double | Float | Bool | Void | Array SymType | String 
              | UnknownGlobalVarSymType
              | UnknownNumSymType deriving (Show,Eq)
