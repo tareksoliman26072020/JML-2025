@@ -654,6 +654,11 @@ cast2 vn newType tu@(symStateKey,symExpr) = case symStateKey of
          SymArray mt ms li -> SymArray mt ms $ map (cast2 vn newType . (,) symStateKey) li
          SymNull _ -> symExpr
          SArrayIndexAccess _ _ _ -> symExpr
+         SObjAcc _ -> symExpr
+         SLoopConditions li -> SLoopConditions
+           $ flip map li $ Map.mapWithKey $ \k v -> if
+             | k==vn     -> cast newType v
+             | otherwise -> v
          _ -> error $ printf "SymbolicExecution.Internal.cast2 ==> TODO ==> (%s ,, %s)" vn (show tu)
 
 -- A non-atomic SymExpr contains a plural number of SymExprs.
@@ -711,6 +716,11 @@ lookupPartialSymExprs vn tu@(symStateKey,symExpr) = case symStateKey of
         in if null x
              then []
            else x ++ [symExpr]
+      ----------
+      SLoopConditions li -> flip concatMap li
+        $ Map.foldMapWithKey $ \k v -> if
+          | k==vn     -> [v]
+          | otherwise -> []
       ----------
       _ -> error
         $ printf "SymbolicExecution.Internal.lookupPartialSymExprs ==> TODO ==> (%s ,, %s)" vn (show tu)

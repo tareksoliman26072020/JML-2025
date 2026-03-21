@@ -71,9 +71,9 @@ javaMethodInputs = [
                             ("partitionCall4", partitionCall4),
                             ("partitionCall5", partitionCall5),
                             ("partitionCall6", partitionCall6),
-  ("isAscending1", isAscending1), ("isAscending1Call", isAscending1Call)
-----------Quick sort:
-
+  ("isAscending1", isAscending1), ("isAscending1Call", isAscending1Call),
+----------Bubble Sort:
+  ("bubbleSort", bubbleSort), ("bubbleSortCall", bubbleSortCall)
   ]
 
 boo30 :: String
@@ -804,3 +804,22 @@ isAscending1Call = "public void isAscending1Call() {\n\
                    \  println(isAscending1(arr1));\n\
                    \  println(isAscending1(arr2));\n\
                    \}"
+
+bubbleSort = "public static void bubbleSort(int[] arr) {\n\
+             \  int n = arr.length;\n\
+             \  for (int i = 0; i < n - 1; i++) {\n\
+             \    for (int j = 0; j < n - i - 1; j++) {\n\
+             \      if (arr[j] > arr[j + 1]) {\n\
+             \        int temp = arr[j];\n\
+             \        arr[j] = arr[j + 1];\n\
+             \        arr[j + 1] = temp;\n\
+             \      }\n\
+             \    }\n\
+             \  }\n\
+             \}"
+
+bubbleSortCall = "public static void bubbleSortCall() {\n\
+                 \  int[] arr = new int[] {5,4,6,4,7,8,9,0,1};\n\
+                 \  bubbleSort(arr);\n\
+                 \  return arr;\n\
+                 \}"

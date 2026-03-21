@@ -564,7 +564,9 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
 
   let symExpr = case getSymExpr er of
         Just expr@(SLoopFailure _ _) -> expr
-        Just symExpr -> cast t symExpr
+        Just symExpr -> case t of
+          Void -> symExpr
+          _    -> cast t symExpr
         Nothing      -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show er
 
   incrementLogEnumeration >>

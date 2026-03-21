@@ -3858,14 +3858,43 @@ private static void swapCall() {
 
 /////////////////////
 
-//TODO
+//DONE
+/*
+[
+ (MethodHandle,SMethodHandle Void "bubbleSortCall"),
+ (VarBindings,SVarBindings (fromList [
+     ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+ (VarAssignments,SVarAssignments [
+     ("arr",(SymArray (Just Int) (Just 9) [SymInt 5,SymInt 4,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 1],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+ (VarName "arr",SymArray (Just Int) (Just 9) [SymInt 0,SymInt 1,SymInt 4,SymInt 4,SymInt 5,SymInt 6,SymInt 7,SymInt 8,SymInt 9]),
+ (Return,SymArray (Just Int) (Just 9) [SymInt 0,SymInt 1,SymInt 4,SymInt 4,SymInt 5,SymInt 6,SymInt 7,SymInt 8,SymInt 9])
+]
+*/
 public static void bubbleSortCall() {
   int[] arr = new int[] {5,4,6,4,7,8,9,0,1};
   bubbleSort(arr);
   return arr;
 }
 
-//TODO
+//DONE
+/*
+[
+ (MethodHandle,SMethodHandle Void "bubbleSort"),
+ (GlobalVars,SGlobalVars []),
+ (FormalParms,SFormalParms ["arr"]),
+ (VarBindings,SVarBindings (fromList [
+     ("n",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 15}})])),
+ (VarAssignments,SVarAssignments [
+     ("n",(SObjAcc ["arr","length"],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 15}})),
+     ("arr",(SymVar (Array Int) "arr",Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 6, branchEnd = 10}})),
+     ("arr",(SymVar (Array Int) "arr",Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 6, branchEnd = 10}}))]),
+ (VarName "arr",SymUnknown (SymVar (Array Int) "arr") [
+     ([(For,SR {branchStart = 2, branchEnd = 14}),(For,SR {branchStart = 4, branchEnd = 12}),(If,SR {branchStart = 6, branchEnd = 10})],8),
+     ([(For,SR {branchStart = 2, branchEnd = 14}),(For,SR {branchStart = 4, branchEnd = 12}),(If,SR {branchStart = 6, branchEnd = 10})],9)]),
+ (VarName "n",SObjAcc ["arr","length"]),
+ (ScopeRange (SR {branchStart = 2, branchEnd = 14}),SLoop (Just (Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0})) (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = -, expr2 = NumberLiteral 1.0}})) [Node {id = 4, nodeData = ForInitialization (Just (AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "j"}, assEright = NumberLiteral 0.0})), parent = 2},Node {id = 13, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}})), parent = 2}])
+]
+*/
 public static void bubbleSort(int[] arr) {
   int n = arr.length;
   for (int i = 0; i < n - 1; i++) {
@@ -3882,6 +3911,7 @@ public static void bubbleSort(int[] arr) {
 /////////////////////
 
 //DONE
+//JavaMethod
 /*
 [
  (MethodHandle,SMethodHandle Bool "isAscending1"),
@@ -3928,6 +3958,7 @@ public boolean isAscending2(int[] arr) {
 /////////////////////
 
 //DONE
+//JavaMethod
 /*
 [
  (MethodHandle,SMethodHandle Void "isAscending1Call"),

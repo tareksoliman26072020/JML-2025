@@ -72,7 +72,9 @@ allTargets = [
                             ("partitionCall4", partitionCall4),
                             ("partitionCall5", partitionCall5),
                             ("partitionCall6", partitionCall6),
-  ("isAscending1", isAscending1), ("isAscending1Call", isAscending1Call)
+  ("isAscending1", isAscending1), ("isAscending1Call", isAscending1Call),
+----------Bubble Sort:
+  ("bubbleSort", bubbleSort), ("bubbleSortCall", bubbleSortCall)
   ]
 
 -----------------------------
@@ -1836,3 +1838,36 @@ isAscending1Call = Map.fromList [
 -----------------------------
 -----------------------------
 -----------------------------
+
+bubbleSort :: SymStateEnv
+bubbleSort = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "bubbleSort"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["arr"]),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("n",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 15}})])),
+    (VarAssignments,SVarAssignments [
+        ("n",(SObjAcc ["arr","length"],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 15}})),
+        ("arr",(SymVar (SYT.Array SYT.Int) "arr",Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 6, branchEnd = 10}})),
+        ("arr",(SymVar (SYT.Array SYT.Int) "arr",Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 6, branchEnd = 10}}))]),
+    (VarName "arr",SymUnknown (SymVar (SYT.Array SYT.Int) "arr") [
+        ([(For,SR {branchStart = 2, branchEnd = 14}),(For,SR {branchStart = 4, branchEnd = 12}),(If,SR {branchStart = 6, branchEnd = 10})],8),
+        ([(For,SR {branchStart = 2, branchEnd = 14}),(For,SR {branchStart = 4, branchEnd = 12}),(If,SR {branchStart = 6, branchEnd = 10})],9)]),
+    (VarName "n",SObjAcc ["arr","length"]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 14}),SLoop (Just (Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0})) (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Less, expr2 = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = Minus, expr2 = NumberLiteral 1.0}})) [Node {id = 4, nodeData = ForInitialization (Just (AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "j"}, assEright = NumberLiteral 0.0})), parent = 2},Node {id = 13, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Plus, expr2 = NumberLiteral 1.0}}})), parent = 2}])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+bubbleSortCall :: SymStateEnv
+bubbleSortCall = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "bubbleSortCall"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+    (VarAssignments,SVarAssignments [
+        ("arr",(SymArray (Just SYT.Int) (Just 9) [SymInt 5,SymInt 4,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 1],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just 9) [SymInt 0,SymInt 1,SymInt 4,SymInt 4,SymInt 5,SymInt 6,SymInt 7,SymInt 8,SymInt 9]),
+ (Return,SymArray (Just SYT.Int) (Just 9) [SymInt 0,SymInt 1,SymInt 4,SymInt 4,SymInt 5,SymInt 6,SymInt 7,SymInt 8,SymInt 9])
+  ]
