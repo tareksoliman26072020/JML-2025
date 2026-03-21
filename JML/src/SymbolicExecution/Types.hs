@@ -180,6 +180,10 @@ ppSymExpr = \case
   SymArray _ _ elems -> printf "[%s]" $ intercalate ", " (map ppSymExpr elems)
   SArrayIndexAccess _ arrName arrIndexExpr ->
     printf "%s[%s]" arrName (ppSymExpr arrIndexExpr)
+  --SymUnknown (SBin (SymVar Int "low") Sub (SymInt 1)) [
+  --  ([(For,SR {branchStart = 3, branchEnd = 10}),
+  --   (If,SR {branchStart = 5, branchEnd = 8})],6)]
+  SymUnknown symExpr _ -> printf "(Last Known Value: %s)" (ppSymExpr symExpr)
   symExpr -> error $ "TODO: ppSymExpr ==> " ++ show symExpr
 
 data SymType = Int | Double | Float | Bool | Void | Array SymType | String 

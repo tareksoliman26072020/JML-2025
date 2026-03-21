@@ -1187,8 +1187,8 @@ callSuccFun :: SymStateEnv
 callSuccFun = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "callSuccFun"),
     (FormalParms,SFormalParms ["n"]),
-    (VarName "n",SBin (SymVar SYT.Int "n") SYT.Add (SymInt 1)),
-    (Return,SBin (SymVar SYT.Int "n") SYT.Add (SymInt 1))
+    (VarName "n",SymVar SYT.Int "n"),
+    (Return,SymVar SYT.Int "n")
   ]
 
 -----------------------------
@@ -1198,7 +1198,7 @@ callSuccFun = Map.fromList [
 callCallSuccFun :: SymStateEnv
 callCallSuccFun = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "callCallSuccFun"),
-    (Return,SymInt 6)
+    (Return,SymInt 5)
   ]
 
 -----------------------------

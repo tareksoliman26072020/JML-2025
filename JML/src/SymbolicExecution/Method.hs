@@ -184,17 +184,17 @@ instance CFGVisitor MethodProcessor where
         let mainActions = getActions stateEnv
         let mainVarAssignments = getVarAssignments stateEnv
         let mainVarNames = getVarNames stateEnv
-        
+
         toReturn <- case expr2 of
               SBool b -> do
                 case branches_paths of
                   [ifB] | b -> do
                     let (logs,condSymState) = let
                           (er,logs,condSymState) = runCFG cfgs cfg (Just ifB)
-                            (Just $ SymState (env state) (Log.Header 1 [0]))
-                           in case er of
-                                "" -> (logs,condSymState)
-                                _  -> error $ printf "%s ==> if condition is true: " loc er
+                            (Just $ SymState stateEnv (Log.Header 1 [0]))
+                          in case er of
+                               "" -> (logs,condSymState)
+                               _  -> error $ printf "%s ==> if condition is true: %s" loc er
                     do
                       incrementLogEnumeration
                       flip mapM_ logs $ \log -> do
@@ -218,7 +218,14 @@ instance CFGVisitor MethodProcessor where
                                          (lookup name mainVarAssignments)
                                 ) VarAssignments addActions
                           in deleteVarAssignments
-                    tellNextLog $ Log.ModifyState (printf "%s ==> overwriting if" loc) ("<new state>",show newCondSymStateEnv)
+                    --tellNextLog $ Log.ModifyState (printf "%s ==> overwriting if" loc) ("<new state>",show newCondSymStateEnv)
+                    env <$> get >>= \theEnv -> tellNextLog
+                      $ Log.ModifyState
+                          (printf "%s ==> overwriting if" loc)
+                          (printf "old state: %s\n\n\
+                                  \condSymState: %s\n\n\
+                                  \sEnv: %s" (show theEnv) (show condSymState) (show sEnv),
+                           printf "new state: %s" (show newCondSymStateEnv))
                     modify $ \symState -> SymState {
                         env = newCondSymStateEnv,
                         logHeader = logHeader symState
@@ -646,14 +653,37 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                 return er
                 
           -- actualParms of the method call
-          let actualParms1 :: [(SymStateKey,SymExpr)]
+          -- actualParms1 = [
+          --   (VarName "brand",
+          --    (VarName "arr",
+          --     SymArray (Just String) (Just 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"]
+          --    ))]
+          {-
+          public static void manyArrs7Call2() {
+            String[] brand = new String[] {"Toyota","Mercedes","BMW","Volkswagen","Skoda"};
+            manyArrs7(brand);
+          }
+
+          public void manyArrs7(String[] arr) {
+            for(int i=0; i<arr.length; i++) {
+              arr[i] = toString(i+1) + ". " + arr[i];
+            }
+            println(arr);
+          }
+           -}
+          let actualParms1 :: [(Maybe SymStateKey,(SymStateKey,SymExpr))]
               actualParms1 = zipWith (\fParm act ->
-                let maybeActual = getSymExpr act
+                let originalVarName = case act of
+                      ER_SymStateMapEntry key symExpr -> Just key
+                      ER_Expr (SymNum _) -> Nothing
+                      ER_Expr (SymArray _ _ _) -> Nothing
+                      _ -> error $ "TODO1 ==> visitExpr -> FunCallExpr -> " ++ show act
+                    maybeActual = getSymExpr act
                 in case maybeActual of
-                     Nothing -> error "TODO1 ==> visitExpr -> FunCallExpr"
+                     Nothing -> error "TODO2 ==> visitExpr -> FunCallExpr"
                      Just actual ->
                        let Just t = fmap toSymType1 $ AST.varType fParm
-                       in (VarName $ AST.getVarName fParm,cast t actual) 
+                       in (originalVarName,(VarName $ AST.getVarName fParm,cast t actual))
                 ) formalParms actualParms
           
           {-
@@ -676,7 +706,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
            -}
           {-
           actualParms = [ER_SymStateMapEntry (VarName "x") (SymNum 3.0)]
-          actualParms1 = [(VarName "n",SymInt 3)]
+          actualParms1 = [(VarName "x",(VarName "n",SymInt 3))]
            -}
           --env1 <- env <$> get
           zipWithM_ (\er (_,symExpr1) -> case er of
@@ -686,8 +716,8 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                  $ map toSymType2 [symExpr1,symExpr2])
                 (ER_SymStateMapEntry vn symExpr1)
             ER_Expr symExpr2 -> return ()
-            _ -> throwError $ "TODO2 ==> visitExpr -> FunCallExpr: " ++ show er)
-            actualParms actualParms1
+            _ -> throwError $ "TODO3 ==> visitExpr -> FunCallExpr: " ++ show er)
+            actualParms (map snd actualParms1)
           -- global vars to be inserted into the method call Map.Map
           -- Global vars which have the same name of formal parms get excluded
           -- (globalVars,globalVarsMap) :: ([String],Map.Map SymStateKey SymExpr)
@@ -707,7 +737,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
             return (globalVars,theMap)
           let funCallMap0 =
                 Map.union globalVarsMap
-                $ Map.union (Map.fromList actualParms1)
+                $ Map.union (Map.fromList (map snd actualParms1))
                 $ Map.insert FormalParms (SFormalParms funCall_formalParms_varNames)
                 $ Map.insert GlobalVars (SGlobalVars globalVars)
                 Map.empty
@@ -730,7 +760,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
           tellNextLog $ Log.Nested ("actual: " ++ funCallName) $ Log.MethodFormalParams
               (show funCall_formalParms_varNames)
               "visitExpr -> FunCallExpr"
-          -- tell actualParms
+          -- tell actualParms1
           tellNextLog $ Log.Nested ("actual: " ++ funCallName) $ Log.MethodActualParms
               (show actualParms1)
               "visitExpr -> FunCallExpr"
@@ -745,29 +775,33 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                 VarName vn
                   | vn `elem` inherit_globalVars -> True
                 _ -> False
-          mainFunFormalParms :: [String] <- (getFormalParms . env) <$> get
-          let inherit_formalParms :: [(String,SymExpr)]
-              inherit_formalParms =
-                -- pair formals of the funcall `callSuccFun` with formals of the fun `succFun`
-                -- [(n,i)]
-                let funCallFormalParms :: [(String,String)]
-                    funCallFormalParms = zip mainFunFormalParms funCall_formalParms_varNames
-                -- replace the key `i` with its value `SBin (SymVar Int "n") Add (SymInt 1)`
-                -- [(n,SBin (SymVar Int "n") Add (SymInt 1))]
-                    getFunCallFormalVal :: [(String,SymExpr)]
-                    getFunCallFormalVal = do
-                      (mainFormalParmVarName,funCallFormalParmVarName) <- funCallFormalParms
-                      case findVarName funCallFormalParmVarName (env funCallSymState2) of
-                        Nothing -> error $ loc ++ " -> inherit_formalParms -> won't happen1"
-                        Just symExpr -> return (mainFormalParmVarName,symExpr)
-                    {-
-                    getFunCallFormalVal = flip map funCallFormalParms $
-                      \tu -> flip fmap tu $ \vn ->
-                        case findVarName vn (env funCallSymState2) of
-                          Nothing -> error "visitExpr -> FunCallExpr -> inherit_formalParms -> won't happen1"
-                          Just symExpr -> symExpr
-                     -}
-                in getFunCallFormalVal
+          {-inherit_formalParms :: [(String,SymExpr)] <- do
+            mainFunFormalParms :: [String] <- (getFormalParms . env) <$> get
+            -- pair formals of the funcall `callSuccFun` with formals of the fun `succFun`
+            -- [(n,i)]
+            let funCallFormalParms :: [(String,String)]
+                funCallFormalParms = zip mainFunFormalParms funCall_formalParms_varNames
+            -- replace the key `i` with its value `SBin (SymVar Int "n") Add (SymInt 1)`
+            -- [(n,SBin (SymVar Int "n") Add (SymInt 1))]
+                getFunCallFormalVal :: [(String,SymExpr)]
+                getFunCallFormalVal = do
+                  (mainFormalParmVarName,funCallFormalParmVarName) <- funCallFormalParms
+                  case findVarName funCallFormalParmVarName (env funCallSymState2) of
+                    Nothing -> error $ loc ++ " -> inherit_formalParms -> won't happen1"
+                    Just symExpr -> return (mainFormalParmVarName,symExpr)
+            --return getFunCallFormalVal
+            env <$> get >>= \theEnv -> throwError $ printf
+              "MEOW::\n\n\
+              \1) %s\n\n\
+              \2) %s\n\n\
+              \3) %s\n\n\
+              \4) %s\n\n"
+              (show theEnv) (show mainFunFormalParms) (show funCall_formalParms_varNames)
+              (show getFunCallFormalVal)-}
+          {-env <$> get >>= \theEnv ->
+            throwError $ printf "MEOW::\n\n\
+                                \1) %s\n\n"
+              (show inherit_formalParms)-}
           ----------
           -- inheriting the method call's actual parms
           -- if they are defined outside the method call.
@@ -791,19 +825,28 @@ visitExpr (expr@AST.FunCallExpr{}) = do
         --inherit_actualParms :: Map.Map SymStateKey SymExpr
           inherit_actualParms <- do
             theEnv <- env <$> get
-            let mainFunVarNames :: [String]
+            let -- `mainFunVarNames` has formal parameters + local variables
+                mainFunVarNames :: [String]
                 mainFunVarNames = flip foldMap theEnv $ \case
                   SVarBindings m  -> Map.keys m
                   SFormalParms li -> li
                   _ -> []
             let funCallSymState2Env = env funCallSymState2
-            let relevantActualParms :: [String]
-                relevantActualParms = [ vn
-                  | (VarName vn,_) <- actualParms1
-                  , vn `elem` mainFunVarNames]
-            return $ flip Map.filterWithKey (getVarNames funCallSymState2Env)
-              $ \(VarName vn) _ -> vn `elem` relevantActualParms
+            let relevantActualParms :: [(String,String)]
+                relevantActualParms = [ (vn2,vn)
+                  | (Just (VarName vn),(VarName vn2,_)) <- actualParms1]
+            {-throwError
+              $ printf "MEOW::\n\n\
+                       \1) %s\n\n\
+                       \2) %s\n\n\
+                       \3) %s" (show actualParms1) (show mainFunVarNames) (show relevantActualParms)-}
+            let funCallVarNames = getVarNames funCallSymState2Env
+            return $ Map.fromList $ flip map relevantActualParms
+                  $ \(fromCall,fromOrig) -> case Map.lookup (VarName fromCall) funCallVarNames of
+                    Just symExpr -> (VarName fromOrig,symExpr)
+                    Nothing -> error $ printf "%s ==> relevantMapEntries ==> won't happen" loc
           ----------
+          --throwError $ "MEOW:: " ++ show inherit_actualParms
           -- inheriting the method call's global vars list
           if null inherit_globalVars
             then return ()
@@ -848,7 +891,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                   logHeader = logHeader symState
                 }
           ----------
-          if null inherit_formalParms
+          {-if null inherit_formalParms
             then return ()
             else do
               tellNextLog $ Log.ModifyState "visitExpr -> FunCallExpr -> inheriting formalParms" ("FormalParms",show inherit_formalParms)
@@ -858,7 +901,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                     Nothing -> error "visitExpr -> FunCallExpr -> inherit_formalParms -> won't happen2"
                     Just _ -> Just newVal) (VarName k) ma) (env symState) inherit_formalParms,
                   logHeader = logHeader symState
-                }
+                }-}
           ----------
           if Map.null inherit_actualParms
             then return ()
@@ -1400,6 +1443,7 @@ visitRegisteredLoop loopCounter env_Before_Acc cfg m_Acc mForCondExpr forBody_fo
     -- it's atomic, and terminate
     SBool False -> do
       tellNextLog $ Log.ForLoopDone loc
+      get >>= \theEnv -> tellNextLog $ Log.ReportTheState loc (show theEnv)
       return ER_ForLoopDone
    -- it's not atomic
     _ -> throwError $ printf "%s ==> won't happen3" loc
