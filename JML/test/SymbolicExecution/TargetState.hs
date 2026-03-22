@@ -1,6 +1,6 @@
 module SymbolicExecution.TargetState (target) where
 
-import Prelude hiding (id)
+import Prelude hiding (id, replicate)
 import qualified Data.Map as Map
 
 import CFG.Types
@@ -74,7 +74,8 @@ allTargets = [
                             ("partitionCall6", partitionCall6),
   ("isAscending1", isAscending1), ("isAscending1Call", isAscending1Call),
 ----------Bubble Sort:
-  ("bubbleSort", bubbleSort), ("bubbleSortCall", bubbleSortCall)
+  ("bubbleSort", bubbleSort), ("bubbleSortCall", bubbleSortCall),
+  ("replicate", replicate), ("replicateCall", replicateCall)
   ]
 
 -----------------------------
@@ -1870,4 +1871,47 @@ bubbleSortCall = Map.fromList [
         ("arr",(SymArray (Just SYT.Int) (Just 9) [SymInt 5,SymInt 4,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 1],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
     (VarName "arr",SymArray (Just SYT.Int) (Just 9) [SymInt 0,SymInt 1,SymInt 4,SymInt 4,SymInt 5,SymInt 6,SymInt 7,SymInt 8,SymInt 9]),
  (Return,SymArray (Just SYT.Int) (Just 9) [SymInt 0,SymInt 1,SymInt 4,SymInt 4,SymInt 5,SymInt 6,SymInt 7,SymInt 8,SymInt 9])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+replicate :: SymStateEnv
+replicate = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.String "replicate"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["n","v"]),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("core",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}),
+        ("res",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
+    (VarAssignments,SVarAssignments [
+        ("core",(SymVar SYT.String "v",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),
+        ("res",(SymString "",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}})),
+        ("res",(SBin (SymString "") SYT.Add (SymVar SYT.String "v"),Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 3, branchEnd = 7}}))]),
+    (VarName "core",SymVar SYT.String "v"),
+    (VarName "n",SymVar SYT.Int "n"),
+    (VarName "res",SymUnknown (SymString "") [
+        ([(For,SR {branchStart = 3, branchEnd = 7})],5)]),
+    (VarName "v",SymVar SYT.String "v"),
+    (ScopeRange (SR {branchStart = 3, branchEnd = 7}),
+     SLoop (Just (Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}), parent = 0}))
+           (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Greater, expr2 = NumberLiteral 0.0}))
+           [Node {id = 5, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = Plus, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "core"}}}}), parent = 3},Node {id = 6, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Minus, expr2 = NumberLiteral 1.0}}})), parent = 3}]),
+    (Return,SymUnknown (SymString "") [([(For,SR {branchStart = 3, branchEnd = 7})],5)])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+replicateCall :: SymStateEnv
+replicateCall = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.String "replicateCall"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("str",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
+    (VarAssignments,SVarAssignments [
+        ("str",(SymString "qwqwqwqwqw",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
+    (VarName "str",SymString "qwqwqwqwqw"),
+    (Return,SymString "qwqwqwqwqw")
   ]

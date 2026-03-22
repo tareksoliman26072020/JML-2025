@@ -683,6 +683,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                       ER_Expr (SymArray _ _ _) -> Nothing
                       ER_Expr (SymInt _) -> Nothing
                       ER_Expr (SBin _ _ _) -> Nothing
+                      ER_Expr (SymString _) -> Nothing
                       _ -> error $ "TODO1 ==> visitExpr -> FunCallExpr -> " ++ show act
                     maybeActual = getSymExpr act
                 in case maybeActual of

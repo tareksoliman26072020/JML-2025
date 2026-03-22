@@ -1,6 +1,6 @@
 module Methods.JavaMethod (javaMethodInputs) where
 
-
+import Prelude hiding (replicate)
 -- when you add a method, add it also to
 -- 1) `javaMethodInputs`
 -- 2) `test.SymbolicExecution.TargetState`
@@ -73,7 +73,8 @@ javaMethodInputs = [
                             ("partitionCall6", partitionCall6),
   ("isAscending1", isAscending1), ("isAscending1Call", isAscending1Call),
 ----------Bubble Sort:
-  ("bubbleSort", bubbleSort), ("bubbleSortCall", bubbleSortCall)
+  ("bubbleSort", bubbleSort), ("bubbleSortCall", bubbleSortCall),
+  ("replicate", replicate), ("replicateCall", replicateCall)
   ]
 
 boo30 :: String
@@ -823,3 +824,18 @@ bubbleSortCall = "public static void bubbleSortCall() {\n\
                  \  bubbleSort(arr);\n\
                  \  return arr;\n\
                  \}"
+
+replicate = "public String replicate(int n,String v) {\n\
+            \  String core = v;\n\
+            \  String res = \"\";\n\
+            \  for(int i=n; i>0; i--) {\n\
+            \    res += core;\n\
+            \  }\n\
+            \  return res;\n\
+            \}"
+
+replicateCall = "public String replicateCall() {\n\
+                \  String str = replicate(5,\"qw\");\n\
+                \  return str;\n\
+                \}"
+

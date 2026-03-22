@@ -722,6 +722,10 @@ lookupPartialSymExprs vn tu@(symStateKey,symExpr) = case symStateKey of
           | k==vn     -> [v]
           | otherwise -> []
       ----------
+    --(temp ,, (VarName "arr",SymArray (Just Int) (Just 9) [SymInt 5,SymInt 4,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 1]))
+    --SymArray (Just Int) (Just 9) [SymInt 5,SymInt 4,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 1]
+      SymArray _ _ elems -> flip concatMap elems
+        $ lookupPartialSymExprs vn . (,) symStateKey
       _ -> error
         $ printf "SymbolicExecution.Internal.lookupPartialSymExprs ==> TODO ==> (%s ,, %s)" vn (show tu)
 

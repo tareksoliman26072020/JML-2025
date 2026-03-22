@@ -3592,7 +3592,21 @@ public static int getMaxCall() {
 }
 
 /////////////////
-
+/*
+public static int[] tail(int[] arr) {
+  if (arr == null || arr.length <= 1) {
+    throw new Exception("array is too small");
+  }
+  else {
+    int[] arr2 = new int[arr.length-1];
+    for (int i = 1, int j = 0; i<arr.length; i++, j++) {
+      arr2[j] = arr[i];
+    }
+    return arr2;
+  }
+}
+*/
+/////////////////
 /*
 public class Main {
     public static int[] quickSortCall() {
@@ -3819,6 +3833,7 @@ private static void partitionCall6() {
 }
 
 //DONE
+//JavaMethod
 /*
 [
  (MethodHandle,SMethodHandle Void "swap"),
@@ -3841,6 +3856,7 @@ private static void swap(int[] arr, int i, int j) {
 }
 
 //DONE
+//JavaMethod
 /*
 [
  (MethodHandle,SMethodHandle Void "swapCall"),
@@ -3859,6 +3875,7 @@ private static void swapCall() {
 /////////////////////
 
 //DONE
+//JavaMethod
 /*
 [
  (MethodHandle,SMethodHandle Void "bubbleSortCall"),
@@ -3877,6 +3894,7 @@ public static void bubbleSortCall() {
 }
 
 //DONE
+//JavaMethod
 /*
 [
  (MethodHandle,SMethodHandle Void "bubbleSort"),
@@ -3988,23 +4006,29 @@ public void isAscending2Call() {
 
 /////////////////////
 
-//TODO
+//DONE
+//JavaMethod
 /*
-SymState {
-  env = fromList [
-    (MethodName "replicate",SMethodType String),
-    (GlobalVars,SGlobalVars []),
-    (FormalParms,SFormalParms ["n","v"]),
-    (VarBindings,SVarBindings (fromList [("core",Node_Coor {varDeclAt = 1, varFrame = 0}),("res",Node_Coor {varDeclAt = 2, varFrame = 0})])),
-    (VarAssignments,SVarAssignments [("core",Node_Coor {varDeclAt = 1, varFrame = 0}),("res",Node_Coor {varDeclAt = 2, varFrame = 0}),("res",Node_Coor {varDeclAt = 5, varFrame = 3})]),
-    (BranchRange (BR {branchStart = 3, branchEnd = 7}),SLoop (Just (Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}), parent = 0})) (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >, expr2 = NumberLiteral 0.0})) [Node {id = 5, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "core"}}}}), parent = 3},Node {id = 6, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = -, expr2 = NumberLiteral 1.0}}})), parent = 3}]),
-    (VarName "core",SymFormalParam String "v" Nothing),
-    (VarName "n",SymFormalParam Int "n" Nothing),
-    (VarName "res",SymUnknown (String,"res",Just (SymString "")) (ForBranchingReason (BR {branchStart = 3, branchEnd = 7}))),
-    (VarName "v",SymFormalParam String "v" Nothing),
-    (Return,SymUnknown (String,"res",Just (SymString "")) (ForBranchingReason (BR {branchStart = 3, branchEnd = 7})))
-  ], pc = []
-}
+[
+ (MethodHandle,SMethodHandle String "replicate"),
+ (GlobalVars,SGlobalVars []),
+ (FormalParms,SFormalParms ["n","v"]),
+ (VarBindings,SVarBindings (fromList [
+     ("core",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}),
+     ("res",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
+ (VarAssignments,SVarAssignments [
+     ("core",(SymVar String "v",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),
+     ("res",(SymString "",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}})),
+     ("res",(SBin (SymString "") Add (SymVar String "v"),Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 3, branchEnd = 7}}))]),
+ (VarName "core",SymVar String "v"),
+ (VarName "n",SymVar Int "n"),
+ (VarName "res",SymUnknown (SymString "") [
+     ([(For,SR {branchStart = 3, branchEnd = 7})],5)]),
+ (VarName "v",SymVar String "v"),
+ (ScopeRange (SR {branchStart = 3, branchEnd = 7}),
+  SLoop (Just (Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}), parent = 0})) (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >, expr2 = NumberLiteral 0.0})) [Node {id = 5, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "core"}}}}), parent = 3},Node {id = 6, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = -, expr2 = NumberLiteral 1.0}}})), parent = 3}]),
+ (Return,SymUnknown (SymString "") [([(For,SR {branchStart = 3, branchEnd = 7})],5)])
+]
 */
 public String replicate(int n,String v) {
   String core = v;
@@ -4013,6 +4037,24 @@ public String replicate(int n,String v) {
     res += core;
   }
   return res;
+}
+
+//DONE
+//JavaMethod
+/*
+[
+ (MethodHandle,SMethodHandle String "replicateCall"),
+ (VarBindings,SVarBindings (fromList [
+     ("str",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
+ (VarAssignments,SVarAssignments [
+     ("str",(SymString "qwqwqwqwqw",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
+ (VarName "str",SymString "qwqwqwqwqw"),
+ (Return,SymString "qwqwqwqwqw")
+]
+*/
+public String replicateCall() {
+  String str = replicate(5,"qw");
+  return str;
 }
 
 /////////////////////

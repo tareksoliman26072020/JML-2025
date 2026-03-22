@@ -42,6 +42,10 @@ getAST methodName = readFile "test3.java" >>=
   . find ((== methodName) . snd . AST.getMethodDecl)
   . fromRight undefined . parse parseDeclList ""
 
+getAST2 ::IO (Either ParseError Method)--AST.Method
+getAST2 = readFile "test2.java" >>= return .
+  parse parseExtDecl ""
+
 getSymbolTable :: IO STT.Entry
 getSymbolTable = readFile "test2.java" >>= return
   . ST.exec
@@ -77,15 +81,20 @@ getCFGs = readFile "test3.java" >>= return
   . fromRight undefined . parse parseDeclList ""
 
 -- print specific given java method SymState to the console
-printSymState1 :: String -> IO SYT.SymState
-printSymState1 funName = readFile "test3.java" >>=
+printSymState1 :: String -> Bool -> IO SYT.SymState
+printSymState1 funName withLogs = readFile "test3.java" >>=
   (\cfgs -> case CFG2.findCFGByName funName cfgs of
               Just cfg0 ->
                 let (er,logs,s) = SYM.runCFG cfgs cfg0 Nothing Nothing
                 in case er of
-                     "" -> do putStrLn $ (SYT.Log.ppLogs SYT.Log.Console logs)
+                     "" -> do if withLogs
+                                then putStrLn $ (SYT.Log.ppLogs SYT.Log.Console logs)
+                                else return ()
                               return s
-                     _  -> do putStrLn $ (SYT.Log.ppLogs SYT.Log.Console logs)
+                                        
+                     _  -> do if withLogs
+                                then putStrLn $ (SYT.Log.ppLogs SYT.Log.Console logs)
+                                else return ()
                               putStrLn $ replicate 50 '='
                               print s
                               putStrLn $ replicate 50 '='
