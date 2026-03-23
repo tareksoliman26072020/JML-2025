@@ -684,6 +684,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                       ER_Expr (SymInt _) -> Nothing
                       ER_Expr (SBin _ _ _) -> Nothing
                       ER_Expr (SymString _) -> Nothing
+                      ER_Expr (SymNull _) -> Nothing
                       _ -> error $ "TODO1 ==> visitExpr -> FunCallExpr -> " ++ show act
                     maybeActual = getSymExpr act
                 in case maybeActual of
@@ -947,6 +948,18 @@ visitExpr expr@AST.BinOpExpr{} = do
         incrementLogDepth *> inferGlobalVarType newUnifiedSymType expr <* decrementLogDepth
 
       tellNextLog $ Log.Affected "visitExpr -> BinOpExpr" [show one,show $ AST.binOp expr,show two]
+      {-case two of
+        SymNull UnknownGlobalVarSymType ->
+          return ER_Void
+        _ ->-}
+      {-throwError $ printf
+          "MEOW::\n\n\
+          \1) %s\n\n\
+          \2) %s\n\n\
+          \3) %s\n\n\
+          \4) %s\n\n\
+          \5) %s\n\n"
+          (show one) (show two) (show $ toSymType2 one) (show $ toSymType2 two) (show newUnifiedSymType)-}
       let op1 = cast newUnifiedSymType one
           operator = toSymBinOp $ AST.binOp expr
           op2 = cast newUnifiedSymType two
@@ -1261,7 +1274,12 @@ visitExpr expr@AST.ArrayInstantiationExpr{} = do
   let toReturn = ER_Expr symExpr
   tellNextLog (Log.Return "SymbolicExecution.Method.visitExpr.ArrayInstantiationExpr" (show toReturn)) $> toReturn
 
-visitExpr expr = error $ "What this is: " ++ show expr
+visitExpr expr@AST.Null = do
+  let loc = "SymbolicExecution.Method.visitExpr"
+  tellNextLog $ Log.Expression_2_Handle (show expr) loc
+  let toReturn = ER_Expr $ SymNull UnknownGlobalVarSymType
+  tellNextLog (Log.Return loc (show toReturn)) $> toReturn
+visitExpr expr = error $ "TODO: visitExpr ==> What this is: " ++ show expr
 
 ------------------------------
 

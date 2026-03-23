@@ -290,7 +290,9 @@ toSymType2 = \case
     [_,"length"] -> Int
     _ -> error $ "TODO1: toSymType2 ==> " ++ show (SObjAcc li)
   (SymUnknown expr _) -> toSymType2 expr
-  SBin a _ b -> pick_known_symType (toSymType2 a,toSymType2 b)
+  SBin a op b
+    | isBooleanOperator op -> Bool
+    | otherwise -> pick_known_symType (toSymType2 a,toSymType2 b)
   SymNum _ -> UnknownNumSymType
   SymString _ -> String
   SException symType _ _ -> symType
@@ -547,6 +549,12 @@ cast symType symExpr = case (symType,symExpr) of
     | not (symType `isInstanceOf` toSymType2 symExpr) ->
         SymFun ToString symExpr
   ----------
+  -- when type is Bool, types of expr1 and expr2 may not necessarily be Bool
+  -- Example: (Bool , SBin (SObjAcc ["arr","length"]) Le (SymInt 1))
+  (Bool,SBin expr1 op expr2) ->
+    let newType = pick_known_symType (toSymType2 expr1,toSymType2 expr2)
+    in SBin (cast newType expr1) op (cast newType expr2)
+  ----------
   (_,SBin expr1 op expr2) -> SBin (cast symType expr1) op (cast symType expr2)
   ----------
   (Int,SymInt num) -> SymInt num
@@ -586,6 +594,8 @@ cast symType symExpr = case (symType,symExpr) of
   ----------
   (t1,SymFun pf expr) ->
     SymFun pf $ cast t1 expr
+  ----------
+  (_,SObjAcc _) -> symExpr
   ----------
   _
     | toSymType2 symExpr `isInstanceOf` symType -> symExpr

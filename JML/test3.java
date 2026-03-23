@@ -3592,20 +3592,51 @@ public static int getMaxCall() {
 }
 
 /////////////////
+
 /*
+[
+ (MethodHandle,SMethodHandle Bool "arrayBoolean"),
+ (FormalParms,SFormalParms ["arr"]),
+ (VarName "arr",SymVar (Array Int) "arr"),
+ (Return,SBin (SBin (SymVar (Array Int) "arr") Eq (SymNull (Array Int)))
+                    Or
+                    (SBin (SObjAcc ["arr","length"]) Le (SymInt 1)))
+]
+*/
+public static boolean arrayBoolean(int[] arr) {
+  return arr == null || arr.length <= 1;
+}
+
+/*
+[
+ (MethodHandle,SMethodHandle Bool "asdCall"),
+ (Return,SBin (SBin (SymArray (Just Int) (Just 1) [SymInt 5]) Eq (SymNull (Array Int)))
+              Or
+              (SBool True))
+]
+*/
+public static void arrayBooleanCall() {
+  println(arrayBoolean(new int[] {5}));
+  println(arrayBoolean(new int[] {5,6}));
+  println(arrayBoolean(null));
+}
+
+//TODO
 public static int[] tail(int[] arr) {
   if (arr == null || arr.length <= 1) {
     throw new Exception("array is too small");
   }
   else {
     int[] arr2 = new int[arr.length-1];
-    for (int i = 1, int j = 0; i<arr.length; i++, j++) {
+    int j = 0;
+    for (int i = 1; i<arr.length; i++) {
       arr2[j] = arr[i];
+      j++;
     }
     return arr2;
   }
 }
-*/
+
 /////////////////
 /*
 public class Main {

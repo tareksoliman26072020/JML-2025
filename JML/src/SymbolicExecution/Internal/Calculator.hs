@@ -614,6 +614,27 @@ abs = \case
 
 booleanCalculator2 :: SymBinOp -> (SymExpr, SymExpr) -> SymExpr
 booleanCalculator2 op = \case
+  ----------
+  (SymNull _, SymNull _) -> case op of
+    Eq  -> SBool True
+    Neq -> SBool False
+    _   -> error $ "TODO1: booleanCalculator2: " ++ show op
+  (SymNull _, _) -> case op of
+    Eq  -> SBool False
+    Neq -> SBool True
+    _   -> error $ "TODO2: booleanCalculator2: " ++ show op
+  (_, SymNull _) -> case op of
+    Eq  -> SBool False
+    Neq -> SBool True
+    _   -> error $ "TODO3: booleanCalculator2: " ++ show op
+  ----------
+  (SBool b1,SBool b2) -> case op of
+    Eq  -> SBool $ b1 == b2
+    Neq -> SBool $ b1 /= b2
+    Or  -> SBool $ b1 || b2
+    And -> SBool $ b1 && b2
+    _   -> error $ "TODO4: booleanCalculator2: " ++ show op
+  ----------
   (SymNum num1, SymNum num2)
 --    | op == Mod = SBool (round num1) `mod` (round num2)
     -> SBool $ getArithBoolOp op num1 num2
@@ -644,6 +665,13 @@ booleanCalculator2 op = \case
   (a,b@(SymNum _)) ->
     SBin a op (cast (toSymType2 a) b)
   ----------
+  (a@(SBin _ op1 _),b@(SBin c op2 d)) ->
+    let whichFun theOp
+          | isBooleanOperator theOp = booleanCalculator
+          | isArithmeticOperator theOp = numericCalculator
+        a2 = (whichFun op1) a
+        b2 = (whichFun op2) b
+    in SBin a2 op b2
   (a@(SBin _ op1 _),b) ->
     let whichFun
           | isBooleanOperator op1 = booleanCalculator
@@ -656,13 +684,6 @@ booleanCalculator2 op = \case
           | isArithmeticOperator op2 = numericCalculator
         b2 = whichFun b
     in SBin a op b2
-  (a@(SBin _ op1 _),b@(SBin _ op2 _)) ->
-    let whichFun theOp
-          | isBooleanOperator theOp = booleanCalculator
-          | isArithmeticOperator theOp = numericCalculator
-        a2 = (whichFun op1) a
-        b2 = (whichFun op2) b
-    in SBin a2 op b2
   ----------
   (a@(SymFun pf1 expr1),b@(SymFun pf2 expr2))
     | a == b -> a
@@ -699,7 +720,23 @@ booleanCalculator2 op = \case
             op
             (SArrayIndexAccess (Array t3) arrName2 expr2)
   ----------
-  (p1,p2) -> error $ printf "booleanCalculator2: (%s ,, %s ,, %s)" (show p1) (show op) (show p1)
+  (SymArray _ _ elems1,SymArray _ _ elems2) ->
+    case op of
+      Eq  -> SBool $ elems1 == elems2
+      Neq -> SBool $ elems1 /= elems2
+      _   -> error $ "TODO5: SymbolicExecution.Calculator.booleanCalculator2: " ++ show op
+  (a@(SymArray _ _ elems),b) ->
+    let newType = pick_known_symType2 (map (Array . toSymType2) elems ++ [toSymType2 b])
+    in SBin (cast newType a) op (cast newType b)
+  (a,b@(SymArray _ _ elems)) ->
+    let newType = pick_known_symType2 (map (Array . toSymType2) elems ++ [toSymType2 a])
+    in SBin (cast newType a) op (cast newType b)
+  ----------
+  (p1,p2) -> error $ printf
+    "TODO6: booleanCalculator2:\n\n\
+    \1) %s\n\n\
+    \2) %s\n\n\
+    \3) %s" (show p1) (show op) (show p1)
   ----------
 
 ----------------------------------------------------------------------
