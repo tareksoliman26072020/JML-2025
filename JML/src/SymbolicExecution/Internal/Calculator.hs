@@ -617,54 +617,53 @@ booleanCalculator2 op = \case
   ----------
   tu@(SymNull t1, SymNull t2) -> let
     res = SymNull Bool
-    c = SymNull $ pick_known_symType (t1,t2)
     in case op of
          Eq  -> SBool True
          Neq -> SBool False
-         Le  -> c
-         Lt  -> c
-         Le  -> c
-         Gt  -> c
-         Ge  -> c
-         Or  -> c
-         And -> c
+         Le  -> res
+         Lt  -> res
+         Le  -> res
+         Gt  -> res
+         Ge  -> res
+         Or  -> res
+         And -> res
          _   -> error $ "TODO1: booleanCalculator2: " ++ show (op,tu)
   tu@(a@(SymNull t1), b) -> let
     t3 = pick_known_symType (t1,toSymType2 b)
-    c = SymNull t3
+    res = SymNull Bool
     in case b of
          SymVar _ n2 -> let
            in case op of
                 Eq  -> SBin (SymNull t3) op (SymVar t3 n2)
                 Neq -> SBin (SymNull t3) op (SymVar t3 n2)
-                _   -> c
+                _   -> res
          _ -> case op of
                 Eq  -> SBool False
                 Neq -> SBool True
-                Le  -> c
-                Lt  -> c
-                Gt  -> c
-                Ge  -> c
-                Or  -> c
-                And -> c
+                Le  -> res
+                Lt  -> res
+                Gt  -> res
+                Ge  -> res
+                Or  -> res
+                And -> res
                 _   -> error $ "TODO2: booleanCalculator2: " ++ show (op,tu)
   tu@(a,b@(SymNull t2)) -> let
     t3 = pick_known_symType (toSymType2 a,t2)
-    c = SymNull t3
+    res = SymNull Bool
     in case a of
          SymVar _ n1 -> case op of
            Eq  -> SBin (SymVar t3 n1) op (SymNull t3) 
            Neq -> SBin (SymVar t3 n1) op (SymNull t3)
-           _   -> c
+           _   -> res
          _ -> case op of
                 Eq  -> SBool False
                 Neq -> SBool True
-                Le  -> c
-                Lt  -> c
-                Gt  -> c
-                Ge  -> c
-                Or  -> c
-                And -> c
+                Le  -> res
+                Lt  -> res
+                Gt  -> res
+                Ge  -> res
+                Or  -> res
+                And -> res
                 _   -> error $ "TODO2: booleanCalculator2: " ++ show (op,tu)
   ----------
   (SBool b1,SBool b2) -> case op of
