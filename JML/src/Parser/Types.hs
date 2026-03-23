@@ -201,6 +201,7 @@ ppExpr_no_type = \case
   ArrayInstantiationExpr _ _ arrElems -> printf "{%s}"
     $ intercalate ", " $ map ppExpr_no_type arrElems
   StringLiteral str -> str
+  Null -> "null"
   expr -> error $ "TODO: Parser.Types.ppExpr_no_type: " ++ show expr
 
 data Type a

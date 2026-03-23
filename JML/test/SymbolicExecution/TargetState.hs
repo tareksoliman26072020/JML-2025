@@ -75,7 +75,8 @@ allTargets = [
   ("isAscending1", isAscending1), ("isAscending1Call", isAscending1Call),
 ----------Bubble Sort:
   ("bubbleSort", bubbleSort), ("bubbleSortCall", bubbleSortCall),
-  ("replicate", replicate), ("replicateCall", replicateCall)
+  ("replicate", replicate), ("replicateCall", replicateCall),
+  ("arrayBoolean", arrayBoolean), ("arrayBooleanCall", arrayBooleanCall)
   ]
 
 -----------------------------
@@ -812,20 +813,21 @@ ifFun4 = Map.fromList [
     (VarAssignments,SVarAssignments [
         ("y",(SBin (SymVar SYT.Int "y") SYT.Add (SymVar SYT.Int "n"),Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 3}}))]),
     (VarName "n",SymVar SYT.Int "n"),
-    (VarName "y",SymUnknown (SymVar SYT.Int "y") [([(If,SR {branchStart = 1, branchEnd = 3})],2)]),
+    (VarName "y",SymUnknown (SymVar SYT.Int "y") [
+        ([(If,SR {branchStart = 1, branchEnd = 3})],2)]),
     (ScopeRange (SR {branchStart = 1, branchEnd = 3}),
-        SIte (SBin (SymVar SYT.Int "y") SYT.Ge (SymInt 0))
-             (Map.fromList [
-                 (MethodHandle,SMethodHandle SYT.Int "ifFun4"),
-                 (GlobalVars,SGlobalVars ["y"]),
-                 (FormalParms,SFormalParms ["n"]),
-                 (VarAssignments,SVarAssignments [
-                     ("y",(SBin (SymVar SYT.Int "y") SYT.Add (SymVar SYT.Int "n"),Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 3}}))]),
-                 (VarName "n",SymVar SYT.Int "n"),
-                 (VarName "y",SBin (SymVar SYT.Int "y") SYT.Add (SymVar SYT.Int "n"))
-             ]) 
-             Nothing),
-    (Return,SymUnknown (SymVar SYT.Int "y") [([(If,SR {branchStart = 1, branchEnd = 3})],2)])
+     SIte (SBin (SymVar SYT.Int "y") SYT.Ge (SymInt 0))
+          (Map.fromList [
+              (MethodHandle,SMethodHandle SYT.Int "ifFun4"),
+              (GlobalVars,SGlobalVars ["y"]),
+              (FormalParms,SFormalParms ["n"]),
+              (VarAssignments,SVarAssignments [
+                  ("y",(SBin (SymVar SYT.Int "y") SYT.Add (SymVar SYT.Int "n"),Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 3}}))]),
+              (VarName "n",SymVar SYT.Int "n"),
+              (VarName "y",SBin (SymVar SYT.Int "y") SYT.Add (SymVar SYT.Int "n"))])
+          Nothing),
+    (Return,SymUnknown (SymVar SYT.Int "y") [
+        ([(If,SR {branchStart = 1, branchEnd = 3})],2)])
   ]
 
 -----------------------------
@@ -1915,3 +1917,31 @@ replicateCall = Map.fromList [
     (VarName "str",SymString "qwqwqwqwqw"),
     (Return,SymString "qwqwqwqwqw")
   ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+arrayBoolean :: SymStateEnv
+arrayBoolean = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Bool "arrayBoolean"),
+    (FormalParms,SFormalParms ["arr"]),
+    (VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),
+    (Return,SBin (SBin (SymVar (SYT.Array SYT.Int) "arr") SYT.Eq (SymNull (SYT.Array SYT.Int)))
+                       SYT.Or
+                       (SBin (SObjAcc ["arr","length"]) SYT.Le (SymInt 1)))
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+arrayBooleanCall :: SymStateEnv
+arrayBooleanCall = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "arrayBooleanCall"),
+    (Actions,SActions [SymString "true\n",SymString "false\n",SymString "null"])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------

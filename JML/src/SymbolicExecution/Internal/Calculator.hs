@@ -615,18 +615,57 @@ abs = \case
 booleanCalculator2 :: SymBinOp -> (SymExpr, SymExpr) -> SymExpr
 booleanCalculator2 op = \case
   ----------
-  (SymNull _, SymNull _) -> case op of
-    Eq  -> SBool True
-    Neq -> SBool False
-    _   -> error $ "TODO1: booleanCalculator2: " ++ show op
-  (SymNull _, _) -> case op of
-    Eq  -> SBool False
-    Neq -> SBool True
-    _   -> error $ "TODO2: booleanCalculator2: " ++ show op
-  (_, SymNull _) -> case op of
-    Eq  -> SBool False
-    Neq -> SBool True
-    _   -> error $ "TODO3: booleanCalculator2: " ++ show op
+  tu@(SymNull t1, SymNull t2) -> let
+    res = SymNull Bool
+    c = SymNull $ pick_known_symType (t1,t2)
+    in case op of
+         Eq  -> SBool True
+         Neq -> SBool False
+         Le  -> c
+         Lt  -> c
+         Le  -> c
+         Gt  -> c
+         Ge  -> c
+         Or  -> c
+         And -> c
+         _   -> error $ "TODO1: booleanCalculator2: " ++ show (op,tu)
+  tu@(a@(SymNull t1), b) -> let
+    t3 = pick_known_symType (t1,toSymType2 b)
+    c = SymNull t3
+    in case b of
+         SymVar _ n2 -> let
+           in case op of
+                Eq  -> SBin (SymNull t3) op (SymVar t3 n2)
+                Neq -> SBin (SymNull t3) op (SymVar t3 n2)
+                _   -> c
+         _ -> case op of
+                Eq  -> SBool False
+                Neq -> SBool True
+                Le  -> c
+                Lt  -> c
+                Gt  -> c
+                Ge  -> c
+                Or  -> c
+                And -> c
+                _   -> error $ "TODO2: booleanCalculator2: " ++ show (op,tu)
+  tu@(a,b@(SymNull t2)) -> let
+    t3 = pick_known_symType (toSymType2 a,t2)
+    c = SymNull t3
+    in case a of
+         SymVar _ n1 -> case op of
+           Eq  -> SBin (SymVar t3 n1) op (SymNull t3) 
+           Neq -> SBin (SymVar t3 n1) op (SymNull t3)
+           _   -> c
+         _ -> case op of
+                Eq  -> SBool False
+                Neq -> SBool True
+                Le  -> c
+                Lt  -> c
+                Gt  -> c
+                Ge  -> c
+                Or  -> c
+                And -> c
+                _   -> error $ "TODO2: booleanCalculator2: " ++ show (op,tu)
   ----------
   (SBool b1,SBool b2) -> case op of
     Eq  -> SBool $ b1 == b2
@@ -767,7 +806,10 @@ objAccCalculator2 expr@(SObjAcc [varName,methodCall]) = \case
   SymArray _ mLength elems
     | methodCall == "length" -> SymInt
         $ maybe (fromIntegral $ length elems) fromIntegral $ mLength
-    | otherwise -> error "TODO: objAccCalculator2"
+    | otherwise -> error "TODO1: objAccCalculator2"
+  expr2@(SymNull _)
+    | methodCall == "length" -> SymNull Int
+    | otherwise -> error "TODO2: objAccCalculator2"
 
 ----------------------------------------------------------------------
 ----------------------------------------------------------------------
@@ -864,23 +906,27 @@ funCallCalculator = \case
      SymFun _ _ -> SymFun ToString argExpr
      SBool True -> SymString "true"
      SBool False -> SymString "false"
+     SymNull _ -> argExpr
      _ -> error $ "TODO1: funCallCalculator ==> " ++ show argExpr
   (funName,[argExpr])        
     | funName `elem` [Print,Println] ->
-        {-let ER_Expr (SymString str) = funCallCalculator (ToString,[argExpr])
-        in ER_Print $ str ++ if funName == Print then "" else "\n"-}
-         let x = flatten $ funCallCalculator (ToString,[argExpr])
-         in case x of
-              SymString str -> SymString $ str ++ if funName == Print then "" else "\n"
-              s@(SymFun pf expr) -> SymFun funName s
+        let x = flatten $ funCallCalculator (ToString,[argExpr])
+        in case x of
+             SymString str -> SymString $ str ++ if funName == Print then "" else "\n"
+             s@(SymFun pf expr) -> SymFun funName s
+             SymNull _ -> SymString "null"
+             _ -> error $ printf
+               "TODO2: funCallCalculator ==>\n\n\
+               \1) %s\n\n\
+               \2) %s" (show argExpr) (show x)
     where
     flatten symExpr
       | toSymType2 argExpr == String = case symExpr of
           SymString ('\"' : rest) -> SymString (init rest)
           SymFun ToString e@(SymFun ToString _) -> e
-          SymFun _ _ -> error $ "TODO2: funCallCalculator ==> " ++ show symExpr
+          SymFun _ _ -> error $ "TODO3: funCallCalculator ==> " ++ show symExpr
       | otherwise = symExpr
-  tu@(funName,argsExprs) -> error $ "TODO3: funCallCalculator ==> " ++ show tu
+  tu@(funName,argsExprs) -> error $ "TODO4: funCallCalculator ==> " ++ show tu
 
 ----------------------------------------------------------------------
 ----------------------------------------------------------------------

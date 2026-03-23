@@ -74,7 +74,8 @@ javaMethodInputs = [
   ("isAscending1", isAscending1), ("isAscending1Call", isAscending1Call),
 ----------Bubble Sort:
   ("bubbleSort", bubbleSort), ("bubbleSortCall", bubbleSortCall),
-  ("replicate", replicate), ("replicateCall", replicateCall)
+  ("replicate", replicate), ("replicateCall", replicateCall),
+  ("arrayBoolean", arrayBoolean), ("arrayBooleanCall", arrayBooleanCall)
   ]
 
 boo30 :: String
@@ -839,3 +840,12 @@ replicateCall = "public String replicateCall() {\n\
                 \  return str;\n\
                 \}"
 
+arrayBoolean = "public static boolean arrayBoolean(int[] arr) {\n\
+               \  return arr == null || arr.length <= 1;\n\
+               \}"
+
+arrayBooleanCall = "public static void arrayBooleanCall() {\n\
+                   \  println(arrayBoolean(new int[] {5}));\n\
+                   \  println(arrayBoolean(new int[] {5,6}));\n\
+                   \  println(arrayBoolean(null));\n\
+                   \}"

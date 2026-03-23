@@ -164,7 +164,8 @@ instance CFGVisitor MethodProcessor where
             branches = case CFG.findEdge_via_id cfg (CFGT.id n) of
                       Just (_,xs) -> xs
                       Nothing     -> error $ printf "%s ==> won't happen1" loc
-        let branches_paths :: [[CFGT.Node]]
+        let -- `branches_paths` is empty if the if/else body is empty
+            branches_paths :: [[CFGT.Node]]
             branches_paths = filter (not . null) $ flip map branches $ \branchStartId ->
               let thePath = CFG.getPath branchStartId cfg
               in flip takeWhile thePath $ \case
@@ -218,7 +219,7 @@ instance CFGVisitor MethodProcessor where
                                          (lookup name mainVarAssignments)
                                 ) VarAssignments addActions
                           in deleteVarAssignments
-                    --tellNextLog $ Log.ModifyState (printf "%s ==> overwriting if" loc) ("<new state>",show newCondSymStateEnv)
+
                     env <$> get >>= \theEnv -> tellNextLog
                       $ Log.ModifyState
                           (printf "%s ==> overwriting if" loc)
@@ -274,22 +275,30 @@ instance CFGVisitor MethodProcessor where
                     ER_State <$> get
               SBin _ _ _ -> do
                 let (ifLogs,ifSymState0) = let
-                      (er,ifLogs,ifSymState0) = runCFG cfgs cfg (Just $ branches_paths !! 0)
-                        (Just $ SymState (env state) (Log.Header 1 [0]))
+                      ifInitState = SymState (env state) (Log.Header 1 [0])
+                      (er,ifLogs,ifSymState0) = case branches_paths of
+                        -- `branches_paths` is empty when the if body has no statements
+                        -- in this case there's nothing to be done
+                        [] -> ("",[],ifInitState)
+                        _ -> runCFG cfgs cfg (Just $ branches_paths !! 0)
+                          (Just ifInitState)
                       in case er of
                            "" -> (ifLogs,ifSymState0)
                            _  -> error $ printf "%s ==> unevaluated if condition ==> if ==> %s" loc er
 
                 tellNextLog (Log.HorizontalLine "if branch")
                 
+                -- tell the logs of the if body 
                 do
                   incrementLogEnumeration
                   flip mapM_ ifLogs $ \log -> do
                     Log.Header _ baseCounter <- logHeader <$> get
                     tellNextNestedLog baseCounter ["if statement"] log
                 
-                -- symExpr is the SIte with the two conditional states
                 (ifCond,ifSymStateEnv,mElseSymStateEnv) <- case branches_paths of
+                  -- if `branches_paths` is empty then there is no if or else body 
+                  []  -> return (expr2,(env ifSymState0),Nothing)
+                  -- if `branches_paths` has one elem then there is no else body
                   [_] -> return (expr2,(env ifSymState0),Nothing)
                   [_,pElse] -> do
                     let (elseLogs,elseSymState) = let
@@ -306,6 +315,7 @@ instance CFGVisitor MethodProcessor where
                       tellNextNestedLog baseCounter ["else statement"] log
 
                     return (expr2,env ifSymState0,Just $ env elseSymState)
+                -- symExpr is the SIte with the two conditional states
                 let symExpr = SIte ifCond ifSymStateEnv mElseSymStateEnv
                 let condBranchRange = CFGT.SR {
                       CFGT.branchStart = CFGT.id n,
@@ -404,13 +414,15 @@ instance CFGVisitor MethodProcessor where
                     VarName vn -> case lookup vn varNameSymExprs of
                       Nothing -> v
                       Just symExprs ->
-                        let newType = pick_known_symType2
-                              $ map toSymType2
-                              $ v : symExprs
+                        let symExprs_ = flip filter symExprs $ \symExpr ->
+                              toSymType2 symExpr `isInstanceOf` toSymType2 v
+                            newType = pick_known_symType2
+                              $ map toSymType2 (v : symExprs_)
                         in cast newType v
                     _ -> v,
                   logHeader = logHeader symState
                 }
+
                 return $ ER_Expr symExpr
 
         tellNextLog (Log.Return loc (show toReturn)) $> toReturn
@@ -569,9 +581,13 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
           _    -> cast t symExpr
         Nothing      -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show er
 
+  tellNextLog $ Log.Meow (replicate 50 '\n')
+                         "MEOW1"
   incrementLogEnumeration >>
     incrementLogDepth *> inferGlobalVarType t er <* decrementLogDepth
 
+  tellNextLog $ Log.Meow (replicate 50 '\n')
+                         "MEOW2"
   tellNextLog $ Log.ModifyState "visitStmt -> ReturnStmt -> method with args" ("return",show symExpr)
   modify $ \symState ->
     SymState {
@@ -897,7 +913,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
           ----------
           tellNextLog $ Log.RunSymStateActualMethodCall (show funCallSymState2)
           let toReturn = ER_FunCall funCallSymState2
-          tellNextLog (Log.Return "visitExpr -> FunCallExpr" (show toReturn)) $> toReturn
+          tellNextLog (Log.Return "visitExpr -> FunCallExpr1" (show toReturn)) $> toReturn
     -- CFG not found
     Nothing
       | funCallName `elem` predefinedFuns -> do
@@ -920,7 +936,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                   $ funCallCalculator (
                       toDefinedFun $ AST.getFunCallName $ AST.FunCallStmt expr,
                       funArgsExprs)
-          tellNextLog (Log.Return "visitExpr ==> FunCallExpr" (show toReturn)) $> toReturn
+          tellNextLog (Log.Return "visitExpr ==> FunCallExpr2" (show toReturn)) $> toReturn
       | otherwise -> throwError $ "visitExpr => FunCallExpr: Method " ++ funCallName ++ " does not exist"
 --BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
 visitExpr expr@AST.BinOpExpr{} = do
@@ -948,18 +964,6 @@ visitExpr expr@AST.BinOpExpr{} = do
         incrementLogDepth *> inferGlobalVarType newUnifiedSymType expr <* decrementLogDepth
 
       tellNextLog $ Log.Affected "visitExpr -> BinOpExpr" [show one,show $ AST.binOp expr,show two]
-      {-case two of
-        SymNull UnknownGlobalVarSymType ->
-          return ER_Void
-        _ ->-}
-      {-throwError $ printf
-          "MEOW::\n\n\
-          \1) %s\n\n\
-          \2) %s\n\n\
-          \3) %s\n\n\
-          \4) %s\n\n\
-          \5) %s\n\n"
-          (show one) (show two) (show $ toSymType2 one) (show $ toSymType2 two) (show newUnifiedSymType)-}
       let op1 = cast newUnifiedSymType one
           operator = toSymBinOp $ AST.binOp expr
           op2 = cast newUnifiedSymType two

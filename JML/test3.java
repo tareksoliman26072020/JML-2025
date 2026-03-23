@@ -2478,30 +2478,6 @@ public int ifFun2Call2() {
 //DONE
 //JavaMethods
 /*
-[
- (MethodName "ifFun3",SMethodType Int),
- (GlobalVars,SGlobalVars ["y"]),
- (FormalParms,SFormalParms ["n"]),
- (VarBindings,SVarBindings (fromList [
-     ("m",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}}),
-     ("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}),
-     ("x",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
- (VarAssignments,SVarAssignments [
-     ("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}),
-     ("m",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}}),
-     ("x",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 8}}),
-     ("res",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 4, branchEnd = 7}}),
-     ("m",Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 4, branchEnd = 7}})]),
- (VarName "m",SymUnknown (Int,"m",Just (SymInt 0)) [([(If,SR {branchStart = 4, branchEnd = 7})],6)]),
- (VarName "n",SymVar Int "n"),
- (VarName "res",SymUnknown (Int,"res",Just (SymInt 0)) [([(If,SR {branchStart = 4, branchEnd = 7})],5)]),
- (VarName "x",SymInt 1),
- (VarName "y",SymVar UnknownNumSymType "y"),
- (ScopeRange (SR {branchStart = 4, branchEnd = 7}),SIte (SBin (SymVar UnknownNumSymType "y") Ge (SymNum 0.0)) (SymState {env = fromList [(MethodName "ifFun3",SMethodType Int),(GlobalVars,SGlobalVars ["y"]),(FormalParms,SFormalParms ["n"]),(VarBindings,SVarBindings (fromList [("m",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}}),("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}),("x",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 8}})])),(VarAssignments,SVarAssignments [("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}),("m",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}}),("x",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 8}}),("res",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 4, branchEnd = 7}}),("m",Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 4, branchEnd = 7}})]),(VarName "m",SBin (SymInt 2) Mul (SymVar Int "n")),(VarName "n",SymVar Int "n"),(VarName "res",SymVar Int "n"),(VarName "x",SymInt 1),(VarName "y",SymVar UnknownNumSymType "y")], pc = []}) Nothing),
- (Return,SBin (SymUnknown (Int,"res",Just (SymInt 0)) [([(If,SR {branchStart = 4, branchEnd = 7})],5)]) Add (SymInt 1))
-]
-*/
-/*
 SymState {
   env = fromList [
     (MethodName "ifFun3",SMethodType Int),
@@ -3593,6 +3569,8 @@ public static int getMaxCall() {
 
 /////////////////
 
+//DONE
+//JavaMethod
 /*
 [
  (MethodHandle,SMethodHandle Bool "arrayBoolean"),
@@ -3607,12 +3585,12 @@ public static boolean arrayBoolean(int[] arr) {
   return arr == null || arr.length <= 1;
 }
 
+//DONE
+//JavaMethod
 /*
 [
- (MethodHandle,SMethodHandle Bool "asdCall"),
- (Return,SBin (SBin (SymArray (Just Int) (Just 1) [SymInt 5]) Eq (SymNull (Array Int)))
-              Or
-              (SBool True))
+ (MethodHandle,SMethodHandle Void "arrayBooleanCall"),
+ (Actions,SActions [SymString "true\n",SymString "false\n",SymString "null"])
 ]
 */
 public static void arrayBooleanCall() {

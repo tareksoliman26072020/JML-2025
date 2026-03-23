@@ -416,6 +416,10 @@ so when this function is used on them, for the type
  -}
 inferGlobalVarType :: SymType -> ExecutionResult -> SymbolicExecutionMonad ()
 inferGlobalVarType newType er = do
+{-
+newType: Int,
+er: ER_SymStateMapEntry (VarName "y") (SymVar UnknownNumSymType "y")
+ -}
   let loc = "SymbolicExecution.Internal.inferGlobalVarType"
   tellNextLog $ Log.Affected loc ["SymType: " ++ show newType , "ExecutionResult: " ++ show er]
   case er of
@@ -441,10 +445,12 @@ inferGlobalVarType newType er = do
                        else do
                          let newSymExpr :: SymExpr
                              newSymExpr = cast newType2 oldSymExpr
-                         tellNextLog $ Log.UpdateVariable (vn,show oldSymExpr,show newSymExpr) "inferGlobalVarType"
+                         tellNextLog
+                           $ Log.UpdateVariable (vn,show oldSymExpr,show newSymExpr) loc
                          pure $ Just newSymExpr)
                   (VarName vn) ma
             let mNewVarType = fmap toSymType2 $ Map.lookup (VarName vn) ma2
+            ccc <- env <$> get
             -- the global variable vn may get mentioned in expressions other than VarName,
             -- and their types may need casting
             let ma3 = flip Map.mapWithKey ma2 $ \k v -> case (k,v) of
@@ -452,8 +458,37 @@ inferGlobalVarType newType er = do
                   (_,symExpr) -> let
                     innerSymExprs = lookupPartialSymExprs vn (k,symExpr)
                     newType2 = pick_known_symType2
-                      $ (map toSymType2 innerSymExprs) ++ maybe [] (: []) mNewVarType
+                      $ maybe [] (: []) mNewVarType ++ (map toSymType2 innerSymExprs) 
                     in cast2 vn newType2 (k,symExpr)
+                  {-in case (newType,er,k) of
+                         (Int, ER_SymStateMapEntry
+                                 (VarName "y")
+                                 (SymUnknown (SymVar Int "y") [
+                                   ([(CFGT.If,CFGT.SR 1 3)],2)]),
+                          ScopeRange (CFGT.SR 1 3)) ->
+                            error
+                            $ printf "MEOW in %s:\n\n\
+                                     \1) %s\n\n\
+                                     \2) %s\n\n\
+                                     \3) %s\n\n\
+                                     \4) %s\n\n" loc
+                                     (show symExpr)
+                                     (show innerSymExprs)
+                                     (show newType2)
+                                     (show $ cast2 vn newType2 (k,symExpr))
+                         _ -> cast2 vn newType2 (k,symExpr)-}
+            {-case (newType,er) of
+              (Int,ER_SymStateMapEntry
+                     (VarName "y")
+                     (SymUnknown (SymVar Int "y") [
+                         ([(CFGT.If,CFGT.SR 1 3)],2)])) ->
+                throwError $ printf
+                  "MEOW in %s:\n\n\
+                  \1) %s\n\n\
+                  \2) %s\n\n\
+                  \3) %s" loc
+                  (show mNewVarType) (show ccc) (show ma3)
+              _ -> return ()-}
             -- modify the state accordingly
             modify $ \symState -> SymState {
               env = ma3,
