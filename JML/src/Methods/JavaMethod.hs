@@ -501,7 +501,7 @@ succFunCall :: String
 succFunCall = "public void succFunCall() {\n\
               \  int n = 2;\n\
               \  succFun(n);\n\
-              \  println(n);\n\
+              \  println(toString(n));\n\
               \}"
 
 callSuccFun :: String
@@ -752,42 +752,42 @@ partitionCall1 = "private static void partitionCall1() {\n\
                  \  int[] arr = {7};\n\
                  \  int x = partition(arr,0,0);\n\
                  \  println(arr);\n\
-                 \  println(x);\n\
+                 \  println(toString(x));\n\
                  \}"
 
 partitionCall2 = "private static void partitionCall2() {\n\
                  \  int[] arr = {9,7};\n\
                  \  int x = partition(arr,0,1);\n\
                  \  println(arr);\n\
-                 \  println(x);\n\
+                 \  println(toString(x));\n\
                  \}"
 
 partitionCall3 = "private static void partitionCall3() {\n\
                  \  int[] arr = {3,7};\n\
                  \  int x = partition(arr,0,1);\n\
                  \  println(arr);\n\
-                 \  println(x);\n\
+                 \  println(toString(x));\n\
                  \}"
 
 partitionCall4 = "private static void partitionCall4() {\n\
                  \  int[] arr = {9,3,7};\n\
                  \  int x = partition(arr,0,2);\n\
                  \  println(arr);\n\
-                 \  println(x);\n\
+                 \  println(toString(x));\n\
                  \}"
 
 partitionCall5 = "private static void partitionCall5() {\n\
                  \  int[] arr = {1,2,7};\n\
                  \  int x = partition(arr,0,2);\n\
                  \  println(arr);\n\
-                 \  println(x);\n\
+                 \  println(toString(x));\n\
                  \}"
 
 partitionCall6 = "private static void partitionCall6() {\n\
                  \  int[] arr = {9,8,7};\n\
                  \  int x = partition(arr,0,2);\n\
                  \  println(arr);\n\
-                 \  println(x);\n\
+                 \  println(toString(x));\n\
                  \}"
 
 isAscending1 = "public boolean isAscending1(int[] arr) {\n\
@@ -803,8 +803,8 @@ isAscending1 = "public boolean isAscending1(int[] arr) {\n\
 isAscending1Call = "public void isAscending1Call() {\n\
                    \  int[] arr1 = new int[]{1,2,4,6,7,99};\n\
                    \  int[] arr2 = new int[]{1,2,4,7,6,99};\n\
-                   \  println(isAscending1(arr1));\n\
-                   \  println(isAscending1(arr2));\n\
+                   \  println(toString(isAscending1(arr1)));\n\
+                   \  println(toString(isAscending1(arr2)));\n\
                    \}"
 
 bubbleSort = "public static void bubbleSort(int[] arr) {\n\
@@ -845,7 +845,7 @@ arrayBoolean = "public static boolean arrayBoolean(int[] arr) {\n\
                \}"
 
 arrayBooleanCall = "public static void arrayBooleanCall() {\n\
-                   \  println(arrayBoolean(new int[] {5}));\n\
-                   \  println(arrayBoolean(new int[] {5,6}));\n\
-                   \  println(arrayBoolean(null));\n\
+                   \  println(toString(arrayBoolean(new int[] {5})));\n\
+                   \  println(toString(arrayBoolean(new int[] {5,6})));\n\
+                   \  println(toString(arrayBoolean(null)));\n\
                    \}"

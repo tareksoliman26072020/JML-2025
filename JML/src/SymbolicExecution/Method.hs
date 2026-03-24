@@ -908,7 +908,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
           ----------
           tellNextLog $ Log.RunSymStateActualMethodCall (show funCallSymState2)
           let toReturn = ER_FunCall funCallSymState2
-          tellNextLog (Log.Return "visitExpr -> FunCallExpr1" (show toReturn)) $> toReturn
+          tellNextLog (Log.Return "visitExpr -> FunCallExpr ==> 1" (show toReturn)) $> toReturn
     -- CFG not found
     Nothing
       | funCallName `elem` predefinedFuns -> do
@@ -931,7 +931,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                   $ funCallCalculator (
                       toDefinedFun $ AST.getFunCallName $ AST.FunCallStmt expr,
                       funArgsExprs)
-          tellNextLog (Log.Return "visitExpr ==> FunCallExpr2" (show toReturn)) $> toReturn
+          tellNextLog (Log.Return "visitExpr ==> FunCallExpr ==> 2" (show toReturn)) $> toReturn
       | otherwise -> throwError $ "visitExpr => FunCallExpr: Method " ++ funCallName ++ " does not exist"
 --BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
 visitExpr expr@AST.BinOpExpr{} = do
@@ -969,17 +969,6 @@ visitExpr expr@AST.BinOpExpr{} = do
             "booleanCalculator" -> booleanCalculator
           calculating = calculator (SBin op1 operator op2)
           toReturn = ER_Expr calculating
-      {-case (one,two) of
-        (SymNull (Array Int),SymNull UnknownGlobalVarSymType) -> return ()
-        (SymNull Int,SymNum 1.0) -> return ()
-        _ -> throwError $ printf
-          "MEOW:\n\n\
-          \1) %s\n\n\
-          \2) %s\n\n\
-          \3) %s\n\n\
-          \4) %s\n\n\
-          \5) %s\n\n\
-          \6) %s\n\n" (show expr) (show one) (show two) (show op1) (show op2) (show calculating)-}
       tellNextLog (Log.Return (printf "visitExpr -> BinOpExpr -> %s"
                           calculatorType) (show toReturn)
            ) $> toReturn
@@ -1590,6 +1579,7 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
                 flip (maybe []) mForCondExpr $ \forCondExpr -> do
                   vr <- AST.getVarNames forCondExpr :: [String]
                   let predicates
+                        | vr == "length" = []
                         | isGlobalVariable2 vr (env forBodySymState) = [vr]
                         | otherwise = []
                   -- reject every vr that is same as from_acc

@@ -920,24 +920,24 @@ funCallCalculator = \case
      SException _ _ _ -> SymFun ToString argExpr
      _ -> error $ "TODO1: funCallCalculator ==> " ++ show argExpr
   (funName,[argExpr])        
-    | funName `elem` [Print,Println] ->
-        let x = flatten $ funCallCalculator (ToString,[argExpr])
-        in case x of
-             SymString str -> SymString $ str ++ if funName == Print then "" else "\n"
-             s@(SymFun pf expr) -> SymFun funName s
-             SymNull _ -> SymString "null"
-             _ -> error $ printf
-               "TODO2: funCallCalculator ==>\n\n\
-               \1) %s\n\n\
-               \2) %s" (show argExpr) (show x)
+    | funName `elem` [Print,Println] -> case argExpr of
+        SymString str -> SymString $ str ++ if funName == Print then "" else "\n"
+        s@(SymFun pf expr) -> SymFun funName s
+        SymNull _ -> SymString "null"
+        SymArray _ _ _ -> case funCallCalculator (ToString,[argExpr]) of
+          SymString str -> SymString $ str ++ whichPrint
+          res -> error $
+            "TODO2: SymbolicExecution.Internal.Calculator.funCallCalculator ==> "
+            ++ show res
+        SymVar (Array _) _ -> SymFun funName argExpr
+        _ -> error $ printf
+          "TODO3: funCallCalculator ==>\n\n\
+          \1) %s" (show argExpr)
     where
-    flatten symExpr = case toSymType2 argExpr of
-      String -> case symExpr of
-        SymString ('\"' : rest) -> SymString (init rest)
-        SymFun ToString e@(SymFun ToString _) -> e
-        SymFun _ _ -> error $ "TODO3: funCallCalculator ==> " ++ show symExpr
-      _ -> symExpr
-  tu@(funName,argsExprs) -> error $ "TODO4: funCallCalculator ==> " ++ show tu
+    whichPrint = case funName of
+      Print   -> ""
+      Println -> "\n"
+  tu@(funName,argsExprs) -> error $ "TODO5: funCallCalculator ==> " ++ show tu
 
 ----------------------------------------------------------------------
 ----------------------------------------------------------------------

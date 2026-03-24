@@ -2313,12 +2313,11 @@ public void manyArrs6() {
 [
  (MethodHandle,SMethodHandle Void "manyArrs7"),
  (GlobalVars,SGlobalVars ["length"]),
- (FormalParms,SFormalParms ["brand"]),
- (VarAssignments,SVarAssignments [
-     ("brand",(SymVar (Array String) "brand",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 5}}))]),
- (VarName "brand",SymVar (Array String) "brand"),
- (ScopeRange (SR {branchStart = 1, branchEnd = 5}),SLoop (Just (Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0})) (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = ["brand"], varName = "length"}})) [Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "brand"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, assEright = BinOpExpr {expr1 = BinOpExpr {expr1 = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "toString"}, funArgs = [BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}]}, binOp = +, expr2 = StringLiteral ". "}, binOp = +, expr2 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "brand"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}}}}), parent = 1},Node {id = 4, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}})), parent = 1}]),
- (Actions,SActions [SymFun Println (SymFun ToString (SymVar (Array String) "brand"))])
+ (FormalParms,SFormalParms ["meow"]),
+ (VarAssignments,SVarAssignments [("meow",(SymVar (Array String) "meow",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 5}}))]),
+ (VarName "meow",SymVar (Array String) "meow"),
+ (ScopeRange (SR {branchStart = 1, branchEnd = 5}),SLoop (Just (Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0})) (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = ["meow"], varName = "length"}})) [Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "meow"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, assEright = BinOpExpr {expr1 = BinOpExpr {expr1 = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "toString"}, funArgs = [BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}]}, binOp = +, expr2 = StringLiteral ". "}, binOp = +, expr2 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "meow"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}}}}), parent = 1},Node {id = 4, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}})), parent = 1}]),
+ (Actions,SActions [SymFun Println (SymVar (Array String) "meow")])
 ]
 */
 public void manyArrs7(String[] meow) {
@@ -2994,7 +2993,7 @@ public void succFun(int i) {
 public void succFunCall() {
   int n = 2;
   succFun(n);
-  println(n);
+  println(toString(n));
 }
 
 /////////////////////
@@ -3596,9 +3595,9 @@ public static boolean arrayBoolean(int[] arr) {
 ]
 */
 public static void arrayBooleanCall() {
-  println(arrayBoolean(new int[] {5}));
-  println(arrayBoolean(new int[] {5,6}));
-  println(arrayBoolean(null));
+  println(toString(arrayBoolean(new int[] {5})));
+  println(toString(arrayBoolean(new int[] {5,6})));
+  println(toString(arrayBoolean(null)));
 }
 
 /////////////////
@@ -3798,7 +3797,7 @@ private static void partitionCall1() {
   int[] arr = {7};
   int x = partition(arr,0,0);
   println(arr);
-  println(x);
+  println(toString(x));
 }
 
 //DONE
@@ -3817,7 +3816,7 @@ private static void partitionCall2() {
   int[] arr = {9,7};
   int x = partition(arr,0,1);
   println(arr);
-  println(x);
+  println(toString(x));
 }
 
 //DONE
@@ -3836,7 +3835,7 @@ private static void partitionCall3() {
   int[] arr = {3,7};
   int x = partition(arr,0,1);
   println(arr);
-  println(x);
+  println(toString(x));
 }
 
 //DONE
@@ -3855,7 +3854,7 @@ private static void partitionCall4() {
   int[] arr = {9,3,7};
   int x = partition(arr,0,2);
   println(arr);
-  println(x);
+  println(toString(x));
 }
 
 //DONE
@@ -3874,7 +3873,7 @@ private static void partitionCall5() {
   int[] arr = {1,2,7};
   int x = partition(arr,0,2);
   println(arr);
-  println(x);
+  println(toString(x));
 }
 
 //DONE
@@ -3893,7 +3892,7 @@ private static void partitionCall6() {
   int[] arr = {9,8,7};
   int x = partition(arr,0,2);
   println(arr);
-  println(x);
+  println(toString(x));
 }
 
 //DONE
@@ -4054,8 +4053,8 @@ public boolean isAscending2(int[] arr) {
 public void isAscending1Call() {
   int[] arr1 = new int[]{1,2,4,6,7,99};
   int[] arr2 = new int[]{1,2,4,7,6,99};
-  println(isAscending1(arr1));
-  println(isAscending1(arr2));
+  println(toString(isAscending1(arr1)));
+  println(toString(isAscending1(arr2)));
 }
 
 /////////////////////
@@ -4064,8 +4063,8 @@ public void isAscending1Call() {
 public void isAscending2Call() {
   int[] arr1 = new int[]{1,2,4,6,7,99};
   int[] arr2 = new int[]{1,2,4,7,6,99};
-  println(isAscending2(arr1));
-  println(isAscending2(arr2));
+  println(toString(isAscending2(arr1)));
+  println(toString(isAscending2(arr2)));
 }
 
 /////////////////////

@@ -202,6 +202,9 @@ ppExpr_no_type = \case
     $ intercalate ", " $ map ppExpr_no_type arrElems
   StringLiteral str -> str
   Null -> "null"
+  expr@FunCallExpr{} -> printf "%s(%s)"
+    (ppExpr_no_type $ funName expr)
+    (intercalate ", " $ map ppExpr_no_type $ funArgs expr)
   expr -> error $ "TODO: Parser.Types.ppExpr_no_type: " ++ show expr
 
 data Type a

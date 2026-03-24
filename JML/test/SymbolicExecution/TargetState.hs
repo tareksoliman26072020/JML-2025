@@ -466,7 +466,8 @@ voidFun3Call = Map.fromList [
 manyArrs :: SymStateEnv
 manyArrs = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Void "manyArrs"),
-    (VarBindings,SVarBindings (Map.fromList [("numbers",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("numbers",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
     (VarAssignments,SVarAssignments [
         ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
         ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymNull SYT.Int],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})),
@@ -607,16 +608,34 @@ manyArrs6 = Map.fromList [
 -----------------------------
 -----------------------------
 
+{-
+[
+    (MethodHandle,SMethodHandle SYT.Void "manyArrs7"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["brand"]),
+    (VarAssignments,SVarAssignments [
+        ("brand",(SymVar (SYT.Array SYT.String) "brand",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 5}}))]),
+    (VarName "brand",SymVar (SYT.Array SYT.String) "brand"),
+    (ScopeRange (SR {branchStart = 1, branchEnd = 5}),
+     SLoop (Just (Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}))
+           (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Less, expr2 = VarExpr {varType = Nothing, varObj = ["brand"], varName = "length"}}))
+           [Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "brand"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, assEright = BinOpExpr {expr1 = BinOpExpr {expr1 = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "toString"}, funArgs = [BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}]}, binOp = +, expr2 = StringLiteral ". "}, binOp = +, expr2 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "brand"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}}}}), parent = 1},Node {id = 4, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}})), parent = 1}]),
+    (Actions,SActions [SymFun Println (SymVar (SYT.Array SYT.String) "brand")])
+]
+ -}
 manyArrs7 :: SymStateEnv
 manyArrs7 = Map.fromList [
- (MethodHandle,SMethodHandle SYT.Void "manyArrs7"),
- (GlobalVars,SGlobalVars ["length"]),
- (FormalParms,SFormalParms ["brand"]),
- (VarAssignments,SVarAssignments [
-     ("brand",(SymVar (SYT.Array SYT.String) "brand",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 5}}))]),
- (VarName "brand",SymVar (SYT.Array SYT.String) "brand"),
- (ScopeRange (SR {branchStart = 1, branchEnd = 5}),SLoop (Just (Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0})) (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Less, expr2 = VarExpr {varType = Nothing, varObj = ["brand"], varName = "length"}})) [Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "brand"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, assEright = BinOpExpr {expr1 = BinOpExpr {expr1 = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "toString"}, funArgs = [BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Plus, expr2 = NumberLiteral 1.0}]}, binOp = Plus, expr2 = StringLiteral ". "}, binOp = Plus, expr2 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "brand"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}}}}), parent = 1},Node {id = 4, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Plus, expr2 = NumberLiteral 1.0}}})), parent = 1}]),
- (Actions,SActions [SymFun Println (SymFun ToString (SymVar (SYT.Array SYT.String) "brand"))])
+    (MethodHandle,SMethodHandle SYT.Void "manyArrs7"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["brand"]),
+    (VarAssignments,SVarAssignments [
+        ("brand",(SymVar (SYT.Array SYT.String) "brand",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 5}}))]),
+    (VarName "brand",SymVar (SYT.Array SYT.String) "brand"),
+    (ScopeRange (SR {branchStart = 1, branchEnd = 5}),
+     SLoop (Just (Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}))
+           (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Less, expr2 = VarExpr {varType = Nothing, varObj = ["brand"], varName = "length"}})) 
+           [Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "brand"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, assEright = BinOpExpr {expr1 = BinOpExpr {expr1 = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "toString"}, funArgs = [BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Plus, expr2 = NumberLiteral 1.0}]}, binOp = Plus, expr2 = StringLiteral ". "}, binOp = Plus, expr2 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "brand"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}}}}), parent = 1},Node {id = 4, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Plus, expr2 = NumberLiteral 1.0}}})), parent = 1}]),
+    (Actions,SActions [SymFun Println (SymVar (SYT.Array SYT.String) "brand")])
   ]
 
 -----------------------------
@@ -1583,7 +1602,7 @@ sum1_WhileCall = Map.fromList [
 getMax :: SymStateEnv
 getMax = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "getMax"),
-    (GlobalVars,SGlobalVars ["length"]),
+    (GlobalVars,SGlobalVars []),
     (FormalParms,SFormalParms ["arr"]),
     (VarAssignments,SVarAssignments []),
     (VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),
@@ -1596,7 +1615,7 @@ getMax = Map.fromList [
               (Return,SException SYT.Int "Exception" "empty array")]) 
           (Just (Map.fromList [
               (MethodHandle,SMethodHandle SYT.Int "getMax"),
-              (GlobalVars,SGlobalVars ["length"]),
+              (GlobalVars,SGlobalVars []),
               (FormalParms,SFormalParms ["arr"]),
               (VarBindings,SVarBindings (Map.fromList [
                   ("max",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 12}})])),
@@ -1802,7 +1821,7 @@ partitionCall6 = Map.fromList [
 isAscending1 :: SymStateEnv
 isAscending1 = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Bool "isAscending1"),
-    (GlobalVars,SGlobalVars ["length"]),
+    (GlobalVars,SGlobalVars []),
     (FormalParms,SFormalParms ["arr"]),
     (VarBindings,SVarBindings (Map.fromList [
         ("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 9}})])),
