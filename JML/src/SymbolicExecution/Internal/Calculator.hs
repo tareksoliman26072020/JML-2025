@@ -930,6 +930,7 @@ funCallCalculator = \case
             "TODO2: SymbolicExecution.Internal.Calculator.funCallCalculator ==> "
             ++ show res
         SymVar (Array _) _ -> SymFun funName argExpr
+        SException _ _ _ -> argExpr
         _ -> error $ printf
           "TODO3: funCallCalculator ==>\n\n\
           \1) %s" (show argExpr)

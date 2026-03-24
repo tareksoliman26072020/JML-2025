@@ -1245,7 +1245,7 @@ visitExpr expr@AST.ArrayInstantiationExpr{} = do
       case (er,mArrType) of
         (ER_Expr expr2,Nothing) -> return $ expr2
         (ER_Expr expr2,Just t) -> return $ cast (arrayElementSymType t) expr2
-        _ -> throwError $ "visitExpr ==> ArrayInstantiationExpr: " ++ show er
+        _ -> throwError $ "visitExpr ==> ArrayInstantiationExpr ==> 1: " ++ show er
   -- get array size
   (m_arr_size :: Maybe SymExpr) <- case (AST.arrSize expr,length exprs) of
         (Nothing,l) -> return $ Just $ SymInt $ fromIntegral l
@@ -1257,13 +1257,14 @@ visitExpr expr@AST.ArrayInstantiationExpr{} = do
               case er of
                 ER_Expr (SymNum num) -> return $ Just $ SymInt (round num)
                 ER_Expr expr@(SBin _ _ _) -> return $ Just expr
-                _ -> throwError $ "visitExpr ==> ArrayInstantiationExpr: " ++ show (expr,er)
+                ER_Expr s@(SymInt _) -> return $ Just s
+                _ -> throwError $ "visitExpr ==> ArrayInstantiationExpr ==> 2: " ++ show (expr,er)
         (Nothing,0) -> return Nothing
   -- potentially add nulls as elements if size is present, but no elements are present.
   let exprs_ = case (m_arr_size,exprs) of
         (Nothing,[]) -> []
         (Nothing,_) -> exprs
-        (Just (SymInt num),[]) -> replicate (fromIntegral num) (SymNull $ maybe (error "visitExpr ==> ArrayInstantiationExpr") arrayElementSymType mArrType)
+        (Just (SymInt num),[]) -> replicate (fromIntegral num) (SymNull $ maybe (error "visitExpr ==> ArrayInstantiationExpr ==> 3") arrayElementSymType mArrType)
         (Just num,_) -> exprs
 
   let symExpr = SymArray

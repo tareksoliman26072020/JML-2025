@@ -1,6 +1,6 @@
 module Methods.JavaMethod (javaMethodInputs) where
 
-import Prelude hiding (replicate)
+import Prelude hiding (replicate, tail)
 -- when you add a method, add it also to
 -- 1) `javaMethodInputs`
 -- 2) `test.SymbolicExecution.TargetState`
@@ -75,7 +75,12 @@ javaMethodInputs = [
 ----------Bubble Sort:
   ("bubbleSort", bubbleSort), ("bubbleSortCall", bubbleSortCall),
   ("replicate", replicate), ("replicateCall", replicateCall),
-  ("arrayBoolean", arrayBoolean), ("arrayBooleanCall", arrayBooleanCall)
+  ("arrayBoolean", arrayBoolean), ("arrayBooleanCall", arrayBooleanCall),
+----------
+  ("tail", tail), ("tailCall1", tailCall1),
+                  ("tailCall2", tailCall2),
+                  ("tailCall3", tailCall3),
+                  ("tailCall4", tailCall4)
   ]
 
 boo30 :: String
@@ -849,3 +854,34 @@ arrayBooleanCall = "public static void arrayBooleanCall() {\n\
                    \  println(toString(arrayBoolean(new int[] {5,6})));\n\
                    \  println(toString(arrayBoolean(null)));\n\
                    \}"
+
+tail = "public static int[] tail(int[] arr) {\n\
+       \  if (arr == null || arr.length <= 1) {\n\
+       \    throw new Exception(\"array is too small\");\n\
+       \  }\n\
+       \  else {\n\
+       \    int[] arr2 = new int[arr.length-1];\n\
+       \    int j = 0;\n\
+       \    for (int i = 1; i<arr.length; i++) {\n\
+       \      arr2[j] = arr[i];\n\
+       \      j++;\n\
+       \    }\n\
+       \    return arr2;\n\
+       \  }\n\
+       \}"
+
+tailCall1 = "public static void tailCall1() {\n\
+            \    println(tail(null));\n\
+            \}"
+
+tailCall2 = "public static void tailCall2() {\n\
+            \    println(tail(new int[]{}));\n\
+            \}"
+
+tailCall3 = "public static void tailCall3() {\n\
+            \    println(tail(new int[]{4, 9}));\n\
+            \}"
+
+tailCall4 = "public static void tailCall4() {\n\
+            \    println(tail(new int[]{4, 9, 2}));\n\
+            \}"

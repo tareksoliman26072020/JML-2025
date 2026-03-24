@@ -1,6 +1,6 @@
 module SymbolicExecution.TargetState (target) where
 
-import Prelude hiding (id, replicate)
+import Prelude hiding (id, replicate, tail)
 import qualified Data.Map as Map
 
 import CFG.Types
@@ -76,7 +76,12 @@ allTargets = [
 ----------Bubble Sort:
   ("bubbleSort", bubbleSort), ("bubbleSortCall", bubbleSortCall),
   ("replicate", replicate), ("replicateCall", replicateCall),
-  ("arrayBoolean", arrayBoolean), ("arrayBooleanCall", arrayBooleanCall)
+  ("arrayBoolean", arrayBoolean), ("arrayBooleanCall", arrayBooleanCall),
+----------
+  ("tail", tail), ("tailCall1", tailCall1),
+                  ("tailCall2", tailCall2),
+                  ("tailCall3", tailCall3),
+                  ("tailCall4", tailCall4)
   ]
 
 -----------------------------
@@ -608,21 +613,6 @@ manyArrs6 = Map.fromList [
 -----------------------------
 -----------------------------
 
-{-
-[
-    (MethodHandle,SMethodHandle SYT.Void "manyArrs7"),
-    (GlobalVars,SGlobalVars []),
-    (FormalParms,SFormalParms ["brand"]),
-    (VarAssignments,SVarAssignments [
-        ("brand",(SymVar (SYT.Array SYT.String) "brand",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 5}}))]),
-    (VarName "brand",SymVar (SYT.Array SYT.String) "brand"),
-    (ScopeRange (SR {branchStart = 1, branchEnd = 5}),
-     SLoop (Just (Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}))
-           (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Less, expr2 = VarExpr {varType = Nothing, varObj = ["brand"], varName = "length"}}))
-           [Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "brand"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, assEright = BinOpExpr {expr1 = BinOpExpr {expr1 = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "toString"}, funArgs = [BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}]}, binOp = +, expr2 = StringLiteral ". "}, binOp = +, expr2 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "brand"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}}}}), parent = 1},Node {id = 4, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}})), parent = 1}]),
-    (Actions,SActions [SymFun Println (SymVar (SYT.Array SYT.String) "brand")])
-]
- -}
 manyArrs7 :: SymStateEnv
 manyArrs7 = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Void "manyArrs7"),
@@ -1964,3 +1954,77 @@ arrayBooleanCall = Map.fromList [
 -----------------------------
 -----------------------------
 -----------------------------
+
+tail :: SymStateEnv
+tail = Map.fromList [
+    (MethodHandle,SMethodHandle (SYT.Array SYT.Int) "tail"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["arr"]),
+    (VarAssignments,SVarAssignments []),
+    (VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),
+    (ScopeRange (SR {branchStart = 1, branchEnd = 12}),
+     SIte (SBin (SBin (SymVar (SYT.Array SYT.Int) "arr") SYT.Eq (SymNull (SYT.Array SYT.Int))) SYT.Or (SBin (SObjAcc ["arr","length"]) SYT.Le (SymInt 1)))
+          (Map.fromList [(MethodHandle,SMethodHandle (SYT.Array SYT.Int) "tail"),(FormalParms,SFormalParms ["arr"]),(VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),(Return,SException (SYT.Array SYT.Int) "Exception" "array is too small")])
+          (Just (Map.fromList [
+              (MethodHandle,SMethodHandle (SYT.Array SYT.Int) "tail"),
+              (GlobalVars,SGlobalVars []),
+              (FormalParms,SFormalParms ["arr"]),
+              (VarBindings,SVarBindings (Map.fromList [
+                  ("arr2",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 12}}),
+                  ("j",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 1, branchEnd = 12}})])),
+              (VarAssignments,SVarAssignments [
+                  ("arr2",(SymArray (Just SYT.Int) (Just (SBin (SObjAcc ["arr","length"]) SYT.Sub (SymInt 1))) [],Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 12}})),
+                  ("j",(SymInt 0,Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 1, branchEnd = 12}})),
+                  ("arr2",(SymArray (Just SYT.Int) (Just (SBin (SObjAcc ["arr","length"]) SYT.Sub (SymInt 1))) [SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymInt 1)],Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 5, branchEnd = 2}})),
+                  ("j",(SymInt 1,Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 5, branchEnd = 2}}))]),
+              (VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),
+              (VarName "arr2",SymUnknown (SymArray (Just SYT.Int) (Just (SBin (SObjAcc ["arr","length"]) SYT.Sub (SymInt 1))) []) [
+                  ([(If,SR {branchStart = 1, branchEnd = 12}),(For,SR {branchStart = 5, branchEnd = 10})],7)]),
+              (VarName "j",SymUnknown (SymInt 0) [([(If,SR {branchStart = 1, branchEnd = 12}),(For,SR {branchStart = 5, branchEnd = 10})],8)]),
+              (ScopeRange (SR {branchStart = 5, branchEnd = 10}),
+               SLoop (Just (Node {id = 5, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 1.0}}), parent = 1}))
+                     (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Less, expr2 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}})) 
+                     [Node {id = 7, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr2"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "j"})}, assEright = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}}}), parent = 5},Node {id = 8, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "j"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "j"}, binOp = Plus, expr2 = NumberLiteral 1.0}}}), parent = 5},Node {id = 9, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Plus, expr2 = NumberLiteral 1.0}}})), parent = 5}]),
+    (Return,SymUnknown (SymArray (Just SYT.Int) (Just (SBin (SObjAcc ["arr","length"]) SYT.Sub (SymInt 1))) []) [
+        ([(If,SR {branchStart = 1, branchEnd = 12}),(For,SR {branchStart = 5, branchEnd = 10})],7)])])))
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+tailCall1 :: SymStateEnv
+tailCall1 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "tailCall1"),
+    (Actions,SActions [SException (SYT.Array SYT.Int) "Exception" "array is too small"])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+tailCall2 :: SymStateEnv
+tailCall2 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "tailCall2"),
+    (Actions,SActions [SException (SYT.Array SYT.Int) "Exception" "array is too small"])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+tailCall3 :: SymStateEnv
+tailCall3 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "tailCall3"),
+    (Actions,SActions [SymString "[9]\n"])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+tailCall4 :: SymStateEnv
+tailCall4 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "tailCall4"),
+    (Actions,SActions [SymString "[9, 2]\n"])
+  ]

@@ -3606,7 +3606,7 @@ public static void arrayBooleanCall() {
 /*
 [
  (MethodHandle,SMethodHandle (Array Int) "tail"),
- (GlobalVars,SGlobalVars ["length"]),
+ (GlobalVars,SGlobalVars []),
  (FormalParms,SFormalParms ["arr"]),
  (VarAssignments,SVarAssignments []),
  (VarName "arr",SymVar (Array Int) "arr"),
@@ -3615,24 +3615,17 @@ public static void arrayBooleanCall() {
        (fromList [(MethodHandle,SMethodHandle (Array Int) "tail"),(FormalParms,SFormalParms ["arr"]),(VarName "arr",SymVar (Array Int) "arr"),(Return,SException (Array Int) "Exception" "array is too small")])
        (Just (fromList [
            (MethodHandle,SMethodHandle (Array Int) "tail"),
-           (GlobalVars,SGlobalVars ["length"]),
+           (GlobalVars,SGlobalVars []),
            (FormalParms,SFormalParms ["arr"]),
            (VarBindings,SVarBindings (fromList [("arr2",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 12}}),("j",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 1, branchEnd = 12}})])),
-           (VarAssignments,SVarAssignments [
-               ("arr2",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Sub (SymInt 1))) [],Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 12}})),
-               ("j",(SymInt 0,Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 1, branchEnd = 12}})),
-               ("arr2",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Sub (SymInt 1))) [SArrayIndexAccess (Array Int) "arr" (SymInt 1)],Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 5, branchEnd = 2}})),
-               ("j",(SymInt 1,Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 5, branchEnd = 2}}))]),
+           (VarAssignments,SVarAssignments [("arr2",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Sub (SymInt 1))) [],Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 12}})),("j",(SymInt 0,Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 1, branchEnd = 12}})),("arr2",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Sub (SymInt 1))) [SArrayIndexAccess (Array Int) "arr" (SymInt 1)],Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 5, branchEnd = 2}})),("j",(SymInt 1,Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 5, branchEnd = 2}}))]),
            (VarName "arr",SymVar (Array Int) "arr"),
-           (VarName "arr2",SymUnknown (SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Sub (SymInt 1))) []) [
-               ([(If,SR {branchStart = 1, branchEnd = 12}),(For,SR {branchStart = 5, branchEnd = 10})],7)]),
-           (VarName "j",SymUnknown (SymInt 0) [
-               ([(If,SR {branchStart = 1, branchEnd = 12}),(For,SR {branchStart = 5, branchEnd = 10})],8)]),
-           (ScopeRange (SR {branchStart = 5, branchEnd = 10}),
-            SLoop (Just (Node {id = 5, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 1.0}}), parent = 1}))
-                  (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}})) 
-                  [Node {id = 7, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr2"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "j"})}, assEright = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}}}), parent = 5},Node {id = 8, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "j"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "j"}, binOp = +, expr2 = NumberLiteral 1.0}}}), parent = 5},Node {id = 9, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}})), parent = 5}]),
-           (Return,SymUnknown (SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Sub (SymInt 1))) []) [([(If,SR {branchStart = 1, branchEnd = 12}),(For,SR {branchStart = 5, branchEnd = 10})],7)])])))]
+           (VarName "arr2",SymUnknown (SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Sub (SymInt 1))) []) [([(If,SR {branchStart = 1, branchEnd = 12}),(For,SR {branchStart = 5, branchEnd = 10})],7)]),
+           (VarName "j",SymUnknown (SymInt 0) [([(If,SR {branchStart = 1, branchEnd = 12}),(For,SR {branchStart = 5, branchEnd = 10})],8)]),
+           (ScopeRange (SR {branchStart = 5, branchEnd = 10}),SLoop (Just (Node {id = 5, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 1.0}}), parent = 1})) (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}})) [Node {id = 7, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr2"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "j"})}, assEright = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}}}), parent = 5},Node {id = 8, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "j"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "j"}, binOp = +, expr2 = NumberLiteral 1.0}}}), parent = 5},Node {id = 9, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}})), parent = 5}]),
+ (Return,SymUnknown (SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Sub (SymInt 1))) []) [
+     ([(If,SR {branchStart = 1, branchEnd = 12}),(For,SR {branchStart = 5, branchEnd = 10})],7)])])))
+]
 */
 public static int[] tail(int[] arr) {
   if (arr == null || arr.length <= 1) {
@@ -3649,22 +3642,46 @@ public static int[] tail(int[] arr) {
   }
 }
 
-//TODO
+//DONE
+/*
+[
+ (MethodHandle,SMethodHandle Void "tailCall1"),
+ (Actions,SActions [SException (Array Int) "Exception" "array is too small"])
+]
+*/
 public static void tailCall1() {
     println(tail(null));
 }
 
-//TODO
+//DONE
+/*
+[
+ (MethodHandle,SMethodHandle Void "tailCall2"),
+ (Actions,SActions [SException (Array Int) "Exception" "array is too small"])
+]
+*/
 public static void tailCall2() {
     println(tail(new int[]{}));
 }
 
-//TODO
+//DONE
+/*
+[
+ (MethodHandle,SMethodHandle Void "tailCall3"),
+ (Actions,SActions [SymString "[9]\n"])
+]
+*/
 public static void tailCall3() {
     println(tail(new int[]{4, 9}));
 }
 
-//TODO
+//DONE
+/*
+[
+ (MethodHandle,SMethodHandle Void "tailCall4"),
+ (Actions,SActions [SymString "[9, 2]\n"])
+]
+*/
 public static void tailCall4() {
     println(tail(new int[]{4, 9, 2}));
 }
