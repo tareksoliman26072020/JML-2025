@@ -300,8 +300,8 @@ elemAt2 = Map.fromList [
     (VarBindings,SVarBindings (Map.fromList [
       ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
     (VarAssignments,SVarAssignments [
-        ("arr",(SymArray (Just SYT.Int) (Just 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
-    (VarName "arr",SymArray (Just SYT.Int) (Just 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),
+        ("arr",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),
     (VarName "pos",SymVar SYT.Int "pos"),
     (ScopeRange (SR {branchStart = 2, branchEnd = 4}),
      SIte (SBin (SymInt 5) SYT.Le (SymVar SYT.Int "pos"))
@@ -310,8 +310,8 @@ elemAt2 = Map.fromList [
                (FormalParms,SFormalParms ["pos"]),
                (VarBindings,SVarBindings (Map.fromList [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
                (VarAssignments,SVarAssignments [
-                   ("arr",(SymArray (Just SYT.Int) (Just 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
-               (VarName "arr",SymArray (Just SYT.Int) (Just 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),
+                   ("arr",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+               (VarName "arr",SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),
                (VarName "pos",SymVar SYT.Int "pos"),
                (Return,SException SYT.Int "Exception" "not found")
              ])
@@ -348,8 +348,8 @@ elemAt4 = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "elemAt4"),
     (VarBindings,SVarBindings (Map.fromList [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
     (VarAssignments,SVarAssignments [
-        ("arr",(SymArray (Just SYT.Int) (Just 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
-    (VarName "arr",SymArray (Just SYT.Int) (Just 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),
+        ("arr",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),
     (Return,SymInt 7)
   ]
 
@@ -468,10 +468,10 @@ manyArrs = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Void "manyArrs"),
     (VarBindings,SVarBindings (Map.fromList [("numbers",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
     (VarAssignments,SVarAssignments [
-        ("numbers",(SymArray (Just SYT.Int) (Just 2) [SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
-        ("numbers",(SymArray (Just SYT.Int) (Just 2) [SymInt 99,SymNull SYT.Int],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})),
-        ("numbers",(SymArray (Just SYT.Int) (Just 2) [SymInt 99,SymInt 5],Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
-    (VarName "numbers",SymArray (Just SYT.Int) (Just 2) [SymInt 99,SymInt 5]),
+        ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymNull SYT.Int],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymInt 5],Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+    (VarName "numbers",SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymInt 5]),
     (Actions,SActions [SymString "[99, 5]\n"])
   ]
 
@@ -484,35 +484,35 @@ manyArrs2 = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Void "manyArrs2"),
     (VarBindings,SVarBindings (Map.fromList [("brand",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 29}}),("numbers1",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 29}}),("numbers2",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 29}}),("numbers3",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 29}}),("strs",Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 0, branchEnd = 29}})])),
     (VarAssignments,SVarAssignments [
-        ("numbers1",(SymArray (Just SYT.Int) (Just 7) [SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers2",(SymArray (Just SYT.Int) (Just 5) [SymInt 40,SymInt 55,SymInt 63,SymInt 17,SymInt 22],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers3",(SymArray (Just SYT.Int) (Just 5) [SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("brand",(SymArray (Just SYT.String) (Just 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("strs",(SymArray (Just SYT.String) (Just 3) [SymNull SYT.String,SymNull SYT.String,SymNull SYT.String],Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("strs",(SymArray (Just SYT.String) (Just 3) [SymNull SYT.String,SymString "meow",SymNull SYT.String],Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers1",(SymArray (Just SYT.Int) (Just 7) [SymInt 86,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers1",(SymArray (Just SYT.Int) (Just 7) [SymInt 86,SymNull SYT.Int,SymInt 80,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers1",(SymArray (Just SYT.Int) (Just 7) [SymInt 86,SymInt 57,SymInt 80,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 10, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers1",(SymArray (Just SYT.Int) (Just 7) [SymInt 86,SymInt 57,SymInt 80,SymInt 34,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 11, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers1",(SymArray (Just SYT.Int) (Just 7) [SymInt 86,SymInt 57,SymInt 80,SymInt 34,SymInt 50,SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 12, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers1",(SymArray (Just SYT.Int) (Just 7) [SymInt 86,SymInt 57,SymInt 80,SymInt 34,SymInt 50,SymInt 48,SymNull SYT.Int],Node_Coor {varDeclAt = 13, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers1",(SymArray (Just SYT.Int) (Just 7) [SymInt 86,SymInt 57,SymInt 80,SymInt 34,SymInt 50,SymInt 48,SymInt 94],Node_Coor {varDeclAt = 14, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers2",(SymArray (Just SYT.Int) (Just 5) [SymInt 51,SymInt 55,SymInt 63,SymInt 17,SymInt 22],Node_Coor {varDeclAt = 15, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers2",(SymArray (Just SYT.Int) (Just 5) [SymInt 51,SymInt 84,SymInt 63,SymInt 17,SymInt 22],Node_Coor {varDeclAt = 16, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers2",(SymArray (Just SYT.Int) (Just 5) [SymInt 51,SymInt 84,SymInt 92,SymInt 17,SymInt 22],Node_Coor {varDeclAt = 17, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers2",(SymArray (Just SYT.Int) (Just 5) [SymInt 51,SymInt 84,SymInt 92,SymInt 87,SymInt 22],Node_Coor {varDeclAt = 18, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers2",(SymArray (Just SYT.Int) (Just 5) [SymInt 51,SymInt 84,SymInt 92,SymInt 87,SymInt 81],Node_Coor {varDeclAt = 19, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers3",(SymArray (Just SYT.Int) (Just 5) [SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymInt 43],Node_Coor {varDeclAt = 20, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers3",(SymArray (Just SYT.Int) (Just 5) [SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymInt 10,SymInt 43],Node_Coor {varDeclAt = 21, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers3",(SymArray (Just SYT.Int) (Just 5) [SymNull SYT.Int,SymNull SYT.Int,SymInt 34,SymInt 10,SymInt 43],Node_Coor {varDeclAt = 22, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers3",(SymArray (Just SYT.Int) (Just 5) [SymNull SYT.Int,SymInt 75,SymInt 34,SymInt 10,SymInt 43],Node_Coor {varDeclAt = 23, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers3",(SymArray (Just SYT.Int) (Just 5) [SymNull SYT.Int,SymInt 75,SymInt 34,SymInt 10,SymInt 6],Node_Coor {varDeclAt = 24, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers3",(SymArray (Just SYT.Int) (Just 5) [SymInt 5,SymInt 75,SymInt 34,SymInt 10,SymInt 6],Node_Coor {varDeclAt = 25, varFrame = SR {branchStart = 0, branchEnd = 29}}))]),
-    (VarName "brand",SymArray (Just SYT.String) (Just 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"]),
-    (VarName "numbers1",SymArray (Just SYT.Int) (Just 7) [SymInt 86,SymInt 57,SymInt 80,SymInt 34,SymInt 50,SymInt 48,SymInt 94]),
-    (VarName "numbers2",SymArray (Just SYT.Int) (Just 5) [SymInt 51,SymInt 84,SymInt 92,SymInt 87,SymInt 81]),
-    (VarName "numbers3",SymArray (Just SYT.Int) (Just 5) [SymInt 5,SymInt 75,SymInt 34,SymInt 10,SymInt 6]),
-    (VarName "strs",SymArray (Just SYT.String) (Just 3) [SymNull SYT.String,SymString "meow",SymNull SYT.String]),
+        ("numbers1",(SymArray (Just SYT.Int) (Just $ SymInt 7) [SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 29}})),
+        ("numbers2",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 40,SymInt 55,SymInt 63,SymInt 17,SymInt 22],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 29}})),
+        ("numbers3",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 29}})),
+        ("brand",(SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 29}})),
+        ("strs",(SymArray (Just SYT.String) (Just $ SymInt 3) [SymNull SYT.String,SymNull SYT.String,SymNull SYT.String],Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 0, branchEnd = 29}})),
+        ("strs",(SymArray (Just SYT.String) (Just $ SymInt 3) [SymNull SYT.String,SymString "meow",SymNull SYT.String],Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 0, branchEnd = 29}})),
+        ("numbers1",(SymArray (Just SYT.Int) (Just $ SymInt 7) [SymInt 86,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 0, branchEnd = 29}})),
+        ("numbers1",(SymArray (Just SYT.Int) (Just $ SymInt 7) [SymInt 86,SymNull SYT.Int,SymInt 80,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 0, branchEnd = 29}})),
+        ("numbers1",(SymArray (Just SYT.Int) (Just $ SymInt 7) [SymInt 86,SymInt 57,SymInt 80,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 10, varFrame = SR {branchStart = 0, branchEnd = 29}})),
+        ("numbers1",(SymArray (Just SYT.Int) (Just $ SymInt 7) [SymInt 86,SymInt 57,SymInt 80,SymInt 34,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 11, varFrame = SR {branchStart = 0, branchEnd = 29}})),
+        ("numbers1",(SymArray (Just SYT.Int) (Just $ SymInt 7) [SymInt 86,SymInt 57,SymInt 80,SymInt 34,SymInt 50,SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 12, varFrame = SR {branchStart = 0, branchEnd = 29}})),
+        ("numbers1",(SymArray (Just SYT.Int) (Just $ SymInt 7) [SymInt 86,SymInt 57,SymInt 80,SymInt 34,SymInt 50,SymInt 48,SymNull SYT.Int],Node_Coor {varDeclAt = 13, varFrame = SR {branchStart = 0, branchEnd = 29}})),
+        ("numbers1",(SymArray (Just SYT.Int) (Just $ SymInt 7) [SymInt 86,SymInt 57,SymInt 80,SymInt 34,SymInt 50,SymInt 48,SymInt 94],Node_Coor {varDeclAt = 14, varFrame = SR {branchStart = 0, branchEnd = 29}})),
+        ("numbers2",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 51,SymInt 55,SymInt 63,SymInt 17,SymInt 22],Node_Coor {varDeclAt = 15, varFrame = SR {branchStart = 0, branchEnd = 29}})),
+        ("numbers2",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 51,SymInt 84,SymInt 63,SymInt 17,SymInt 22],Node_Coor {varDeclAt = 16, varFrame = SR {branchStart = 0, branchEnd = 29}})),
+        ("numbers2",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 51,SymInt 84,SymInt 92,SymInt 17,SymInt 22],Node_Coor {varDeclAt = 17, varFrame = SR {branchStart = 0, branchEnd = 29}})),
+        ("numbers2",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 51,SymInt 84,SymInt 92,SymInt 87,SymInt 22],Node_Coor {varDeclAt = 18, varFrame = SR {branchStart = 0, branchEnd = 29}})),
+        ("numbers2",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 51,SymInt 84,SymInt 92,SymInt 87,SymInt 81],Node_Coor {varDeclAt = 19, varFrame = SR {branchStart = 0, branchEnd = 29}})),
+        ("numbers3",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymInt 43],Node_Coor {varDeclAt = 20, varFrame = SR {branchStart = 0, branchEnd = 29}})),
+        ("numbers3",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymInt 10,SymInt 43],Node_Coor {varDeclAt = 21, varFrame = SR {branchStart = 0, branchEnd = 29}})),
+        ("numbers3",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymNull SYT.Int,SymNull SYT.Int,SymInt 34,SymInt 10,SymInt 43],Node_Coor {varDeclAt = 22, varFrame = SR {branchStart = 0, branchEnd = 29}})),
+        ("numbers3",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymNull SYT.Int,SymInt 75,SymInt 34,SymInt 10,SymInt 43],Node_Coor {varDeclAt = 23, varFrame = SR {branchStart = 0, branchEnd = 29}})),
+        ("numbers3",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymNull SYT.Int,SymInt 75,SymInt 34,SymInt 10,SymInt 6],Node_Coor {varDeclAt = 24, varFrame = SR {branchStart = 0, branchEnd = 29}})),
+        ("numbers3",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 5,SymInt 75,SymInt 34,SymInt 10,SymInt 6],Node_Coor {varDeclAt = 25, varFrame = SR {branchStart = 0, branchEnd = 29}}))]),
+    (VarName "brand",SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"]),
+    (VarName "numbers1",SymArray (Just SYT.Int) (Just $ SymInt 7) [SymInt 86,SymInt 57,SymInt 80,SymInt 34,SymInt 50,SymInt 48,SymInt 94]),
+    (VarName "numbers2",SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 51,SymInt 84,SymInt 92,SymInt 87,SymInt 81]),
+    (VarName "numbers3",SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 5,SymInt 75,SymInt 34,SymInt 10,SymInt 6]),
+    (VarName "strs",SymArray (Just SYT.String) (Just $ SymInt 3) [SymNull SYT.String,SymString "meow",SymNull SYT.String]),
     (Actions,SActions [SymString "[86, 57, 80, 34, 50, 48, 94]\n",SymString "[51, 84, 92, 87, 81]\n",SymString "[5, 75, 34, 10, 6]\n"])
   ]
 
@@ -525,11 +525,11 @@ manyArrs3 = Map.fromList [
     (MethodHandle,SMethodHandle (SYT.Array SYT.Int) "manyArrs3"),
     (VarBindings,SVarBindings (Map.fromList [("numbers",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
     (VarAssignments,SVarAssignments [
-        ("numbers",(SymArray (Just SYT.Int) (Just 2) [SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
-        ("numbers",(SymArray (Just SYT.Int) (Just 2) [SymInt 99,SymNull SYT.Int],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})),
-        ("numbers",(SymArray (Just SYT.Int) (Just 2) [SymInt 99,SymInt 5],Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
-    (VarName "numbers",SymArray (Just SYT.Int) (Just 2) [SymInt 99,SymInt 5]),
-    (Return,SymArray (Just SYT.Int) (Just 2) [SymInt 99,SymInt 5])
+        ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
+        ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymNull SYT.Int],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})),
+        ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymInt 5],Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
+    (VarName "numbers",SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymInt 5]),
+    (Return,SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymInt 5])
   ]
 
 -----------------------------
@@ -541,9 +541,9 @@ manyArrs4 = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Void "manyArrs4"),
     (VarBindings,SVarBindings (Map.fromList [("numbers",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
     (VarAssignments,SVarAssignments [
-        ("numbers",(SymArray (Just SYT.Int) (Just 2) [SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
-        ("numbers",(SymArray (Just SYT.Int) (Just 2) [SymInt 99,SymNull SYT.Int],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
-    (VarName "numbers",SymArray (Just SYT.Int) (Just 2) [SymInt 99,SymNull SYT.Int]),
+        ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
+        ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymNull SYT.Int],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
+    (VarName "numbers",SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymNull SYT.Int]),
     (Actions,SActions [SymString "[99, 0]\n"])
   ]
 
@@ -557,13 +557,13 @@ manyArrs5 = Map.fromList [
     (VarBindings,SVarBindings (Map.fromList [
         ("brand",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
     (VarAssignments,SVarAssignments [
-        ("brand",(SymArray (Just SYT.String) (Just 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),
-        ("brand",(SymArray (Just SYT.String) (Just 5) [SymString "1. Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}})),
-        ("brand",(SymArray (Just SYT.String) (Just 5) [SymString "1. Toyota",SymString "2. Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}})),
-        ("brand",(SymArray (Just SYT.String) (Just 5) [SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}})),
-        ("brand",(SymArray (Just SYT.String) (Just 5) [SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",SymString "4. Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}})),
-        ("brand",(SymArray (Just SYT.String) (Just 5) [SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",SymString "4. Volkswagen",SymString "5. Skoda"],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),
-    (VarName "brand",SymArray (Just SYT.String) (Just 5) [SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",SymString "4. Volkswagen",SymString "5. Skoda"]),
+        ("brand",(SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),
+        ("brand",(SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "1. Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}})),
+        ("brand",(SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "1. Toyota",SymString "2. Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}})),
+        ("brand",(SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}})),
+        ("brand",(SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",SymString "4. Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}})),
+        ("brand",(SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",SymString "4. Volkswagen",SymString "5. Skoda"],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),
+    (VarName "brand",SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",SymString "4. Volkswagen",SymString "5. Skoda"]),
     (LoopConditions (SR {branchStart = 2, branchEnd = 6}),
      SLoopConditions [
          Map.fromList [("brand.length",SymInt 5),("i",SymInt 0)],
@@ -584,8 +584,8 @@ manyArrs6 = Map.fromList [
     (VarBindings,SVarBindings (Map.fromList [
         ("brand",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
     (VarAssignments,SVarAssignments [
-        ("brand",(SymArray (Just SYT.String) (Just 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}))]),
-    (VarName "brand",SymArray (Just SYT.String) (Just 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"]),
+        ("brand",(SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}))]),
+    (VarName "brand",SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"]),
     (LoopConditions (SR {branchStart = 2, branchEnd = 6}),
      SLoopConditions [
          Map.fromList [("brand.length",SymInt 5),("i",SymInt 0)],
@@ -637,8 +637,8 @@ manyArrs7Call2 :: SymStateEnv
 manyArrs7Call2 = Map.fromList [
   (MethodHandle,SMethodHandle SYT.Void "manyArrs7Call2"),
   (VarBindings,SVarBindings (Map.fromList [("brand",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
-  (VarAssignments,SVarAssignments [("brand",(SymArray (Just SYT.String) (Just 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
-  (VarName "brand",SymArray (Just SYT.String) (Just 5) [
+  (VarAssignments,SVarAssignments [("brand",(SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+  (VarName "brand",SymArray (Just SYT.String) (Just $ SymInt 5) [
      SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",
      SymString "4. Volkswagen",SymString "5. Skoda"]),
   (Actions,SActions [SymString "[1. Toyota, 2. Mercedes, 3. BMW, 4. Volkswagen, 5. Skoda]\n"])
@@ -1658,8 +1658,8 @@ swapCall = Map.fromList [
     (VarBindings,SVarBindings (Map.fromList [
         ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
     (VarAssignments,SVarAssignments [
-        ("arr",(SymArray (Just SYT.Int) (Just 9) [SymInt 5,SymInt 4,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 1],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
-    (VarName "arr",SymArray (Just SYT.Int) (Just 9) [SymInt 4,SymInt 5,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 1])
+        ("arr",(SymArray (Just SYT.Int) (Just $ SymInt 9) [SymInt 5,SymInt 4,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 1],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just $ SymInt 9) [SymInt 4,SymInt 5,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 1])
   ]
 
 -----------------------------
@@ -1698,9 +1698,9 @@ partitionCall1 = Map.fromList [
         ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),
         ("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
     (VarAssignments,SVarAssignments [
-        ("arr",(SymArray (Just SYT.Int) (Just 1) [SymInt 7],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("arr",(SymArray (Just SYT.Int) (Just $ SymInt 1) [SymInt 7],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
         ("x",(SymInt 0,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
-    (VarName "arr",SymArray (Just SYT.Int) (Just 1) [SymInt 7]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just $ SymInt 1) [SymInt 7]),
     (VarName "x",SymInt 0),
     (Actions,SActions [SymString "[7]\n",SymString "0\n"])
   ]
@@ -1716,9 +1716,9 @@ partitionCall2 = Map.fromList [
         ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),
         ("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
     (VarAssignments,SVarAssignments [
-        ("arr",(SymArray (Just SYT.Int) (Just 2) [SymInt 9,SymInt 7],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("arr",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 9,SymInt 7],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
         ("x",(SymInt 0,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
-    (VarName "arr",SymArray (Just SYT.Int) (Just 2) [SymInt 7,SymInt 9]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 7,SymInt 9]),
     (VarName "x",SymInt 0),
     (Actions,SActions [SymString "[7, 9]\n",SymString "0\n"])
   ]
@@ -1734,9 +1734,9 @@ partitionCall3 = Map.fromList [
         ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),
         ("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
  (VarAssignments,SVarAssignments [
-        ("arr",(SymArray (Just SYT.Int) (Just 2) [SymInt 3,SymInt 7],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("arr",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 3,SymInt 7],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
         ("x",(SymInt 1,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
-    (VarName "arr",SymArray (Just SYT.Int) (Just 2) [SymInt 3,SymInt 7]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 3,SymInt 7]),
     (VarName "x",SymInt 1),
     (Actions,SActions [SymString "[3, 7]\n",SymString "1\n"])
   ]
@@ -1752,9 +1752,9 @@ partitionCall4 = Map.fromList [
         ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),
         ("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
     (VarAssignments,SVarAssignments [
-        ("arr",(SymArray (Just SYT.Int) (Just 3) [SymInt 9,SymInt 3,SymInt 7],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("arr",(SymArray (Just SYT.Int) (Just $ SymInt 3) [SymInt 9,SymInt 3,SymInt 7],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
         ("x",(SymInt 1,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
-    (VarName "arr",SymArray (Just SYT.Int) (Just 3) [SymInt 3,SymInt 7,SymInt 9]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just $ SymInt 3) [SymInt 3,SymInt 7,SymInt 9]),
     (VarName "x",SymInt 1),
     (Actions,SActions [SymString "[3, 7, 9]\n",SymString "1\n"])
   ]
@@ -1770,9 +1770,9 @@ partitionCall5 = Map.fromList [
         ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),
         ("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
     (VarAssignments,SVarAssignments [
-        ("arr",(SymArray (Just SYT.Int) (Just 3) [SymInt 1,SymInt 2,SymInt 7],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("arr",(SymArray (Just SYT.Int) (Just $ SymInt 3) [SymInt 1,SymInt 2,SymInt 7],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
         ("x",(SymInt 2,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
-    (VarName "arr",SymArray (Just SYT.Int) (Just 3) [SymInt 1,SymInt 2,SymInt 7]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just $ SymInt 3) [SymInt 1,SymInt 2,SymInt 7]),
     (VarName "x",SymInt 2),
     (Actions,SActions [SymString "[1, 2, 7]\n",SymString "2\n"])
   ]
@@ -1788,9 +1788,9 @@ partitionCall6 = Map.fromList [
         ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),
         ("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
     (VarAssignments,SVarAssignments [
-        ("arr",(SymArray (Just SYT.Int) (Just 3) [SymInt 9,SymInt 8,SymInt 7],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("arr",(SymArray (Just SYT.Int) (Just $ SymInt 3) [SymInt 9,SymInt 8,SymInt 7],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
         ("x",(SymInt 0,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
-    (VarName "arr",SymArray (Just SYT.Int) (Just 3) [SymInt 7,SymInt 8,SymInt 9]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just $ SymInt 3) [SymInt 7,SymInt 8,SymInt 9]),
     (VarName "x",SymInt 0),
     (Actions,SActions [SymString "[7, 8, 9]\n",SymString "0\n"])
   ]
@@ -1831,10 +1831,10 @@ isAscending1Call = Map.fromList [
         ("arr1",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),
         ("arr2",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
     (VarAssignments,SVarAssignments [
-        ("arr1",(SymArray (Just SYT.Int) (Just 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 6,SymInt 7,SymInt 99],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
-        ("arr2",(SymArray (Just SYT.Int) (Just 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 7,SymInt 6,SymInt 99],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
-    (VarName "arr1",SymArray (Just SYT.Int) (Just 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 6,SymInt 7,SymInt 99]),
-    (VarName "arr2",SymArray (Just SYT.Int) (Just 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 7,SymInt 6,SymInt 99]),
+        ("arr1",(SymArray (Just SYT.Int) (Just $ SymInt 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 6,SymInt 7,SymInt 99],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("arr2",(SymArray (Just SYT.Int) (Just $ SymInt 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 7,SymInt 6,SymInt 99],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+    (VarName "arr1",SymArray (Just SYT.Int) (Just $ SymInt 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 6,SymInt 7,SymInt 99]),
+    (VarName "arr2",SymArray (Just SYT.Int) (Just $ SymInt 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 7,SymInt 6,SymInt 99]),
     (Actions,SActions [SymString "true\n",SymString "false\n"])
   ]
 
@@ -1870,9 +1870,9 @@ bubbleSortCall = Map.fromList [
     (VarBindings,SVarBindings (Map.fromList [
         ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
     (VarAssignments,SVarAssignments [
-        ("arr",(SymArray (Just SYT.Int) (Just 9) [SymInt 5,SymInt 4,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 1],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
-    (VarName "arr",SymArray (Just SYT.Int) (Just 9) [SymInt 0,SymInt 1,SymInt 4,SymInt 4,SymInt 5,SymInt 6,SymInt 7,SymInt 8,SymInt 9]),
- (Return,SymArray (Just SYT.Int) (Just 9) [SymInt 0,SymInt 1,SymInt 4,SymInt 4,SymInt 5,SymInt 6,SymInt 7,SymInt 8,SymInt 9])
+        ("arr",(SymArray (Just SYT.Int) (Just $ SymInt 9) [SymInt 5,SymInt 4,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 1],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just $ SymInt 9) [SymInt 0,SymInt 1,SymInt 4,SymInt 4,SymInt 5,SymInt 6,SymInt 7,SymInt 8,SymInt 9]),
+ (Return,SymArray (Just SYT.Int) (Just $ SymInt 9) [SymInt 0,SymInt 1,SymInt 4,SymInt 4,SymInt 5,SymInt 6,SymInt 7,SymInt 8,SymInt 9])
   ]
 
 -----------------------------
@@ -1939,7 +1939,7 @@ arrayBoolean = Map.fromList [
 arrayBooleanCall :: SymStateEnv
 arrayBooleanCall = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Void "arrayBooleanCall"),
-    (Actions,SActions [SymString "true\n",SymString "false\n",SymString "null"])
+    (Actions,SActions [SymString "true\n",SymString "false\n",SymString "true\n"])
   ]
 
 -----------------------------

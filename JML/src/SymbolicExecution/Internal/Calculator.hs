@@ -662,7 +662,9 @@ booleanCalculator2 op = \case
                 Lt  -> res
                 Gt  -> res
                 Ge  -> res
-                Or  -> res
+                Or  -> case a of
+                  SBool True -> SBool True
+                  _          -> res
                 And -> res
                 _   -> error $ "TODO2: booleanCalculator2: " ++ show (op,tu)
   ----------
@@ -785,26 +787,35 @@ booleanCalculator2 op = \case
 ----------------------------------------------------------------------
 
 objAccCalculator :: Map.Map SymStateKey SymExpr -> SymExpr -> SymExpr
-objAccCalculator varNames = \case
-  SObjAcc names
-    | length names >= 3 -> error $ "objAccCalculator ==> won't happen1 ==> " ++ show names
-    | length names <= 1 -> error $ "objAccCalculator ==> won't happen2 ==> " ++ show names
-  expr@(SObjAcc [varName,_]) ->
-    let Just varNameVal = Map.lookup (VarName varName) varNames
-    in objAccCalculator2 expr varNameVal
-  arr@(SArrayIndexAccess arrType arrName arrIndexSymExpr) ->
-    let Just varSymExpr = Map.lookup (VarName arrName) varNames
-    in case (varSymExpr,arrIndexSymExpr) of
-         (SymArray _ _ elems,SymInt index) -> elems !! fromIntegral index
-         _ -> arr
-  e -> error $ "objAccCalculator ==> won't happen3 ==> " ++ show e
+objAccCalculator varNames expr = let
+  loc = "SymbolicExecution.Internal.Calculator"
+  in case expr of
+       SObjAcc names
+         | length names >= 3 -> error $ "objAccCalculator ==> won't happen1 ==> " ++ show names
+         | length names <= 1 -> error $ "objAccCalculator ==> won't happen2 ==> " ++ show names
+       SObjAcc [varName,_] ->
+         let Just varNameVal = Map.lookup (VarName varName) varNames
+         in objAccCalculator2 expr varNameVal
+       SArrayIndexAccess arrType arrName arrIndexSymExpr ->
+         let Just varSymExpr = Map.lookup (VarName arrName) varNames
+         in case (varSymExpr,arrIndexSymExpr) of
+              (SymArray _ mSizeSymExpr elems,SymInt index) -> case mSizeSymExpr of
+                Just (SymInt size)
+                  | index < size -> elems !! fromIntegral index
+                  | otherwise -> error $ printf "%s: TODO1: %s" (show (index,size))
+                Just _ -> expr
+                Nothing -> error $ printf "%s: TODO2" loc
+              _ -> expr
+       _ -> error $ "objAccCalculator ==> won't happen3 ==> " ++ show expr
 
 objAccCalculator2 :: SymExpr -> SymExpr -> SymExpr
 objAccCalculator2 expr@(SObjAcc [varName,methodCall]) = \case
   SymVar _ _ -> expr
-  SymArray _ mLength elems
+  SymArray _ Nothing elems
     | methodCall == "length" -> SymInt
-        $ maybe (fromIntegral $ length elems) fromIntegral $ mLength
+        $ fromIntegral $ length elems
+  SymArray _ (Just size@(SymInt _)) elems
+    | methodCall == "length" -> size
     | otherwise -> error "TODO1: objAccCalculator2"
   expr2@(SymNull _)
     | methodCall == "length" -> SymNull Int
@@ -906,6 +917,7 @@ funCallCalculator = \case
      SBool True -> SymString "true"
      SBool False -> SymString "false"
      SymNull _ -> argExpr
+     SException _ _ _ -> SymFun ToString argExpr
      _ -> error $ "TODO1: funCallCalculator ==> " ++ show argExpr
   (funName,[argExpr])        
     | funName `elem` [Print,Println] ->
@@ -919,12 +931,12 @@ funCallCalculator = \case
                \1) %s\n\n\
                \2) %s" (show argExpr) (show x)
     where
-    flatten symExpr
-      | toSymType2 argExpr == String = case symExpr of
-          SymString ('\"' : rest) -> SymString (init rest)
-          SymFun ToString e@(SymFun ToString _) -> e
-          SymFun _ _ -> error $ "TODO3: funCallCalculator ==> " ++ show symExpr
-      | otherwise = symExpr
+    flatten symExpr = case toSymType2 argExpr of
+      String -> case symExpr of
+        SymString ('\"' : rest) -> SymString (init rest)
+        SymFun ToString e@(SymFun ToString _) -> e
+        SymFun _ _ -> error $ "TODO3: funCallCalculator ==> " ++ show symExpr
+      _ -> symExpr
   tu@(funName,argsExprs) -> error $ "TODO4: funCallCalculator ==> " ++ show tu
 
 ----------------------------------------------------------------------

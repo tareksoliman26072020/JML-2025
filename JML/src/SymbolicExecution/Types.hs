@@ -155,7 +155,7 @@ data SymExpr =
   | SException SymType String String
   | SActions [SymExpr]
   | SArrayIndexAccess SymType String SymExpr
-  | SymArray (Maybe SymType) (Maybe Int) [SymExpr]
+  | SymArray (Maybe SymType) (Maybe SymExpr) [SymExpr]
   | SymUnknown SymExpr [SymReason]
   | SFormalParms [String]
   | SGlobalVars [String]

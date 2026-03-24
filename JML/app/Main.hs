@@ -233,7 +233,7 @@ main = print $ booleanCalculator $ SYT.SBin (SYT.SymInt 0) SYT.Lt (SYT.SymInt 0)
 
 run :: SYT.SymType
 run = toSymType2
-  $ SYT.SymArray (Just SYT.Int) (Just 2) [SYT.SymInt 99,SYT.SymInt 5]
+  $ SYT.SymArray (Just SYT.Int) (Just $ SYT.SymInt 2) [SYT.SymInt 99,SYT.SymInt 5]
 
 printMethod :: String -> IO ()
 printMethod methodName = maybe (putStrLn "Method does not exist!") putStrLn 

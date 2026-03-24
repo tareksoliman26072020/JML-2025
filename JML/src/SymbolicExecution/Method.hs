@@ -309,7 +309,7 @@ instance CFGVisitor MethodProcessor where
                                _  -> error $ printf "%s ==> unevaluated if condition ==> else ==> %s" loc er
                     
                     tellNextLog (Log.HorizontalLine "else branch")
-                    
+
                     flip mapM_ elseLogs $ \log -> do
                       Log.Header _ baseCounter <- logHeader <$> get
                       tellNextNestedLog baseCounter ["else statement"] log
@@ -422,9 +422,8 @@ instance CFGVisitor MethodProcessor where
                     _ -> v,
                   logHeader = logHeader symState
                 }
-
                 return $ ER_Expr symExpr
-
+              _ -> throwError $ printf "TODO: %s: %s" loc (show expr2)
         tellNextLog (Log.Return loc (show toReturn)) $> toReturn
       ----------------------------------------
       ----------------------------------------
@@ -581,13 +580,9 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
           _    -> cast t symExpr
         Nothing      -> error $ "visitStmt -> ReturnStmt -> won't happen: " ++ show er
 
-  tellNextLog $ Log.Meow (replicate 50 '\n')
-                         "MEOW1"
   incrementLogEnumeration >>
     incrementLogDepth *> inferGlobalVarType t er <* decrementLogDepth
 
-  tellNextLog $ Log.Meow (replicate 50 '\n')
-                         "MEOW2"
   tellNextLog $ Log.ModifyState "visitStmt -> ReturnStmt -> method with args" ("return",show symExpr)
   modify $ \symState ->
     SymState {
@@ -974,6 +969,17 @@ visitExpr expr@AST.BinOpExpr{} = do
             "booleanCalculator" -> booleanCalculator
           calculating = calculator (SBin op1 operator op2)
           toReturn = ER_Expr calculating
+      {-case (one,two) of
+        (SymNull (Array Int),SymNull UnknownGlobalVarSymType) -> return ()
+        (SymNull Int,SymNum 1.0) -> return ()
+        _ -> throwError $ printf
+          "MEOW:\n\n\
+          \1) %s\n\n\
+          \2) %s\n\n\
+          \3) %s\n\n\
+          \4) %s\n\n\
+          \5) %s\n\n\
+          \6) %s\n\n" (show expr) (show one) (show two) (show op1) (show op2) (show calculating)-}
       tellNextLog (Log.Return (printf "visitExpr -> BinOpExpr -> %s"
                           calculatorType) (show toReturn)
            ) $> toReturn
@@ -1252,22 +1258,23 @@ visitExpr expr@AST.ArrayInstantiationExpr{} = do
         (ER_Expr expr2,Just t) -> return $ cast (arrayElementSymType t) expr2
         _ -> throwError $ "visitExpr ==> ArrayInstantiationExpr: " ++ show er
   -- get array size
-  m_arr_size <- case (AST.arrSize expr,length exprs) of
-        (Nothing,l) -> return $ Just l
+  (m_arr_size :: Maybe SymExpr) <- case (AST.arrSize expr,length exprs) of
+        (Nothing,l) -> return $ Just $ SymInt $ fromIntegral l
         (Just ex,l)
-          | l > 0 -> return $ Just l
+          | l > 0 -> return $ Just $ SymInt $ fromIntegral l
           | otherwise -> do
               er <- do incrementLogEnumeration
                        incrementLogDepth *> visitExpr ex <* decrementLogDepth
               case er of
-                ER_Expr (SymNum num) -> return $ Just $ round num
+                ER_Expr (SymNum num) -> return $ Just $ SymInt (round num)
+                ER_Expr expr@(SBin _ _ _) -> return $ Just expr
                 _ -> throwError $ "visitExpr ==> ArrayInstantiationExpr: " ++ show (expr,er)
         (Nothing,0) -> return Nothing
   -- potentially add nulls as elements if size is present, but no elements are present.
   let exprs_ = case (m_arr_size,exprs) of
         (Nothing,[]) -> []
         (Nothing,_) -> exprs
-        (Just num,[]) -> replicate num (SymNull $ maybe (error "visitExpr ==> ArrayInstantiationExpr") arrayElementSymType mArrType)
+        (Just (SymInt num),[]) -> replicate (fromIntegral num) (SymNull $ maybe (error "visitExpr ==> ArrayInstantiationExpr") arrayElementSymType mArrType)
         (Just num,_) -> exprs
 
   let symExpr = SymArray
