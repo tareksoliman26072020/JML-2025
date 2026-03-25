@@ -205,6 +205,14 @@ ppExpr_no_type = \case
   expr@FunCallExpr{} -> printf "%s(%s)"
     (ppExpr_no_type $ funName expr)
     (intercalate ", " $ map ppExpr_no_type $ funArgs expr)
+  {-
+  AssignExpr {
+      assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"},
+      assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}
+   -}
+  expr@AssignExpr{} -> printf "%s = %s"
+    (ppExpr_no_type $ assEleft expr)
+    (ppExpr_no_type $ assEright expr)
   expr -> error $ "TODO: Parser.Types.ppExpr_no_type: " ++ show expr
 
 data Type a

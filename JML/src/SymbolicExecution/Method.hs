@@ -1001,6 +1001,7 @@ visitExpr expr@AST.AssignExpr{} = do
          (VarName arrName,val,(ppSymExpr_no_symType s,ppSymExpr_no_symType val))
        ER_Expr ex -> error $ printf "%s: (%s,%s,%s)" loc
            (show expr) (show ex) (show $ AST.assEleft expr)
+       _ -> error $ printf "TODO2: %s: %s" loc (show one)
 
   two <- do
     incrementLogEnumeration
@@ -1017,7 +1018,7 @@ visitExpr expr@AST.AssignExpr{} = do
                     : map toSymType2 elms1
                     ++ [type2]
               in cast (Array newType) e2_
-            _ -> error $ printf "TODO1: %s ==> e2 ==> %s" loc (show one_val)
+            _ -> error $ printf "TODO3: %s ==> e2 ==> %s" loc (show one_val)
           ER_Expr e2_ -> cast (toSymType2 one_val) e2_
           ER_FunCall funCallState ->
             case getReturnSymExpr funCallState of
@@ -1035,7 +1036,7 @@ visitExpr expr@AST.AssignExpr{} = do
             let t = pick_known_symType (toSymType2 arrayCallVal, toSymType2 one_val)
             in cast t arrayCallVal
           ER_VarExprObjAccess _ e2_ -> e2_
-          _ -> error $ printf "TODO2: %s ==> e2 ==> %s" loc (show two)
+          _ -> error $ printf "TODO4: %s ==> e2 ==> %s" loc (show two)
 
   tellNextLog $ Log.Affected loc [show one, show two]
   -- newVal is a transformation of two_val. it's the new value
@@ -1052,10 +1053,14 @@ visitExpr expr@AST.AssignExpr{} = do
                   take int elems ++
                   [cast (toSymType2 one_val) two_val] ++
                   drop (int+1) elems)
-            _ -> error $ "TODO1: visitExpr ==> AssignExpr: " ++ show index
+            _ -> error $ "TODO5: visitExpr ==> AssignExpr: " ++ show index
           Just e@(SymVar (Array t) arrName) ->
             let newType = pick_known_symType2 [arrType, toSymType2 e, toSymType2 two_val]
             in return $ cast newType e
+          Just e@(SymUnknown _ _) ->
+            let newType = pick_known_symType2 [arrType, toSymType2 e, toSymType2 two_val]
+            in return $ cast newType e
+          y -> error $ "TODO5: visitExpr ==> AssignExpr: " ++ show y
       (_,SymArray _ _ _) -> -- casting is done during the creation of two_val
         return two_val
       _ -> return $ cast (toSymType2 one_val) two_val

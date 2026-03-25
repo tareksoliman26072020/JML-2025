@@ -587,6 +587,23 @@ numericCalculator2 op = \case
   (a@(SObjAcc _),b) -> SBin a op b
   (a,b@(SObjAcc _)) -> SBin a op b
 ----------
+  (a@(SArrayIndexAccess (Array t1) name1 symExpr1),
+   b@(SArrayIndexAccess (Array t2) name2 symExpr2)) ->
+    let t3 = pick_known_symType (t1,t2)
+    in SBin (SArrayIndexAccess (Array t3) name1 symExpr1)
+            op
+            (SArrayIndexAccess (Array t3) name2 symExpr2)
+  (a@(SArrayIndexAccess (Array t1) name1 symExpr1),b) ->
+    let t3 = pick_known_symType (t1,toSymType2 b)
+    in SBin (SArrayIndexAccess (Array t3) name1 symExpr1)
+            op
+            (cast t3 b)
+  (a,b@(SArrayIndexAccess (Array t2) name2 symExpr2)) ->
+    let t3 = pick_known_symType (toSymType2 a,t2)
+    in SBin (cast t3 a)
+            op
+            (SArrayIndexAccess (Array t3) name2 symExpr2)
+----------
   (a,b) -> error $ printf "numericCalculator: (%s ,, %s ,, %s)" (show a) (show op) (show b)
 
 isNegative :: SymExpr -> Bool
@@ -771,6 +788,17 @@ booleanCalculator2 op = \case
   (a,b@(SymArray _ _ elems)) ->
     let newType = pick_known_symType2 (map (Array . toSymType2) elems ++ [toSymType2 a])
     in SBin (cast newType a) op (cast newType b)
+  ----------
+  (a@(SymUnknown _ _),b) ->
+    let newType = pick_known_symType (toSymType2 a,toSymType2 b)
+    in SBin (cast newType a)
+            op
+            (cast newType b)
+  (a,b@(SymUnknown _ _)) ->
+    let newType = pick_known_symType (toSymType2 a,toSymType2 b)
+    in SBin (cast newType a)
+            op
+            (cast newType b)
   ----------
   (p1,p2) -> error $ printf
     "TODO6: booleanCalculator2:\n\n\

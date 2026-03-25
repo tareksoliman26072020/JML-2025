@@ -235,6 +235,7 @@ isVar = \case
   SymString _ -> False
   SymUnknown _ _ -> True
   SymFun _ symExpr -> isVar symExpr
+  SArrayIndexAccess _ _ _ -> False
   expr -> error $ "TODO: isVar: " ++ show expr
 
 isArray :: SymExpr -> Bool
@@ -657,7 +658,7 @@ cast2 vn newType tu@(symStateKey,symExpr) = case symStateKey of
          SBin _ op _
            | vn `existsIn` tu -> cast newType symExpr
            | otherwise -> symExpr
-         SVarAssignments li -> SVarAssignments $ flip map li $ \(vn2,(expr,coor)) -> --symExpr
+         SVarAssignments li -> SVarAssignments $ flip map li $ \(vn2,(expr,coor)) ->
            (vn2,(cast2 vn newType (VarName vn2,expr),coor))
          SymUnknown expr reasons -> SymUnknown (cast2 vn newType (symStateKey,expr)) reasons 
          SVarBindings _ -> symExpr
@@ -674,6 +675,7 @@ cast2 vn newType tu@(symStateKey,symExpr) = case symStateKey of
            $ flip map li $ Map.mapWithKey $ \k v -> if
              | k==vn     -> cast newType v
              | otherwise -> v
+         SLoop _ _ _ -> symExpr
          _ -> error $ printf "SymbolicExecution.Internal.cast2 ==> TODO ==> (%s ,, %s)" vn (show tu)
 
 -- A non-atomic SymExpr contains a plural number of SymExprs.
@@ -768,6 +770,9 @@ existsIn vn tu@(symStateKey,symExpr) = (case symStateKey of
     SVarAssignments _ -> False
     SymUnknown expr _ -> existsIn vn (symStateKey,expr)
     SymFun _ expr -> existsIn vn (symStateKey,expr)
+    SArrayIndexAccess _ _ _ -> False
+    SObjAcc _ -> False
+    SymNull _ -> False
     _ -> error
       $ printf "SymbolicExecution.Internal.existsIn ==> TODO ==> (%s ,, %s)" vn (show tu)
 
