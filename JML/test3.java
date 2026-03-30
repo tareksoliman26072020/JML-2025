@@ -1940,7 +1940,8 @@ public String strFun() {
 /*
 SymState {
   env = fromList [
-    (MethodName "voidFun1",SMethodType Void)
+    (MethodName "voidFun1",SMethodType Void),
+    (Return,SymReturnVoid)
   ], pc = []
 }
 */
@@ -2053,16 +2054,7 @@ SymState {
     (GlobalVars,SGlobalVars ["y2","z"]),
     (VarName "y2",SymString "is not one"),
     (VarName "z",SymString "11 is not one"),
-    (Actions,SActions ["11 is not one\n"])
-  ], pc = []}
-*/
-/*
-SymState {
-  env = fromList [
-    (MethodName "voidFun3Call",SMethodType Void),
-    (GlobalVars,SGlobalVars ["y2","z"]),
-    (VarName "y2",SymString "is not one"),
-    (VarName "z",SymString "11 is not one"),
+    (Return,SymReturnVoid),
     (Actions,SActions [SymString "11 is not one\n"])
   ], pc = []}
 */
@@ -2132,6 +2124,7 @@ SymState {
     (VarBindings,SVarBindings (fromList [("numbers",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
     (VarAssignments,SVarAssignments [("numbers",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("numbers",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}),("numbers",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 5}})]),
     (VarName "numbers",SymArray (Just (Array Int)) (Just 2) [SymInt 99,SymInt 5]),
+    (Return,SymReturnVoid),
     (Actions,SActions [SymString "[99, 5]\n"])
   ], pc = []}
 */
@@ -2157,6 +2150,7 @@ SymState {
     (VarName "numbers2",SymArray (Just (Array Int)) (Just 5) [SymInt 51,SymInt 84,SymInt 92,SymInt 87,SymInt 81]),
     (VarName "numbers3",SymArray (Just (Array Int)) (Just 5) [SymInt 5,SymInt 75,SymInt 34,SymInt 10,SymInt 6]),
     (VarName "strs",SymArray (Just (Array String)) (Just 3) [SymNull String,SymString "meow",SymNull String]),
+    (Return,SymReturnVoid),
     (Actions,SActions ["[86, 57, 80, 34, 50, 48, 94]\n","[51, 84, 92, 87, 81]\n","[5, 75, 34, 10, 6]\n"])
   ], pc = []}
 */
@@ -2222,6 +2216,7 @@ public int[] manyArrs3() {
  (VarBindings,SVarBindings (fromList [("numbers",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
  (VarAssignments,SVarAssignments [("numbers",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}}),("numbers",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})]),
  (VarName "numbers",SymArray (Just (Array Int)) (Just 2) [SymInt 99,SymNull Int]),
+ (Return,SymReturnVoid),
  (Actions,SActions ["[99, 0]\n"])
 ]
 */
@@ -2255,6 +2250,7 @@ fromList [
          fromList [("brand.length",SymInt 5),("i",SymInt 3)],
          fromList [("brand.length",SymInt 5),("i",SymInt 4)],
          fromList [("brand.length",SymInt 5),("i",SymInt 5)]]),
+    (Return,SymReturnVoid),
     (Actions,SActions [SymString "[1. Toyota, 2. Mercedes, 3. BMW, 4. Volkswagen, 5. Skoda]\n"])
   ]
 */
@@ -2286,6 +2282,7 @@ SymState {
          fromList [("brand.length",SymInt 5),("i",SymInt 2)],
          fromList [("brand.length",SymInt 5),("i",SymInt 3)],
          fromList [("brand.length",SymInt 5),("i",SymInt 4)]]),
+    (Return,SymReturnVoid),
     (Actions,
      SActions [
          SymString "1. Toyota\n",
@@ -2334,6 +2331,7 @@ public void manyArrs7(String[] meow) {
 /*
 [
  (MethodHandle,SMethodHandle Void "manyArrs7Call1"),
+ (Return,SymReturnVoid),
  (Actions,SActions [SymString "[1. Toyota, 2. Mercedes, 3. BMW, 4. Volkswagen, 5. Skoda]\n"])
 ]
 */
@@ -2352,6 +2350,7 @@ public void manyArrs7Call1() {
  (VarAssignments,SVarAssignments [("brand",(SymArray (Just String) (Just 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
  (VarName "brand",SymArray (Just String) (Just 5) [
      SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",SymString "4. Volkswagen",SymString "5. Skoda"]),
+ (Return,SymReturnVoid),
  (Actions,SActions [SymString "[1. Toyota, 2. Mercedes, 3. BMW, 4. Volkswagen, 5. Skoda]\n"])
 ]
 */
@@ -2733,7 +2732,8 @@ fromList [
             (FormalParms,SFormalParms ["n"]),
             (VarAssignments,SVarAssignments [("w",(SymString "bye",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 4}}))]),
             (VarName "n",SymVar Int "n"),
-            (VarName "w",SymString "bye")])))]
+            (VarName "w",SymString "bye")]))),
+            (Return,SymReturnVoid)]
 */
 public void ifFun7(int n) {
   if(n % 2 == 0) {
@@ -2747,13 +2747,14 @@ public void ifFun7(int n) {
 
 /////////////////////
 
-//TODO
+//DONE
 //JavaMethod
 /*
 [
  (MethodName "ifFun7Call",SMethodType Void),
  (GlobalVars,SGlobalVars ["v"]),
- (VarName "v",SymString "hi")
+ (VarName "v",SymString "hi"),
+ (Return,SymReturnVoid)
 ]
 */
 public void ifFun7Call() {
@@ -2769,7 +2770,8 @@ SymState {
     (MethodName "ifFun7Call2",SMethodType Void),
     (GlobalVars,SGlobalVars ["v","w"]),
     (VarName "v",SymString "hi"),
-    (VarName "w",SymString "bye")
+    (VarName "w",SymString "bye"),
+    (Return,SymReturnVoid)
   ], pc = []
 }
 */
@@ -2788,7 +2790,8 @@ public void ifFun7Call2() {
  (GlobalVars,SGlobalVars ["t","v","w"]),
  (VarName "t",SymVar Int "t"),
  (VarName "v",SymUnknown (String,"v",Nothing) [([(If,SR {branchStart = 1, branchEnd = 4})],2)]),
- (VarName "w",SymUnknown (String,"w",Nothing) [([(If,SR {branchStart = 1, branchEnd = 4})],3)])
+ (VarName "w",SymUnknown (String,"w",Nothing) [([(If,SR {branchStart = 1, branchEnd = 4})],3)]),
+ (Return,SymReturnVoid)
 ]
 */
 public void ifFun7Call3() {
@@ -2833,6 +2836,7 @@ SymState {
     (GlobalVars,SGlobalVars ["v","w"]),
     (VarName "v",SymString "hi"),
     (VarName "w",SymString "bye"),
+    (Return,SymReturnVoid),
     (Actions,SActions ["hi\n","bye\n","hi\n"])
   ], pc = []
 }
@@ -2969,7 +2973,8 @@ SymState {
     (MethodName "succFun",SMethodType Void),
     (FormalParms,SFormalParms ["i"]),
     (VarAssignments,SVarAssignments [("i",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})]),
-    (VarName "i",SBin (SymVar Int "i") Add (SymInt 1))
+    (VarName "i",SBin (SymVar Int "i") Add (SymInt 1)),
+    (Return,SymReturnVoid)
   ], pc = []
 }
 */
@@ -2987,6 +2992,7 @@ public void succFun(int i) {
  (VarBindings,SVarBindings (fromList [("n",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
  (VarAssignments,SVarAssignments [("n",(SymInt 2,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
  (VarName "n",SymInt 2),
+ (Return,SymReturnVoid),
  (Actions,SActions [SymString "2\n"])
 ]
 */
@@ -3688,25 +3694,68 @@ public static void tailCall4() {
 
 /////////////////
 
-//TODO
-public static int[] quickSortCall() {
-  int[] arr = new int[] {5,4,6,4,7,8,9,0,1};
+//DONE
+/*
+[
+    (MethodHandle,SMethodHandle (Array Int) "quickSortCall1"),
+    (VarBindings,SVarBindings (fromList [
+        ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+    (VarAssignments,SVarAssignments [
+        ("arr",(SymNull (Array Int),Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+    (VarName "arr",SymNull (Array Int)),
+    (Return,SymNull (Array Int))
+  ]
+*/
+public static int[] quickSortCall1() {
+  int[] arr = null;
   quickSort(arr);
   return arr;
 }
 
-//TODO
+//DONE
+/*
+[
+    (MethodHandle,SMethodHandle (Array Int) "quickSortCall2"),
+    (VarBindings,SVarBindings (fromList [
+        ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+    (VarAssignments,SVarAssignments [
+        ("arr",(SymArray (Just Int) (Just (SymInt 1)) [SymInt 7],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+    (VarName "arr",SymArray (Just Int) (Just (SymInt 1)) [SymInt 7]),
+    (Return,SymArray (Just Int) (Just (SymInt 1)) [SymInt 7])
+  ]
+*/
+public static int[] quickSortCall2() {
+  int[] arr = new int[] {7};
+  quickSort(arr);
+  return arr;
+}
+
+//DONE
+/*
+[
+    (MethodHandle,SMethodHandle (Array Int) "quickSortCall3"),
+    (VarBindings,SVarBindings (fromList [
+        ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+    (VarAssignments,SVarAssignments [
+        ("arr",(SymArray (Just Int) (Just (SymInt 5)) [SymInt 1,SymInt 5,SymInt 2,SymInt 4,SymInt 3],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+    (VarName "arr",SymArray (Just Int) (Just (SymInt 5)) [SymInt 1,SymInt 2,SymInt 3,SymInt 4,SymInt 5]),
+    (Return,SymArray (Just Int) (Just (SymInt 5)) [SymInt 1,SymInt 2,SymInt 3,SymInt 4,SymInt 5])
+  ]
+*/
+public static int[] quickSortCall3() {
+  int[] arr = new int[] {1,5,2,4,3};
+  quickSort(arr);
+  return arr;
+}
+
+
+//DONE
 /*
 [
     (MethodHandle,SMethodHandle Void "quickSort"),
     (GlobalVars,SGlobalVars []),
     (FormalParms,SFormalParms ["arr"]),
-    (VarBindings,SVarBindings (fromList [
-        ("high",Node_Coor {varDeclAt = 11, varFrame = SR {branchStart = 10, branchEnd = 2}}),
-        ("low",Node_Coor {varDeclAt = 13, varFrame = SR {branchStart = 10, branchEnd = 2}}),
-        ("pivotIndex",Node_Coor {varDeclAt = 15, varFrame = SR {branchStart = 10, branchEnd = 2}}),
-        ("stack",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 2}}),
-        ("top",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
+    (VarBindings,SVarBindings (fromList [("high",Node_Coor {varDeclAt = 11, varFrame = SR {branchStart = 10, branchEnd = 2}}),("low",Node_Coor {varDeclAt = 13, varFrame = SR {branchStart = 10, branchEnd = 2}}),("pivotIndex",Node_Coor {varDeclAt = 15, varFrame = SR {branchStart = 10, branchEnd = 2}}),("stack",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 2}}),("top",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
     (VarAssignments,SVarAssignments [("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 2}})),("top",(SymInt (-1),Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 2}})),("top",(SymInt 0,Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 0, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SymInt 0],Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 0, branchEnd = 2}})),("top",(SymInt 1,Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 0, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SymInt 0,SBin (SObjAcc ["arr","length"]) Sub (SymInt 1)],Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 0, branchEnd = 2}})),("high",(SArrayIndexAccess (Array Int) "stack" (SymInt 1),Node_Coor {varDeclAt = 11, varFrame = SR {branchStart = 10, branchEnd = 2}})),("top",(SymInt 0,Node_Coor {varDeclAt = 12, varFrame = SR {branchStart = 10, branchEnd = 2}})),("low",(SArrayIndexAccess (Array Int) "stack" (SymInt 0),Node_Coor {varDeclAt = 13, varFrame = SR {branchStart = 10, branchEnd = 2}})),("top",(SymInt (-1),Node_Coor {varDeclAt = 14, varFrame = SR {branchStart = 10, branchEnd = 2}})),("pivotIndex",(SBin (SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]) Add (SymInt 1),Node_Coor {varDeclAt = 15, varFrame = SR {branchStart = 10, branchEnd = 2}})),("top",(SymInt 0,Node_Coor {varDeclAt = 17, varFrame = SR {branchStart = 16, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SArrayIndexAccess (Array Int) "stack" (SymInt 0),SBin (SObjAcc ["arr","length"]) Sub (SymInt 1)],Node_Coor {varDeclAt = 18, varFrame = SR {branchStart = 16, branchEnd = 2}})),("top",(SymInt 1,Node_Coor {varDeclAt = 19, varFrame = SR {branchStart = 16, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SArrayIndexAccess (Array Int) "stack" (SymInt 0),SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]],Node_Coor {varDeclAt = 20, varFrame = SR {branchStart = 16, branchEnd = 2}})),("top",(SBin (SymUnknown (SymInt (-1)) [([(If,SR {branchStart = 16, branchEnd = 21})],17),([(If,SR {branchStart = 16, branchEnd = 21})],19)]) Add (SymInt 1),Node_Coor {varDeclAt = 23, varFrame = SR {branchStart = 22, branchEnd = 2}})),("stack",(SymUnknown (SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SymInt 0,SBin (SObjAcc ["arr","length"]) Sub (SymInt 1)]) [([(If,SR {branchStart = 16, branchEnd = 21})],18),([(If,SR {branchStart = 16, branchEnd = 21})],20)],Node_Coor {varDeclAt = 24, varFrame = SR {branchStart = 22, branchEnd = 2}})),("top",(SBin (SymUnknown (SymInt (-1)) [([(If,SR {branchStart = 16, branchEnd = 21})],17),([(If,SR {branchStart = 16, branchEnd = 21})],19)]) Add (SymInt 2),Node_Coor {varDeclAt = 25, varFrame = SR {branchStart = 22, branchEnd = 2}})),("stack",(SymUnknown (SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SymInt 0,SBin (SObjAcc ["arr","length"]) Sub (SymInt 1)]) [([(If,SR {branchStart = 16, branchEnd = 21})],18),([(If,SR {branchStart = 16, branchEnd = 21})],20)],Node_Coor {varDeclAt = 26, varFrame = SR {branchStart = 22, branchEnd = 2}}))]),
     (VarName "arr",SymVar (Array Int) "arr"),
     (VarName "high",SArrayIndexAccess (Array Int) "stack" (SymInt 1)),
@@ -3720,7 +3769,8 @@ public static int[] quickSortCall() {
      SIte (SBin (SBin (SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]) Add (SymInt 2)) Lt (SArrayIndexAccess (Array Int) "stack" (SymInt 1)))
           (fromList [(MethodHandle,SMethodHandle Void "quickSort"),(GlobalVars,SGlobalVars []),(FormalParms,SFormalParms ["arr"]),(VarBindings,SVarBindings (fromList [("high",Node_Coor {varDeclAt = 11, varFrame = SR {branchStart = 10, branchEnd = 2}}),("low",Node_Coor {varDeclAt = 13, varFrame = SR {branchStart = 10, branchEnd = 2}}),("pivotIndex",Node_Coor {varDeclAt = 15, varFrame = SR {branchStart = 10, branchEnd = 2}}),("stack",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 2}}),("top",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 2}})])),(VarAssignments,SVarAssignments [("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 2}})),("top",(SymInt (-1),Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 2}})),("top",(SymInt 0,Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 0, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SymInt 0],Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 0, branchEnd = 2}})),("top",(SymInt 1,Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 0, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SymInt 0,SBin (SObjAcc ["arr","length"]) Sub (SymInt 1)],Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 0, branchEnd = 2}})),("high",(SArrayIndexAccess (Array Int) "stack" (SymInt 1),Node_Coor {varDeclAt = 11, varFrame = SR {branchStart = 10, branchEnd = 2}})),("top",(SymInt 0,Node_Coor {varDeclAt = 12, varFrame = SR {branchStart = 10, branchEnd = 2}})),("low",(SArrayIndexAccess (Array Int) "stack" (SymInt 0),Node_Coor {varDeclAt = 13, varFrame = SR {branchStart = 10, branchEnd = 2}})),("top",(SymInt (-1),Node_Coor {varDeclAt = 14, varFrame = SR {branchStart = 10, branchEnd = 2}})),("pivotIndex",(SBin (SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]) Add (SymInt 1),Node_Coor {varDeclAt = 15, varFrame = SR {branchStart = 10, branchEnd = 2}})),("top",(SymInt 0,Node_Coor {varDeclAt = 17, varFrame = SR {branchStart = 16, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SArrayIndexAccess (Array Int) "stack" (SymInt 0),SBin (SObjAcc ["arr","length"]) Sub (SymInt 1)],Node_Coor {varDeclAt = 18, varFrame = SR {branchStart = 16, branchEnd = 2}})),("top",(SymInt 1,Node_Coor {varDeclAt = 19, varFrame = SR {branchStart = 16, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SArrayIndexAccess (Array Int) "stack" (SymInt 0),SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]],Node_Coor {varDeclAt = 20, varFrame = SR {branchStart = 16, branchEnd = 2}})),("top",(SBin (SymUnknown (SymInt (-1)) [([(If,SR {branchStart = 16, branchEnd = 21})],17),([(If,SR {branchStart = 16, branchEnd = 21})],19)]) Add (SymInt 1),Node_Coor {varDeclAt = 23, varFrame = SR {branchStart = 22, branchEnd = 2}})),("stack",(SymUnknown (SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SymInt 0,SBin (SObjAcc ["arr","length"]) Sub (SymInt 1)]) [([(If,SR {branchStart = 16, branchEnd = 21})],18),([(If,SR {branchStart = 16, branchEnd = 21})],20)],Node_Coor {varDeclAt = 24, varFrame = SR {branchStart = 22, branchEnd = 2}})),("top",(SBin (SymUnknown (SymInt (-1)) [([(If,SR {branchStart = 16, branchEnd = 21})],17),([(If,SR {branchStart = 16, branchEnd = 21})],19)]) Add (SymInt 2),Node_Coor {varDeclAt = 25, varFrame = SR {branchStart = 22, branchEnd = 2}})),("stack",(SymUnknown (SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SymInt 0,SBin (SObjAcc ["arr","length"]) Sub (SymInt 1)]) [([(If,SR {branchStart = 16, branchEnd = 21})],18),([(If,SR {branchStart = 16, branchEnd = 21})],20)],Node_Coor {varDeclAt = 26, varFrame = SR {branchStart = 22, branchEnd = 2}}))]),(VarName "arr",SymVar (Array Int) "arr"),(VarName "high",SArrayIndexAccess (Array Int) "stack" (SymInt 1)),(VarName "low",SArrayIndexAccess (Array Int) "stack" (SymInt 0)),(VarName "pivotIndex",SBin (SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]) Add (SymInt 1)),(VarName "stack",SymUnknown (SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SymInt 0,SBin (SObjAcc ["arr","length"]) Sub (SymInt 1)]) [([(If,SR {branchStart = 16, branchEnd = 21})],18),([(If,SR {branchStart = 16, branchEnd = 21})],20)]),(VarName "top",SBin (SymUnknown (SymInt (-1)) [([(If,SR {branchStart = 16, branchEnd = 21})],17),([(If,SR {branchStart = 16, branchEnd = 21})],19)]) Add (SymInt 2)),(ScopeRange (SR {branchStart = 1, branchEnd = 3}),SIte (SBin (SBin (SymVar (Array Int) "arr") Eq (SymNull (Array Int))) Or (SBin (SObjAcc ["arr","length"]) Le (SymInt 1))) (fromList [(MethodHandle,SMethodHandle Void "quickSort"),(FormalParms,SFormalParms ["arr"]),(VarName "arr",SymVar (Array Int) "arr")]) Nothing),(ScopeRange (SR {branchStart = 16, branchEnd = 2}),SIte (SBin (SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]) Gt (SArrayIndexAccess (Array Int) "stack" (SymInt 0))) (fromList [(MethodHandle,SMethodHandle Void "quickSort"),(GlobalVars,SGlobalVars []),(FormalParms,SFormalParms ["arr"]),(VarBindings,SVarBindings (fromList [("high",Node_Coor {varDeclAt = 11, varFrame = SR {branchStart = 10, branchEnd = 2}}),("low",Node_Coor {varDeclAt = 13, varFrame = SR {branchStart = 10, branchEnd = 2}}),("pivotIndex",Node_Coor {varDeclAt = 15, varFrame = SR {branchStart = 10, branchEnd = 2}}),("stack",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 2}}),("top",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 2}})])),(VarAssignments,SVarAssignments [("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 2}})),("top",(SymInt (-1),Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 2}})),("top",(SymInt 0,Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 0, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SymInt 0],Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 0, branchEnd = 2}})),("top",(SymInt 1,Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 0, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SymInt 0,SBin (SObjAcc ["arr","length"]) Sub (SymInt 1)],Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 0, branchEnd = 2}})),("high",(SArrayIndexAccess (Array Int) "stack" (SymInt 1),Node_Coor {varDeclAt = 11, varFrame = SR {branchStart = 10, branchEnd = 2}})),("top",(SymInt 0,Node_Coor {varDeclAt = 12, varFrame = SR {branchStart = 10, branchEnd = 2}})),("low",(SArrayIndexAccess (Array Int) "stack" (SymInt 0),Node_Coor {varDeclAt = 13, varFrame = SR {branchStart = 10, branchEnd = 2}})),("top",(SymInt (-1),Node_Coor {varDeclAt = 14, varFrame = SR {branchStart = 10, branchEnd = 2}})),("pivotIndex",(SBin (SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]) Add (SymInt 1),Node_Coor {varDeclAt = 15, varFrame = SR {branchStart = 10, branchEnd = 2}})),("top",(SymInt 0,Node_Coor {varDeclAt = 17, varFrame = SR {branchStart = 16, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SArrayIndexAccess (Array Int) "stack" (SymInt 0),SBin (SObjAcc ["arr","length"]) Sub (SymInt 1)],Node_Coor {varDeclAt = 18, varFrame = SR {branchStart = 16, branchEnd = 2}})),("top",(SymInt 1,Node_Coor {varDeclAt = 19, varFrame = SR {branchStart = 16, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SArrayIndexAccess (Array Int) "stack" (SymInt 0),SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]],Node_Coor {varDeclAt = 20, varFrame = SR {branchStart = 16, branchEnd = 2}}))]),(VarName "arr",SymVar (Array Int) "arr"),(VarName "high",SArrayIndexAccess (Array Int) "stack" (SymInt 1)),(VarName "low",SArrayIndexAccess (Array Int) "stack" (SymInt 0)),(VarName "pivotIndex",SBin (SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]) Add (SymInt 1)),(VarName "stack",SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SArrayIndexAccess (Array Int) "stack" (SymInt 0),SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]]),(VarName "top",SymInt 1),(ScopeRange (SR {branchStart = 1, branchEnd = 3}),SIte (SBin (SBin (SymVar (Array Int) "arr") Eq (SymNull (Array Int))) Or (SBin (SObjAcc ["arr","length"]) Le (SymInt 1))) (fromList [(MethodHandle,SMethodHandle Void "quickSort"),(FormalParms,SFormalParms ["arr"]),(VarName "arr",SymVar (Array Int) "arr")]) Nothing),(LoopConditions (SR {branchStart = 10, branchEnd = 28}),SLoopConditions [fromList [("top",SymInt 1)]])]) Nothing),(LoopConditions (SR {branchStart = 10, branchEnd = 28}),SLoopConditions [fromList [("top",SymInt 1)]])])
           Nothing),
-    (LoopConditions (SR {branchStart = 10, branchEnd = 28}),SLoopConditions [fromList [("top",SymInt 1)]])
+    (LoopConditions (SR {branchStart = 10, branchEnd = 28}),
+     SLoopConditions [fromList [("top",SymInt 1)]])
   ]
 */
 public static void quickSort(int[] arr) {

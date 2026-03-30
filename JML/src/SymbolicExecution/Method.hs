@@ -66,12 +66,31 @@ instance CFGVisitor MethodProcessor where
     ----------------------------------------
     ----------------------------------------
     n@CFGT.End{} -> do
-      tellNextLog $ Log.MethodEnd "visitNode -> End"
+      let loc = "SymbolicExecution.Method.visitNode.End"
+      tellNextLog $ Log.MethodEnd loc
       case CFGT.mExpr n of
         Nothing       -> do
-          tellNextLog $ Log.Void "visitNode -> End -> return nothing"
-          toReturn <- ER_State <$> get
-          tellNextLog (Log.Return "visitNode -> End -> void method" (show toReturn)) $> toReturn
+          -- is there a return statement already?
+          isReturnVoid <- do
+            theEnv <- env <$> get
+            case Map.lookup Return theEnv of
+              Nothing -> return True
+              _ -> return False
+          -- there is not a return statement
+          if isReturnVoid
+            then do
+              tellNextLog
+                $ Log.Void $ printf "%s -> return nothing" loc
+              let toReturn = ER_ReturnVoid
+              tellNextLog
+                $ Log.ModifyState (printf "%s ==> returning void" loc)
+                                  ("Return","SymReturnVoid")
+              modify $ \symState -> SymState
+                (Map.insert Return SymReturnVoid (env symState))
+                (logHeader symState)
+              tellNextLog (Log.Return "visitNode -> End -> void method" (show toReturn)) $> toReturn
+            -- there is a return statement
+            else return ER_Void
         a@(Just expr) -> do
           tellNextLog $ Log.ReturnStatement (show expr) "visitNode -> End -> return something"
           toReturn <- visitStmt (AST.ReturnStmt a)

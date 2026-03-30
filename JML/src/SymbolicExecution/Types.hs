@@ -93,7 +93,7 @@ visitStmt ==> AssignStmt: ER_SymStateMapEntry
 visitStmt ==> FunCallStmt: ER_PredefinedFunCall
 
 visitNode ==> Entry: ER_State
-visitNode ==> End: ER_State
+visitNode ==> End: ER_ReturnVoid
 visitNode ==> Node ==> Statement: ER_State
 visitNode ==> Node ==> BooleanExpression if ==> SBool: ER_State
 visitNode ==> Node ==> BooleanExpression if ==> SBin: ER_Expr SIte
@@ -126,6 +126,7 @@ data ExecutionResult =
   | ER_PredefinedFunCall SymExpr
   | ER_ForLoopDone
   | ER_Void
+  | ER_ReturnVoid
   | ER_ActualParameterDetected String SymExpr
   deriving Show
 
@@ -159,6 +160,7 @@ data SymExpr =
   | SymUnknown SymExpr [SymReason]
   | SFormalParms [String]
   | SGlobalVars [String]
+  | SymReturnVoid
   deriving (Eq,Show)
 
 type SymReason = ([(CFGT.Kind,CFGT.ScopeRange)],Int)

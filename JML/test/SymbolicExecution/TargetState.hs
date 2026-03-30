@@ -382,7 +382,8 @@ strFun = Map.fromList [
 
 voidFun1 :: SymStateEnv
 voidFun1 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Void "voidFun1")
+    (MethodHandle,SMethodHandle SYT.Void "voidFun1"),
+    (Return,SymReturnVoid)
   ]
 
 -----------------------------
@@ -463,6 +464,7 @@ voidFun3Call = Map.fromList [
     (GlobalVars,SGlobalVars ["y2","z"]),
     (VarName "y2",SymString "is not one"),
     (VarName "z",SymString "11 is not one"),
+    (Return,SymReturnVoid),
     (Actions,SActions [SymString "11 is not one\n"])
   ]
 
@@ -480,6 +482,7 @@ manyArrs = Map.fromList [
         ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymNull SYT.Int],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})),
         ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymInt 5],Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
     (VarName "numbers",SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymInt 5]),
+    (Return,SymReturnVoid),
     (Actions,SActions [SymString "[99, 5]\n"])
   ]
 
@@ -521,6 +524,7 @@ manyArrs2 = Map.fromList [
     (VarName "numbers2",SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 51,SymInt 84,SymInt 92,SymInt 87,SymInt 81]),
     (VarName "numbers3",SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 5,SymInt 75,SymInt 34,SymInt 10,SymInt 6]),
     (VarName "strs",SymArray (Just SYT.String) (Just $ SymInt 3) [SymNull SYT.String,SymString "meow",SymNull SYT.String]),
+    (Return,SymReturnVoid),
     (Actions,SActions [SymString "[86, 57, 80, 34, 50, 48, 94]\n",SymString "[51, 84, 92, 87, 81]\n",SymString "[5, 75, 34, 10, 6]\n"])
   ]
 
@@ -552,6 +556,7 @@ manyArrs4 = Map.fromList [
         ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
         ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymNull SYT.Int],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
     (VarName "numbers",SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymNull SYT.Int]),
+    (Return,SymReturnVoid),
     (Actions,SActions [SymString "[99, 0]\n"])
   ]
 
@@ -579,6 +584,7 @@ manyArrs5 = Map.fromList [
          Map.fromList [("brand.length",SymInt 5),("i",SymInt 2)],
          Map.fromList [("brand.length",SymInt 5),("i",SymInt 3)],
          Map.fromList [("brand.length",SymInt 5),("i",SymInt 4)]]),
+    (Return,SymReturnVoid),
     (Actions,SActions [SymString "[1. Toyota, 2. Mercedes, 3. BMW, 4. Volkswagen, 5. Skoda]\n"])
   ]
 
@@ -601,6 +607,7 @@ manyArrs6 = Map.fromList [
          Map.fromList [("brand.length",SymInt 5),("i",SymInt 2)],
          Map.fromList [("brand.length",SymInt 5),("i",SymInt 3)],
          Map.fromList [("brand.length",SymInt 5),("i",SymInt 4)]]),
+    (Return,SymReturnVoid),
     (Actions,
      SActions [
          SymString "1. Toyota\n",
@@ -637,6 +644,7 @@ manyArrs7 = Map.fromList [
 manyArrs7Call1 :: SymStateEnv
 manyArrs7Call1 = Map.fromList [
  (MethodHandle,SMethodHandle SYT.Void "manyArrs7Call1"),
+ (Return,SymReturnVoid),
  (Actions,SActions [SymString "[1. Toyota, 2. Mercedes, 3. BMW, 4. Volkswagen, 5. Skoda]\n"])
   ]
 
@@ -652,6 +660,7 @@ manyArrs7Call2 = Map.fromList [
   (VarName "brand",SymArray (Just SYT.String) (Just $ SymInt 5) [
      SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",
      SymString "4. Volkswagen",SymString "5. Skoda"]),
+  (Return,SymReturnVoid),
   (Actions,SActions [SymString "[1. Toyota, 2. Mercedes, 3. BMW, 4. Volkswagen, 5. Skoda]\n"])
   ]
 
@@ -976,7 +985,9 @@ ifFun7 = Map.fromList [
             (FormalParms,SFormalParms ["n"]),
             (VarAssignments,SVarAssignments [("w",(SymString "bye",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 4}}))]),
             (VarName "n",SymVar SYT.Int "n"),
-            (VarName "w",SymString "bye")])))]
+            (VarName "w",SymString "bye")]))),
+            (Return,SymReturnVoid)
+  ]
 
 -----------------------------
 -----------------------------
@@ -987,7 +998,8 @@ ifFun7Call = Map.fromList [
   (MethodHandle,SMethodHandle SYT.Void "ifFun7Call"),
   (GlobalVars,SGlobalVars ["v","s"]),
   (VarName "s",SymString "something"),
-  (VarName "v",SymString "hi")]
+  (VarName "v",SymString "hi"),
+  (Return,SymReturnVoid)]
 
 -----------------------------
 -----------------------------
@@ -999,7 +1011,8 @@ ifFun7Call2 = Map.fromList [
   (GlobalVars,SGlobalVars ["v","s","w"]),
   (VarName "s",SymString "something"),
   (VarName "v",SymString "hi"),
-  (VarName "w",SymString "bye")]
+  (VarName "w",SymString "bye"),
+  (Return,SymReturnVoid)]
 
 -----------------------------
 -----------------------------
@@ -1014,7 +1027,8 @@ ifFun7Call3 = Map.fromList [
     (VarName "v",SymUnknown (SymVar SYT.String "v") [
         ([(If,SR {branchStart = 1, branchEnd = 4})],2)]),
     (VarName "w",SymUnknown (SymVar SYT.String "w") [
-        ([(If,SR {branchStart = 1, branchEnd = 4})],3)])]
+        ([(If,SR {branchStart = 1, branchEnd = 4})],3)]),
+    (Return,SymReturnVoid)]
 
 -----------------------------
 -----------------------------
@@ -1050,7 +1064,8 @@ ifFun8 = Map.fromList [
                   ("w",(SymString "bye",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 1, branchEnd = 6}}))]),
                   (VarName "n",SymVar SYT.Int "n"),
                   (VarName "w",SymString "bye"),
-                  (Actions,SActions [SymString "bye\n"])])))
+                  (Actions,SActions [SymString "bye\n"])]))),
+    (Return,SymReturnVoid)
   ]
 
 -----------------------------
@@ -1063,6 +1078,7 @@ ifFun8Call = Map.fromList [
     (GlobalVars,SGlobalVars ["v","w"]),
     (VarName "v",SymString "hi"),
     (VarName "w",SymString "bye"),
+    (Return,SymReturnVoid),
     (Actions,SActions [SymString "hi\n",SymString "bye\n",SymString "hi\n"])
   ]
 
@@ -1106,7 +1122,8 @@ ifFun9 = Map.fromList [
               (VarAssignments,SVarAssignments [
                   ("w",(SymString "bye",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 1, branchEnd = 6}}))]),
               (VarName "n",SymVar SYT.Int "n"),
-              (VarName "w",SymString "bye")])))
+              (VarName "w",SymString "bye")]))),
+    (Return,SymReturnVoid)
   ]
 
 -----------------------------
@@ -1199,7 +1216,8 @@ succFun = Map.fromList [
     (FormalParms,SFormalParms ["i"]),
     (VarAssignments,SVarAssignments [
         ("i",(SBin (SymVar SYT.Int "i") SYT.Add (SymInt 1),Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
-    (VarName "i",SBin (SymVar SYT.Int "i") SYT.Add (SymInt 1))
+    (VarName "i",SBin (SymVar SYT.Int "i") SYT.Add (SymInt 1)),
+    (Return,SymReturnVoid)
   ]
 
 -----------------------------
@@ -1214,6 +1232,7 @@ succFunCall = Map.fromList [
    (VarAssignments,SVarAssignments [
        ("n",(SymInt 2,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
    (VarName "n",SymInt 2),
+   (Return,SymReturnVoid),
    (Actions,SActions [SymString "2\n"])
   ]
 

@@ -1076,6 +1076,8 @@ ppSymExpr_no_symType = \case
   SymNull t -> case t of
     String -> "null"
     Int -> "0"
+    Array _ -> "null"
+    _ -> error $ "TODO1: ppSymExpr_no_symType ==> " ++ show t
   SymVar _ s -> s
   SymArray _ _ elems -> printf "[%s]" $ intercalate ", " (map ppSymExpr_no_symType elems)
   SArrayIndexAccess _ arrName arrIndexExpr ->
@@ -1085,4 +1087,4 @@ ppSymExpr_no_symType = \case
   --   (If,SR {branchStart = 5, branchEnd = 8})],6)]
   SymUnknown symExpr _ -> printf "(Last Known Value: %s)" (ppSymExpr_no_symType symExpr)
   SObjAcc li -> intercalate "." li
-  symExpr -> error $ "TODO: ppSymExpr_no_symType ==> " ++ show symExpr
+  symExpr -> error $ "TODO2: ppSymExpr_no_symType ==> " ++ show symExpr
