@@ -81,7 +81,9 @@ allTargets = [
   ("tail", tail), ("tailCall1", tailCall1),
                   ("tailCall2", tailCall2),
                   ("tailCall3", tailCall3),
-                  ("tailCall4", tailCall4)
+                  ("tailCall4", tailCall4),
+  ("doubleArrayElems", doubleArrayElems), ("doubleArrayElemsCall", doubleArrayElemsCall),
+  ("doubleArrayElems2", doubleArrayElems2), ("doubleArrayElems2Call", doubleArrayElems2Call)
   ]
 
 -----------------------------
@@ -2028,3 +2030,70 @@ tailCall4 = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Void "tailCall4"),
     (Actions,SActions [SymString "[9, 2]\n"])
   ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+doubleArrayElems :: SymStateEnv
+doubleArrayElems = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "doubleArrayElems"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["arr"]),
+    (VarAssignments,SVarAssignments [
+        ("arr",(SymVar (SYT.Array SYT.Int) "arr",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 1, branchEnd = 6}}))]),
+    (VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),
+    (ScopeRange (SR {branchStart = 1, branchEnd = 6}),
+     SLoop (Just (Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}))
+           (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Less, expr2 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}}))
+           [Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x"}, assEright = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}}}), parent = 1},Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, assEright = BinOpExpr {expr1 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, binOp = Plus, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "x"}}}}), parent = 1},Node {id = 5, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Plus, expr2 = NumberLiteral 1.0}}})), parent = 1}]),
+    (Actions,SActions [SymFun Println (SymVar (SYT.Array SYT.Int) "arr")])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+doubleArrayElemsCall :: SymStateEnv
+doubleArrayElemsCall = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "doubleArrayElemsCall"),
+    (Actions,SActions [SymString "[2, 4, 6]\n"])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+doubleArrayElems2 :: SymStateEnv
+doubleArrayElems2 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "doubleArrayElems2"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["arr"]),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("i",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
+    (VarAssignments,SVarAssignments [
+        ("i",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),
+        ("arr",(SymVar (SYT.Array SYT.Int) "arr",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}})),
+        ("i",(SymInt 1,Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),
+    (VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),
+    (VarName "i",SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 6})],5)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 6}),
+     SLoop Nothing
+           (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Less, expr2 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}}))
+           [Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x"}, assEright = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}}}), parent = 2},Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, assEright = BinOpExpr {expr1 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, binOp = Plus, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "x"}}}}), parent = 2},Node {id = 5, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Plus, expr2 = NumberLiteral 1.0}}}), parent = 2}]),
+    (Actions,SActions [SymFun Println (SymVar (SYT.Array SYT.Int) "arr")])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+doubleArrayElems2Call :: SymStateEnv
+doubleArrayElems2Call = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "doubleArrayElems2Call"),
+    (Actions,SActions [SymString "[2, 4, 6]\n"])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------

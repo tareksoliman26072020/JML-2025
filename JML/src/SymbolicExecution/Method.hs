@@ -56,7 +56,7 @@ instance CFGVisitor MethodProcessor where
                                logHeader = logHeader symState
                            }
                          Just _ -> return ()
-                     ER_ActualParameterDetected -> return ()
+                     ER_ActualParameterDetected _ _ -> return ()
                      _ -> throwError $ loc ++ " ==> won't happen ==> " ++ show argVisited
                    decrementLogDepth
                ) args
@@ -987,6 +987,13 @@ visitExpr expr@AST.AssignExpr{} = do
              (visitExpr (AST.assEleft expr))
         <* decrementLogDepth
 
+  two <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      censor (map $ \(Log.Log num tag) -> Log.Log num $ Log.Nested "Right Operand" tag)
+             (visitExpr (AST.assEright expr))
+        <* decrementLogDepth
+
   -- one_val's sole purpose is its type
   -- one_svn is important to find key in the map
   let (one_svn,one_val,(leftOpKeyStr,leftOpValStr)) = case one of
@@ -1002,13 +1009,6 @@ visitExpr expr@AST.AssignExpr{} = do
        ER_Expr ex -> error $ printf "%s: (%s,%s,%s)" loc
            (show expr) (show ex) (show $ AST.assEleft expr)
        _ -> error $ printf "TODO2: %s: %s" loc (show one)
-
-  two <- do
-    incrementLogEnumeration
-    incrementLogDepth *>
-      censor (map $ \(Log.Log num tag) -> Log.Log num $ Log.Nested "Right Operand" tag)
-             (visitExpr (AST.assEright expr))
-        <* decrementLogDepth
 
   let two_val = case two of
           ER_Expr e2_@(SymArray mType1 mSize1 elms1) -> case one_val of
@@ -1142,11 +1142,15 @@ visitExpr expr@AST.VarExpr{} = do
               }
               tellNextLog (Log.Return "visitExpr -> VarExpr -> Recording Global Variable" (show toReturn)) $> toReturn
         Just t -> do
-          alreadyExist <- env <$> get >>= return . Map.lookup (VarName varName_)
-          case alreadyExist of
+          isActualParm <- env <$> get >>= \theEnv -> return $
+            if hasFormalParameter varName_ theEnv
+              then let Just x = Map.lookup (VarName varName_) theEnv
+                   in Just x
+              else Nothing
+          case isActualParm of
             Just expr -> do
               tellNextLog $ Log.ActualParameterDetected (show t) varName_ (show expr) "visitExpr -> VarExpr"
-              return ER_ActualParameterDetected
+              return $ ER_ActualParameterDetected varName_ expr
             Nothing -> do
               tellNextLog $ Log.NewVariable (show t) varName_ "visitExpr -> VarExpr"
               let sExpr = SymVar(toSymType1 t) varName_

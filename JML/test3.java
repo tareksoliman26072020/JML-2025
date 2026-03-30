@@ -3686,12 +3686,6 @@ public static void tailCall4() {
     println(tail(new int[]{4, 9, 2}));
 }
 
-public static void asd() {
-  int[] arr = new int[]{4, 9, 2};
-  int i = 0;
-  println(toString(arr[++i]));
-}
-
 /////////////////
 
 //TODO
@@ -3768,19 +3762,24 @@ public static void quickSort(int[] arr) {
 
 /////////////////
 
-//TODO
+//DONE
+//JavaMethod
 /*
 [
-    (MethodHandle,SMethodHandle Void "loopFun"),
-    (GlobalVars,SGlobalVars []),
-    (FormalParms,SFormalParms ["arr"]),
-    (VarAssignments,SVarAssignments [("arr",(SymVar (Array Int) "arr",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 1, branchEnd = 6}}))]),
-    (VarName "arr",SymVar (Array Int) "arr"),
-    (ScopeRange (SR {branchStart = 1, branchEnd = 6}),SLoop (Just (Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0})) (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}})) [Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x"}, assEright = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}}}), parent = 1},Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, assEright = BinOpExpr {expr1 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "x"}}}}), parent = 1},Node {id = 5, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}})), parent = 1}]),
-    (Actions,SActions [SymFun Println (SymVar (Array Int) "arr")])
+ (MethodHandle,SMethodHandle Void "doubleArrayElems"),
+ (GlobalVars,SGlobalVars []),
+ (FormalParms,SFormalParms ["arr"]),
+ (VarAssignments,SVarAssignments [
+     ("arr",(SymVar (Array Int) "arr",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 1, branchEnd = 6}}))]),
+ (VarName "arr",SymVar (Array Int) "arr"),
+ (ScopeRange (SR {branchStart = 1, branchEnd = 6}),
+  SLoop (Just (Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}))
+        (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}}))
+        [Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x"}, assEright = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}}}), parent = 1},Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, assEright = BinOpExpr {expr1 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "x"}}}}), parent = 1},Node {id = 5, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}})), parent = 1}]),
+ (Actions,SActions [SymFun Println (SymVar (Array Int) "arr")])
 ]
 */
-public static void loopFun(int[] arr) {
+public static void doubleArrayElems(int[] arr) {
   for(int i=0; i<arr.length; i++) {
     int x = arr[i];
     arr[i] += x;
@@ -3788,16 +3787,28 @@ public static void loopFun(int[] arr) {
   println(arr);
 }
 
-/////////////////
-
-//TODO
+//DONE
+//JavaMethod
 /*
 [
-    (MethodHandle,SMethodHandle Void "loopFun2"),
+ (MethodHandle,SMethodHandle Void "doubleArrayElemsCall"),
+ (Actions,SActions [SymString "[2, 4, 6]\n"])
+]
+*/
+public static void doubleArrayElemsCall() {
+  doubleArrayElems(new int[]{1,2,3});
+}
+
+/////////////////
+
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle Void "doubleArrayElems2"),
     (GlobalVars,SGlobalVars []),
     (FormalParms,SFormalParms ["arr"]),
-    (VarBindings,SVarBindings (fromList [
-        ("i",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
+    (VarBindings,SVarBindings (fromList [("i",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
     (VarAssignments,SVarAssignments [("i",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),("arr",(SymVar (Array Int) "arr",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}})),("i",(SymInt 1,Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),
     (VarName "arr",SymVar (Array Int) "arr"),
     (VarName "i",SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 6})],5)]),
@@ -3805,7 +3816,7 @@ public static void loopFun(int[] arr) {
     (Actions,SActions [SymFun Println (SymVar (Array Int) "arr")])
 ]
 */
-public static void loopFun2(int[] arr) {
+public static void doubleArrayElems2(int[] arr) {
   int i = 0;
   while(i<arr.length) {
     int x = arr[i];
@@ -3813,6 +3824,18 @@ public static void loopFun2(int[] arr) {
     i++;
   }
   println(arr);
+}
+
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle Void "doubleArrayElems2Call"),
+    (Actions,SActions [SymString "[2, 4, 6]\n"])
+  ]
+*/
+public static void doubleArrayElems2Call() {
+  doubleArrayElems2(new int[]{1,2,3});
 }
 
 /////////////////

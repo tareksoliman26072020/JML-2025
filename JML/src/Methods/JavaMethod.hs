@@ -80,7 +80,9 @@ javaMethodInputs = [
   ("tail", tail), ("tailCall1", tailCall1),
                   ("tailCall2", tailCall2),
                   ("tailCall3", tailCall3),
-                  ("tailCall4", tailCall4)
+                  ("tailCall4", tailCall4),
+  ("doubleArrayElems", doubleArrayElems), ("doubleArrayElemsCall", doubleArrayElemsCall),
+  ("doubleArrayElems2", doubleArrayElems2), ("doubleArrayElems2Call", doubleArrayElems2Call)
   ]
 
 boo30 :: String
@@ -885,3 +887,29 @@ tailCall3 = "public static void tailCall3() {\n\
 tailCall4 = "public static void tailCall4() {\n\
             \    println(tail(new int[]{4, 9, 2}));\n\
             \}"
+
+doubleArrayElems = "public static void doubleArrayElems(int[] arr) {\n\
+                   \  for(int i=0; i<arr.length; i++) {\n\
+                   \    int x = arr[i];\n\
+                   \    arr[i] += x;\n\
+                   \  }\n\
+                   \  println(arr);\n\
+                   \}"
+
+doubleArrayElemsCall = "public static void doubleArrayElemsCall() {\n\
+                       \  doubleArrayElems(new int[]{1,2,3});\n\
+                       \}"
+
+doubleArrayElems2 = "public static void doubleArrayElems2(int[] arr) {\n\
+                    \  int i = 0;\n\
+                    \  while(i<arr.length) {\n\
+                    \    int x = arr[i];\n\
+                    \    arr[i] += x;\n\
+                    \    i++;\n\
+                    \  }\n\
+                    \  println(arr);\n\
+                    \}"
+
+doubleArrayElems2Call = "public static void doubleArrayElems2Call() {\n\
+                        \  doubleArrayElems2(new int[]{1,2,3});\n\
+                        \}"

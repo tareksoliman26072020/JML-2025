@@ -126,7 +126,7 @@ data ExecutionResult =
   | ER_PredefinedFunCall SymExpr
   | ER_ForLoopDone
   | ER_Void
-  | ER_ActualParameterDetected
+  | ER_ActualParameterDetected String SymExpr
   deriving Show
 
 data SymExpr =
