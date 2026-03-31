@@ -8,6 +8,34 @@ import Prelude hiding (replicate, tail)
 
 javaMethodInputs :: [(String, String)]
 javaMethodInputs = [
+  ("boo24",boo24),
+  ("boo24_2",boo24_2),
+  ("boo25",boo25),
+  ("boo26_2",boo26_2),
+  ("boo27",boo27),
+  ("boo27_2",boo27_2),
+  ("boo28",boo28),
+  ("boo282",boo282),
+  ("boo283",boo283),
+  ("boo28_p",boo28_p),
+  ("boo28_m",boo28_m),
+  ("boo28_2",boo28_2),
+  ("boo28_2_1",boo28_2_1),
+  ("boo28_4",boo28_4),
+  ("boo28_4_1",boo28_4_1),
+  ("boo28_4_2",boo28_4_2),
+  ("boo28_4_p",boo28_4_p),
+  ("boo28_4_m",boo28_4_m),
+  ("boo28_5",boo28_5),
+  ("boo28_6",boo28_6),
+  ("boo28_6_2",boo28_6_2),
+  ("boo28_6_3",boo28_6_3),
+  ("boo28_6_4",boo28_6_4),
+  ("boo28_6_5",boo28_6_5),
+  ("boo28_6_6",boo28_6_6),
+  ("boo28_6_7",boo28_6_7),
+  ("boo28_6_p",boo28_6_p),
+  ("boo29",boo29),
   ("boo30", boo30),
   ("boo31", boo31),
   ("boo31_2", boo31_2),
@@ -257,6 +285,121 @@ boo28_5 = "public int boo28_5(int i){\n\
           \  }\n\
           \  return 5;\n\
           \}"
+
+boo28_6 :: String
+boo28_6 = "public static int boo28_6(int i){\n\
+          \  int x = 1;\n\
+          \  if(i >= 0){\n\
+          \    int y = 0;\n\
+          \    y++;\n\
+          \    return i+y;\n\
+          \  }\n\
+          \  else {\n\
+          \    x++;\n\
+          \  }\n\
+          \  int y = 2;\n\
+          \  return 5+y;\n\
+          \}"
+
+boo28_6_2 :: String
+boo28_6_2 = "public static int boo28_6_2(int i){\n\
+            \  int x = 1;\n\
+            \  if(x >= 0){\n\
+            \    int y = 0;\n\
+            \    y++;\n\
+            \    return i+y;\n\
+            \  }\n\
+            \  else {\n\
+            \    x++;\n\
+            \  }\n\
+            \  int y = 2;\n\
+            \  return 5+y;\n\
+            \}"
+
+boo28_6_3 :: String
+boo28_6_3 = "public static int boo28_6_3(int i){\n\
+            \  int x = 1;\n\
+            \  if(x >= 0){\n\
+            \    int y = 0;\n\
+            \    y++;\n\
+            \  }\n\
+            \  else {\n\
+            \    x++;\n\
+            \  }\n\
+            \  int y = 2;\n\
+            \  return 5+y;\n\
+            \}"
+
+boo28_6_4 :: String
+boo28_6_4 = "public static int boo28_6_4(int i){\n\
+            \  int x = 1;\n\
+            \  if(x < 0){\n\
+            \    int y = 0;\n\
+            \    y++;\n\
+            \  }\n\
+            \  else {\n\
+            \    x++;\n\
+            \  }\n\
+            \  int y = 2;\n\
+            \  return 5+y;\n\
+            \}"
+
+boo28_6_5 :: String
+boo28_6_5 = "public static int boo28_6_5(int i){\n\
+            \  int x = 1;\n\
+            \  if(x < 0){\n\
+            \    int y = 0;\n\
+            \    y++;\n\
+            \  }\n\
+            \  else {\n\
+            \    x++;\n\
+            \  }\n\
+            \  return x;\n\
+            \}"
+
+boo28_6_6 :: String
+boo28_6_6 = "public static int boo28_6_6(int i){\n\
+            \  int x = 1;\n\
+            \  if(i >= 0){\n\
+            \    int y = 0;\n\
+            \    y++;\n\
+            \    return i+y;\n\
+            \  }\n\
+            \  else {\n\
+            \    x++;\n\
+            \  }\n\
+            \  return x;\n\
+            \}"
+
+boo28_6_7 :: String
+boo28_6_7 = "public static int boo28_6_7(int i){\n\
+            \  int x = 1;\n\
+            \  if(i >= 0){\n\
+            \    int y = 0;\n\
+            \    y++;\n\
+            \    return i+y;\n\
+            \  }\n\
+            \  else {\n\
+            \    x++;\n\
+            \  }\n\
+            \  x = 5;\n\
+            \  return x;\n\
+            \}"
+
+boo28_6_p :: String
+boo28_6_p = "public int boo28_6_p() {\n\
+            \  return boo28_6(10);\n\
+            \}"
+
+boo29 :: String
+boo29 = "public boolean boo29(){\n\
+        \  if(true){\n\
+        \    return false;\n\
+        \  }\n\
+        \  else{\n\
+        \    return true;\n\
+        \  }\n\
+        \}"
 
 boo30 :: String
 boo30 = "public int boo30(int z){\n\
