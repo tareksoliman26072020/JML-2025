@@ -70,15 +70,15 @@ instance CFGVisitor MethodProcessor where
       tellNextLog $ Log.MethodEnd loc
       case CFGT.mExpr n of
         Nothing       -> do
-          -- is there a return statement already?
-          isReturnVoid <- do
-            theEnv <- env <$> get
-            case Map.lookup Return theEnv of
-              Nothing -> return True
-              _ -> return False
-          -- there is not a return statement
-          if isReturnVoid
-            then do
+          -- is it a void method or not?
+          methodType <- do
+            visited <- getFunHandle
+            case visited of
+              ER_FunHandle methodType _ -> return methodType
+              _ -> error $ printf "%s ==> won't happen" loc
+          -- 
+          case methodType of
+            Void -> do
               tellNextLog
                 $ Log.Void $ printf "%s -> return nothing" loc
               let toReturn = ER_ReturnVoid
@@ -89,8 +89,7 @@ instance CFGVisitor MethodProcessor where
                 (Map.insert Return SymReturnVoid (env symState))
                 (logHeader symState)
               tellNextLog (Log.Return "visitNode -> End -> void method" (show toReturn)) $> toReturn
-            -- there is a return statement
-            else return ER_Void
+            _ -> return ER_Void
         a@(Just expr) -> do
           tellNextLog $ Log.ReturnStatement (show expr) "visitNode -> End -> return something"
           toReturn <- visitStmt (AST.ReturnStmt a)
@@ -575,6 +574,8 @@ getFunHandle = do
   theEnv <- env <$> get
   case Map.lookup MethodHandle theEnv of
     Nothing -> throwError $ "SymbolicExecution.Method.getFunHandle ==> fun handle does not exist"
+    -- it will always be a `Just` when `getFunHandle` is called
+    -- for any node after the `Entry` node.
     Just (SMethodHandle methodType methodName) -> return
       $ ER_FunHandle methodType methodName
 

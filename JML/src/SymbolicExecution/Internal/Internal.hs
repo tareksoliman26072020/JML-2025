@@ -676,6 +676,7 @@ cast2 vn newType tu@(symStateKey,symExpr) = case symStateKey of
              | k==vn     -> cast newType v
              | otherwise -> v
          SLoop _ _ _ -> symExpr
+         SymReturnVoid -> symExpr
          _ -> error $ printf "SymbolicExecution.Internal.cast2 ==> TODO ==> (%s ,, %s)" vn (show tu)
 
 -- A non-atomic SymExpr contains a plural number of SymExprs.

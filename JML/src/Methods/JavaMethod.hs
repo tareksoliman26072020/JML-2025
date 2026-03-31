@@ -82,7 +82,11 @@ javaMethodInputs = [
                   ("tailCall3", tailCall3),
                   ("tailCall4", tailCall4),
   ("doubleArrayElems", doubleArrayElems), ("doubleArrayElemsCall", doubleArrayElemsCall),
-  ("doubleArrayElems2", doubleArrayElems2), ("doubleArrayElems2Call", doubleArrayElems2Call)
+  ("doubleArrayElems2", doubleArrayElems2), ("doubleArrayElems2Call", doubleArrayElems2Call),
+----------
+  ("quickSort", quickSort), ("quickSortCall1", quickSortCall1)
+                          , ("quickSortCall2", quickSortCall2)
+                          , ("quickSortCall3", quickSortCall3)
   ]
 
 boo30 :: String
@@ -913,3 +917,58 @@ doubleArrayElems2 = "public static void doubleArrayElems2(int[] arr) {\n\
 doubleArrayElems2Call = "public static void doubleArrayElems2Call() {\n\
                         \  doubleArrayElems2(new int[]{1,2,3});\n\
                         \}"
+
+quickSort = "public static void quickSort(int[] arr) {\n\
+            \  if (arr == null || arr.length <= 1) {\n\
+            \    return;\n\
+            \  }\n\
+            \\n\
+            \  int[] stack = new int[arr.length * 2];\n\
+            \  int top = -1;\n\
+            \\n\
+            \  top++;\n\
+            \  stack[top] = 0;\n\
+            \  top++;\n\
+            \  stack[top] = arr.length - 1;\n\
+            \\n\
+            \  while (top >= 1) {\n\
+            \    int high = stack[top];\n\
+            \    top--;\n\
+            \    int low = stack[top];\n\
+            \    top--;\n\
+            \\n\
+            \    int pivotIndex = partition(arr, low, high);\n\
+            \\n\
+            \    if (pivotIndex - 1 > low) {\n\
+            \      top++;\n\
+            \      stack[top] = low;\n\
+            \      top++;\n\
+            \      stack[top] = pivotIndex - 1;\n\
+            \    }\n\
+            \\n\
+            \    if (pivotIndex + 1 < high) {\n\
+            \      top++;\n\
+            \      stack[top] = pivotIndex + 1;\n\
+            \      top++;\n\
+            \      stack[top] = high;\n\
+            \    }\n\
+            \  }\n\
+            \}"
+
+quickSortCall1 = "public static int[] quickSortCall1() {\n\
+                 \  int[] arr = null;\n\
+                 \  quickSort(arr);\n\
+                 \  return arr;\n\
+                 \}"
+
+quickSortCall2 = "public static int[] quickSortCall2() {\n\
+                 \  int[] arr = new int[] {7};\n\
+                 \  quickSort(arr);\n\
+                 \  return arr;\n\
+                 \}"
+
+quickSortCall3 = "public static int[] quickSortCall3() {\n\
+                 \  int[] arr = new int[] {1,5,2,4,3};\n\
+                 \  quickSort(arr);\n\
+                 \  return arr;\n\
+                 \}"
