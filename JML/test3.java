@@ -898,15 +898,17 @@ public double boo33_4_i_call(){
 
 
 //DONE
+//JavaMethod
 /*
-SymState {
-  env = fromList [
-    (MethodName "boo24",SMethodType Int),
-    (VarBindings,SVarBindings (fromList [("x",VarBinding {varDeclAt = 1, varFrame = 0})])),
+[
+    (MethodHandle,SMethodHandle Int "boo24"),
+    (VarBindings,SVarBindings (fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymInt 9,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
     (VarName "x",SymInt 9),
     (Return,SymInt 9)
-  ], pc = []
-}
+  ]
 */
 public int boo24(){
   int x = 3 + boo25(5);
@@ -916,15 +918,18 @@ public int boo24(){
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
 [
- (MethodName "boo24_2",SMethodType Int),
- (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
- (VarAssignments,SVarAssignments [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})]),
- (VarName "x",SException Int "Exception" "meow"),
- (Return,SException Int "Exception" "meow"),
- (Actions,SActions ["Oopsie\n"])
-]
+    (MethodHandle,SMethodHandle Int "boo24_2"),
+    (VarBindings,SVarBindings (fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SException Int "Exception" "meow",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
+    (VarName "x",SException Int "Exception" "meow"),
+    (Return,SException Int "Exception" "meow"),
+    (Actions,SActions [SymString "Oopsie\n"])
+  ]
 */
 public int boo24_2(){
   int x = 3 + boo25(11);
@@ -934,15 +939,19 @@ public int boo24_2(){
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
 [
- (MethodName "boo25",SMethodType Int),
- (GlobalVars,SGlobalVars []),
- (FormalParms,SFormalParms ["i"]),
- (VarAssignments,SVarAssignments []),
- (VarName "i",SymVar Int "i"),
- (ScopeRange (SR {branchStart = 1, branchEnd = 5}),SIte (SBin (SymVar Int "i") Gt (SymInt 10)) (SymState {env = fromList [(MethodName "boo25",SMethodType Int),(FormalParms,SFormalParms ["i"]),(VarName "i",SymVar Int "i"),(Return,SException "Exception" "meow"),(Actions,SActions ["Oopsie\n"])], pc = []}) (Just (SymState {env = fromList [(MethodName "boo25",SMethodType Int),(FormalParms,SFormalParms ["i"]),(VarName "i",SymVar Int "i"),(Return,SymInt 6)], pc = []})))
-]
+    (MethodHandle,SMethodHandle Int "boo25"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["i"]),
+    (VarAssignments,SVarAssignments []),
+    (VarName "i",SymVar Int "i"),
+    (ScopeRange (SR {branchStart = 1, branchEnd = 5}),
+     SIte (SBin (SymVar Int "i") Gt (SymInt 10))
+          (fromList [(MethodHandle,SMethodHandle Int "boo25"),(FormalParms,SFormalParms ["i"]),(VarName "i",SymVar Int "i"),(Return,SException Int "Exception" "meow"),(Actions,SActions [SymString "Oopsie\n"])])
+          (Just (fromList [(MethodHandle,SMethodHandle Int "boo25"),(FormalParms,SFormalParms ["i"]),(VarName "i",SymVar Int "i"),(Return,SymInt 6)])))
+  ]
 */
 public int boo25(int i){
   if(i>10){
@@ -957,8 +966,9 @@ public int boo25(int i){
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
-SymState {env = fromList [("boo26_2",SMethodType Int),("return",SymInt 5)], pc = []}
+[(MethodHandle,SMethodHandle Int "boo26_2"),(Return,SymInt 5)]
 */
 public int boo26_2(){
   return boo27(-5);
@@ -967,16 +977,19 @@ public int boo26_2(){
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
-SymState {
-  env = fromList [
-    (MethodName "boo27",SMethodType Int),
-    (VarName "i",SymFormalParam Int "i" Nothing),
-    (NodeNr 1,SIte (SBin (SymFormalParam Int "i" Nothing) Ge (SymInt 0))
-                   (SymState {env = fromList [(MethodName "boo27",SMethodType Int),(VarName "i",SymFormalParam Int "i" Nothing),(Return,SymFormalParam Int "i" Nothing)], pc = []})
-                   (Just (SymState {env = fromList [(MethodName "boo27",SMethodType Int),(VarBindings,SVarBindings (fromList [("res",VarBinding {varDeclAt = 3, varFrame = 1})])),(VarName "i",SymFormalParam Int "i" Nothing),(VarName "res",SBin (SymInt (-1)) Mul (SymFormalParam Int "i" Nothing)),(Return,SBin (SymInt (-1)) Mul (SymFormalParam Int "i" Nothing))], pc = []})))
-  ], pc = []
-}
+[
+    (MethodHandle,SMethodHandle Int "boo27"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["i"]),
+    (VarAssignments,SVarAssignments []),
+    (VarName "i",SymVar Int "i"),
+    (ScopeRange (SR {branchStart = 1, branchEnd = 5}),
+     SIte (SBin (SymVar Int "i") Ge (SymInt 0))
+          (fromList [(MethodHandle,SMethodHandle Int "boo27"),(FormalParms,SFormalParms ["i"]),(VarName "i",SymVar Int "i"),(Return,SymVar Int "i")])
+          (Just (fromList [(MethodHandle,SMethodHandle Int "boo27"),(FormalParms,SFormalParms ["i"]),(VarBindings,SVarBindings (fromList [("res",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 5}})])),(VarAssignments,SVarAssignments [("res",(SBin (SymInt (-1)) Mul (SymVar Int "i"),Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 5}}))]),(VarName "i",SymVar Int "i"),(VarName "res",SBin (SymInt (-1)) Mul (SymVar Int "i")),(Return,SBin (SymInt (-1)) Mul (SymVar Int "i"))])))
+  ]
 */
 public int boo27(int i){
   if(i >= 0){
@@ -991,8 +1004,9 @@ public int boo27(int i){
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
-SymState {env = fromList [("boo27_2",SMethodType Int),("return",SymInt 5)], pc = []}
+[(MethodHandle,SMethodHandle Int "boo27_2"),(Return,SymInt 5)]
 */
 public int boo27_2() {
   return boo27(5);
@@ -1001,18 +1015,22 @@ public int boo27_2() {
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
 [
- (MethodName "boo28",SMethodType Int),
- (GlobalVars,SGlobalVars []),
- (FormalParms,SFormalParms ["i"]),
- (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
- (VarAssignments,SVarAssignments [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}}),("x",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 5}})]),
- (VarName "i",SymVar Int "i"),
- (VarName "x",SymUnknown (Int,"x",Just (SymInt 1)) [([(If,SR {branchStart = 2, branchEnd = 5})],3)]),
- (ScopeRange (SR {branchStart = 2, branchEnd = 5}),SIte (SBin (SymVar Int "i") Ge (SymInt 0)) (SymState {env = fromList [(MethodName "boo28",SMethodType Int),(FormalParms,SFormalParms ["i"]),(VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),(VarAssignments,SVarAssignments [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}}),("x",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 5}})]),(VarName "i",SymVar Int "i"),(VarName "x",SymInt 2),(Return,SymVar Int "i")], pc = []}) Nothing),
- (Return,SymInt 5)
-]
+    (MethodHandle,SMethodHandle Int "boo28"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["i"]),
+    (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
+    (VarAssignments,SVarAssignments [("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),("x",(SymInt 2,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 5}}))]),
+    (VarName "i",SymVar Int "i"),
+    (VarName "x",SymUnknown (SymInt 1) [([(If,SR {branchStart = 2, branchEnd = 5})],3)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 5}),
+     SIte (SBin (SymVar Int "i") Ge (SymInt 0))
+          (fromList [(MethodHandle,SMethodHandle Int "boo28"),(FormalParms,SFormalParms ["i"]),(VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),(VarAssignments,SVarAssignments [("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),("x",(SymInt 2,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 5}}))]),(VarName "i",SymVar Int "i"),(VarName "x",SymInt 2),(Return,SymVar Int "i")])
+          Nothing),
+    (Return,SymInt 5)
+  ]
 */
 public int boo28(int i){
   int x = 1;
@@ -1026,15 +1044,16 @@ public int boo28(int i){
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
-SymState {
-  env = fromList [
-    ("Var Bindings",VarBindings [("x",VarBinding {varDeclAt = 1, varFrame = 0})]),
-    ("boo282",SMethodType Int),
-    ("return",SymInt 2),
-    ("x",SymInt 2)
-  ], pc = []
-}
+[
+    (MethodHandle,SMethodHandle Int "boo282"),
+    (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
+    (VarAssignments,SVarAssignments [("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),("x",(SymInt 2,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 5}}))]),
+    (VarName "x",SymInt 2),
+    (Return,SymInt 2),
+    (Actions,SActions [])
+  ]
 */
 public int boo282(){
   int x = 1;
@@ -1048,14 +1067,17 @@ public int boo282(){
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
-SymState {
-  env = fromList [
-    ("boo283",SMethodType Int),
-    ("return",SymInt 5),
-    ("x",SymInt 1)
-  ], pc = []
-}
+[
+    (MethodHandle,SMethodHandle Int "boo283"),
+    (VarBindings,SVarBindings (fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
+    (VarName "x",SymInt 1),
+    (Return,SymInt 5)
+  ]
 */
 public int boo283(){
   int x = 1;
@@ -1069,10 +1091,9 @@ public int boo283(){
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
-SymState {
-  env = fromList [("boo28_p",SMethodType Int),("return",SymInt 10)], pc = []
-}
+[(MethodHandle,SMethodHandle Int "boo28_p"),(Return,SymInt 10)]
 */
 public int boo28_p() {
   return boo28(10);
@@ -1081,8 +1102,9 @@ public int boo28_p() {
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
-SymState {env = fromList [("boo28_m",SMethodType Int),("return",SymInt 5)], pc = []}
+[(MethodHandle,SMethodHandle Int "boo28_m"),(Return,SymInt 5)]
 */
 public int boo28_m() {
   return boo28(-10);
@@ -1091,18 +1113,25 @@ public int boo28_m() {
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
 [
- (MethodName "boo28_2",SMethodType Int),
- (GlobalVars,SGlobalVars []),
- (FormalParms,SFormalParms ["i"]),
- (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
- (VarAssignments,SVarAssignments [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("x",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 6}})]),
- (VarName "i",SymVar Int "i"),
- (VarName "x",SymUnknown (Int,"x",Just (SymInt 1)) [([(If,SR {branchStart = 2, branchEnd = 6})],3)]),
- (ScopeRange (SR {branchStart = 2, branchEnd = 6}),SIte (SBin (SymVar Int "i") Ge (SymInt 0)) (SymState {env = fromList [(MethodName "boo28_2",SMethodType Int),(FormalParms,SFormalParms ["i"]),(VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("y",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}})])),(VarAssignments,SVarAssignments [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("x",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 6}}),("y",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}})]),(VarName "i",SymVar Int "i"),(VarName "x",SymInt 2),(VarName "y",SymInt 0),(Return,SymVar Int "i")], pc = []}) Nothing),
- (Return,SymInt 5)
-]
+    (MethodHandle,SMethodHandle Int "boo28_2"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["i"]),
+    (VarBindings,SVarBindings (fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("x",(SymInt 2,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),
+    (VarName "i",SymVar Int "i"),
+    (VarName "x",SymUnknown (SymInt 1) [([(If,SR {branchStart = 2, branchEnd = 6})],3)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 6}),
+     SIte (SBin (SymVar Int "i") Ge (SymInt 0))
+          (fromList [(MethodHandle,SMethodHandle Int "boo28_2"),(FormalParms,SFormalParms ["i"]),(VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("y",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}})])),(VarAssignments,SVarAssignments [("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),("x",(SymInt 2,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 6}})),("y",(SymInt 0,Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),(VarName "i",SymVar Int "i"),(VarName "x",SymInt 2),(VarName "y",SymInt 0),(Return,SymVar Int "i")])
+          Nothing),
+    (Return,SymInt 5)
+  ]
 */
 public int boo28_2(int i){
   int x = 1;
@@ -1117,15 +1146,20 @@ public int boo28_2(int i){
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
-SymState {
-  env = fromList [
-    (MethodName "boo28_2_1",SMethodType Int),
-    (VarBindings,SVarBindings (fromList [("x",VarBinding {varDeclAt = 1, varFrame = 0})])),
+[
+    (MethodHandle,SMethodHandle Int "boo28_2_1"),
+    (VarBindings,SVarBindings (fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("x",(SymInt 2,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 6}})),
+        ("y",(SymInt 0,Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),
     (VarName "x",SymInt 2),
-    (Return,SymInt 4)
-  ], pc = []
-}
+    (Return,SymInt 4),
+    (Actions,SActions [])
+  ]
 */
 public int boo28_2_1(){
   int x = 1;
@@ -1140,20 +1174,19 @@ public int boo28_2_1(){
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
-SymState {
-  env = fromList [
-    (MethodName "boo28_4",SMethodType Int),
-    (VarBindings,SVarBindings (fromList [("x",VarBinding {varDeclAt = 1, varFrame = 0})])),
-    (VarName "i",SymFormalParam Int "i" Nothing),
-    (VarName "x",SymInt 1),
-    (NodeNr 2,SIte 
-       (SBin (SymFormalParam Int "i" Nothing) Ge (SymInt 0))
-       (SymState {env = fromList [(MethodName "boo28_4",SMethodType Int),(VarBindings,SVarBindings (fromList [("x",VarBinding {varDeclAt = 1, varFrame = 0}),("y",VarBinding {varDeclAt = 3, varFrame = 2})])),(VarName "i",SymFormalParam Int "i" Nothing),(VarName "x",SymInt 1),(VarName "y",SymInt 0),(Return,SymFormalParam Int "i" Nothing)], pc = []})
-       (Just (SymState {env = fromList [(MethodName "boo28_4",SMethodType Int),(VarBindings,SVarBindings (fromList [("x",VarBinding {varDeclAt = 1, varFrame = 0})])),(VarName "i",SymFormalParam Int "i" Nothing),(VarName "x",SymInt 2)], pc = []}))),
+[
+    (MethodHandle,SMethodHandle Int "boo28_4"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["i"]),
+    (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
+    (VarAssignments,SVarAssignments [("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),("x",(SymInt 2,Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),
+    (VarName "i",SymVar Int "i"),
+    (VarName "x",SymUnknown (SymInt 1) [([(If,SR {branchStart = 2, branchEnd = 6})],5)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 6}),SIte (SBin (SymVar Int "i") Ge (SymInt 0)) (fromList [(MethodHandle,SMethodHandle Int "boo28_4"),(FormalParms,SFormalParms ["i"]),(VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}}),("y",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 6}})])),(VarAssignments,SVarAssignments [("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),("y",(SymInt 0,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),(VarName "i",SymVar Int "i"),(VarName "x",SymInt 1),(VarName "y",SymInt 0),(Return,SymVar Int "i")]) (Just (fromList [(MethodHandle,SMethodHandle Int "boo28_4"),(FormalParms,SFormalParms ["i"]),(VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),(VarAssignments,SVarAssignments [("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),("x",(SymInt 2,Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),(VarName "i",SymVar Int "i"),(VarName "x",SymInt 2)]))),
     (Return,SymInt 5)
-  ], pc = []
-}
+  ]
 */
 public int boo28_4(int i){
   int x = 1;
@@ -1170,16 +1203,18 @@ public int boo28_4(int i){
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
-SymState {
-  env = fromList [
-    (MethodName "boo28_4_1",SMethodType Int),
-    (VarBindings,SVarBindings (fromList [("x",VarBinding {varDeclAt = 1, varFrame = 0})])),
-    (VarName "i",SymFormalParam Int "i" Nothing),
+[
+    (MethodHandle,SMethodHandle Int "boo28_4_1"),
+    (FormalParms,SFormalParms ["i"]),
+    (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
+    (VarAssignments,SVarAssignments [("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),("y",(SymInt 0,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),
+    (VarName "i",SymVar Int "i"),
     (VarName "x",SymInt 1),
-    (Return,SymFormalParam Int "i" Nothing)
-  ], pc = []
-}
+    (Return,SymVar Int "i"),
+    (Actions,SActions [])
+  ]
 */
 public int boo28_4_1(int i){
   int x = 1;
@@ -1196,16 +1231,21 @@ public int boo28_4_1(int i){
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
-SymState {
-  env = fromList [
-    (MethodName "boo28_4_2",SMethodType Int),
-    (VarBindings,SVarBindings (fromList [("x",VarBinding {varDeclAt = 1, varFrame = 0})])),
-    (VarName "i",SymFormalParam Int "i" Nothing),
+[
+    (MethodHandle,SMethodHandle Int "boo28_4_2"),
+    (FormalParms,SFormalParms ["i"]),
+    (VarBindings,SVarBindings (fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
+        ("x",(SymInt 2,Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),
+    (VarName "i",SymVar Int "i"),
     (VarName "x",SymInt 2),
-    (Return,SymInt 5)
-  ], pc = []
-}
+    (Return,SymInt 5),
+    (Actions,SActions [])
+  ]
 */
 public int boo28_4_2(int i){
   int x = 1;
@@ -1222,13 +1262,12 @@ public int boo28_4_2(int i){
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
-SymState {
-  env = fromList [
-    (MethodName "boo28_4_p",SMethodType Int),
+[
+    (MethodHandle,SMethodHandle Int "boo28_4_p"),
     (Return,SymInt 10)
-  ], pc = []
-}
+  ]
 */
 public int boo28_4_p() {
   return boo28_4(10);
@@ -1237,13 +1276,12 @@ public int boo28_4_p() {
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
-SymState {
-  env = fromList [
-    (MethodName "boo28_4_m",SMethodType Int),
+[
+    (MethodHandle,SMethodHandle Int "boo28_4_m"),
     (Return,SymInt 5)
-  ], pc = []
-}
+  ]
 */
 public int boo28_4_m() {
   return boo28_4(-10);
@@ -1252,19 +1290,19 @@ public int boo28_4_m() {
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
-SymState {
-  env = fromList [
-    (MethodName "boo28_5",SMethodType Int),
-    (VarBindings,SVarBindings (fromList [("x",VarBinding {varDeclAt = 1, varFrame = 0})])),
-    (VarName "i",SymFormalParam Int "i" Nothing),
-    (VarName "x",SymInt 1),
-    (NodeNr 2,SIte (SBin (SymFormalParam Int "i" Nothing) Ge (SymInt 0))
-                   (SymState {env = fromList [(MethodName "boo28_5",SMethodType Int),(VarBindings,SVarBindings (fromList [("x",VarBinding {varDeclAt = 1, varFrame = 0}),("y",VarBinding {varDeclAt = 3, varFrame = 2})])),(VarName "i",SymFormalParam Int "i" Nothing),(VarName "x",SymInt 1),(VarName "y",SymInt 1),(Return,SBin (SymFormalParam Int "i" Nothing) Add (SymInt 1))], pc = []})
-                   (Just (SymState {env = fromList [(MethodName "boo28_5",SMethodType Int),(VarBindings,SVarBindings (fromList [("x",VarBinding {varDeclAt = 1, varFrame = 0})])),(VarName "i",SymFormalParam Int "i" Nothing),(VarName "x",SymInt 2)], pc = []}))),
+[
+    (MethodHandle,SMethodHandle Int "boo28_5"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["i"]),
+    (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+    (VarAssignments,SVarAssignments [("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),("x",(SymInt 2,Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 2, branchEnd = 7}}))]),
+    (VarName "i",SymVar Int "i"),
+    (VarName "x",SymUnknown (SymInt 1) [([(If,SR {branchStart = 2, branchEnd = 7})],6)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 7}),SIte (SBin (SymVar Int "i") Ge (SymInt 0)) (fromList [(MethodHandle,SMethodHandle Int "boo28_5"),(FormalParms,SFormalParms ["i"]),(VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("y",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 7}})])),(VarAssignments,SVarAssignments [("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),("y",(SymInt 0,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 7}})),("y",(SymInt 1,Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 7}}))]),(VarName "i",SymVar Int "i"),(VarName "x",SymInt 1),(VarName "y",SymInt 1),(Return,SBin (SymVar Int "i") Add (SymInt 1))]) (Just (fromList [(MethodHandle,SMethodHandle Int "boo28_5"),(FormalParms,SFormalParms ["i"]),(VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})])),(VarAssignments,SVarAssignments [("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),("x",(SymInt 2,Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 2, branchEnd = 7}}))]),(VarName "i",SymVar Int "i"),(VarName "x",SymInt 2)]))),
     (Return,SymInt 5)
-  ], pc = []
-}
+  ]
 */
 public int boo28_5(int i){
   int x = 1;
@@ -3609,6 +3647,7 @@ public static void arrayBooleanCall() {
 /////////////////
 
 //DONE
+//JavaMethod
 /*
 [
  (MethodHandle,SMethodHandle (Array Int) "tail"),
@@ -3649,6 +3688,7 @@ public static int[] tail(int[] arr) {
 }
 
 //DONE
+//JavaMethod
 /*
 [
  (MethodHandle,SMethodHandle Void "tailCall1"),
@@ -3660,6 +3700,7 @@ public static void tailCall1() {
 }
 
 //DONE
+//JavaMethod
 /*
 [
  (MethodHandle,SMethodHandle Void "tailCall2"),
@@ -3671,6 +3712,7 @@ public static void tailCall2() {
 }
 
 //DONE
+//JavaMethod
 /*
 [
  (MethodHandle,SMethodHandle Void "tailCall3"),
@@ -3682,6 +3724,7 @@ public static void tailCall3() {
 }
 
 //DONE
+//JavaMethod
 /*
 [
  (MethodHandle,SMethodHandle Void "tailCall4"),
@@ -3695,6 +3738,7 @@ public static void tailCall4() {
 /////////////////
 
 //DONE
+//JavaMethod
 /*
 [
     (MethodHandle,SMethodHandle (Array Int) "quickSortCall1"),
@@ -3713,6 +3757,7 @@ public static int[] quickSortCall1() {
 }
 
 //DONE
+//JavaMethod
 /*
 [
     (MethodHandle,SMethodHandle (Array Int) "quickSortCall2"),
@@ -3731,6 +3776,7 @@ public static int[] quickSortCall2() {
 }
 
 //DONE
+//JavaMethod
 /*
 [
     (MethodHandle,SMethodHandle (Array Int) "quickSortCall3"),
@@ -3750,6 +3796,7 @@ public static int[] quickSortCall3() {
 
 
 //DONE
+//JavaMethod
 /*
 [
     (MethodHandle,SMethodHandle Void "quickSort"),

@@ -93,6 +93,398 @@ allTargets = [
 -----------------------------
 -----------------------------
 
+boo24 :: SymStateEnv
+boo24 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo24"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymInt 9,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
+    (VarName "x",SymInt 9),
+    (Return,SymInt 9)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo24_2 :: SymStateEnv
+boo24_2 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo24_2"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SException SYT.Int "Exception" "meow",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
+    (VarName "x",SException SYT.Int "Exception" "meow"),
+    (Return,SException SYT.Int "Exception" "meow"),
+    (Actions,SActions [SymString "Oopsie\n"])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo25 :: SymStateEnv
+boo25 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo25"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["i"]),
+    (VarAssignments,SVarAssignments []),
+    (VarName "i",SymVar SYT.Int "i"),
+    (ScopeRange (SR {branchStart = 1, branchEnd = 5}),
+     SIte (SBin (SymVar SYT.Int "i") SYT.Gt (SymInt 10))
+          (Map.fromList [
+              (MethodHandle,SMethodHandle SYT.Int "boo25"),
+              (FormalParms,SFormalParms ["i"]),
+              (VarName "i",SymVar SYT.Int "i"),
+              (Return,SException SYT.Int "Exception" "meow"),
+              (Actions,SActions [SymString "Oopsie\n"])])
+          (Just (Map.fromList [
+              (MethodHandle,SMethodHandle SYT.Int "boo25"),
+              (FormalParms,SFormalParms ["i"]),
+              (VarName "i",SymVar SYT.Int "i"),
+              (Return,SymInt 6)])))
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo26_2 :: SymStateEnv
+boo26_2 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo26_2"),
+    (Return,SymInt 5)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo27 :: SymStateEnv
+boo27 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo27"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["i"]),
+    (VarAssignments,SVarAssignments []),
+    (VarName "i",SymVar SYT.Int "i"),
+    (ScopeRange (SR {branchStart = 1, branchEnd = 5}),
+     SIte (SBin (SymVar SYT.Int "i") SYT.Ge (SymInt 0))
+          (Map.fromList [
+              (MethodHandle,SMethodHandle SYT.Int "boo27"),
+              (FormalParms,SFormalParms ["i"]),
+              (VarName "i",SymVar SYT.Int "i"),
+              (Return,SymVar SYT.Int "i")])
+          (Just (Map.fromList [
+              (MethodHandle,SMethodHandle SYT.Int "boo27"),
+              (FormalParms,SFormalParms ["i"]),
+              (VarBindings,SVarBindings (Map.fromList [
+                  ("res",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 5}})])),
+              (VarAssignments,SVarAssignments [
+                  ("res",(SBin (SymInt (-1)) SYT.Mul (SymVar SYT.Int "i"),Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 5}}))]),
+              (VarName "i",SymVar SYT.Int "i"),
+              (VarName "res",SBin (SymInt (-1)) SYT.Mul (SymVar SYT.Int "i")),
+              (Return,SBin (SymInt (-1)) SYT.Mul (SymVar SYT.Int "i"))])))
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo27_2 :: SymStateEnv
+boo27_2 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo27_2"),
+    (Return,SymInt 5)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo28 :: SymStateEnv
+boo28 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo28"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["i"]),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
+        ("x",(SymInt 2,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 5}}))]),
+    (VarName "i",SymVar SYT.Int "i"),
+    (VarName "x",SymUnknown (SymInt 1) [([(If,SR {branchStart = 2, branchEnd = 5})],3)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 5}),
+     SIte (SBin (SymVar SYT.Int "i") SYT.Ge (SymInt 0))
+          (Map.fromList [
+              (MethodHandle,SMethodHandle SYT.Int "boo28"),
+              (FormalParms,SFormalParms ["i"]),
+              (VarBindings,SVarBindings (Map.fromList [
+                  ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
+              (VarAssignments,SVarAssignments [
+                  ("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
+                  ("x",(SymInt 2,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 5}}))]),
+              (VarName "i",SymVar SYT.Int "i"),
+              (VarName "x",SymInt 2),
+              (Return,SymVar SYT.Int "i")])
+          Nothing),
+    (Return,SymInt 5)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo282 :: SymStateEnv
+boo282 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo282"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
+        ("x",(SymInt 2,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 5}}))]),
+    (VarName "x",SymInt 2),
+    (Return,SymInt 2),
+    (Actions,SActions [])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo283 :: SymStateEnv
+boo283 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo283"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
+    (VarName "x",SymInt 1),
+    (Return,SymInt 5)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo28_p :: SymStateEnv
+boo28_p = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo28_p"),
+    (Return,SymInt 10)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo28_m :: SymStateEnv
+boo28_m = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo28_m"),
+    (Return,SymInt 5)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo28_2 :: SymStateEnv
+boo28_2 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo28_2"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["i"]),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("x",(SymInt 2,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),
+    (VarName "i",SymVar SYT.Int "i"),
+    (VarName "x",SymUnknown (SymInt 1) [([(If,SR {branchStart = 2, branchEnd = 6})],3)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 6}),
+     SIte (SBin (SymVar SYT.Int "i") SYT.Ge (SymInt 0))
+          (Map.fromList [
+              (MethodHandle,SMethodHandle SYT.Int "boo28_2"),
+              (FormalParms,SFormalParms ["i"]),
+              (VarBindings,SVarBindings (Map.fromList [
+                  ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),
+                  ("y",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}})])),
+              (VarAssignments,SVarAssignments [
+                  ("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+                  ("x",(SymInt 2,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 6}})),
+                  ("y",(SymInt 0,Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),
+              (VarName "i",SymVar SYT.Int "i"),
+              (VarName "x",SymInt 2),
+              (VarName "y",SymInt 0),
+              (Return,SymVar SYT.Int "i")])
+          Nothing),
+    (Return,SymInt 5)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo28_2_1 :: SymStateEnv
+boo28_2_1 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo28_2_1"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("x",(SymInt 2,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 6}})),
+        ("y",(SymInt 0,Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),
+    (VarName "x",SymInt 2),
+    (Return,SymInt 4),
+    (Actions,SActions [])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo28_4 :: SymStateEnv
+boo28_4 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo28_4"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["i"]),
+    (VarBindings,SVarBindings (Map.fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
+        ("x",(SymInt 2,Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),
+    (VarName "i",SymVar SYT.Int "i"),
+    (VarName "x",SymUnknown (SymInt 1) [([(If,SR {branchStart = 2, branchEnd = 6})],5)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 6}),
+     SIte (SBin (SymVar SYT.Int "i") SYT.Ge (SymInt 0))
+          (Map.fromList [
+              (MethodHandle,SMethodHandle SYT.Int "boo28_4"),
+              (FormalParms,SFormalParms ["i"]),
+              (VarBindings,SVarBindings (Map.fromList [
+                  ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}}),
+                  ("y",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 6}})])),
+              (VarAssignments,SVarAssignments [
+                  ("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
+                  ("y",(SymInt 0,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),
+              (VarName "i",SymVar SYT.Int "i"),
+              (VarName "x",SymInt 1),
+              (VarName "y",SymInt 0),
+              (Return,SymVar SYT.Int "i")])
+          (Just (Map.fromList [
+              (MethodHandle,SMethodHandle SYT.Int "boo28_4"),
+              (FormalParms,SFormalParms ["i"]),
+              (VarBindings,SVarBindings (Map.fromList [
+                  ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
+              (VarAssignments,SVarAssignments [
+                  ("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
+                  ("x",(SymInt 2,Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),
+              (VarName "i",SymVar SYT.Int "i"),
+              (VarName "x",SymInt 2)]))),
+    (Return,SymInt 5)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo28_4_1 :: SymStateEnv
+boo28_4_1 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo28_4_1"),
+    (FormalParms,SFormalParms ["i"]),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
+        ("y",(SymInt 0,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),
+    (VarName "i",SymVar SYT.Int "i"),
+    (VarName "x",SymInt 1),
+    (Return,SymVar SYT.Int "i"),
+    (Actions,SActions [])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo28_4_2 :: SymStateEnv
+boo28_4_2 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo28_4_2"),
+    (FormalParms,SFormalParms ["i"]),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
+        ("x",(SymInt 2,Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),
+    (VarName "i",SymVar SYT.Int "i"),
+    (VarName "x",SymInt 2),
+    (Return,SymInt 5),
+    (Actions,SActions [])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo28_4_p :: SymStateEnv
+boo28_4_p = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo28_4_p"),
+    (Return,SymInt 10)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo28_4_m :: SymStateEnv
+boo28_4_m = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo28_4_m"),
+    (Return,SymInt 5)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo28_5 :: SymStateEnv
+boo28_5 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo28_5"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["i"]),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("x",(SymInt 2,Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 2, branchEnd = 7}}))]),
+    (VarName "i",SymVar SYT.Int "i"),
+    (VarName "x",SymUnknown (SymInt 1) [([(If,SR {branchStart = 2, branchEnd = 7})],6)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 7}),
+     SIte (SBin (SymVar SYT.Int "i") SYT.Ge (SymInt 0))
+          (Map.fromList [
+              (MethodHandle,SMethodHandle SYT.Int "boo28_5"),
+              (FormalParms,SFormalParms ["i"]),
+              (VarBindings,SVarBindings (Map.fromList [
+                  ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),
+                  ("y",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 7}})])),
+              (VarAssignments,SVarAssignments [
+                  ("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+                  ("y",(SymInt 0,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 7}})),
+                  ("y",(SymInt 1,Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 7}}))]),
+              (VarName "i",SymVar SYT.Int "i"),
+              (VarName "x",SymInt 1),
+              (VarName "y",SymInt 1),
+              (Return,SBin (SymVar SYT.Int "i") SYT.Add (SymInt 1))])
+          (Just (Map.fromList [
+              (MethodHandle,SMethodHandle SYT.Int "boo28_5"),
+              (FormalParms,SFormalParms ["i"]),
+              (VarBindings,SVarBindings (Map.fromList [
+                  ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+              (VarAssignments,SVarAssignments [
+                  ("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+                  ("x",(SymInt 2,Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 2, branchEnd = 7}}))]),
+              (VarName "i",SymVar SYT.Int "i"),
+              (VarName "x",SymInt 2)]))),
+    (Return,SymInt 5)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
 boo30 :: SymStateEnv
 boo30 = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "boo30"),

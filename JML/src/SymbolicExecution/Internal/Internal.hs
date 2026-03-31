@@ -1088,4 +1088,5 @@ ppSymExpr_no_symType = \case
   --   (If,SR {branchStart = 5, branchEnd = 8})],6)]
   SymUnknown symExpr _ -> printf "(Last Known Value: %s)" (ppSymExpr_no_symType symExpr)
   SObjAcc li -> intercalate "." li
+  SException Int exceptionType exceptionName -> printf "%s %s" exceptionType exceptionName
   symExpr -> error $ "TODO2: ppSymExpr_no_symType ==> " ++ show symExpr

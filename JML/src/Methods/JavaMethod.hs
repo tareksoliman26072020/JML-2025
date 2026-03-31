@@ -89,6 +89,175 @@ javaMethodInputs = [
                           , ("quickSortCall3", quickSortCall3)
   ]
 
+boo24 :: String
+boo24 = "public int boo24(){\n\
+        \  int x = 3 + boo25(5);\n\
+        \  return x;\n\
+        \}"
+
+boo24_2 :: String
+boo24_2 = "public int boo24_2(){\n\
+          \  int x = 3 + boo25(11);\n\
+          \  return x;\n\
+          \}"
+
+boo25 :: String
+boo25 = "public int boo25(int i){\n\
+        \  if(i>10){\n\
+        \    println(\"Oopsie\");\n\
+        \    throw new Exception(\"meow\");\n\
+        \  }\n\
+        \  else{\n\
+        \    return 6;\n\
+        \  }\n\
+        \}"
+
+boo26_2 :: String
+boo26_2 = "public int boo26_2(){\n\
+          \  return boo27(-5);\n\
+          \}"
+
+boo27 :: String
+boo27 = "public int boo27(int i){\n\
+        \  if(i >= 0){\n\
+        \    return i;\n\
+        \  }\n\
+        \  else{\n\
+        \    int res = -1 * i;\n\
+        \    return res;\n\
+        \  }\n\
+        \}"
+
+boo27_2 :: String
+boo27_2 = "public int boo27_2() {\n\
+          \  return boo27(5);\n\
+          \}"
+
+boo28 :: String
+boo28 = "public int boo28(int i){\n\
+        \  int x = 1;\n\
+        \  if(i >= 0){\n\
+        \    x++;\n\
+        \    return i;\n\
+        \  }\n\
+        \  return 5;\n\
+        \}"
+
+boo282 :: String
+boo282 = "public int boo282(){\n\
+         \  int x = 1;\n\
+         \  if(x >= 0){\n\
+         \    x++;\n\
+         \    return x;\n\
+         \  }\n\
+         \  return 5;\n\
+         \}"
+
+boo283 :: String
+boo283 = "public int boo283(){\n\
+         \  int x = 1;\n\
+         \  if(x < 0){\n\
+         \    x++;\n\
+         \    return x;\n\
+         \  }\n\
+         \  return 5;\n\
+         \}"
+
+boo28_p :: String
+boo28_p = "public int boo28_p() {\n\
+          \  return boo28(10);\n\
+          \}"
+
+boo28_m :: String
+boo28_m = "public int boo28_m() {\n\
+          \  return boo28(-10);\n\
+          \}"
+
+boo28_2 :: String
+boo28_2 = "public int boo28_2(int i){\n\
+          \  int x = 1;\n\
+          \  if(i >= 0){\n\
+          \    x++;\n\
+          \    int y = 0;\n\
+          \    return i;\n\
+          \  }\n\
+          \  return 5;\n\
+          \}"
+
+boo28_2_1 :: String
+boo28_2_1 = "public int boo28_2_1(){\n\
+            \  int x = 1;\n\
+            \  if(x >= 0){\n\
+            \    x++;\n\
+            \    int y = 0;\n\
+            \    return 1+x+1;\n\
+            \  }\n\
+            \  return 5;\n\
+            \}"
+
+boo28_4 :: String
+boo28_4 = "public int boo28_4(int i){\n\
+          \  int x = 1;\n\
+          \  if(i >= 0){\n\
+          \    int y = 0;\n\
+          \    return i;\n\
+          \  }\n\
+          \  else {\n\
+          \   x++;\n\
+          \  }\n\
+          \  return 5;\n\
+          \}"
+
+boo28_4_1 :: String
+boo28_4_1 = "public int boo28_4_1(int i){\n\
+            \  int x = 1;\n\
+            \  if(true){\n\
+            \    int y = 0;\n\
+            \    return i;\n\
+            \  }\n\
+            \  else {\n\
+            \   x++;\n\
+            \  }\n\
+            \  return 5;\n\
+            \}"
+
+boo28_4_2 :: String
+boo28_4_2 = "public int boo28_4_2(int i){\n\
+            \  int x = 1;\n\
+            \  if(false){\n\
+            \    int y = 0;\n\
+            \    return i;\n\
+            \  }\n\
+            \  else {\n\
+            \   x++;\n\
+            \  }\n\
+            \  return 5;\n\
+            \}"
+
+boo28_4_p :: String
+boo28_4_p = "public int boo28_4_p() {\n\
+            \  return boo28_4(10);\n\
+            \}"
+
+boo28_4_m :: String
+boo28_4_m = "public int boo28_4_m() {\n\
+            \  return boo28_4(-10);\n\
+            \}"
+
+boo28_5 :: String
+boo28_5 = "public int boo28_5(int i){\n\
+          \  int x = 1;\n\
+          \  if(i >= 0){\n\
+          \    int y = 0;\n\
+          \    y++;\n\
+          \    return i+y;\n\
+          \  }\n\
+          \  else {\n\
+          \   x++;\n\
+          \  }\n\
+          \  return 5;\n\
+          \}"
+
 boo30 :: String
 boo30 = "public int boo30(int z){\n\
         \  int x1 = 0;\n\
