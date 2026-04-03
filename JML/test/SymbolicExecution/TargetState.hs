@@ -68,9 +68,9 @@ allTargets = [
   ("ifFun2",ifFun2),
   ("ifFunCall",ifFunCall), ("ifFun2Call",ifFun2Call), ("ifFun2Call2",ifFun2Call2),
   ("ifFun3",ifFun3), ("voidFun3Call", voidFun3Call),
-  ("ifFun4",ifFun4),
+  ("ifFun4",ifFun4), ("ifFun4Call", ifFun4Call),
   ("ifFun5",ifFun5), ("ifFun5Call1",ifFun5Call1), ("ifFun5Call2",ifFun5Call2),
-  ("ifFun6",ifFun6), ("ifFun6Call",ifFun6Call),
+  ("ifFun6",ifFun6), ("ifFun6Call",ifFun6Call), ("ifFun6Call2", ifFun6Call2),
   ("ifFun7",ifFun7), ("ifFun7Call",ifFun7Call), ("ifFun7Call2",ifFun7Call2), ("ifFun7Call3",ifFun7Call3),
   ("ifFun8",ifFun8), ("ifFun8Call",ifFun8Call),
   ("ifFun9",ifFun9),
@@ -92,6 +92,8 @@ allTargets = [
   ("sum2", sum2),
   ("sum4", sum4), ("sum4Call", sum4Call),
   ("sum1_While", sum1_While), ("sum1_WhileCall", sum1_WhileCall),
+  ("isEmpty", isEmpty), ("callIsEmpty", callIsEmpty), ("callIsNotEmpty", callIsNotEmpty),
+  ("fillArray", fillArray), ("fillArrayCall", fillArrayCall),
   ("getMax", getMax), ("getMaxCall", getMaxCall),
   ("swap",swap), ("swapCall",swapCall),
   ("partition", partition), ("partitionCall1", partitionCall1),
@@ -1520,6 +1522,27 @@ ifFun4 = Map.fromList [
 -----------------------------
 -----------------------------
 
+ifFun4Call :: SymStateEnv
+ifFun4Call = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "ifFun4Call"),
+    (GlobalVars,SGlobalVars ["y","z"]),
+    (VarAssignments,SVarAssignments [
+        ("y",(SymInt 2,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 13}})),
+        ("z",(SymInt 3,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 13}})),
+        ("y",(SymInt (-1),Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 13}})),
+        ("z",(SymInt (-1),Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 0, branchEnd = 13}})),
+        ("y",(SymInt 3,Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 0, branchEnd = 13}})),
+        ("z",(SymInt 12,Node_Coor {varDeclAt = 10, varFrame = SR {branchStart = 0, branchEnd = 13}}))]),
+    (VarName "y",SymInt 12),
+    (VarName "z",SymInt 12),
+    (Return,SymReturnVoid),
+    (Actions,SActions [SymString "3\n",SymString "3\n",SymString "-1\n",SymString "-1\n",SymString "12\n",SymString "12\n"])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
 ifFun5 :: SymStateEnv
 ifFun5 = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "ifFun5"),
@@ -1617,6 +1640,25 @@ ifFun6Call = Map.fromList [
     (VarName "s",SymString "something"),
     (VarName "y",SymInt (-5)),
     (Return,SymString "6.0 dangerous something6")
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+ifFun6Call2 :: SymStateEnv
+ifFun6Call2 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.String "ifFun6Call2"),
+    (GlobalVars,SGlobalVars ["y","m","c","s"]),
+    (VarAssignments,SVarAssignments [
+        ("y",(SymNum 5.0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
+        ("m",(SymInt 1,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})),
+        ("c",(SymString "dangerous",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
+    (VarName "c",SymString "dangerous"),
+    (VarName "m",SymInt 11),
+    (VarName "s",SymString "something"),
+    (VarName "y",SymNum (-5.0)),
+    (Return,SymString "dangerous 11")
   ]
 
 -----------------------------
@@ -2270,6 +2312,73 @@ sum1_WhileCall :: SymStateEnv
 sum1_WhileCall = Map.fromList [
    (MethodHandle,SMethodHandle SYT.Int "sum1_WhileCall"),
    (Return,SymInt 6)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+isEmpty :: SymStateEnv
+isEmpty = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Bool "isEmpty"),
+    (FormalParms,SFormalParms ["arr"]),
+    (VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),
+    (Return,SBin (SObjAcc ["arr","length"]) SYT.Eq (SymInt 0))
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+callIsEmpty :: SymStateEnv
+callIsEmpty = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Bool "callIsEmpty"),
+    (Return,SBool True)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+callIsNotEmpty :: SymStateEnv
+callIsNotEmpty = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Bool "callIsNotEmpty"),
+    (Return,SBool False)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+fillArray :: SymStateEnv
+fillArray = Map.fromList [
+    (MethodHandle,SMethodHandle (SYT.Array SYT.Int) "fillArray"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["size","elem"]),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 7}})])),
+    (VarAssignments,SVarAssignments [
+        ("arr",(SymArray (Just SYT.Int) (Just (SymVar SYT.Int "size")) [],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 7}})),
+        ("arr",(SymArray (Just SYT.Int) (Just (SymVar SYT.Int "size")) [SymVar SYT.Int "elem"],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),
+    (VarName "arr",SymUnknown (SymArray (Just SYT.Int) (Just (SymVar SYT.Int "size")) []) [([(For,SR {branchStart = 2, branchEnd = 6})],4)]),
+    (VarName "elem",SymVar SYT.Int "elem"),
+    (VarName "size",SymVar SYT.Int "size"),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 6}),
+     SLoop (Just (Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}))
+           (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Less, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "size"}}))
+           [Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "elem"}}}), parent = 2},Node {id = 5, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Plus, expr2 = NumberLiteral 1.0}}})), parent = 2}]),
+    (Return,SymUnknown (SymArray (Just SYT.Int) (Just (SymVar SYT.Int "size")) []) [([(For,SR {branchStart = 2, branchEnd = 6})],4)])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+fillArrayCall :: SymStateEnv
+fillArrayCall = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "fillArrayCall"),
+    (Return,SymReturnVoid),
+    (Actions,SActions [SymString "[10, 10, 10, 10, 10]\n"])
   ]
 
 -----------------------------

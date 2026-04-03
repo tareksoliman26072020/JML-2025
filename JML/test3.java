@@ -2622,16 +2622,38 @@ public int ifFun4(int n) {
 
 /////////////////////
 
-//TODO
-public void ifFun4Call(int n) {
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle Void "ifFun4Call"),
+    (GlobalVars,SGlobalVars ["y","z"]),
+    (VarAssignments,SVarAssignments [
+        ("y",(SymInt 2,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 13}})),
+        ("z",(SymInt 3,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 13}})),
+        ("y",(SymInt (-1),Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 13}})),
+        ("z",(SymInt (-1),Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 0, branchEnd = 13}})),
+        ("y",(SymInt 3,Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 0, branchEnd = 13}})),
+        ("z",(SymInt 12,Node_Coor {varDeclAt = 10, varFrame = SR {branchStart = 0, branchEnd = 13}}))]),
+    (VarName "y",SymInt 12),
+    (VarName "z",SymInt 12),
+    (Return,SymReturnVoid),
+    (Actions,SActions [SymString "3\n",SymString "3\n",SymString "-1\n",SymString "-1\n",SymString "12\n",SymString "12\n"])
+  ]
+*/
+public void ifFun4Call() {
   y = 2;
   z = ifFun4(1);
-  println(y);
-  println(z);
+  println(toString(y));
+  println(toString(z));
   y = -1;
   z = ifFun4(10);
-  println(y);
-  println(z);
+  println(toString(y));
+  println(toString(z));
+  y = 3;
+  z = ifFun4(9);
+  println(toString(y));
+  println(toString(z));
 }
 
 /////////////////////
@@ -2769,7 +2791,23 @@ public String ifFun6Call() {
 
 /////////////////////
 
-//TODO
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle String "ifFun6Call2"),
+    (GlobalVars,SGlobalVars ["y","m","c","s"]),
+    (VarAssignments,SVarAssignments [
+        ("y",(SymNum 5.0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
+        ("m",(SymInt 1,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})),
+        ("c",(SymString "dangerous",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
+    (VarName "c",SymString "dangerous"),
+    (VarName "m",SymInt 11),
+    (VarName "s",SymString "something"),
+    (VarName "y",SymNum (-5.0)),
+    (Return,SymString "dangerous 11")
+  ]
+*/
 public String ifFun6Call2() {
   y = 5;
   m = 1;
@@ -4498,14 +4536,14 @@ public int processArray1(int[] arr) {
 /////////////////////
 
 //DONE
+//JavaMethod
 /*
-SymState {
-  env = fromList [
-    (MethodName "isEmpty",SMethodType Bool),
-    (VarName "arr",SymFormalParam (Array Int) "arr" Nothing),
+[
+    (MethodHandle,SMethodHandle Bool "isEmpty"),
+    (FormalParms,SFormalParms ["arr"]),
+    (VarName "arr",SymVar (Array Int) "arr"),
     (Return,SBin (SObjAcc ["arr","length"]) Eq (SymInt 0))
-  ], pc = []
-}
+  ]
 */
 public boolean isEmpty(int[] arr) {
   return arr.length == 0;
@@ -4514,13 +4552,12 @@ public boolean isEmpty(int[] arr) {
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
-SymState {
-  env = fromList [
-    (MethodName "callIsEmpty",SMethodType Bool),
+[
+    (MethodHandle,SMethodHandle Bool "callIsEmpty"),
     (Return,SBool True)
-  ], pc = []
-}
+  ]
 */
 public boolean callIsEmpty() {
   return isEmpty(new int[]{});
@@ -4529,13 +4566,12 @@ public boolean callIsEmpty() {
 ////////////////////////////////////////
 
 //DONE
+//JavaMethod
 /*
-SymState {
-  env = fromList [
-    (MethodName "callIsNotEmpty",SMethodType Bool),
+[
+    (MethodHandle,SMethodHandle Bool "callIsNotEmpty"),
     (Return,SBool False)
-  ], pc = []
-}
+  ]
 */
 public boolean callIsNotEmpty() {
   return isEmpty(new int[]{1,2,3});
@@ -4543,13 +4579,47 @@ public boolean callIsNotEmpty() {
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle (Array Int) "fillArray"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["size","elem"]),
+    (VarBindings,SVarBindings (fromList [
+        ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 7}})])),
+    (VarAssignments,SVarAssignments [
+        ("arr",(SymArray (Just Int) (Just (SymVar Int "size")) [],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 7}})),
+        ("arr",(SymArray (Just Int) (Just (SymVar Int "size")) [SymVar Int "elem"],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),
+    (VarName "arr",SymUnknown (SymArray (Just Int) (Just (SymVar Int "size")) []) [([(For,SR {branchStart = 2, branchEnd = 6})],4)]),
+    (VarName "elem",SymVar Int "elem"),
+    (VarName "size",SymVar Int "size"),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 6}),
+     SLoop (Just (Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}))
+           (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "size"}}))
+           [Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, assEright = VarExpr {varType = Nothing, varObj = [], varName = "elem"}}}), parent = 2},Node {id = 5, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}})), parent = 2}]),
+    (Return,SymUnknown (SymArray (Just Int) (Just (SymVar Int "size")) []) [([(For,SR {branchStart = 2, branchEnd = 6})],4)])
+  ]
+*/
 public int[] fillArray(int size, int elem) {
   int[] arr = new int[size];
   for(int i=0; i<size; i++) {
     arr[i] = elem;
   }
   return arr;
+}
+
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle Void "fillArrayCall"),
+    (Return,SymReturnVoid),
+    (Actions,SActions [SymString "[10, 10, 10, 10, 10]\n"])
+  ]
+*/
+public void fillArrayCall() {
+  println(fillArray(5,10));
 }
 
 ////////////////////////////////////////

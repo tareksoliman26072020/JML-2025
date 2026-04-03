@@ -61,11 +61,11 @@ javaMethodInputs = [
   ("ifFun2Call", ifFun2Call),
   ("ifFun2Call2", ifFun2Call2),
   ("ifFun3", ifFun3), ("voidFun3Call", voidFun3Call),
-  ("ifFun4", ifFun4),
+  ("ifFun4", ifFun4), ("ifFun4Call", ifFun4Call),
   ("ifFun5", ifFun5),
   ("ifFun5Call1", ifFun5Call1),
   ("ifFun5Call2",ifFun5Call2),
-  ("ifFun6", ifFun6), ("ifFun6Call", ifFun6Call),
+  ("ifFun6", ifFun6), ("ifFun6Call", ifFun6Call), ("ifFun6Call2", ifFun6Call2),
   ("ifFun7", ifFun7),
   ("ifFun7Call", ifFun7Call),
   ("ifFun7Call2", ifFun7Call2),
@@ -91,6 +91,8 @@ javaMethodInputs = [
   ("sum2", sum2),
   ("sum4", sum4), ("sum4Call", sum4Call),
   ("sum1_While", sum1_While), ("sum1_WhileCall", sum1_WhileCall),
+  ("isEmpty", isEmpty), ("callIsEmpty", callIsEmpty), ("callIsNotEmpty", callIsNotEmpty),
+  ("fillArray", fillArray), ("fillArrayCall", fillArrayCall),
   ("getMax", getMax), ("getMaxCall", getMaxCall),
   ("swap", swap), ("swapCall", swapCall),
   ("partition", partition), ("partitionCall1", partitionCall1),
@@ -680,6 +682,22 @@ ifFun4 = "public int ifFun4(int n) {\n\
          \  return y;\n\
          \}"
 
+ifFun4Call :: String
+ifFun4Call = "public void ifFun4Call() {\n\
+             \  y = 2;\n\
+             \  z = ifFun4(1);\n\
+             \  println(toString(y));\n\
+             \  println(toString(z));\n\
+             \  y = -1;\n\
+             \  z = ifFun4(10);\n\
+             \  println(toString(y));\n\
+             \  println(toString(z));\n\
+             \  y = 3;\n\
+             \  z = ifFun4(9);\n\
+             \  println(toString(y));\n\
+             \  println(toString(z));\n\
+             \}"
+
 ifFun5 :: String
 ifFun5 = "public int ifFun5(int n) {\n\
          \  y = n;\n\
@@ -716,6 +734,14 @@ ifFun6Call = "public String ifFun6Call() {\n\
              \  c = \"dangerous\";\n\
              \  return toString(m+y) + \" \" + ifFun6(10) + \" \" + s + toString(m+y);\n\
              \}"
+
+ifFun6Call2 :: String
+ifFun6Call2 = "public String ifFun6Call2() {\n\
+              \  y = 5;\n\
+              \  m = 1;\n\
+              \  c = \"dangerous\";\n\
+              \  return ifFun6(10) + \" \" + toString(m);\n\
+              \}"
 
 ifFun7 :: String
 ifFun7 = "public void ifFun7(int n) {\n\
@@ -1023,8 +1049,32 @@ sum1_While = "public int sum1_While(int n) {\n\
              \  return res;\n\
              \}"
 
+fillArray = "public int[] fillArray(int size, int elem) {\n\
+            \  int[] arr = new int[size];\n\
+            \  for(int i=0; i<size; i++) {\n\
+            \    arr[i] = elem;\n\
+            \  }\n\
+            \  return arr;\n\
+            \}"
+
+fillArrayCall = "public void fillArrayCall() {\n\
+                \  println(fillArray(5,10));\n\
+                \}"
+
 sum1_WhileCall = "public int sum1_WhileCall() {\n\
                  \  return sum1_While(3);\n\
+                 \}"
+
+isEmpty = "public boolean isEmpty(int[] arr) {\n\
+          \  return arr.length == 0;\n\
+          \}"
+
+callIsEmpty = "public boolean callIsEmpty() {\n\
+              \  return isEmpty(new int[]{});\n\
+              \}"
+
+callIsNotEmpty = "public boolean callIsNotEmpty() {\n\
+                 \  return isEmpty(new int[]{1,2,3});\n\
                  \}"
 
 getMax = "public static int getMax(int[] arr) throws Exception {\n\
