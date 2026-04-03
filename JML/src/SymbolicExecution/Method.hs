@@ -1288,6 +1288,7 @@ visitExpr expr@AST.ArrayInstantiationExpr{} = do
                 ER_Expr expr@(SBin _ _ _) -> return $ Just expr
                 ER_Expr s@(SymInt _) -> return $ Just s
                 ER_SymStateMapEntry _ symExpr -> return $ Just symExpr
+                ER_VarExprObjAccess _ symExpr -> return $ Just symExpr
                 _ -> throwError $ "visitExpr ==> ArrayInstantiationExpr ==> 2: " ++ show (expr,er)
         (Nothing,0) -> return Nothing
   -- potentially add nulls as elements if size is present, but no elements are present.
