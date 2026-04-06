@@ -135,6 +135,8 @@ ppMarkdownLogTag = \case
     ReportTheState loc s    -> printf "(%s): %s\n%s" (show $ cyan $ fromString loc) (show $ orangeRed "Reporting The State") s
     Skip loc thing          -> printf "(%s):%s ==> %s" (show $ orangeRed "Skip") (show $ cyan $ fromString loc) (show thing)
     ForLoopDone loc         -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangeRed "For Loop Done")
+    ForLoopDoneViaReturnStmt
+                loc         -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangeRed "For Loop Done due to return statement")
     UnvisitedForLoop loc expr
                             -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "Unregistered For Loop") expr
     ForLoopConditionUndetermined loc val

@@ -103,6 +103,7 @@ allTargets = [
                             ("partitionCall5", partitionCall5),
                             ("partitionCall6", partitionCall6),
   ("isAscending1", isAscending1), ("isAscending1Call", isAscending1Call),
+  ("isAscending2", isAscending2), ("isAscending2Call", isAscending2Call),
 ----------Bubble Sort:
   ("bubbleSort", bubbleSort), ("bubbleSortCall", bubbleSortCall),
   ("replicate", replicate), ("replicateCall", replicateCall),
@@ -2648,6 +2649,43 @@ isAscending1Call = Map.fromList [
         ("arr2",(SymArray (Just SYT.Int) (Just $ SymInt 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 7,SymInt 6,SymInt 99],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
     (VarName "arr1",SymArray (Just SYT.Int) (Just $ SymInt 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 6,SymInt 7,SymInt 99]),
     (VarName "arr2",SymArray (Just SYT.Int) (Just $ SymInt 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 7,SymInt 6,SymInt 99]),
+    (Return,SymReturnVoid),
+    (Actions,SActions [SymString "true\n",SymString "false\n"])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+isAscending2 :: SymStateEnv
+isAscending2 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Bool "isAscending2"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["arr"]),
+    (VarAssignments,SVarAssignments []),
+    (VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),
+    (ScopeRange (SR {branchStart = 1, branchEnd = 7}),
+     SLoop (Just (Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}))
+           (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Less, expr2 = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}, binOp = Minus, expr2 = NumberLiteral 1.0}}))
+           [Node {id = 3, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, binOp = Greater, expr2 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Plus, expr2 = NumberLiteral 1.0})}})), parent = 1},Node {id = 6, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Plus, expr2 = NumberLiteral 1.0}}})), parent = 1}]),
+    (Return,SBool True)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+isAscending2Call :: SymStateEnv
+isAscending2Call = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "isAscending2Call"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("arr1",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),
+        ("arr2",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+    (VarAssignments,SVarAssignments [
+        ("arr1",(SymArray (Just SYT.Int) (Just (SymInt 6)) [SymInt 1,SymInt 2,SymInt 4,SymInt 6,SymInt 7,SymInt 99],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("arr2",(SymArray (Just SYT.Int) (Just (SymInt 6)) [SymInt 1,SymInt 2,SymInt 4,SymInt 7,SymInt 6,SymInt 99],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+    (VarName "arr1",SymArray (Just SYT.Int) (Just (SymInt 6)) [SymInt 1,SymInt 2,SymInt 4,SymInt 6,SymInt 7,SymInt 99]),
+    (VarName "arr2",SymArray (Just SYT.Int) (Just (SymInt 6)) [SymInt 1,SymInt 2,SymInt 4,SymInt 7,SymInt 6,SymInt 99]),
     (Return,SymReturnVoid),
     (Actions,SActions [SymString "true\n",SymString "false\n"])
   ]

@@ -1090,3 +1090,37 @@ ppSymExpr_no_symType = \case
   SObjAcc li -> intercalate "." li
   SException Int exceptionType exceptionName -> printf "%s %s" exceptionType exceptionName
   symExpr -> error $ "TODO2: ppSymExpr_no_symType ==> " ++ show symExpr
+
+------------------------------
+------------------------------
+------------------------------
+
+isUnknownType :: SymType -> Bool
+isUnknownType = \case
+  UnknownGlobalVarSymType -> True
+  UnknownNumSymType -> True
+  _ -> False
+
+-- `learnsFrom` extracts informations about SymTypes of Vars in `new`
+-- and inherits them to `orig`
+learnsFrom :: SymStateEnv -> SymStateEnv -> SymStateEnv
+learnsFrom orig new = let
+  loc = "SymbolicExecution.Internal.Internal.learnsFrom"
+  in Map.foldlWithKey' (\theEnv k vNew -> case k of
+  VarName vn -> case Map.lookup k theEnv of
+    Nothing -> theEnv
+    Just vOrig -> let
+      t1 = toSymType2 vNew
+      t2 = toSymType2 vOrig
+      in if
+        | isUnknownType t1 && not (isUnknownType t2) -> error $ printf "%s -> won't happen" loc
+        | t1 == t2 -> theEnv
+        | t1 `isInstanceOf` t2 -> -- every occurrence of `vn` in `theEnv`
+                                  -- should have the type t1
+            flip Map.mapWithKey theEnv $ \kOrig2 vOrig2 -> case (kOrig2,vOrig2) of
+              (VarName vn2,_)
+                | vn2 == vn -> cast t1 vOrig2
+                | otherwise -> vOrig2
+              _ -> error $ printf "TODO: %s" loc
+  _ -> theEnv
+  ) orig new

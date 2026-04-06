@@ -53,6 +53,7 @@ data LogTag =
          | ReportTheState String String
          | Skip String String
          | ForLoopDone String
+         | ForLoopDoneViaReturnStmt String
          | UnvisitedForLoop String String
          | ForLoopConditionUndetermined String String
          | ForLoopRound Int String
@@ -137,6 +138,8 @@ ppLogTag = \case
     ReportTheState loc s    -> printf "(%s): %s\n%s" loc "Reporting The State" s
     Skip loc thing          -> printf "(%s): %s ==> %s" "Skip" loc (show thing)
     ForLoopDone loc         -> printf "(%s): %s" loc "For Loop Done"
+    ForLoopDoneViaReturnStmt
+                loc         -> printf "(%s): %s" loc "For Loop Done due to return statement"
     UnvisitedForLoop loc expr
                             -> printf "(%s): %s: %s" loc "Unregistered For Loop" expr
     ForLoopConditionUndetermined loc val

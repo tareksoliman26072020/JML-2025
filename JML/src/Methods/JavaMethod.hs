@@ -102,6 +102,7 @@ javaMethodInputs = [
                             ("partitionCall5", partitionCall5),
                             ("partitionCall6", partitionCall6),
   ("isAscending1", isAscending1), ("isAscending1Call", isAscending1Call),
+  ("isAscending2", isAscending2), ("isAscending2Call", isAscending2Call),
 ----------Bubble Sort:
   ("bubbleSort", bubbleSort), ("bubbleSortCall", bubbleSortCall),
   ("replicate", replicate), ("replicateCall", replicateCall),
@@ -1172,6 +1173,22 @@ isAscending1 = "public boolean isAscending1(int[] arr) {\n\
                \  }\n\
                \  return res;\n\
                \}"
+
+isAscending2 = "public boolean isAscending2(int[] arr) {\n\
+               \  for(int i = 0; i<arr.length-1; i++) {\n\
+               \    if(arr[i] > arr[i+1]) {\n\
+               \      return false;\n\
+               \    }\n\
+               \  }\n\
+               \  return true;\n\
+               \}"
+
+isAscending2Call = "public void isAscending2Call() {\n\
+                   \  int[] arr1 = new int[]{1,2,4,6,7,99};\n\
+                   \  int[] arr2 = new int[]{1,2,4,7,6,99};\n\
+                   \  println(toString(isAscending2(arr1)));\n\
+                   \  println(toString(isAscending2(arr2)));\n\
+                   \}"
 
 isAscending1Call = "public void isAscending1Call() {\n\
                    \  int[] arr1 = new int[]{1,2,4,6,7,99};\n\

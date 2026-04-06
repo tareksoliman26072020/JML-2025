@@ -76,6 +76,8 @@ ppConsoleLogTag = \case
     ReportTheState loc s    -> printf "(%s): %s\n%s" (cyan loc) (yellow "Reporting The State") s
     Skip loc thing          -> printf "(%s):%s ==> %s" (yellow "Skip") (cyan loc) (show thing)
     ForLoopDone loc         -> printf "(%s): %s" (cyan loc) (yellow "For Loop Done")
+    ForLoopDoneViaReturnStmt
+                loc         -> printf "(%s): %s" (cyan loc) (yellow "For Loop Done due to return statement")
     UnvisitedForLoop loc expr
                             -> printf "(%s): %s: %s" (cyan loc) (yellow "Unregistered For Loop") expr
     ForLoopConditionUndetermined loc val

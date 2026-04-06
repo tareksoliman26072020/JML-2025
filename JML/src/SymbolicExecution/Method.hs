@@ -243,7 +243,7 @@ instance CFGVisitor MethodProcessor where
                           (printf "%s ==> overwriting if" loc)
                           (printf "old state: %s\n\n\
                                   \condSymState: %s\n\n\
-                                  \sEnv: %s" (show theEnv) (show condSymState) (show sEnv),
+                                  \\new state: %s" (show theEnv) (show condSymState) (show newCondSymStateEnv),
                            printf "new state: %s" (show newCondSymStateEnv))
                     modify $ \symState -> SymState {
                         env = newCondSymStateEnv,
@@ -1352,7 +1352,7 @@ visitLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange = do
       forLoopVisited <- visitRegisteredLoop 1 env_Before_Acc cfg m_Acc mForCondExpr forBody_forStep_path branchRange
       case forLoopVisited of
         -- for visitation was completed
-        ER_ForLoopDone -> do
+        _ | isLoopTerminated forLoopVisited -> do
           -- After leaving the for body,
           -- variables which were defined locally need to be removed
           newEnv <- env <$> get
@@ -1397,6 +1397,11 @@ visitLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange = do
       return ER_ForLoopDone
     _ -> do modify $ \symState -> SymState env_Before_Acc (logHeader symState)
             visitUnregisteredLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange
+  where
+  isLoopTerminated = \case
+    ER_ForLoopDoneViaReturnStmt -> True
+    ER_ForLoopDone -> True
+    _ -> False
 
 ------------------------------
 
@@ -1428,7 +1433,7 @@ visitRegisteredLoop loopCounter env_Before_Acc cfg m_Acc mForCondExpr forBody_fo
           -- add the loop condition entry:
           --loopConditionEntry :: Map.Map String SymExpr
           loopConditionEntry <- do
-            incrementLogEnumeration
+            --incrementLogEnumeration    there are no logs in `createLoopCondition`
             incrementLogDepth *>
               censor
                 (map $ \(Log.Log num tag) -> Log.Log num $ Log.Nested "Atomizing For Loop Condition Expression" tag)
@@ -1456,9 +1461,19 @@ visitRegisteredLoop loopCounter env_Before_Acc cfg m_Acc mForCondExpr forBody_fo
               Log.Log num $ Log.Nested "For Loop Body" $ Log.Nested "Registering" tag))
               (methodProcessorMonad (visitNode node))
             decrementLogDepth
-          -- it's a good idea to log the current state before staring the next loop round
-          get >>= tellNextLog . Log.ReportTheState loc . show . env
-          visitRegisteredLoop (loopCounter+1) env_Before_Acc cfg m_Acc mForCondExpr forBody_forStep_path branchRange
+          
+          -- if the loop visitation results in a return statement,
+          -- then next loop visitations should be skipped
+          do maybeReturn <- getReturnSymExpr <$> get
+             case maybeReturn of
+               Nothing -> do
+                 -- it's a good idea to log the current state before staring the next loop round
+                 get >>= tellNextLog . Log.ReportTheState loc . show . env
+                 visitRegisteredLoop
+                   (loopCounter+1) env_Before_Acc cfg m_Acc mForCondExpr forBody_forStep_path branchRange
+               Just _ -> do
+                 tellNextLog $ Log.ForLoopDoneViaReturnStmt loc
+                 return ER_ForLoopDoneViaReturnStmt
         else do
           tellNextLog $ Log.ForLoopLimitReached loc (show forLoopLimit)
           theEnv <- env <$> get
@@ -1717,7 +1732,7 @@ runCFG cfgs cfg mPath mSymState =
         tellNextLog $ Log.NextNode (show node)
         state_ <- get
         case getReturnSymExpr state_ of
-          Just _ -> tellNextLog (Log.Skip loc ("The following node doesn't return a SymExpr: " ++ show node))
+          Just _ -> tellNextLog (Log.Skip loc ("return statement already reached before: " ++ show node))
                       $> ER_Void
           Nothing ->
             incrementLogDepth *> methodProcessorMonad (visitNode node) <* decrementLogDepth

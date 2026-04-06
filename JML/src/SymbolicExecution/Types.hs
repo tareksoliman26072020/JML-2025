@@ -125,6 +125,7 @@ data ExecutionResult =
   | ER_IfCond SymExpr  -- ^ boolean expressions found in if conditions. Its existance in the environment values map means that the ......
   | ER_PredefinedFunCall SymExpr
   | ER_ForLoopDone
+  | ER_ForLoopDoneViaReturnStmt
   | ER_Void
   | ER_ReturnVoid
   | ER_ActualParameterDetected String SymExpr

@@ -4308,7 +4308,8 @@ public boolean isAscending1(int[] arr) {
 
 /////////////////////
 
-//TODO
+//DONE
+//JavaMethod
 /*
 [
     (MethodHandle,SMethodHandle Bool "isAscending2"),
@@ -4338,13 +4339,13 @@ public boolean isAscending2(int[] arr) {
 //JavaMethod
 /*
 [
- (MethodHandle,SMethodHandle Void "isAscending1Call"),
- (VarBindings,SVarBindings (fromList [("arr1",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("arr2",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
- (VarAssignments,SVarAssignments [("arr1",(SymArray (Just Int) (Just 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 6,SymInt 7,SymInt 99],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),("arr2",(SymArray (Just Int) (Just 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 7,SymInt 6,SymInt 99],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
- (VarName "arr1",SymArray (Just Int) (Just 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 6,SymInt 7,SymInt 99]),
- (VarName "arr2",SymArray (Just Int) (Just 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 7,SymInt 6,SymInt 99]),
- (Actions,SActions [SymString "true\n",SymString "false\n"])
-]
+    (MethodHandle,SMethodHandle Void "isAscending1Call"),
+    (VarBindings,SVarBindings (fromList [("arr1",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("arr2",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+    (VarAssignments,SVarAssignments [("arr1",(SymArray (Just Int) (Just 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 6,SymInt 7,SymInt 99],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),("arr2",(SymArray (Just Int) (Just 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 7,SymInt 6,SymInt 99],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+    (VarName "arr1",SymArray (Just Int) (Just 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 6,SymInt 7,SymInt 99]),
+    (VarName "arr2",SymArray (Just Int) (Just 6) [SymInt 1,SymInt 2,SymInt 4,SymInt 7,SymInt 6,SymInt 99]),
+    (Actions,SActions [SymString "true\n",SymString "false\n"])
+  ]
 */
 public void isAscending1Call() {
   int[] arr1 = new int[]{1,2,4,6,7,99};
@@ -4355,12 +4356,16 @@ public void isAscending1Call() {
 
 /////////////////////
 
-//TODO
+//DONE
 /*
 [
     (MethodHandle,SMethodHandle Void "isAscending2Call"),
-    (VarBindings,SVarBindings (fromList [("arr1",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("arr2",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
-    (VarAssignments,SVarAssignments [("arr1",(SymArray (Just Int) (Just (SymInt 6)) [SymInt 1,SymInt 2,SymInt 4,SymInt 6,SymInt 7,SymInt 99],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),("arr2",(SymArray (Just Int) (Just (SymInt 6)) [SymInt 1,SymInt 2,SymInt 4,SymInt 7,SymInt 6,SymInt 99],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+    (VarBindings,SVarBindings (fromList [
+        ("arr1",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),
+        ("arr2",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+    (VarAssignments,SVarAssignments [
+        ("arr1",(SymArray (Just Int) (Just (SymInt 6)) [SymInt 1,SymInt 2,SymInt 4,SymInt 6,SymInt 7,SymInt 99],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("arr2",(SymArray (Just Int) (Just (SymInt 6)) [SymInt 1,SymInt 2,SymInt 4,SymInt 7,SymInt 6,SymInt 99],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
     (VarName "arr1",SymArray (Just Int) (Just (SymInt 6)) [SymInt 1,SymInt 2,SymInt 4,SymInt 6,SymInt 7,SymInt 99]),
     (VarName "arr2",SymArray (Just Int) (Just (SymInt 6)) [SymInt 1,SymInt 2,SymInt 4,SymInt 7,SymInt 6,SymInt 99]),
     (Return,SymReturnVoid),
@@ -4372,14 +4377,6 @@ public void isAscending2Call() {
   int[] arr2 = new int[]{1,2,4,7,6,99};
   println(toString(isAscending2(arr1)));
   println(toString(isAscending2(arr2)));
-}
-
-/////////////////////
-
-//TODO
-public boolean isAscending2Call2() {
-  int[] arr = new int[]{4,7,6,99};
-  return isAscending2(arr);
 }
 
 /////////////////////
