@@ -101,9 +101,20 @@ instance CFGVisitor MethodProcessor where
       CFGT.Statement stmt -> do
         let loc = "SymbolicExecution.Method.visitNode.Node.Statement"
         tellNextLog $ Log.MethodStatement (loc ++ " ==> Statement") (show stmt)
+        
         incrementLogDepth
         toReturn <- visitStmt stmt
         decrementLogDepth
+        
+        {-theEnv <- env <$> get
+        if CFGT.id n `elem` [1,2,5]
+          then return ()
+          else throwError $ printf
+            "WOF::\n\n\
+            \1) %s\n\n\
+            \2) %s\n\n\
+            \3) %s\n\n" (show n) (show theEnv) (show toReturn)-}
+
         -- get fun name
         funName <- do
           visited <- getFunHandle
@@ -639,6 +650,18 @@ visitStmt stmt@(AST.FunCallStmt expr) = case expr of
         return ER_Void
       _ -> throwError $ "visitStmt ==> FunCallStmt ==> won't happen 1: " ++ show toReturn
   _ -> throwError $ "visitStmt ==> FunCallStmt ==> won't happen 2: " ++ show expr
+visitStmt AST.ContinueStmt = do
+  let loc = "SymbolicExecution.Method.visitStmt.ContinueStmt"
+  tellNextLog $ Log.ContinueStatement loc
+  let toReturn = ER_Continue
+  tellNextLog (Log.ModifyState loc ("Continue","SymContinue"))
+  modify $ \symState ->
+    SymState {
+      env = Map.insert Continue SymContinue (env symState),
+      logHeader = logHeader symState
+    }
+  tellNextLog (Log.Return loc (show toReturn)) $> toReturn
+
 visitStmt stmt = throwError $ "TODO -> visitStmt -> " ++ show stmt
 
 visitExpr :: AST.Expression -> SymbolicExecutionMonad ExecutionResult
@@ -1222,6 +1245,7 @@ visitExpr expr@AST.ArrayCallExpr{} = do
       return $ case indexExpr of
         ER_SymStateMapEntry _ indexExpr2 -> indexExpr2
         ER_Expr indexExpr2 -> cast Int indexExpr2
+        ER_VarExprObjAccess _ symExpr -> cast Int symExpr
         e -> error $ printf "TODO2: %s ==> %s" loc (show e)
   varNames <- (getVarNames . env) <$> get
   arrType <- do
@@ -1231,7 +1255,7 @@ visitExpr expr@AST.ArrayCallExpr{} = do
       Just symExpr -> return $ toSymType2 symExpr
   let symExprCall = SArrayIndexAccess arrType arrName index_er
       symExprVal = objAccCalculator varNames symExprCall
-      toReturn = ER_ArrayCallExpr symExprCall symExprVal
+  let toReturn = ER_ArrayCallExpr symExprCall symExprVal
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn
 
 visitExpr expr@(AST.BoolLiteral b) = do
@@ -1455,12 +1479,7 @@ visitRegisteredLoop loopCounter env_Before_Acc cfg m_Acc mForCondExpr forBody_fo
                  tellNextLog $ Log.AtomizeRoundLoopCondition loc
                                (show $ Map.toList $ mas !! (loopCounter - 1))
           -- visit for body nodes
-          flip mapM_ forBody_forStep_path $ \node -> do
-            incrementLogDepth
-            censor (map (\(Log.Log num tag) ->
-              Log.Log num $ Log.Nested "For Loop Body" $ Log.Nested "Registering" tag))
-              (methodProcessorMonad (visitNode node))
-            decrementLogDepth
+          visitForBodyNodes loc forBody_forStep_path
           
           -- if the loop visitation results in a return statement,
           -- then next loop visitations should be skipped
@@ -1496,13 +1515,43 @@ visitRegisteredLoop loopCounter env_Before_Acc cfg m_Acc mForCondExpr forBody_fo
       tellNextLog $ Log.ForLoopDone loc
       get >>= \theEnv -> tellNextLog $ Log.ReportTheState loc (show theEnv)
       return ER_ForLoopDone
-   -- it's not atomic
+    -- it's not atomic
     _ -> throwError $ printf "%s ==> won't happen3" loc
          {-
          do tellNextLog $ Log.ForLoopConditionUndetermined "visitRegisteredLoop" (show forCondExpr_visited)
             -- restore symState to that or `env_Before_Acc`
             modify $ \symState -> SymState env_Before_Acc (logHeader symState)
             visitUnregisteredLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange-}
+  where
+  visitForBodyNodes :: String -> [CFGT.Node] -> SymbolicExecutionMonad ExecutionResult
+  visitForBodyNodes loc = \case
+    [] -> return ER_Void
+    (node : rest) -> do
+      -- visit next node in the for body
+      visited <- do
+        incrementLogDepth
+        x <- censor (map (\(Log.Log num tag) ->
+          Log.Log num $ Log.Nested "For Loop Body" $ Log.Nested "Registering" tag))
+          (methodProcessorMonad (visitNode node))
+        decrementLogDepth
+        return x
+      
+      -- see if a continue statement was just detected
+      do theEnv <- env <$> get
+         case Map.lookup Continue theEnv of
+           -- no continue statement
+           Nothing -> visitForBodyNodes loc rest
+           -- yes continue statement
+           Just _ -> do
+             modify $ \symState -> SymState {
+               env = Map.alter (\case
+                 Just _ -> Nothing
+                 Nothing -> error $ loc ++ " ==> visitForBodyNodes ==> won't happen")
+                 Continue (env symState),
+               logHeader = logHeader symState
+             }
+             tellNextLog $ Log.ForLoopDoneViaContinueStmt loc
+             return ER_Void
 
 ------------------------------
 
@@ -1732,10 +1781,27 @@ runCFG cfgs cfg mPath mSymState =
         tellNextLog $ Log.NextNode (show node)
         state_ <- get
         case getReturnSymExpr state_ of
-          Just _ -> tellNextLog (Log.Skip loc ("return statement already reached before: " ++ show node))
-                      $> ER_Void
+          Just _ -> do
+            tellNextLog (Log.Skip loc ("return statement already reached before: " ++ show node))
+            return ER_Void
           Nothing ->
             incrementLogDepth *> methodProcessorMonad (visitNode node) <* decrementLogDepth
+        
+        {-
+        theEnv <- env <$> get
+        case node of
+          CFGT.Entry _ _ _ -> return ()
+          CFGT.Node theId _ _
+            | theId `elem` [1,2] -> return ()
+          _ -> throwError $ printf
+            "MEOW::\n\n\
+            \1) %s\n\n\
+            \2) %s\n\n\
+            \3) %s\n\n\
+            \4) %s\n\n"
+            (show path) (show node) (show $ env state_) (show theEnv)
+         -}
+
       (methodNameKey,methodNameValue) =
         (MethodHandle , 
          (toSymType1 $ CFG.getCFGType cfg,CFG.getCFGName cfg))

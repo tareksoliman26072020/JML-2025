@@ -100,6 +100,7 @@ ppMarkdownLogTag = \case
       str loc               -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "handling SymExpr") str
     ReturnStatement str loc -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "handling return expression") str
     AssignStatement str loc -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "handling assign statement") str
+    ContinueStatement loc   -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangeRed "handling continue statement")
     Edge_2_Handle str loc   -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "running CFG") str
     Meow str1 str2          -> printf "Meow: %s %s" str1 str2
     HorizontalLine str      -> printf "\n---\n\n\\>\\>\\>\\>\\>\\>\\>\\>\\>\\>\\>\\>\\>\\>\\>\\>\\>\\>\\>\\> %s <<<<<<<<<<<<<<<<<<<<\n\n---\n" (show $ orangeRed $ fromString str)
@@ -137,6 +138,8 @@ ppMarkdownLogTag = \case
     ForLoopDone loc         -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangeRed "For Loop Done")
     ForLoopDoneViaReturnStmt
                 loc         -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangeRed "For Loop Done due to return statement")
+    ForLoopDoneViaContinueStmt
+                loc         -> printf "(%s): %s" (show $ cyan $ fromString loc) (show $ orangeRed "For Loop Done due to continue statement")
     UnvisitedForLoop loc expr
                             -> printf "(%s): %s: %s" (show $ cyan $ fromString loc) (show $ orangeRed "Unregistered For Loop") expr
     ForLoopConditionUndetermined loc val

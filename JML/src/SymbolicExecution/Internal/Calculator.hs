@@ -830,7 +830,7 @@ objAccCalculator varNames expr = let
               (SymArray _ mSizeSymExpr elems,SymInt index) -> case mSizeSymExpr of
                 Just (SymInt size)
                   | index < size -> elems !! fromIntegral index
-                  | otherwise -> error $ printf "%s: TODO1: %s" (show (index,size))
+                  | otherwise -> error $ printf "%s: TODO1: %s" loc (show (index,size))
                 Just _ -> expr
                 Nothing -> error $ printf "%s: TODO2" loc
               _ -> expr

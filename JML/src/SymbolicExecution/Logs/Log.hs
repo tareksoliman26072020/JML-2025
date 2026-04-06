@@ -35,6 +35,7 @@ data LogTag =
          | HorizontalLine String
          | MethodStatement String String
          | AssignStatement String String
+         | ContinueStatement String
          | NewVariable String String String
          | ActualParameterDetected String String String String
          | UpdateVariable (String,String,String) String
@@ -54,6 +55,7 @@ data LogTag =
          | Skip String String
          | ForLoopDone String
          | ForLoopDoneViaReturnStmt String
+         | ForLoopDoneViaContinueStmt String
          | UnvisitedForLoop String String
          | ForLoopConditionUndetermined String String
          | ForLoopRound Int String
@@ -103,6 +105,7 @@ ppLogTag = \case
       str loc               -> printf "(%s): %s: %s" loc "handling SymExpr" str
     ReturnStatement str loc -> printf "(%s): %s: %s" loc "handling return expression" str
     AssignStatement str loc -> printf "(%s): %s: %s" loc "handling assign statement" str
+    ContinueStatement loc   -> printf "(%s): %s" loc "handling continue statement"
     Edge_2_Handle str loc   -> printf "(%s): %s: %s" loc "running CFG" str
     Meow str1 str2          -> printf "Meow: %s %s" str1 str2
     HorizontalLine str      -> printf "\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %s <<<<<<<<<<<<<<<<<<<<\n" str
@@ -140,6 +143,8 @@ ppLogTag = \case
     ForLoopDone loc         -> printf "(%s): %s" loc "For Loop Done"
     ForLoopDoneViaReturnStmt
                 loc         -> printf "(%s): %s" loc "For Loop Done due to return statement"
+    ForLoopDoneViaContinueStmt
+                loc         -> printf "(%s): %s" loc "For Loop Done due to continue statement"
     UnvisitedForLoop loc expr
                             -> printf "(%s): %s: %s" loc "Unregistered For Loop" expr
     ForLoopConditionUndetermined loc val

@@ -4382,6 +4382,7 @@ public void isAscending2Call() {
 /////////////////////
 
 //DONE
+//JavaMethod
 /*
 [
     (MethodHandle,SMethodHandle (Array Int) "copyArray"),
@@ -4404,6 +4405,7 @@ public int[] copyArray(int[] arr) {
 }
 
 //DONE
+//JavaMethod
 /*
 [
     (MethodHandle,SMethodHandle Void "copyArrayCall"),
@@ -4423,15 +4425,154 @@ public void copyArrayCall() {
 }
 
 /////////////////////
+
+//DONE
+//JavaMethod
 /*
+[
+    (MethodHandle,SMethodHandle (Array Int) "addElemRight"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["arr","elem"]),
+    (VarBindings,SVarBindings (fromList [
+        ("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
+    (VarAssignments,SVarAssignments [
+        ("res",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Add (SymInt 1))) [],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),
+        ("res",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Add (SymInt 1))) [SArrayIndexAccess (Array Int) "arr" (SymInt 0)],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}})),
+        ("res",(SymUnknown (SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Add (SymInt 1))) []) [([(For,SR {branchStart = 2, branchEnd = 6})],4)],Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 0, branchEnd = 8}}))]),
+    (VarName "arr",SymVar (Array Int) "arr"),
+    (VarName "elem",SymVar Int "elem"),
+    (VarName "res",SymUnknown (SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Add (SymInt 1))) []) [([(For,SR {branchStart = 2, branchEnd = 6})],4)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 6}),
+     SLoop (Just (Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}))
+           (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}}))
+           [Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "res"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, assEright = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}}}), parent = 2},Node {id = 5, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}})), parent = 2}]),
+    (Return,SymUnknown (SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Add (SymInt 1))) []) [([(For,SR {branchStart = 2, branchEnd = 6})],4)])
+  ]
+*/
+public int[] addElemRight(int[] arr, int elem) {
+  int[] res = new int[arr.length + 1];
+  for(int i=0; i<arr.length; i++) {
+    res[i] = arr[i];
+  }
+  res[arr.length] = elem;
+  return res;
+}
+
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle Void "addElemRightCall"),
+    (VarBindings,SVarBindings (fromList [
+        ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+    (VarAssignments,SVarAssignments [
+        ("arr",(SymArray (Just Int) (Just (SymInt 4)) [SymInt 1,SymInt 2,SymInt 3,SymInt 4],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+    (VarName "arr",SymArray (Just Int) (Just (SymInt 4)) [SymInt 1,SymInt 2,SymInt 3,SymInt 4]),
+    (Return,SymReturnVoid),
+    (Actions,SActions [SymString "[1, 2, 3, 4]\n"])
+  ]
+*/
+public void addElemRightCall() {
+  int[] arr = addElemRight(new int[]{1,2,3},4);
+  println(arr);
+}
+
+/////////////////////
+
+public boolean asd(int[] arr) {
+  int[] res = new int[0];
+  for(int i=0; i<arr.length; i++) {
+    if(arr[i] % 2 == 0) {
+      int[] temp = new int[res.length+1];
+      for(int j=0; j<=i; j++) {}
+      return true;
+    }
+  }
+  return false;
+}
+
+//TODO
+/*
+[
+    (MethodHandle,SMethodHandle (Array Int) "removeAtPos"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["arr","pos"]),
+    (VarBindings,SVarBindings (fromList [
+        ("j",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 12}}),
+        ("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 12}})])),
+    (VarAssignments,SVarAssignments [
+        ("res",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Sub (SymInt 1))) [],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 12}})),
+        ("j",(SymInt 0,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 12}})),
+        ("res",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Sub (SymInt 1))) [SArrayIndexAccess (Array Int) "arr" (SymInt 0)],Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 3, branchEnd = 11}})),
+        ("j",(SymInt 1,Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 3, branchEnd = 11}}))]),
+    (VarName "arr",SymVar (Array Int) "arr"),
+    (VarName "j",SymUnknown (SymInt 0) [([(For,SR {branchStart = 3, branchEnd = 11})],9)]),
+    
+    (VarName "pos",SymVar Int "pos"),
+    (VarName "res",SymUnknown (SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Sub (SymInt 1))) []) [([(For,SR {branchStart = 3, branchEnd = 11})],8)]),
+    (ScopeRange (SR {branchStart = 3, branchEnd = 11}),
+     SLoop (Just (Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}))
+           (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}}))
+           [Node {id = 5, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = ==, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "pos"}})), parent = 3},Node {id = 8, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "res"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "j"})}, assEright = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}}}), parent = 3},Node {id = 9, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "j"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "j"}, binOp = +, expr2 = NumberLiteral 1.0}}}), parent = 3},Node {id = 10, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}})), parent = 3}]),
+    (Return,SymUnknown (SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Sub (SymInt 1))) []) [([(For,SR {branchStart = 3, branchEnd = 11})],8)])
+  ]
+*/
+public int[] removeAtPos(int[] arr, int pos) {
+  int[] res = new int[arr.length-1];
+  int j = 0;
+  for(int i=0; i<arr.length; i++) {
+    if(i == pos) {
+    continue;
+    }
+    res[j] = arr[i];
+    j++;
+  }
+  return res;
+}
+
+//TODO
+public void removeAtPosCall() {
+  int[] arr = removeAtPos(new int[]{1,2,3},1);
+  println(arr);
+}
+
+/////////////////////
+
 //TODO
 public int[] takeWhileAsLongAsEven(int[] arr) {
-  int[] res = 
+  int[] res = new int[0];
   for(int i=0; i<arr.length; i++) {
-    
+    if(arr[i] % 2 == 0) {
+      int[] temp = new int[res.length+1];
+      for(int j=0; j<=i; j++) {
+        if(j<i) {
+         temp[j] = res[j];
+        }
+        else {
+          temp[j] = arr[i];
+        }
+      }
+      res = temp;
+    }
+    else {
+      return res;
+    }
   }
+  return res;
 }
-*/
+
+//TODO
+public void takeWhileAsLongAsEvenCall1() {
+  int[] arr = takeWhileAsLongAsEven(new int[]{2,4,6,8});
+  println(arr);
+}
+
+//TODO
+public void takeWhileAsLongAsEvenCall2() {
+  int[] arr = takeWhileAsLongAsEven(new int[]{2,4,7,6,8});
+  println(arr);
+}
+
 /////////////////////
 
 //DONE

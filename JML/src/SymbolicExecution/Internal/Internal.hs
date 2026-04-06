@@ -888,6 +888,8 @@ getNewVarAssignment (allVarNames,nodeCoor) = \case
   ----------
   stmt@AST.FunCallStmt{} -> Nothing
   ----------
+  AST.ContinueStmt -> Nothing
+  ----------
   stmt -> error $ printf "getNewVarAssignment ==> TODO: (%s,%s)" (show nodeCoor) (show stmt)
   where
   itsSymExpr :: String -> SymExpr

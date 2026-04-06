@@ -104,6 +104,8 @@ allTargets = [
                             ("partitionCall6", partitionCall6),
   ("isAscending1", isAscending1), ("isAscending1Call", isAscending1Call),
   ("isAscending2", isAscending2), ("isAscending2Call", isAscending2Call),
+  ("copyArray", copyArray), ("copyArrayCall", copyArrayCall),
+  ("addElemRight", addElemRight), ("addElemRightCall", addElemRightCall),
 ----------Bubble Sort:
   ("bubbleSort", bubbleSort), ("bubbleSortCall", bubbleSortCall),
   ("replicate", replicate), ("replicateCall", replicateCall),
@@ -2688,6 +2690,86 @@ isAscending2Call = Map.fromList [
     (VarName "arr2",SymArray (Just SYT.Int) (Just (SymInt 6)) [SymInt 1,SymInt 2,SymInt 4,SymInt 7,SymInt 6,SymInt 99]),
     (Return,SymReturnVoid),
     (Actions,SActions [SymString "true\n",SymString "false\n"])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+copyArray :: SymStateEnv
+copyArray = Map.fromList [
+    (MethodHandle,SMethodHandle (SYT.Array SYT.Int) "copyArray"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["arr"]),
+    (VarBindings,SVarBindings (Map.fromList [("copy",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 7}})])),
+    (VarAssignments,SVarAssignments [("copy",(SymArray (Just SYT.Int) (Just (SObjAcc ["arr","length"])) [],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 7}})),("copy",(SymArray (Just SYT.Int) (Just (SObjAcc ["arr","length"])) [SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymInt 0)],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),
+    (VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),
+    (VarName "copy",SymUnknown (SymArray (Just SYT.Int) (Just (SObjAcc ["arr","length"])) []) [([(For,SR {branchStart = 2, branchEnd = 6})],4)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 6}),
+     SLoop (Just (Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}))
+           (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Less, expr2 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}}))
+           [Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "copy"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, assEright = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}}}), parent = 2},Node {id = 5, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Plus, expr2 = NumberLiteral 1.0}}})), parent = 2}]),
+    (Return,SymUnknown (SymArray (Just SYT.Int) (Just (SObjAcc ["arr","length"])) []) [([(For,SR {branchStart = 2, branchEnd = 6})],4)])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+copyArrayCall :: SymStateEnv
+copyArrayCall = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "copyArrayCall"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),
+        ("c",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+    (VarAssignments,SVarAssignments [
+        ("arr",(SymArray (Just SYT.Int) (Just (SymInt 4)) [SymInt 1,SymInt 4,SymInt 6,SymInt 8],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("c",(SymArray (Just SYT.Int) (Just (SymInt 4)) [SymInt 1,SymInt 4,SymInt 6,SymInt 8],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just (SymInt 4)) [SymInt 1,SymInt 4,SymInt 6,SymInt 8]),
+    (VarName "c",SymArray (Just SYT.Int) (Just (SymInt 4)) [SymInt 1,SymInt 4,SymInt 6,SymInt 8]),
+    (Return,SymReturnVoid),
+    (Actions,SActions [SymString "[1, 4, 6, 8]\n",SymString "[1, 4, 6, 8]\n"])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+addElemRight :: SymStateEnv
+addElemRight = Map.fromList [
+    (MethodHandle,SMethodHandle (SYT.Array SYT.Int) "addElemRight"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["arr","elem"]),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
+    (VarAssignments,SVarAssignments [
+        ("res",(SymArray (Just SYT.Int) (Just (SBin (SObjAcc ["arr","length"]) SYT.Add (SymInt 1))) [],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),
+        ("res",(SymArray (Just SYT.Int) (Just (SBin (SObjAcc ["arr","length"]) SYT.Add (SymInt 1))) [SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymInt 0)],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}})),
+        ("res",(SymUnknown (SymArray (Just SYT.Int) (Just (SBin (SObjAcc ["arr","length"]) SYT.Add (SymInt 1))) []) [([(For,SR {branchStart = 2, branchEnd = 6})],4)],Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 0, branchEnd = 8}}))]),
+    (VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),
+    (VarName "elem",SymVar SYT.Int "elem"),
+    (VarName "res",SymUnknown (SymArray (Just SYT.Int) (Just (SBin (SObjAcc ["arr","length"]) SYT.Add (SymInt 1))) []) [([(For,SR {branchStart = 2, branchEnd = 6})],4)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 6}),
+     SLoop (Just (Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}))
+           (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Less, expr2 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}}))
+           [Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "res"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, assEright = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}}}), parent = 2},Node {id = 5, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Plus, expr2 = NumberLiteral 1.0}}})), parent = 2}]),
+    (Return,SymUnknown (SymArray (Just SYT.Int) (Just (SBin (SObjAcc ["arr","length"]) SYT.Add (SymInt 1))) []) [([(For,SR {branchStart = 2, branchEnd = 6})],4)])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+addElemRightCall :: SymStateEnv
+addElemRightCall = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "addElemRightCall"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+    (VarAssignments,SVarAssignments [
+        ("arr",(SymArray (Just SYT.Int) (Just (SymInt 4)) [SymInt 1,SymInt 2,SymInt 3,SymInt 4],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just (SymInt 4)) [SymInt 1,SymInt 2,SymInt 3,SymInt 4]),
+    (Return,SymReturnVoid),
+    (Actions,SActions [SymString "[1, 2, 3, 4]\n"])
   ]
 
 -----------------------------

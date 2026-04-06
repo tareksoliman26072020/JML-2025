@@ -286,6 +286,13 @@ visitStatement0 (sourceNodeID,_,nextNodeID) stmt@AST.FunCallStmt{} =
        G.nodeData = G.Statement stmt,
        G.parent   = sourceNodeID
     })
+visitStatement0 (sourceNodeID,_,nextNodeID) stmt@AST.ContinueStmt =
+  let node = G.Node {
+        G.id = nextNodeID,
+        G.nodeData = G.Statement stmt,
+        G.parent = sourceNodeID
+      }
+  in ((sourceNodeID,nextNodeID,nextNodeID+1),Node node)
 
 -- receives a pair of nodes (from,to) and adds it to the list of edges
 addEdge :: (G.NodeID,G.NodeID) -> [(G.NodeID,[G.NodeID])] -> [(G.NodeID,[G.NodeID])]

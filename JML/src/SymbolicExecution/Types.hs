@@ -27,7 +27,7 @@ newtype MethodProcessor = MethodProcessor {
 data SymStateKey = MethodHandle
                  | GlobalVars | FormalParms | VarBindings | VarAssignments
                  | VarName String | ScopeRange CFGT.ScopeRange | LoopFailure
-                 | LoopConditions CFGT.ScopeRange
+                 | LoopConditions CFGT.ScopeRange | Continue
                  | Return | Exception | Actions
                  deriving (Eq,Ord,Show)
 
@@ -113,6 +113,7 @@ visitSymExpr ==> SymInt: ER_SymStateMapEntry
 
 data ExecutionResult =
     ER_Expr SymExpr
+  | ER_Continue
   | ER_Node {er_Node_id :: CFGT.NodeID, nodeName :: String}
   | ER_SymStateMapEntry SymStateKey SymExpr
   | ER_VarExprObjAccess {-object access name-}String {-object access value-}SymExpr
@@ -162,6 +163,7 @@ data SymExpr =
   | SFormalParms [String]
   | SGlobalVars [String]
   | SymReturnVoid
+  | SymContinue
   deriving (Eq,Show)
 
 type SymReason = ([(CFGT.Kind,CFGT.ScopeRange)],Int)

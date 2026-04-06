@@ -103,6 +103,8 @@ javaMethodInputs = [
                             ("partitionCall6", partitionCall6),
   ("isAscending1", isAscending1), ("isAscending1Call", isAscending1Call),
   ("isAscending2", isAscending2), ("isAscending2Call", isAscending2Call),
+  ("copyArray", copyArray), ("copyArrayCall", copyArrayCall),
+  ("addElemRight", addElemRight), ("addElemRightCall", addElemRightCall),
 ----------Bubble Sort:
   ("bubbleSort", bubbleSort), ("bubbleSortCall", bubbleSortCall),
   ("replicate", replicate), ("replicateCall", replicateCall),
@@ -1174,6 +1176,13 @@ isAscending1 = "public boolean isAscending1(int[] arr) {\n\
                \  return res;\n\
                \}"
 
+isAscending1Call = "public void isAscending1Call() {\n\
+                   \  int[] arr1 = new int[]{1,2,4,6,7,99};\n\
+                   \  int[] arr2 = new int[]{1,2,4,7,6,99};\n\
+                   \  println(toString(isAscending1(arr1)));\n\
+                   \  println(toString(isAscending1(arr2)));\n\
+                   \}"
+
 isAscending2 = "public boolean isAscending2(int[] arr) {\n\
                \  for(int i = 0; i<arr.length-1; i++) {\n\
                \    if(arr[i] > arr[i+1]) {\n\
@@ -1190,11 +1199,33 @@ isAscending2Call = "public void isAscending2Call() {\n\
                    \  println(toString(isAscending2(arr2)));\n\
                    \}"
 
-isAscending1Call = "public void isAscending1Call() {\n\
-                   \  int[] arr1 = new int[]{1,2,4,6,7,99};\n\
-                   \  int[] arr2 = new int[]{1,2,4,7,6,99};\n\
-                   \  println(toString(isAscending1(arr1)));\n\
-                   \  println(toString(isAscending1(arr2)));\n\
+copyArray = "public int[] copyArray(int[] arr) {\n\
+            \  int[] copy = new int[arr.length];\n\
+            \  for(int i=0; i<arr.length; i++) {\n\
+            \    copy[i] = arr[i];\n\
+            \  }\n\
+            \  return copy;\n\
+            \}"
+
+copyArrayCall = "public void copyArrayCall() {\n\
+                \  int[] arr = new int[]{1,4,6,8};\n\
+                \  int[] c = copyArray(arr);\n\
+                \  println(arr);\n\
+                \  println(c);\n\
+                \}"
+
+addElemRight = "public int[] addElemRight(int[] arr, int elem) {\n\
+               \  int[] res = new int[arr.length + 1];\n\
+               \  for(int i=0; i<arr.length; i++) {\n\
+               \    res[i] = arr[i];\n\
+               \  }\n\
+               \  res[arr.length] = elem;\n\
+               \  return res;\n\
+               \}"
+
+addElemRightCall = "public void addElemRightCall() {\n\
+                   \  int[] arr = addElemRight(new int[]{1,2,3},4);\n\
+                   \  println(arr);\n\
                    \}"
 
 bubbleSort = "public static void bubbleSort(int[] arr) {\n\

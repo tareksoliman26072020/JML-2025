@@ -183,6 +183,7 @@ showStatement stmt@AST.AssignStmt{} =
   showExpr (AST.assign stmt)
 showStatement (AST.VarStmt expr) = showExpr expr
 showStatement stmt@AST.FunCallStmt{} = showExpr (AST.funCall stmt)
+showStatement AST.ContinueStmt = "continue"
 showStatement _ = error "TODO"
 
 {-
