@@ -105,6 +105,8 @@ javaMethodInputs = [
   ("isAscending2", isAscending2), ("isAscending2Call", isAscending2Call),
   ("copyArray", copyArray), ("copyArrayCall", copyArrayCall),
   ("addElemRight", addElemRight), ("addElemRightCall", addElemRightCall),
+  ("removeAtPos", removeAtPos), ("removeAtPosCall1", removeAtPosCall1),
+                                ("removeAtPosCall2", removeAtPosCall2),
 ----------Bubble Sort:
   ("bubbleSort", bubbleSort), ("bubbleSortCall", bubbleSortCall),
   ("replicate", replicate), ("replicateCall", replicateCall),
@@ -1225,6 +1227,29 @@ addElemRight = "public int[] addElemRight(int[] arr, int elem) {\n\
 
 addElemRightCall = "public void addElemRightCall() {\n\
                    \  int[] arr = addElemRight(new int[]{1,2,3},4);\n\
+                   \  println(arr);\n\
+                   \}"
+
+removeAtPos = "public int[] removeAtPos(int[] arr, int pos) {\n\
+              \  int[] res = new int[arr.length-1];\n\
+              \  int j = 0;\n\
+              \  for(int i=0; i<arr.length; i++) {\n\
+              \    if(i == pos) {\n\
+              \      continue;\n\
+              \    }\n\
+              \    res[j] = arr[i];\n\
+              \    j++;\n\
+              \  }\n\
+              \  return res;\n\
+              \}"
+
+removeAtPosCall1 = "public void removeAtPosCall1() {\n\
+                   \  int[] arr = removeAtPos(new int[]{1,2,3},1);\n\
+                   \  println(arr);\n\
+                   \}"
+
+removeAtPosCall2 = "public void removeAtPosCall2() {\n\
+                   \  int[] arr = removeAtPos(new int[]{4,9},0);\n\
                    \  println(arr);\n\
                    \}"
 

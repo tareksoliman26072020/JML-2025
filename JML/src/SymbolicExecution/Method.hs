@@ -18,7 +18,7 @@ import Visitors.API
 import Control.Monad.Writer
 import Text.Printf (printf)
 import Data.Functor (($>))
-import Data.List (foldl',nub,intercalate)
+import Data.List (foldl',nub,intercalate,find)
 import SymbolicExecution.Internal.Internal
 import SymbolicExecution.Internal.Calculator (whichCalculator2, objAccCalculator, numericCalculator, booleanCalculator, objAccCalculator, stringCalculator, funCallCalculator)
 
@@ -254,7 +254,7 @@ instance CFGVisitor MethodProcessor where
                           (printf "%s ==> overwriting if" loc)
                           (printf "old state: %s\n\n\
                                   \condSymState: %s\n\n\
-                                  \\new state: %s" (show theEnv) (show condSymState) (show newCondSymStateEnv),
+                                  \new state: %s" (show theEnv) (show condSymState) (show newCondSymStateEnv),
                            printf "new state: %s" (show newCondSymStateEnv))
                     modify $ \symState -> SymState {
                         env = newCondSymStateEnv,
@@ -1551,7 +1551,9 @@ visitRegisteredLoop loopCounter env_Before_Acc cfg m_Acc mForCondExpr forBody_fo
                logHeader = logHeader symState
              }
              tellNextLog $ Log.ForLoopDoneViaContinueStmt loc
-             return ER_Void
+             case find CFGT.isForStepNode rest of
+               Just lastNode -> visitForBodyNodes loc [lastNode]
+               Nothing -> return ER_Void
 
 ------------------------------
 

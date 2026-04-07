@@ -53,6 +53,11 @@ data NodeData = Statement AST.Statement
               | Meet Kind
               deriving (Eq,Show)
 
+isForStepNode :: Node -> Bool
+isForStepNode = \case
+  Node _ (ForStep _) _ -> True
+  _ -> False
+
 showNodeData :: NodeData -> String
 showNodeData (Statement stmt) = showStatement stmt
 showNodeData (ForInitialization mExpr) = "For: init: " ++ case fmap showExpr mExpr of

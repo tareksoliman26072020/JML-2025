@@ -106,6 +106,8 @@ allTargets = [
   ("isAscending2", isAscending2), ("isAscending2Call", isAscending2Call),
   ("copyArray", copyArray), ("copyArrayCall", copyArrayCall),
   ("addElemRight", addElemRight), ("addElemRightCall", addElemRightCall),
+  ("removeAtPos", removeAtPos), ("removeAtPosCall1", removeAtPosCall1),
+                                ("removeAtPosCall2", removeAtPosCall2),
 ----------Bubble Sort:
   ("bubbleSort", bubbleSort), ("bubbleSortCall", bubbleSortCall),
   ("replicate", replicate), ("replicateCall", replicateCall),
@@ -2770,6 +2772,67 @@ addElemRightCall = Map.fromList [
     (VarName "arr",SymArray (Just SYT.Int) (Just (SymInt 4)) [SymInt 1,SymInt 2,SymInt 3,SymInt 4]),
     (Return,SymReturnVoid),
     (Actions,SActions [SymString "[1, 2, 3, 4]\n"])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+removeAtPos :: SymStateEnv
+removeAtPos = Map.fromList [
+    (MethodHandle,SMethodHandle (SYT.Array SYT.Int) "removeAtPos"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["arr","pos"]),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("j",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 12}}),
+        ("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 12}})])),
+    (VarAssignments,SVarAssignments [
+        ("res",(SymArray (Just SYT.Int) (Just (SBin (SObjAcc ["arr","length"]) SYT.Sub (SymInt 1))) [],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 12}})),
+        ("j",(SymInt 0,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 12}})),
+        ("res",(SymArray (Just SYT.Int) (Just (SBin (SObjAcc ["arr","length"]) SYT.Sub (SymInt 1))) [SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymInt 0)],Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 3, branchEnd = 11}})),
+        ("j",(SymInt 1,Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 3, branchEnd = 11}}))]),
+    (VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),
+    (VarName "j",SymUnknown (SymInt 0) [([(For,SR {branchStart = 3, branchEnd = 11})],9)]),
+    
+    (VarName "pos",SymVar SYT.Int "pos"),
+    (VarName "res",SymUnknown (SymArray (Just SYT.Int) (Just (SBin (SObjAcc ["arr","length"]) SYT.Sub (SymInt 1))) []) [([(For,SR {branchStart = 3, branchEnd = 11})],8)]),
+    (ScopeRange (SR {branchStart = 3, branchEnd = 11}),
+     SLoop (Just (Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}))
+           (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Less, expr2 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}}))
+           [Node {id = 5, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Eq, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "pos"}})), parent = 3},Node {id = 8, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "res"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "j"})}, assEright = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}}}), parent = 3},Node {id = 9, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "j"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "j"}, binOp = Plus, expr2 = NumberLiteral 1.0}}}), parent = 3},Node {id = 10, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Plus, expr2 = NumberLiteral 1.0}}})), parent = 3}]),
+    (Return,SymUnknown (SymArray (Just SYT.Int) (Just (SBin (SObjAcc ["arr","length"]) SYT.Sub (SymInt 1))) []) [([(For,SR {branchStart = 3, branchEnd = 11})],8)])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+removeAtPosCall1 :: SymStateEnv
+removeAtPosCall1 = Map.fromList [
+  (MethodHandle,SMethodHandle SYT.Void "removeAtPosCall1"),
+  (VarBindings,SVarBindings (Map.fromList [
+      ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+  (VarAssignments,SVarAssignments [
+      ("arr",(SymArray (Just SYT.Int) (Just (SymInt 2)) [SymInt 1,SymInt 3],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+  (VarName "arr",SymArray (Just SYT.Int) (Just (SymInt 2)) [SymInt 1,SymInt 3]),
+  (Return,SymReturnVoid),
+  (Actions,SActions [SymString "[1, 3]\n"])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+removeAtPosCall2 :: SymStateEnv
+removeAtPosCall2 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "removeAtPosCall2"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+    (VarAssignments,SVarAssignments [
+        ("arr",(SymArray (Just SYT.Int) (Just (SymInt 1)) [SymInt 9],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just (SymInt 1)) [SymInt 9]),
+    (Return,SymReturnVoid),
+    (Actions,SActions [SymString "[9]\n"])
   ]
 
 -----------------------------

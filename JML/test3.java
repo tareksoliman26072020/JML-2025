@@ -4491,7 +4491,8 @@ public boolean asd(int[] arr) {
   return false;
 }
 
-//TODO
+//DONE
+//JavaMethod
 /*
 [
     (MethodHandle,SMethodHandle (Array Int) "removeAtPos"),
@@ -4522,7 +4523,7 @@ public int[] removeAtPos(int[] arr, int pos) {
   int j = 0;
   for(int i=0; i<arr.length; i++) {
     if(i == pos) {
-    continue;
+      continue;
     }
     res[j] = arr[i];
     j++;
@@ -4530,9 +4531,41 @@ public int[] removeAtPos(int[] arr, int pos) {
   return res;
 }
 
-//TODO
-public void removeAtPosCall() {
+//DONE
+//JavaMethod
+/*
+[
+  (MethodHandle,SMethodHandle Void "removeAtPosCall1"),
+  (VarBindings,SVarBindings (fromList [
+      ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+  (VarAssignments,SVarAssignments [
+      ("arr",(SymArray (Just Int) (Just (SymInt 2)) [SymInt 1,SymInt 3],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+  (VarName "arr",SymArray (Just Int) (Just (SymInt 2)) [SymInt 1,SymInt 3]),
+  (Return,SymReturnVoid),
+  (Actions,SActions [SymString "[1, 3]\n"])
+  ]
+*/
+public void removeAtPosCall1() {
   int[] arr = removeAtPos(new int[]{1,2,3},1);
+  println(arr);
+}
+
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle Void "removeAtPosCall2"),
+    (VarBindings,SVarBindings (fromList [
+        ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+    (VarAssignments,SVarAssignments [
+        ("arr",(SymArray (Just Int) (Just (SymInt 1)) [SymInt 9],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+    (VarName "arr",SymArray (Just Int) (Just (SymInt 1)) [SymInt 9]),
+    (Return,SymReturnVoid),
+    (Actions,SActions [SymString "[9]\n"])
+  ]
+*/
+public void removeAtPosCall2() {
+  int[] arr = removeAtPos(new int[]{4,9},0);
   println(arr);
 }
 
