@@ -294,6 +294,14 @@ visitStatement0 (sourceNodeID,_,nextNodeID) stmt@AST.ContinueStmt =
       }
   in ((sourceNodeID,nextNodeID,nextNodeID+1),Node node)
 
+visitStatement0 (sourceNodeID,_,nextNodeID) stmt@AST.BreakStmt =
+  let node = G.Node {
+        G.id = nextNodeID,
+        G.nodeData = G.Statement stmt,
+        G.parent = sourceNodeID
+      }
+  in ((sourceNodeID,nextNodeID,nextNodeID+1),Node node)
+
 -- receives a pair of nodes (from,to) and adds it to the list of edges
 addEdge :: (G.NodeID,G.NodeID) -> [(G.NodeID,[G.NodeID])] -> [(G.NodeID,[G.NodeID])]
 addEdge (from,to) edges = case lookup from edges of

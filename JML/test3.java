@@ -3874,41 +3874,6 @@ public static int[] quickSortCall3() {
 
 //DONE
 //JavaMethod
-/*
-[
-    (MethodHandle,SMethodHandle Void "quickSort"),
-    (GlobalVars,SGlobalVars []),
-    (FormalParms,SFormalParms ["arr"]),
-    (VarBindings,SVarBindings (fromList [("high",Node_Coor {varDeclAt = 11, varFrame = SR {branchStart = 10, branchEnd = 2}}),("low",Node_Coor {varDeclAt = 13, varFrame = SR {branchStart = 10, branchEnd = 2}}),("pivotIndex",Node_Coor {varDeclAt = 15, varFrame = SR {branchStart = 10, branchEnd = 2}}),("stack",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 2}}),("top",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
-    (VarAssignments,SVarAssignments [("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 2}})),("top",(SymInt (-1),Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 2}})),("top",(SymInt 0,Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 0, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SymInt 0],Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 0, branchEnd = 2}})),("top",(SymInt 1,Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 0, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SymInt 0,SBin (SObjAcc ["arr","length"]) Sub (SymInt 1)],Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 0, branchEnd = 2}})),("high",(SArrayIndexAccess (Array Int) "stack" (SymInt 1),Node_Coor {varDeclAt = 11, varFrame = SR {branchStart = 10, branchEnd = 2}})),("top",(SymInt 0,Node_Coor {varDeclAt = 12, varFrame = SR {branchStart = 10, branchEnd = 2}})),("low",(SArrayIndexAccess (Array Int) "stack" (SymInt 0),Node_Coor {varDeclAt = 13, varFrame = SR {branchStart = 10, branchEnd = 2}})),("top",(SymInt (-1),Node_Coor {varDeclAt = 14, varFrame = SR {branchStart = 10, branchEnd = 2}})),("pivotIndex",(SBin (SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]) Add (SymInt 1),Node_Coor {varDeclAt = 15, varFrame = SR {branchStart = 10, branchEnd = 2}})),("top",(SymInt 0,Node_Coor {varDeclAt = 17, varFrame = SR {branchStart = 16, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SArrayIndexAccess (Array Int) "stack" (SymInt 0),SBin (SObjAcc ["arr","length"]) Sub (SymInt 1)],Node_Coor {varDeclAt = 18, varFrame = SR {branchStart = 16, branchEnd = 2}})),("top",(SymInt 1,Node_Coor {varDeclAt = 19, varFrame = SR {branchStart = 16, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SArrayIndexAccess (Array Int) "stack" (SymInt 0),SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]],Node_Coor {varDeclAt = 20, varFrame = SR {branchStart = 16, branchEnd = 2}})),("top",(SBin (SymUnknown (SymInt (-1)) [([(If,SR {branchStart = 16, branchEnd = 21})],17),([(If,SR {branchStart = 16, branchEnd = 21})],19)]) Add (SymInt 1),Node_Coor {varDeclAt = 23, varFrame = SR {branchStart = 22, branchEnd = 2}})),("stack",(SymUnknown (SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SymInt 0,SBin (SObjAcc ["arr","length"]) Sub (SymInt 1)]) [([(If,SR {branchStart = 16, branchEnd = 21})],18),([(If,SR {branchStart = 16, branchEnd = 21})],20)],Node_Coor {varDeclAt = 24, varFrame = SR {branchStart = 22, branchEnd = 2}})),("top",(SBin (SymUnknown (SymInt (-1)) [([(If,SR {branchStart = 16, branchEnd = 21})],17),([(If,SR {branchStart = 16, branchEnd = 21})],19)]) Add (SymInt 2),Node_Coor {varDeclAt = 25, varFrame = SR {branchStart = 22, branchEnd = 2}})),("stack",(SymUnknown (SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SymInt 0,SBin (SObjAcc ["arr","length"]) Sub (SymInt 1)]) [([(If,SR {branchStart = 16, branchEnd = 21})],18),([(If,SR {branchStart = 16, branchEnd = 21})],20)],Node_Coor {varDeclAt = 26, varFrame = SR {branchStart = 22, branchEnd = 2}}))]),
-    (VarName "arr",SymVar (Array Int) "arr"),
-    (VarName "high",SArrayIndexAccess (Array Int) "stack" (SymInt 1)),
-    (VarName "low",SArrayIndexAccess (Array Int) "stack" (SymInt 0)),
-    (VarName "pivotIndex",SBin (SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]) Add (SymInt 1)),
-    (VarName "stack",SymUnknown (SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SymInt 0,SBin (SObjAcc ["arr","length"]) Sub (SymInt 1)]) [([(If,SR {branchStart = 16, branchEnd = 21})],18),([(If,SR {branchStart = 16, branchEnd = 21})],20),([(If,SR {branchStart = 22, branchEnd = 27})],24),([(If,SR {branchStart = 22, branchEnd = 27})],26)]),
-    (VarName "top",SymUnknown (SymInt (-1)) [([(If,SR {branchStart = 16, branchEnd = 21})],17),([(If,SR {branchStart = 16, branchEnd = 21})],19),([(If,SR {branchStart = 22, branchEnd = 27})],23),([(If,SR {branchStart = 22, branchEnd = 27})],25)]),
-    (ScopeRange (SR {branchStart = 1, branchEnd = 3}),SIte (SBin (SBin (SymVar (Array Int) "arr") Eq (SymNull (Array Int))) Or (SBin (SObjAcc ["arr","length"]) Le (SymInt 1))) (fromList [(MethodHandle,SMethodHandle Void "quickSort"),(FormalParms,SFormalParms ["arr"]),(VarName "arr",SymVar (Array Int) "arr"),(Return,SymReturnVoid)]) Nothing),
-    (ScopeRange (SR {branchStart = 16, branchEnd = 2}),SIte (SBin (SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]) Gt (SArrayIndexAccess (Array Int) "stack" (SymInt 0))) (fromList [(MethodHandle,SMethodHandle Void "quickSort"),(GlobalVars,SGlobalVars []),(FormalParms,SFormalParms ["arr"]),(VarBindings,SVarBindings (fromList [("high",Node_Coor {varDeclAt = 11, varFrame = SR {branchStart = 10, branchEnd = 2}}),("low",Node_Coor {varDeclAt = 13, varFrame = SR {branchStart = 10, branchEnd = 2}}),("pivotIndex",Node_Coor {varDeclAt = 15, varFrame = SR {branchStart = 10, branchEnd = 2}}),("stack",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 2}}),("top",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 2}})])),(VarAssignments,SVarAssignments [("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 2}})),("top",(SymInt (-1),Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 2}})),("top",(SymInt 0,Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 0, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SymInt 0],Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 0, branchEnd = 2}})),("top",(SymInt 1,Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 0, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SymInt 0,SBin (SObjAcc ["arr","length"]) Sub (SymInt 1)],Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 0, branchEnd = 2}})),("high",(SArrayIndexAccess (Array Int) "stack" (SymInt 1),Node_Coor {varDeclAt = 11, varFrame = SR {branchStart = 10, branchEnd = 2}})),("top",(SymInt 0,Node_Coor {varDeclAt = 12, varFrame = SR {branchStart = 10, branchEnd = 2}})),("low",(SArrayIndexAccess (Array Int) "stack" (SymInt 0),Node_Coor {varDeclAt = 13, varFrame = SR {branchStart = 10, branchEnd = 2}})),("top",(SymInt (-1),Node_Coor {varDeclAt = 14, varFrame = SR {branchStart = 10, branchEnd = 2}})),("pivotIndex",(SBin (SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]) Add (SymInt 1),Node_Coor {varDeclAt = 15, varFrame = SR {branchStart = 10, branchEnd = 2}})),("top",(SymInt 0,Node_Coor {varDeclAt = 17, varFrame = SR {branchStart = 16, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SArrayIndexAccess (Array Int) "stack" (SymInt 0),SBin (SObjAcc ["arr","length"]) Sub (SymInt 1)],Node_Coor {varDeclAt = 18, varFrame = SR {branchStart = 16, branchEnd = 2}})),("top",(SymInt 1,Node_Coor {varDeclAt = 19, varFrame = SR {branchStart = 16, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SArrayIndexAccess (Array Int) "stack" (SymInt 0),SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]],Node_Coor {varDeclAt = 20, varFrame = SR {branchStart = 16, branchEnd = 2}}))]),(VarName "arr",SymVar (Array Int) "arr"),(VarName "high",SArrayIndexAccess (Array Int) "stack" (SymInt 1)),(VarName "low",SArrayIndexAccess (Array Int) "stack" (SymInt 0)),(VarName "pivotIndex",SBin (SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]) Add (SymInt 1)),(VarName "stack",SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SArrayIndexAccess (Array Int) "stack" (SymInt 0),SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]]),(VarName "top",SymInt 1),(ScopeRange (SR {branchStart = 1, branchEnd = 3}),SIte (SBin (SBin (SymVar (Array Int) "arr") Eq (SymNull (Array Int))) Or (SBin (SObjAcc ["arr","length"]) Le (SymInt 1))) (fromList [(MethodHandle,SMethodHandle Void "quickSort"),(FormalParms,SFormalParms ["arr"]),(VarName "arr",SymVar (Array Int) "arr"),(Return,SymReturnVoid)]) Nothing),(LoopConditions (SR {branchStart = 10, branchEnd = 28}),SLoopConditions [fromList [("top",SymInt 1)]])]) Nothing),
-    (ScopeRange (SR {branchStart = 22, branchEnd = 2}),
-     SIte (SBin (SBin (SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]) Add (SymInt 2)) Lt (SArrayIndexAccess (Array Int) "stack" (SymInt 1)))
-          (fromList [
-              (MethodHandle,SMethodHandle Void "quickSort"),
-              (GlobalVars,SGlobalVars []),
-              (FormalParms,SFormalParms ["arr"]),
-              (VarBindings,SVarBindings (fromList [("high",Node_Coor {varDeclAt = 11, varFrame = SR {branchStart = 10, branchEnd = 2}}),("low",Node_Coor {varDeclAt = 13, varFrame = SR {branchStart = 10, branchEnd = 2}}),("pivotIndex",Node_Coor {varDeclAt = 15, varFrame = SR {branchStart = 10, branchEnd = 2}}),("stack",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 2}}),("top",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
-              (VarAssignments,SVarAssignments [("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 2}})),("top",(SymInt (-1),Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 2}})),("top",(SymInt 0,Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 0, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SymInt 0],Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 0, branchEnd = 2}})),("top",(SymInt 1,Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 0, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SymInt 0,SBin (SObjAcc ["arr","length"]) Sub (SymInt 1)],Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 0, branchEnd = 2}})),("high",(SArrayIndexAccess (Array Int) "stack" (SymInt 1),Node_Coor {varDeclAt = 11, varFrame = SR {branchStart = 10, branchEnd = 2}})),("top",(SymInt 0,Node_Coor {varDeclAt = 12, varFrame = SR {branchStart = 10, branchEnd = 2}})),("low",(SArrayIndexAccess (Array Int) "stack" (SymInt 0),Node_Coor {varDeclAt = 13, varFrame = SR {branchStart = 10, branchEnd = 2}})),("top",(SymInt (-1),Node_Coor {varDeclAt = 14, varFrame = SR {branchStart = 10, branchEnd = 2}})),("pivotIndex",(SBin (SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]) Add (SymInt 1),Node_Coor {varDeclAt = 15, varFrame = SR {branchStart = 10, branchEnd = 2}})),("top",(SymInt 0,Node_Coor {varDeclAt = 17, varFrame = SR {branchStart = 16, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SArrayIndexAccess (Array Int) "stack" (SymInt 0),SBin (SObjAcc ["arr","length"]) Sub (SymInt 1)],Node_Coor {varDeclAt = 18, varFrame = SR {branchStart = 16, branchEnd = 2}})),("top",(SymInt 1,Node_Coor {varDeclAt = 19, varFrame = SR {branchStart = 16, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SArrayIndexAccess (Array Int) "stack" (SymInt 0),SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]],Node_Coor {varDeclAt = 20, varFrame = SR {branchStart = 16, branchEnd = 2}})),("top",(SBin (SymUnknown (SymInt (-1)) [([(If,SR {branchStart = 16, branchEnd = 21})],17),([(If,SR {branchStart = 16, branchEnd = 21})],19)]) Add (SymInt 1),Node_Coor {varDeclAt = 23, varFrame = SR {branchStart = 22, branchEnd = 2}})),("stack",(SymUnknown (SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SymInt 0,SBin (SObjAcc ["arr","length"]) Sub (SymInt 1)]) [([(If,SR {branchStart = 16, branchEnd = 21})],18),([(If,SR {branchStart = 16, branchEnd = 21})],20)],Node_Coor {varDeclAt = 24, varFrame = SR {branchStart = 22, branchEnd = 2}})),("top",(SBin (SymUnknown (SymInt (-1)) [([(If,SR {branchStart = 16, branchEnd = 21})],17),([(If,SR {branchStart = 16, branchEnd = 21})],19)]) Add (SymInt 2),Node_Coor {varDeclAt = 25, varFrame = SR {branchStart = 22, branchEnd = 2}})),("stack",(SymUnknown (SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SymInt 0,SBin (SObjAcc ["arr","length"]) Sub (SymInt 1)]) [([(If,SR {branchStart = 16, branchEnd = 21})],18),([(If,SR {branchStart = 16, branchEnd = 21})],20)],Node_Coor {varDeclAt = 26, varFrame = SR {branchStart = 22, branchEnd = 2}}))]),
-              (VarName "arr",SymVar (Array Int) "arr"),
-              (VarName "high",SArrayIndexAccess (Array Int) "stack" (SymInt 1)),
-              (VarName "low",SArrayIndexAccess (Array Int) "stack" (SymInt 0)),
-              (VarName "pivotIndex",SBin (SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]) Add (SymInt 1)),
-              (VarName "stack",SymUnknown (SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SymInt 0,SBin (SObjAcc ["arr","length"]) Sub (SymInt 1)]) [([(If,SR {branchStart = 16, branchEnd = 21})],18),([(If,SR {branchStart = 16, branchEnd = 21})],20)]),
-              (VarName "top",SBin (SymUnknown (SymInt (-1)) [([(If,SR {branchStart = 16, branchEnd = 21})],17),([(If,SR {branchStart = 16, branchEnd = 21})],19)]) Add (SymInt 2)),
-              (ScopeRange (SR {branchStart = 1, branchEnd = 3}),SIte (SBin (SBin (SymVar (Array Int) "arr") Eq (SymNull (Array Int))) Or (SBin (SObjAcc ["arr","length"]) Le (SymInt 1))) (fromList [(MethodHandle,SMethodHandle Void "quickSort"),(FormalParms,SFormalParms ["arr"]),(VarName "arr",SymVar (Array Int) "arr"),(Return,SymReturnVoid)]) Nothing),
-              (ScopeRange (SR {branchStart = 16, branchEnd = 2}),SIte (SBin (SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]) Gt (SArrayIndexAccess (Array Int) "stack" (SymInt 0))) (fromList [(MethodHandle,SMethodHandle Void "quickSort"),(GlobalVars,SGlobalVars []),(FormalParms,SFormalParms ["arr"]),(VarBindings,SVarBindings (fromList [("high",Node_Coor {varDeclAt = 11, varFrame = SR {branchStart = 10, branchEnd = 2}}),("low",Node_Coor {varDeclAt = 13, varFrame = SR {branchStart = 10, branchEnd = 2}}),("pivotIndex",Node_Coor {varDeclAt = 15, varFrame = SR {branchStart = 10, branchEnd = 2}}),("stack",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 2}}),("top",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 2}})])),(VarAssignments,SVarAssignments [("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 2}})),("top",(SymInt (-1),Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 2}})),("top",(SymInt 0,Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 0, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SymInt 0],Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 0, branchEnd = 2}})),("top",(SymInt 1,Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 0, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SymInt 0,SBin (SObjAcc ["arr","length"]) Sub (SymInt 1)],Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 0, branchEnd = 2}})),("high",(SArrayIndexAccess (Array Int) "stack" (SymInt 1),Node_Coor {varDeclAt = 11, varFrame = SR {branchStart = 10, branchEnd = 2}})),("top",(SymInt 0,Node_Coor {varDeclAt = 12, varFrame = SR {branchStart = 10, branchEnd = 2}})),("low",(SArrayIndexAccess (Array Int) "stack" (SymInt 0),Node_Coor {varDeclAt = 13, varFrame = SR {branchStart = 10, branchEnd = 2}})),("top",(SymInt (-1),Node_Coor {varDeclAt = 14, varFrame = SR {branchStart = 10, branchEnd = 2}})),("pivotIndex",(SBin (SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]) Add (SymInt 1),Node_Coor {varDeclAt = 15, varFrame = SR {branchStart = 10, branchEnd = 2}})),("top",(SymInt 0,Node_Coor {varDeclAt = 17, varFrame = SR {branchStart = 16, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SArrayIndexAccess (Array Int) "stack" (SymInt 0),SBin (SObjAcc ["arr","length"]) Sub (SymInt 1)],Node_Coor {varDeclAt = 18, varFrame = SR {branchStart = 16, branchEnd = 2}})),("top",(SymInt 1,Node_Coor {varDeclAt = 19, varFrame = SR {branchStart = 16, branchEnd = 2}})),("stack",(SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SArrayIndexAccess (Array Int) "stack" (SymInt 0),SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]],Node_Coor {varDeclAt = 20, varFrame = SR {branchStart = 16, branchEnd = 2}}))]),(VarName "arr",SymVar (Array Int) "arr"),(VarName "high",SArrayIndexAccess (Array Int) "stack" (SymInt 1)),(VarName "low",SArrayIndexAccess (Array Int) "stack" (SymInt 0)),(VarName "pivotIndex",SBin (SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]) Add (SymInt 1)),(VarName "stack",SymArray (Just Int) (Just (SBin (SObjAcc ["arr","length"]) Mul (SymInt 2))) [SArrayIndexAccess (Array Int) "stack" (SymInt 0),SymUnknown (SBin (SArrayIndexAccess (Array Int) "stack" (SymInt 0)) Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]]),(VarName "top",SymInt 1),(ScopeRange (SR {branchStart = 1, branchEnd = 3}),SIte (SBin (SBin (SymVar (Array Int) "arr") Eq (SymNull (Array Int))) Or (SBin (SObjAcc ["arr","length"]) Le (SymInt 1))) (fromList [(MethodHandle,SMethodHandle Void "quickSort"),(FormalParms,SFormalParms ["arr"]),(VarName "arr",SymVar (Array Int) "arr"),(Return,SymReturnVoid)]) Nothing),(LoopConditions (SR {branchStart = 10, branchEnd = 28}),SLoopConditions [fromList [("top",SymInt 1)]])]) Nothing),
-              (LoopConditions (SR {branchStart = 10, branchEnd = 28}),SLoopConditions [fromList [("top",SymInt 1)]])]) Nothing),
-    (LoopConditions (SR {branchStart = 10, branchEnd = 28}),SLoopConditions [fromList [("top",SymInt 1)]])
-  ]
-*/
 public static void quickSort(int[] arr) {
   if (arr == null || arr.length <= 1) {
     return;
@@ -4661,25 +4626,27 @@ public String replicateCall() {
 
 /////////////////////
 
-//TODO
+//DONE
+//JavaMethod
 /*
-FunDef {
-  funModifier = [Public],
-  isPureFlag = False,
-  funDecl = FunCallStmt {funCall = FunCallExpr {funName = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "sum3"}, funArgs = [VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "n"}]}},
-  throws = Nothing,
-  funBody = CompStmt {statements = [
-    AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "res"}, assEright = NumberLiteral 0.0}},
-    ForStmt {
-      mAcc = Nothing,
-      mCond = Nothing,
-      mStep = Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "n"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = -, expr2 = NumberLiteral 1.0}}}),
-      forBody = CompStmt {statements = [
-        CondStmt {condition = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = <=, expr2 = NumberLiteral 0.0}, siff = CompStmt {statements = [BreakStmt]}, selsee = CompStmt {statements = []}},
-        AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}}]}},
-    ReturnStmt {returnS = Just (VarExpr {varType = Nothing, varObj = [], varName = "res"})}]
-  }
-}
+[
+    (MethodHandle,SMethodHandle Int "sum3"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["n"]),
+    (VarBindings,SVarBindings (fromList [
+        ("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 10}})])),
+    (VarAssignments,SVarAssignments [
+        ("res",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 10}})),
+        ("res",(SymVar Int "n",Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 2, branchEnd = 9}})),
+        ("n",(SBin (SymVar Int "n") Sub (SymInt 1),Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 2, branchEnd = 9}}))]),
+    (VarName "n",SymUnknown (SymVar Int "n") [([(For,SR {branchStart = 2, branchEnd = 9})],8)]),
+    (VarName "res",SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 9})],7)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 9}),
+     SLoop Nothing
+           Nothing
+           [Node {id = 4, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = <=, expr2 = NumberLiteral 0.0})), parent = 2},Node {id = 7, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}}), parent = 2},Node {id = 8, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "n"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = -, expr2 = NumberLiteral 1.0}}})), parent = 2}]),
+    (Return,SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 9})],7)])
+  ]
 */
 public int sum3(int n) {
   int res = 0;
@@ -4690,6 +4657,42 @@ public int sum3(int n) {
     res += n;
   }
   return res;
+}
+
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle Int "sum3Call1"),
+    (VarBindings,SVarBindings (fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
+    (VarName "x",SymInt 0),
+    (Return,SymInt 0)
+  ]
+*/
+public int sum3Call1() {
+  int x = sum3(0);
+  return x;
+}
+
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle Int "sum3Call2"),
+    (VarBindings,SVarBindings (fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymInt 6,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
+    (VarName "x",SymInt 6),
+    (Return,SymInt 6)
+  ]
+*/
+public int sum3Call2() {
+  int x = sum3(3);
+  return x;
 }
 
 /////////////////////
@@ -4734,7 +4737,21 @@ public int sum1_WhileCall() {
 
 /////////////////////
 
-//TODO
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle Int "sum1_While2"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["n"]),
+    (VarBindings,SVarBindings (fromList [("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 9}})])),
+    (VarAssignments,SVarAssignments [("res",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 9}})),("res",(SymVar Int "n",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 8}})),("n",(SBin (SymVar Int "n") Sub (SymInt 1),Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 8}}))]),
+    (VarName "n",SymUnknown (SymVar Int "n") [([(For,SR {branchStart = 2, branchEnd = 8})],4)]),
+    (VarName "res",SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 8})],3)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 8}),SLoop Nothing (Just (BoolLiteral True)) [Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = +, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}}), parent = 2},Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "n"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = -, expr2 = NumberLiteral 1.0}}}), parent = 2},Node {id = 5, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = <=, expr2 = NumberLiteral 0.0})), parent = 2}]),
+    (Return,SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 8})],3)])
+  ]
+*/
 public int sum1_While2(int n) {
   int res = 0;
   while(true) {
@@ -4747,10 +4764,48 @@ public int sum1_While2(int n) {
   return res;
 }
 
+//DONE
+//JavaMethod
+/*
+[(MethodHandle,SMethodHandle Int "sum1_While2Call1"),(Return,SymInt 0)]
+*/
+public int sum1_While2Call1() {
+  return sum1_While2(0);
+}
+
+//DONE
+//JavaMethod
+/*
+[(MethodHandle,SMethodHandle Int "sum1_While2Call2"),(Return,SymInt 6)]
+*/
+public int sum1_While2Call2() {
+  return sum1_While2(3);
+}
+
 /////////////////////
 
-//TODO
-public int sumEvenNums(int[] nums) {
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle Int "sumOddNums"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["nums"]),
+    (VarBindings,SVarBindings (fromList [
+        ("sum",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 10}})])),
+    (VarAssignments,SVarAssignments [
+        ("sum",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 10}})),
+        ("sum",(SArrayIndexAccess (Array Int) "nums" (SymInt 0),Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 2, branchEnd = 9}}))]),
+    (VarName "nums",SymVar (Array Int) "nums"),
+    (VarName "sum",SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 9})],7)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 9}),
+     SLoop (Just (Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}))
+           (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = ["nums"], varName = "length"}}))
+           [Node {id = 4, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = BinOpExpr {expr1 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "nums"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, binOp = %, expr2 = NumberLiteral 2.0}, binOp = ==, expr2 = NumberLiteral 0.0})), parent = 2},Node {id = 7, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "sum"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "sum"}, binOp = +, expr2 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "nums"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}}}}), parent = 2},Node {id = 8, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}})), parent = 2}]),
+    (Return,SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 9})],7)])
+  ]
+*/
+public int sumOddNums(int[] nums) {
   int sum = 0;
   for (int i=0; i<nums.length; i++) {
       if (nums[i] % 2 == 0) {
@@ -4761,9 +4816,63 @@ public int sumEvenNums(int[] nums) {
   return sum;
 }
 
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle Int "sumOddNumsCall1"),
+    (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
+    (VarAssignments,SVarAssignments [("x",(SymInt 4,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
+    (VarName "x",SymInt 4),
+    (Return,SymInt 4)
+  ]
+*/
+public int sumOddNumsCall1() {
+  int x = sumOddNums(new int[]{1,2,3,4});
+  return x;
+}
+
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle Int "sumOddNumsCall2"),
+    (VarBindings,SVarBindings (fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymInt 4,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
+    (VarName "x",SymInt 4),
+    (Return,SymInt 4)
+  ]
+*/
+public int sumOddNumsCall2() {
+  int x = sumOddNums(new int[]{1,3});
+  return x;
+}
+
 /////////////////////
 
-//TODO
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle Int "sumUntilNegative"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["nums"]),
+    (VarBindings,SVarBindings (fromList [
+        ("sum",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 10}})])),
+    (VarAssignments,SVarAssignments [
+        ("sum",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 10}})),
+        ("sum",(SArrayIndexAccess (Array Int) "nums" (SymInt 0),Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 2, branchEnd = 9}}))]),
+    (VarName "nums",SymVar (Array Int) "nums"),
+    (VarName "sum",SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 9})],7)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 9}),
+     SLoop (Just (Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}))
+           (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = ["nums"], varName = "length"}}))
+           [Node {id = 4, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "nums"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, binOp = <, expr2 = NumberLiteral 0.0})), parent = 2},Node {id = 7, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "sum"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "sum"}, binOp = +, expr2 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "nums"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}}}}), parent = 2},Node {id = 8, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}})), parent = 2}]),
+    (Return,SymUnknown (SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 9})],7)])
+  ]
+*/
 public int sumUntilNegative(int[] nums) {
     int sum = 0;
     for (int i=0; i<nums.length; i++) {
@@ -4775,9 +4884,52 @@ public int sumUntilNegative(int[] nums) {
     return sum;
 }
 
+//DONE
+//JavaMethod
+/*
+[(MethodHandle,SMethodHandle Int "sumUntilNegativeCall1"),(Return,SymInt 0)]
+*/
+public int sumUntilNegativeCall1() {
+  return sumUntilNegative(new int[]{});
+}
+
+//DONE
+//JavaMethod
+/*
+[(MethodHandle,SMethodHandle Int "sumUntilNegativeCall2"),(Return,SymInt 5)]
+*/
+public int sumUntilNegativeCall2() {
+  return sumUntilNegative(new int[]{4,1,-2,1});
+}
+
 /////////////////////
 
-//TODO
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle Int "processArray1"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["arr"]),
+    (VarBindings,SVarBindings (fromList [
+        ("sum",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 10}})])),
+    (VarAssignments,SVarAssignments [
+        ("sum",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 10}})),
+        ("sum",(SArrayIndexAccess (Array Int) "arr" (SymInt 0),Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 4, branchEnd = 7}})),
+        ("sum",(SBin (SymInt (-1)) Mul (SArrayIndexAccess (Array Int) "arr" (SymInt 0)),Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 4, branchEnd = 7}}))]),
+    (VarName "arr",SymVar (Array Int) "arr"),
+    (VarName "sum",SymUnknown (SymInt 0) [
+        ([(For,SR {branchStart = 2, branchEnd = 9}),(If,SR {branchStart = 4, branchEnd = 7})],5),
+        ([(For,SR {branchStart = 2, branchEnd = 9}),(If,SR {branchStart = 4, branchEnd = 7})],6)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 9}),
+     SLoop (Just (Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}))
+           (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}}))
+           [Node {id = 4, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = BinOpExpr {expr1 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, binOp = %, expr2 = NumberLiteral 2.0}, binOp = ==, expr2 = NumberLiteral 0.0})), parent = 2},Node {id = 8, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}})), parent = 2}]),
+    (Return,SymUnknown (SymInt 0) [
+        ([(For,SR {branchStart = 2, branchEnd = 9}),(If,SR {branchStart = 4, branchEnd = 7})],5),
+        ([(For,SR {branchStart = 2, branchEnd = 9}),(If,SR {branchStart = 4, branchEnd = 7})],6)])
+  ]
+*/
 public int processArray1(int[] arr) {
   int sum = 0;
   for (int i = 0; i < arr.length; i++) {
@@ -4788,6 +4940,22 @@ public int processArray1(int[] arr) {
     }
   }
   return sum;
+}
+
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle Int "processArray1Call"),
+    (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
+    (VarAssignments,SVarAssignments [("x",(SymInt 2,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
+    (VarName "x",SymInt 2),
+    (Return,SymInt 2)
+  ]
+*/
+public int processArray1Call() {
+  int x = processArray1(new int[]{1,2,3,4});
+  return x;
 }
 
 /////////////////////
@@ -4881,25 +5049,20 @@ public void fillArrayCall() {
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
+//JavaMethod
 /*
-CFG {
-  nodes = [
-    Entry (BuiltInType Int) "sqrt" [VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "y"}],
-    Node {id = 1, nodeData = ForInitialization (AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}), parent = 0},
-    Node {id = 2, nodeData = BooleanExpression For (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <=, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "y"}}), parent = 0},
-    Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "j"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = *, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}}), parent = 0},
-    Node {id = 4, nodeData = BooleanExpression If (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "j"}, binOp = ==, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "y"}}), parent = 0},
-    End {id = 5, parent = 0, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})},
-    Node {id = 6, nodeData = BooleanExpression If (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = ==, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "y"}}), parent = 4},
-    End {id = 7, parent = 4, mExpr = Just (ExcpExpr {excpName = Exception, excpmsg = Just "not found"})},
-    Node {id = 8, nodeData = Meet If, parent = 4},
-    Node {id = 9, nodeData = Meet If, parent = 0},
-    Node {id = 10, nodeData = ForStep (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}}), parent = 0},
-    Node {id = 11, nodeData = Meet For, parent = 0}
-  ],
-  edges = [(0,[1]),(1,[2]),(2,[3]),(3,[4]),(4,[5,6]),(6,[7,8]),(7,[8]),(5,[9]),(8,[9]),(9,[10]),(10,[2]),(2,[11])]
-}
+[
+    (MethodHandle,SMethodHandle Int "sqrt"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["y"]),
+    (VarAssignments,SVarAssignments []),
+    (VarName "y",SymVar Int "y"),
+    (ScopeRange (SR {branchStart = 1, branchEnd = 11}),
+     SLoop (Just (Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}))
+           (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <=, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "y"}}))
+           [Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "j"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = *, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "i"}}}}), parent = 1},Node {id = 4, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "j"}, binOp = ==, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "y"}})), parent = 1},Node {id = 10, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}})), parent = 1}])
+  ]
 */
 public static int sqrt(int y) throws Exception{
   for(int i=0; i<=y; i=i+1){
@@ -4911,7 +5074,40 @@ public static int sqrt(int y) throws Exception{
       if(i==y){
 	throw new Exception("not found");
       }
-      else{}
     }
   }
+}
+
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle Int "sqrtCall1"),
+    (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
+    (VarAssignments,SVarAssignments [("x",(SymInt 3,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
+    (VarName "x",SymInt 3),
+    (Return,SymInt 3)
+  ]
+*/
+public static int sqrtCall1() {
+  int x = sqrt(9);
+  return x;
+}
+
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle Int "sqrtCall2"),
+    (VarBindings,SVarBindings (fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SException Int "Exception" "not found",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
+    (VarName "x",SException Int "Exception" "not found"),
+    (Return,SException Int "Exception" "not found")
+  ]
+*/
+public static int sqrtCall2() {
+  int x = sqrt(8);
+  return x;
 }

@@ -1,6 +1,6 @@
 module Methods.JavaMethod (javaMethodInputs) where
 
-import Prelude hiding (replicate, tail)
+import Prelude hiding (replicate, tail, sqrt)
 -- when you add a method, add it also to
 -- 1) `javaMethodInputs`
 -- 2) `test.SymbolicExecution.TargetState`
@@ -91,8 +91,17 @@ javaMethodInputs = [
   ("sum2", sum2),
   ("sum4", sum4), ("sum4Call", sum4Call),
   ("sum1_While", sum1_While), ("sum1_WhileCall", sum1_WhileCall),
+  ("sum1_While2", sum1_While2), ("sum1_While2Call1", sum1_While2Call1),
+                                ("sum1_While2Call2", sum1_While2Call2),
+  ("sumOddNums", sumOddNums), ("sumOddNumsCall1", sumOddNumsCall1),
+                              ("sumOddNumsCall2", sumOddNumsCall2),
+  ("sumUntilNegative", sumUntilNegative), ("sumUntilNegativeCall1", sumUntilNegativeCall1),
+                                          ("sumUntilNegativeCall2", sumUntilNegativeCall2),
+  ("processArray1", processArray1), ("processArray1Call", processArray1Call),
   ("isEmpty", isEmpty), ("callIsEmpty", callIsEmpty), ("callIsNotEmpty", callIsNotEmpty),
   ("fillArray", fillArray), ("fillArrayCall", fillArrayCall),
+  ("sqrt", sqrt), ("sqrtCall1", sqrtCall1),
+                  ("sqrtCall2", sqrtCall2),
   ("getMax", getMax), ("getMaxCall", getMaxCall),
   ("swap", swap), ("swapCall", swapCall),
   ("partition", partition), ("partitionCall1", partitionCall1),
@@ -110,6 +119,8 @@ javaMethodInputs = [
 ----------Bubble Sort:
   ("bubbleSort", bubbleSort), ("bubbleSortCall", bubbleSortCall),
   ("replicate", replicate), ("replicateCall", replicateCall),
+  ("sum3", sum3), ("sum3Call1", sum3Call1),
+                  ("sum3Call2", sum3Call2),
   ("arrayBoolean", arrayBoolean), ("arrayBooleanCall", arrayBooleanCall),
 ----------
   ("tail", tail), ("tailCall1", tailCall1),
@@ -1054,6 +1065,63 @@ sum1_While = "public int sum1_While(int n) {\n\
              \  return res;\n\
              \}"
 
+sumOddNums = "public int sumOddNums(int[] nums) {\n\
+             \  int sum = 0;\n\
+             \  for (int i=0; i<nums.length; i++) {\n\
+             \      if (nums[i] % 2 == 0) {\n\
+             \        continue;\n\
+             \      }\n\
+             \      sum += nums[i];\n\
+             \  }\n\
+             \  return sum;\n\
+             \}"
+
+sumOddNumsCall1 = "public int sumOddNumsCall1() {\n\
+                  \  int x = sumOddNums(new int[]{1,2,3,4});\n\
+                  \  return x;\n\
+                  \}"
+
+sumOddNumsCall2 = "public int sumOddNumsCall2() {\n\
+                  \  int x = sumOddNums(new int[]{1,3});\n\
+                  \  return x;\n\
+                  \}"
+
+sumUntilNegative = "public int sumUntilNegative(int[] nums) {\n\
+                   \    int sum = 0;\n\
+                   \    for (int i=0; i<nums.length; i++) {\n\
+                   \        if (nums[i] < 0) {\n\
+                   \            break;\n\
+                   \        }\n\
+                   \        sum += nums[i];\n\
+                   \    }\n\
+                   \    return sum;\n\
+                   \}"
+
+sumUntilNegativeCall1 = "public int sumUntilNegativeCall1() {\n\
+                        \  return sumUntilNegative(new int[]{});\n\
+                        \}"
+
+sumUntilNegativeCall2 = "public int sumUntilNegativeCall2() {\n\
+                        \  return sumUntilNegative(new int[]{4,1,-2,1});\n\
+                        \}"
+
+processArray1 = "public int processArray1(int[] arr) {\n\
+                \  int sum = 0;\n\
+                \  for (int i = 0; i < arr.length; i++) {\n\
+                \    if (arr[i] % 2 == 0) {\n\
+                \      sum += arr[i];\n\
+                \    } else {\n\
+                \      sum -= arr[i];\n\
+                \    }\n\
+                \  }\n\
+                \  return sum;\n\
+                \}"
+
+processArray1Call = "public int processArray1Call() {\n\
+                    \  int x = processArray1(new int[]{1,2,3,4});\n\
+                    \  return x;\n\
+                    \}"
+
 fillArray = "public int[] fillArray(int size, int elem) {\n\
             \  int[] arr = new int[size];\n\
             \  for(int i=0; i<size; i++) {\n\
@@ -1066,9 +1134,53 @@ fillArrayCall = "public void fillArrayCall() {\n\
                 \  println(fillArray(5,10));\n\
                 \}"
 
+sqrt = "public static int sqrt(int y) throws Exception{\n\
+       \  for(int i=0; i<=y; i=i+1){\n\
+       \    int j = i*i;\n\
+       \    if(j==y){\n\
+       \      return i;\n\
+       \    }\n\
+       \    else{\n\
+       \      if(i==y){\n\
+       \        throw new Exception(\"not found\");\n\
+       \      }\n\
+       \    }\n\
+       \  }\n\
+       \}"
+
+sqrtCall1 = "public static int sqrtCall1() {\n\
+            \  int x = sqrt(9);\n\
+            \  return x;\n\
+            \}"
+
+sqrtCall2 = "public static int sqrtCall2() {\n\
+            \  int x = sqrt(8);\n\
+            \  return x;\n\
+            \}"
+
 sum1_WhileCall = "public int sum1_WhileCall() {\n\
                  \  return sum1_While(3);\n\
                  \}"
+
+sum1_While2 = "public int sum1_While2(int n) {\n\
+              \  int res = 0;\n\
+              \  while(true) {\n\
+              \    res += n;\n\
+              \    n--;\n\
+              \    if(n<=0) {\n\
+              \      break;\n\
+              \    }\n\
+              \  }\n\
+              \  return res;\n\
+              \}"
+
+sum1_While2Call1 = "public int sum1_While2Call1() {\n\
+                   \  return sum1_While2(0);\n\
+                   \}"
+
+sum1_While2Call2 = "public int sum1_While2Call2() {\n\
+                   \  return sum1_While2(3);\n\
+                   \}"
 
 isEmpty = "public boolean isEmpty(int[] arr) {\n\
           \  return arr.length == 0;\n\
@@ -1285,6 +1397,27 @@ replicateCall = "public String replicateCall() {\n\
                 \  String str = replicate(5,\"qw\");\n\
                 \  return str;\n\
                 \}"
+
+sum3 = "public int sum3(int n) {\n\
+       \  int res = 0;\n\
+       \  for(;; n--) {\n\
+       \    if (n<=0) {\n\
+       \      break;\n\
+       \    }\n\
+       \    res += n;\n\
+       \  }\n\
+       \  return res;\n\
+       \}"
+
+sum3Call1 = "public int sum3Call1() {\n\
+            \  int x = sum3(0);\n\
+            \  return x;\n\
+            \}"
+
+sum3Call2 = "public int sum3Call2() {\n\
+            \  int x = sum3(3);\n\
+            \  return x;\n\
+            \}"
 
 arrayBoolean = "public static boolean arrayBoolean(int[] arr) {\n\
                \  return arr == null || arr.length <= 1;\n\

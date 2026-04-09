@@ -164,7 +164,8 @@ getVarNames = \case
   expr@AssignExpr{} -> getVarNames (assEleft expr) ++ getVarNames (assEright expr)
   expr@ArrayCallExpr{} -> getVarNames (arrName expr)
   NumberLiteral _ -> []
-  expr -> error $ "getVarNames ==> won't happen: " ++ show expr
+  BoolLiteral _ -> []
+  expr -> error $ "Parser.Types.getVarNames ==> TODO: " ++ show expr
 
 isVarExpr :: Expression -> Bool
 isVarExpr = \case

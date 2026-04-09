@@ -816,7 +816,7 @@ booleanCalculator2 op = \case
 
 objAccCalculator :: Map.Map SymStateKey SymExpr -> SymExpr -> SymExpr
 objAccCalculator varNames expr = let
-  loc = "SymbolicExecution.Internal.Calculator"
+  loc = "SymbolicExecution.Internal.Calculator.objAccCalculator"
   in case expr of
        SObjAcc names
          | length names >= 3 -> error $ "objAccCalculator ==> won't happen1 ==> " ++ show names
@@ -830,7 +830,7 @@ objAccCalculator varNames expr = let
               (SymArray _ mSizeSymExpr elems,SymInt index) -> case mSizeSymExpr of
                 Just (SymInt size)
                   | index < size -> elems !! fromIntegral index
-                  | otherwise -> error $ printf "%s: TODO1: %s" loc (show (index,size))
+                  | otherwise -> expr
                 Just _ -> expr
                 Nothing -> error $ printf "%s: TODO2" loc
               _ -> expr

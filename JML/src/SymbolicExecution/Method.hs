@@ -20,7 +20,7 @@ import Text.Printf (printf)
 import Data.Functor (($>))
 import Data.List (foldl',nub,intercalate,find)
 import SymbolicExecution.Internal.Internal
-import SymbolicExecution.Internal.Calculator (whichCalculator2, objAccCalculator, numericCalculator, booleanCalculator, objAccCalculator, stringCalculator, funCallCalculator)
+import SymbolicExecution.Internal.Calculator (whichCalculator2, numericCalculator, booleanCalculator, objAccCalculator, stringCalculator, funCallCalculator)
 
 instance CFGVisitor MethodProcessor where
 --visitNode :: CFGT.Node -> MethodProcessor
@@ -105,15 +105,6 @@ instance CFGVisitor MethodProcessor where
         incrementLogDepth
         toReturn <- visitStmt stmt
         decrementLogDepth
-        
-        {-theEnv <- env <$> get
-        if CFGT.id n `elem` [1,2,5]
-          then return ()
-          else throwError $ printf
-            "WOF::\n\n\
-            \1) %s\n\n\
-            \2) %s\n\n\
-            \3) %s\n\n" (show n) (show theEnv) (show toReturn)-}
 
         -- get fun name
         funName <- do
@@ -126,7 +117,7 @@ instance CFGVisitor MethodProcessor where
         let cfg = case CFG.findCFGByName funName cfgs of
               -- CFG not found
               Nothing   -> error $ printf "%s ==> %s does not exist" loc funName
-                    -- CFG found
+              -- CFG found
               Just cfg0 -> cfg0
         let newVarCoor = CFGT.Node_Coor {
               CFGT.varDeclAt = CFGT.id n,
@@ -658,6 +649,17 @@ visitStmt AST.ContinueStmt = do
   modify $ \symState ->
     SymState {
       env = Map.insert Continue SymContinue (env symState),
+      logHeader = logHeader symState
+    }
+  tellNextLog (Log.Return loc (show toReturn)) $> toReturn
+visitStmt AST.BreakStmt = do
+  let loc = "SymbolicExecution.Method.visitStmt.ContinueStmt"
+  tellNextLog $ Log.BreakStatement loc
+  let toReturn = ER_Break
+  tellNextLog (Log.ModifyState loc ("Break","SymBreak"))
+  modify $ \symState ->
+    SymState {
+      env = Map.insert Break SymBreak (env symState),
       logHeader = logHeader symState
     }
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn
@@ -1369,63 +1371,86 @@ visitLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange = do
        return $ (,) True $ case re of
          ER_Expr forCondExpr_visited -> forCondExpr_visited
          _ -> error $ printf "won't happen1: %s ==> %s" loc (show re)
-  
-  case forCondExpr_visited of
-    -- visit for loop body
-    SBool True -> do
-      forLoopVisited <- visitRegisteredLoop 1 env_Before_Acc cfg m_Acc mForCondExpr forBody_forStep_path branchRange
-      case forLoopVisited of
-        -- for visitation was completed
-        _ | isLoopTerminated forLoopVisited -> do
-          -- After leaving the for body,
-          -- variables which were defined locally need to be removed
-          newEnv <- env <$> get
-              -- `varnames_to_delete`: collect varnames in `newEnv` which are not present in env_Before_Acc
-          let varnames_to_delete :: [String]
-              varnames_to_delete = Map.foldlWithKey' (\acc k _ -> case k of
-                VarName vn
-                  | Map.notMember k env_Before_Acc -> acc ++ [vn]
-                _ -> acc
-                  ) [] newEnv
-              -- `newEnv2`:
-              --     1) delete all `varnames_to_delete` mentioned in `newEnv`
-              --     2) delete `varnames_to_delete` mentioned in VarBindings in `newEnv`
-              --     3) delete `varnames_to_delete` mentioned in VarAssignments in `newEnv`
-              newEnv2 = Map.foldMapWithKey (\case
-                k@(VarName vn)
-                  | vn `notElem` varnames_to_delete -> Map.singleton k
-                  | otherwise -> const Map.empty
-                k@VarBindings -> \case
-                  SVarBindings li -> Map.singleton k $ SVarBindings
-                    $ flip Map.filterWithKey li $
-                      (const . (`notElem` varnames_to_delete))
-                  x -> error $ printf "%s: won't happen2: %s" loc (show x)
-                k@VarAssignments -> \case
-                  SVarAssignments li -> Map.singleton k $ SVarAssignments
-                    $ filter ((`notElem` varnames_to_delete) . fst) li
-                  x -> error $ printf "%s: won't happen3: %s" loc (show x)
-                k -> Map.singleton k) newEnv
-          tellNextLog $ Log.ModifyState loc ("deleting",show varnames_to_delete)
-          modify $ \symState -> SymState {
-            env = newEnv2,
-            logHeader = logHeader symState
-            }
-          return ER_ForLoopDone
-        -- `ER_SymStateMapEntry` is returned when the for loop is too big
-        -- then `visitRegisteredLoop` leads to `visitUnregisteredLoop`
-        ER_SymStateMapEntry _ _ -> return forLoopVisited
-    -- for loop condition was not met
-    SBool False -> do
-      tellNextLog $ Log.ForLoopDone "visitRegisteredLoop"
-      modify $ \symState -> SymState env_Before_Acc (logHeader symState)
-      return ER_ForLoopDone
-    _ -> do modify $ \symState -> SymState env_Before_Acc (logHeader symState)
-            visitUnregisteredLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange
+
+  -- here gets decided whether to call `visitUnregisteredLoop` or `visitRegisteredLoop`
+  do -- `forBody_forStep_visited`, alongside `forCondExpr_visited`, helps deciding whether
+     --   to call `visitUnregisteredLoop` or `visitRegisteredLoop`
+     forBody_forStep_visited <- do
+       s <- get
+       ers <- mapM (censor (filter $ const False) . methodProcessorMonad . visitNode) forBody_forStep_path
+       put s
+       return ers
+     
+     let anyHasSymVar = [vn |
+           ER_SymStateMapEntry (VarName vn) expr <- forBody_forStep_visited
+           , hasSymVar expr || hasSymUnknown expr]
+
+     case forCondExpr_visited of
+       -- visit for loop body
+       SBool True -> do
+         theEnv <- env <$> get
+         if | null anyHasSymVar -> callRegisteredLoop loc env_Before_Acc
+            | otherwise -> callUnregisteredLoop env_Before_Acc
+       SBool True -> callRegisteredLoop loc env_Before_Acc
+       -- for loop condition was not met
+       SBool False -> do
+         tellNextLog $ Log.ForLoopDone "visitRegisteredLoop"
+         modify $ \symState -> SymState env_Before_Acc (logHeader symState)
+         return ER_ForLoopDone
+       _ -> callUnregisteredLoop env_Before_Acc
   where
   isLoopTerminated = \case
     ER_ForLoopDoneViaReturnStmt -> True
+    ER_ForLoopDoneViaBreakStmt -> True
     ER_ForLoopDone -> True
     _ -> False
+  ----------
+  callUnregisteredLoop env_Before_Acc = do
+    modify $ \symState -> SymState env_Before_Acc (logHeader symState)
+    visitUnregisteredLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange
+  ----------
+  callRegisteredLoop loc env_Before_Acc = do
+    forLoopVisited <- visitRegisteredLoop 1 env_Before_Acc cfg m_Acc mForCondExpr forBody_forStep_path branchRange
+    case forLoopVisited of
+      -- for visitation was completed
+      _ | isLoopTerminated forLoopVisited -> do
+        -- After leaving the for body,
+        -- variables which were defined locally need to be removed
+        newEnv <- env <$> get
+            -- `varnames_to_delete`: collect varnames in `newEnv` which are not present in env_Before_Acc
+        let varnames_to_delete :: [String]
+            varnames_to_delete = Map.foldlWithKey' (\acc k _ -> case k of
+              VarName vn
+                | Map.notMember k env_Before_Acc -> acc ++ [vn]
+              _ -> acc
+                ) [] newEnv
+            -- `newEnv2`:
+            --     1) delete all `varnames_to_delete` mentioned in `newEnv`
+            --     2) delete `varnames_to_delete` mentioned in VarBindings in `newEnv`
+            --     3) delete `varnames_to_delete` mentioned in VarAssignments in `newEnv`
+            newEnv2 = Map.foldMapWithKey (\case
+              k@(VarName vn)
+                | vn `notElem` varnames_to_delete -> Map.singleton k
+                | otherwise -> const Map.empty
+              k@VarBindings -> \case
+                SVarBindings li -> Map.singleton k $ SVarBindings
+                  $ flip Map.filterWithKey li $
+                    (const . (`notElem` varnames_to_delete))
+                x -> error $ printf "%s: won't happen2: %s" loc (show x)
+              k@VarAssignments -> \case
+                SVarAssignments li -> Map.singleton k $ SVarAssignments
+                  $ filter ((`notElem` varnames_to_delete) . fst) li
+                x -> error $ printf "%s: won't happen3: %s" loc (show x)
+              k -> Map.singleton k) newEnv
+        tellNextLog $ Log.ModifyState loc ("deleting",show varnames_to_delete)
+        modify $ \symState -> SymState {
+          env = newEnv2,
+          logHeader = logHeader symState
+        }
+        return ER_ForLoopDone
+      -- `ER_ForLoopCounterTooBig` is returned when the for loop is too big
+      -- then `visitRegisteredLoop` leads to `visitUnregisteredLoop`
+      ER_ForLoopCounterTooBig -> return forLoopVisited
 
 ------------------------------
 
@@ -1457,11 +1482,13 @@ visitRegisteredLoop loopCounter env_Before_Acc cfg m_Acc mForCondExpr forBody_fo
           -- add the loop condition entry:
           --loopConditionEntry :: Map.Map String SymExpr
           loopConditionEntry <- do
-            --incrementLogEnumeration    there are no logs in `createLoopCondition`
+            incrementLogEnumeration
             incrementLogDepth *>
               censor
                 (map $ \(Log.Log num tag) -> Log.Log num $ Log.Nested "Atomizing For Loop Condition Expression" tag)
-                (createLoopCondition (maybe undefined id mForCondExpr))
+                (case mForCondExpr of
+                   Just forCondExpr -> createLoopCondition forCondExpr
+                   Nothing -> return $ Map.empty)
               <* decrementLogDepth
               
           newEnv <- Map.alter (\case
@@ -1479,37 +1506,41 @@ visitRegisteredLoop loopCounter env_Before_Acc cfg m_Acc mForCondExpr forBody_fo
                  tellNextLog $ Log.AtomizeRoundLoopCondition loc
                                (show $ Map.toList $ mas !! (loopCounter - 1))
           -- visit for body nodes
-          visitForBodyNodes loc forBody_forStep_path
-          
-          -- if the loop visitation results in a return statement,
-          -- then next loop visitations should be skipped
-          do maybeReturn <- getReturnSymExpr <$> get
-             case maybeReturn of
-               Nothing -> do
-                 -- it's a good idea to log the current state before staring the next loop round
-                 get >>= tellNextLog . Log.ReportTheState loc . show . env
-                 visitRegisteredLoop
-                   (loopCounter+1) env_Before_Acc cfg m_Acc mForCondExpr forBody_forStep_path branchRange
-               Just _ -> do
-                 tellNextLog $ Log.ForLoopDoneViaReturnStmt loc
-                 return ER_ForLoopDoneViaReturnStmt
+          do theEnv <- env <$> get
+             forBodyNodesVisited <- visitForBodyNodes loc forBody_forStep_path
+             case forBodyNodesVisited of
+               ER_Break -> do
+                 tellNextLog $ Log.ForLoopDoneViaBreakStmt loc
+                 return ER_ForLoopDoneViaBreakStmt
+               ER_Void
+                 -- return statement breaks the loop
+                 | hasReturn theEnv -> do
+                     tellNextLog $ Log.ForLoopDoneViaReturnStmt loc
+                     return ER_ForLoopDoneViaReturnStmt
+                 -- recursion
+                 | otherwise -> do
+                     -- it's a good idea to log the current state
+                     --   before staring the next loop round
+                     get >>= tellNextLog . Log.ReportTheState loc . show . env
+                     visitRegisteredLoop
+                       (loopCounter+1) env_Before_Acc cfg m_Acc mForCondExpr forBody_forStep_path branchRange
         else do
           tellNextLog $ Log.ForLoopLimitReached loc (show forLoopLimit)
           theEnv <- env <$> get
           tellNextLog $ Log.Skip loc $ printf "The following state will be ignored due to the limit set for for loop: %d:\n%s" forLoopLimit (show theEnv)
-        -- restore symState to `env_Before_Acc`
+          -- restore symState to `env_Before_Acc`
           do
             tellNextLog $ Log.ModifyState "visitRegisteredLoop" ("Undo SymState to before the loop",show env_Before_Acc)
             modify $ \symState -> SymState env_Before_Acc (logHeader symState)
         
-          er <- visitUnregisteredLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange
+          visitUnregisteredLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange
           -- add entry to SymState to report about the reached limit loop failure
           do
             tellNextLog $ Log.ModifyState "visitRegisteredLoop" ("LoopFailure",show $ SLoopFailure branchRange forLoopLimit)
             modify $ \symState -> SymState
               (Map.insert LoopFailure (SLoopFailure branchRange forLoopLimit) (env symState))
               (logHeader symState)
-          return er
+          return ER_ForLoopCounterTooBig
     -- it's atomic, and terminate
     SBool False -> do
       tellNextLog $ Log.ForLoopDone loc
@@ -1517,43 +1548,69 @@ visitRegisteredLoop loopCounter env_Before_Acc cfg m_Acc mForCondExpr forBody_fo
       return ER_ForLoopDone
     -- it's not atomic
     _ -> throwError $ printf "%s ==> won't happen3" loc
-         {-
-         do tellNextLog $ Log.ForLoopConditionUndetermined "visitRegisteredLoop" (show forCondExpr_visited)
-            -- restore symState to that or `env_Before_Acc`
-            modify $ \symState -> SymState env_Before_Acc (logHeader symState)
-            visitUnregisteredLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange-}
   where
   visitForBodyNodes :: String -> [CFGT.Node] -> SymbolicExecutionMonad ExecutionResult
-  visitForBodyNodes loc = \case
-    [] -> return ER_Void
-    (node : rest) -> do
-      -- visit next node in the for body
-      visited <- do
-        incrementLogDepth
-        x <- censor (map (\(Log.Log num tag) ->
-          Log.Log num $ Log.Nested "For Loop Body" $ Log.Nested "Registering" tag))
-          (methodProcessorMonad (visitNode node))
-        decrementLogDepth
-        return x
-      
+  visitForBodyNodes loc nodes = let
+    locAttachment = " ==> visitForBodyNodes"
+    in case nodes of
+         [] -> return ER_Void
+         (node : rest) -> do
+           -- visit next node in the for body
+           visited <- do
+             incrementLogDepth
+             x <- censor (map (\(Log.Log num tag) ->
+               Log.Log num $ Log.Nested "For Loop Body" $ Log.Nested "Registering" tag))
+               (methodProcessorMonad (visitNode node))
+             decrementLogDepth
+             return x
+
+           do theEnv <- env <$> get
+              if
+                -- if a continue statement was just detected
+                | hasContinue theEnv -> do
+                    tellNextLog $ Log.ModifyState loc ("delete continue","SymContinue")
+                    modify $ \symState -> SymState {
+                      env = Map.alter (\case
+                        Just _ -> Nothing
+                        Nothing -> error $ loc ++ locAttachment ++ " ==> won't happen1")
+                        Continue (env symState),
+                      logHeader = logHeader symState
+                    }
+                    case find CFGT.isForStepNode rest of
+                      Just lastNode -> visitForBodyNodes loc [lastNode]
+                      Nothing -> return ER_Void
+                -- if a break statement was just detected
+                | hasBreak theEnv -> do
+                    tellNextLog $ Log.ModifyState loc ("delete break","SymBreak")
+                    modify $ \symState -> SymState {
+                      env = Map.alter (\case
+                        Just _ -> Nothing
+                        Nothing -> error $ loc ++ locAttachment ++ " ==> won't happen2")
+                        Break (env symState),
+                      logHeader = logHeader symState
+                    }
+                    return ER_Break
+                | otherwise -> visitForBodyNodes loc rest
+{-
       -- see if a continue statement was just detected
       do theEnv <- env <$> get
          case Map.lookup Continue theEnv of
            -- no continue statement
-           Nothing -> visitForBodyNodes loc rest
+           Nothing -> return ER_Void
            -- yes continue statement
            Just _ -> do
+             tellNextLog $ Log.ModifyState loc ("delete continue","SymContinue")
              modify $ \symState -> SymState {
                env = Map.alter (\case
                  Just _ -> Nothing
-                 Nothing -> error $ loc ++ " ==> visitForBodyNodes ==> won't happen")
+                 Nothing -> error $ loc ++ " ==> visitForBodyNodes ==> won't happen1")
                  Continue (env symState),
                logHeader = logHeader symState
              }
-             tellNextLog $ Log.ForLoopDoneViaContinueStmt loc
              case find CFGT.isForStepNode rest of
                Just lastNode -> visitForBodyNodes loc [lastNode]
                Nothing -> return ER_Void
+-}
 
 ------------------------------
 
@@ -1587,12 +1644,9 @@ createLoopCondition expr = do
               $ Map.singleton name value
             _ -> throwError
               $ printf "%s ==> TODO1: %s ==>\n\n%s" loc (show expr) (show er)
-   {-ER_PredefinedFunCall val -> return
-       $ Map.singleton (intercalate "." $ AST.varObj expr ++ [AST.varName expr]) val
-     ER_FunCall funCallSymState -> throwError
-       $ printf "%s ==> TODO: %s" loc (show expr)-}
     AST.NumberLiteral _ -> return $ Map.empty
-    _ -> throwError $ printf "%s ==> TODO: %s" loc (show expr)
+    AST.BoolLiteral _ -> return $ Map.empty
+    _ -> throwError $ printf "%s ==> TODO2: %s" loc (show expr)
 
 ------------------------------
 
@@ -1788,21 +1842,6 @@ runCFG cfgs cfg mPath mSymState =
             return ER_Void
           Nothing ->
             incrementLogDepth *> methodProcessorMonad (visitNode node) <* decrementLogDepth
-        
-        {-
-        theEnv <- env <$> get
-        case node of
-          CFGT.Entry _ _ _ -> return ()
-          CFGT.Node theId _ _
-            | theId `elem` [1,2] -> return ()
-          _ -> throwError $ printf
-            "MEOW::\n\n\
-            \1) %s\n\n\
-            \2) %s\n\n\
-            \3) %s\n\n\
-            \4) %s\n\n"
-            (show path) (show node) (show $ env state_) (show theEnv)
-         -}
 
       (methodNameKey,methodNameValue) =
         (MethodHandle , 

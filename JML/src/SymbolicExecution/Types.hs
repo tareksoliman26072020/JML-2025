@@ -27,7 +27,7 @@ newtype MethodProcessor = MethodProcessor {
 data SymStateKey = MethodHandle
                  | GlobalVars | FormalParms | VarBindings | VarAssignments
                  | VarName String | ScopeRange CFGT.ScopeRange | LoopFailure
-                 | LoopConditions CFGT.ScopeRange | Continue
+                 | LoopConditions CFGT.ScopeRange | Continue | Break
                  | Return | Exception | Actions
                  deriving (Eq,Ord,Show)
 
@@ -114,6 +114,7 @@ visitSymExpr ==> SymInt: ER_SymStateMapEntry
 data ExecutionResult =
     ER_Expr SymExpr
   | ER_Continue
+  | ER_Break
   | ER_Node {er_Node_id :: CFGT.NodeID, nodeName :: String}
   | ER_SymStateMapEntry SymStateKey SymExpr
   | ER_VarExprObjAccess {-object access name-}String {-object access value-}SymExpr
@@ -126,7 +127,9 @@ data ExecutionResult =
   | ER_IfCond SymExpr  -- ^ boolean expressions found in if conditions. Its existance in the environment values map means that the ......
   | ER_PredefinedFunCall SymExpr
   | ER_ForLoopDone
+  | ER_ForLoopCounterTooBig
   | ER_ForLoopDoneViaReturnStmt
+  | ER_ForLoopDoneViaBreakStmt
   | ER_Void
   | ER_ReturnVoid
   | ER_ActualParameterDetected String SymExpr
@@ -164,6 +167,7 @@ data SymExpr =
   | SGlobalVars [String]
   | SymReturnVoid
   | SymContinue
+  | SymBreak
   deriving (Eq,Show)
 
 type SymReason = ([(CFGT.Kind,CFGT.ScopeRange)],Int)

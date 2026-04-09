@@ -93,6 +93,13 @@ isGlobalVariable3 tu{-@(globals,formals,locals)-} varName =
     (Just (SGlobalVars globals),Just (SFormalParms formals),Just (SVarBindings bindings))
       -> isGlobal globals || (isNotFormal formals && isNotLocal bindings)
 
+isLocalVar :: String -> SymStateEnv -> Bool
+isLocalVar vn env = case Map.lookup VarBindings env of
+  Nothing -> False
+  Just (SVarBindings ma) -> case Map.lookup vn ma of
+    Nothing -> False
+    Just _ -> True
+
 -- type SymReason = ([(CFGT.Kind,CFGT.ScopeRange)],Int)
 hasForReason :: [SymReason] -> Bool
 hasForReason = \case
@@ -217,6 +224,33 @@ isSymVar2 :: SymExpr -> SymType -> Bool
 isSymVar2 (SymVar t _) symType = t == symType
 isSymVar2 _ _ = False
 
+isSymUnknown :: SymExpr -> Bool
+isSymUnknown = \case
+  SymUnknown _ _ -> True
+  _ -> False
+
+hasSymUnknown :: SymExpr -> Bool
+hasSymUnknown = \case
+  SBin symExpr1 _ symExpr2 -> any hasSymUnknown [symExpr1,symExpr2]
+  SNot symExpr -> hasSymUnknown symExpr
+  SymVar _ _ -> False
+  SymInt _ -> False
+  SymString _ -> False
+  SArrayIndexAccess _ _ symExpr -> hasSymUnknown symExpr
+  SymUnknown _ _ -> True
+  symExpr -> error $ "SymbolicExecution.Internal.hasSymUnknown: " ++ show symExpr
+
+hasSymVar :: SymExpr -> Bool
+hasSymVar = \case
+  SBin symExpr1 _ symExpr2 -> any hasSymVar [symExpr1,symExpr2]
+  SNot symExpr -> hasSymVar symExpr
+  SymVar _ _ -> True
+  SymInt _ -> False
+  SymString _ -> False
+  SArrayIndexAccess _ _ symExpr -> hasSymVar symExpr
+  SymUnknown symExpr _ -> hasSymVar symExpr
+  symExpr -> error $ "SymbolicExecution.Internal.hasSymVar: " ++ show symExpr
+
 isSymFun :: SymExpr -> Bool
 isSymFun = \case
   SymFun _ _ -> True
@@ -242,11 +276,6 @@ isArray :: SymExpr -> Bool
 isArray = \case
   SymArray _ _ _ -> True
   SymVar (Array _) _ -> True
-  _ -> False
-
-isSymUnknown :: SymExpr -> Bool
-isSymUnknown = \case
-  SymUnknown _ _ -> True
   _ -> False
 
 getSymUnknownReasons :: SymExpr -> [SymReason]
@@ -332,6 +361,9 @@ pick_known_symType2 = \case
 getReturnSymExpr :: SymState -> Maybe SymExpr
 getReturnSymExpr = Map.lookup Return . env
 
+hasReturn :: SymStateEnv -> Bool
+hasReturn = Map.member Return
+
 getSymExpr :: ExecutionResult -> Maybe SymExpr
 getSymExpr = \case
   ER_Expr symExpr -> Just symExpr
@@ -404,6 +436,11 @@ decrementLogDepth = do
   }
   --tell [Log.Log "?" $ Log.DecrementLogDepth depth (depth-1)]
   
+hasContinue :: SymStateEnv -> Bool
+hasContinue = Map.member Continue
+
+hasBreak :: SymStateEnv -> Bool
+hasBreak = Map.member Break
 
 -- alters the type of a global variable based on the expression and the scope it exists in
 -- It is used in visitExpr ==> AssignExpr / ==> BinOpExpr
@@ -823,7 +860,11 @@ toBinSymExpr :: SymBinOp -> (SymExpr, SymExpr) -> SymExpr
 toBinSymExpr op (expr1,expr2) = SBin expr1 op expr2
 
 negate :: SymExpr -> SymExpr
-negate symExpr = error $ "TODO: negate ~~> " ++ show symExpr
+negate symExpr = case symExpr of
+--SArrayIndexAccess (Array Int) "arr" (SymInt 0)
+  SArrayIndexAccess (Array t) _ _ ->
+    SBin (cast t $ SymNum (-1)) Mul symExpr
+  _ -> error $ "TODO: negate ~~> " ++ show symExpr
 
 negateOp :: SymBinOp -> SymBinOp
 negateOp = \case
@@ -889,6 +930,8 @@ getNewVarAssignment (allVarNames,nodeCoor) = \case
   stmt@AST.FunCallStmt{} -> Nothing
   ----------
   AST.ContinueStmt -> Nothing
+  ----------
+  AST.BreakStmt -> Nothing
   ----------
   stmt -> error $ printf "getNewVarAssignment ==> TODO: (%s,%s)" (show nodeCoor) (show stmt)
   where

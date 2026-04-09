@@ -42,6 +42,7 @@ ppConsoleLogTag = \case
     ReturnStatement str loc -> printf "(%s): %s: %s" (cyan loc) (yellow "handling return expression") str
     AssignStatement str loc -> printf "(%s): %s: %s" (cyan loc) (yellow "handling assign statement") str
     ContinueStatement loc   -> printf "(%s): %s" (cyan loc) (yellow "handling continue statement")
+    BreakStatement loc      -> printf "(%s): %s" (cyan loc) (yellow "handling break statement")
     Edge_2_Handle str loc   -> printf "(%s): %s: %s" (cyan loc) (yellow "running CFG") str
     Meow str1 str2          -> printf "Meow: %s %s" str1 str2
     HorizontalLine str      -> printf "\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %s <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n" (yellow str)
@@ -79,8 +80,8 @@ ppConsoleLogTag = \case
     ForLoopDone loc         -> printf "(%s): %s" (cyan loc) (yellow "For Loop Done")
     ForLoopDoneViaReturnStmt
                 loc         -> printf "(%s): %s" (cyan loc) (yellow "For Loop Done due to return statement")
-    ForLoopDoneViaContinueStmt
-                loc         -> printf "(%s): %s" (cyan loc) (yellow "For Loop Done due to continue statement")
+    ForLoopDoneViaBreakStmt
+                loc         -> printf "(%s): %s" (cyan loc) (yellow "For Loop Done due to break statement")
     UnvisitedForLoop loc expr
                             -> printf "(%s): %s: %s" (cyan loc) (yellow "Unregistered For Loop") expr
     ForLoopConditionUndetermined loc val
