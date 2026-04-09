@@ -116,6 +116,9 @@ javaMethodInputs = [
   ("addElemRight", addElemRight), ("addElemRightCall", addElemRightCall),
   ("removeAtPos", removeAtPos), ("removeAtPosCall1", removeAtPosCall1),
                                 ("removeAtPosCall2", removeAtPosCall2),
+  ("takeWhileAsLongAsEven", takeWhileAsLongAsEven),
+      ("takeWhileAsLongAsEvenCall1", takeWhileAsLongAsEvenCall1),
+      ("takeWhileAsLongAsEvenCall2", takeWhileAsLongAsEvenCall2),
 ----------Bubble Sort:
   ("bubbleSort", bubbleSort), ("bubbleSortCall", bubbleSortCall),
   ("replicate", replicate), ("replicateCall", replicateCall),
@@ -1364,6 +1367,38 @@ removeAtPosCall2 = "public void removeAtPosCall2() {\n\
                    \  int[] arr = removeAtPos(new int[]{4,9},0);\n\
                    \  println(arr);\n\
                    \}"
+
+takeWhileAsLongAsEven = "public int[] takeWhileAsLongAsEven(int[] arr) {\n\
+                        \  int[] res = new int[0];\n\
+                        \  for(int i=0; i<arr.length; i++) {\n\
+                        \    if(arr[i] % 2 == 0) {\n\
+                        \      int[] temp = new int[res.length+1];\n\
+                        \      for(int j=0; j<=i; j++) {\n\
+                        \        if(j<i) {\n\
+                        \         temp[j] = res[j];\n\
+                        \        }\n\
+                        \        else {\n\
+                        \          temp[j] = arr[i];\n\
+                        \        }\n\
+                        \      }\n\
+                        \      res = temp;\n\
+                        \    }\n\
+                        \    else {\n\
+                        \      return res;\n\
+                        \    }\n\
+                        \  }\n\
+                        \  return res;\n\
+                        \}"
+
+takeWhileAsLongAsEvenCall1 = "public void takeWhileAsLongAsEvenCall1() {\n\
+                             \  int[] arr = takeWhileAsLongAsEven(new int[]{2,4,6,8});\n\
+                             \  println(arr);\n\
+                             \}"
+
+takeWhileAsLongAsEvenCall2 = "public void takeWhileAsLongAsEvenCall2() {\n\
+                             \  int[] arr = takeWhileAsLongAsEven(new int[]{2,4,7,6,8});\n\
+                             \  println(arr);\n\
+                             \}"
 
 bubbleSort = "public static void bubbleSort(int[] arr) {\n\
              \  int n = arr.length;\n\

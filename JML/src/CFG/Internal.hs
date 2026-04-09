@@ -81,12 +81,18 @@ getEndIfNode cfg node
   helper :: CFG -> Node -> Int -> Node
   helper cfg currentNode 0 = currentNode
   helper cfg currentNode counter = case findEdge_via_id cfg (getNodeId currentNode) of
-      Nothing -> error "getEndIfNode: won't happen"
-      Just (_,(next : _)) -> case findNode_via_id cfg next of
-        nextNode
-          | isIfStartNode nextNode -> helper cfg nextNode (counter + 1)
-          | isIfEndNode nextNode -> helper cfg nextNode (counter - 1)
-        nextNode -> helper cfg nextNode counter
+    Nothing -> error "getEndIfNode: won't happen"
+    Just (_,(next : _)) -> case findNode_via_id cfg next of
+      nextNode
+        | isIfStartNode nextNode -> helper cfg nextNode (counter + 1)
+        | isIfEndNode nextNode -> helper cfg nextNode (counter - 1)
+        | isForInitNode nextNode ->
+            let forMeetNode = getEndForNode cfg nextNode
+            in helper cfg forMeetNode counter
+        | isWhileCondNode nextNode ->
+            let whileMeetNode = getEndWhileNode cfg nextNode
+            in helper cfg whileMeetNode counter
+      nextNode -> helper cfg nextNode counter
 
 getEndForNode :: CFG -> Node -> Node
 getEndForNode cfg node = case findEdge_via_id cfg (getNodeId node) of

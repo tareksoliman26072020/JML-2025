@@ -117,6 +117,9 @@ allTargets = [
   ("addElemRight", addElemRight), ("addElemRightCall", addElemRightCall),
   ("removeAtPos", removeAtPos), ("removeAtPosCall1", removeAtPosCall1),
                                 ("removeAtPosCall2", removeAtPosCall2),
+  ("takeWhileAsLongAsEven", takeWhileAsLongAsEven),
+      ("takeWhileAsLongAsEvenCall1", takeWhileAsLongAsEvenCall1),
+      ("takeWhileAsLongAsEvenCall2", takeWhileAsLongAsEvenCall2),
 ----------Bubble Sort:
   ("bubbleSort", bubbleSort), ("bubbleSortCall", bubbleSortCall),
   ("replicate", replicate), ("replicateCall", replicateCall),
@@ -3074,6 +3077,61 @@ removeAtPosCall2 = Map.fromList [
     (VarName "arr",SymArray (Just SYT.Int) (Just (SymInt 1)) [SymInt 9]),
     (Return,SymReturnVoid),
     (Actions,SActions [SymString "[9]\n"])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+takeWhileAsLongAsEven :: SymStateEnv
+takeWhileAsLongAsEven = Map.fromList [
+    (MethodHandle,SMethodHandle (SYT.Array SYT.Int) "takeWhileAsLongAsEven"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["arr"]),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 15}})])),
+    (VarAssignments,SVarAssignments [
+        ("res",(SymArray (Just SYT.Int) (Just (SymInt 0)) [],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 15}})),
+        ("res",(SymArray (Just SYT.Int) (Just (SymInt 1)) [SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymInt 0)],Node_Coor {varDeclAt = 14, varFrame = SR {branchStart = 4, branchEnd = 16}}))]),
+    (VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),
+    (VarName "res",SymUnknown (SymArray (Just SYT.Int) (Just (SymInt 0)) []) [([(For,SR {branchStart = 2, branchEnd = 18}),(If,SR {branchStart = 4, branchEnd = 16})],14)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 18}),
+     SLoop (Just (Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}))
+           (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Less, expr2 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}}))
+           [Node {id = 4, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = BinOpExpr {expr1 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, binOp = Mod, expr2 = NumberLiteral 2.0}, binOp = Eq, expr2 = NumberLiteral 0.0})), parent = 2},Node {id = 17, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Plus, expr2 = NumberLiteral 1.0}}})), parent = 2}]),
+    (Return,SymUnknown (SymArray (Just SYT.Int) (Just (SymInt 0)) []) [([(For,SR {branchStart = 2, branchEnd = 18}),(If,SR {branchStart = 4, branchEnd = 16})],14)])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+takeWhileAsLongAsEvenCall1 :: SymStateEnv
+takeWhileAsLongAsEvenCall1 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "takeWhileAsLongAsEvenCall1"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+    (VarAssignments,SVarAssignments [
+        ("arr",(SymArray (Just SYT.Int) (Just (SymInt 4)) [SymInt 2,SymInt 4,SymInt 6,SymInt 8],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just (SymInt 4)) [SymInt 2,SymInt 4,SymInt 6,SymInt 8]),
+    (Return,SymReturnVoid),
+    (Actions,SActions [SymString "[2, 4, 6, 8]\n"])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+takeWhileAsLongAsEvenCall2 :: SymStateEnv
+takeWhileAsLongAsEvenCall2 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "takeWhileAsLongAsEvenCall2"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+    (VarAssignments,SVarAssignments [
+        ("arr",(SymArray (Just SYT.Int) (Just (SymInt 2)) [SymInt 2,SymInt 4],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+    (VarName "arr",SymArray (Just SYT.Int) (Just (SymInt 2)) [SymInt 2,SymInt 4]),
+    (Return,SymReturnVoid),
+    (Actions,SActions [SymString "[2, 4]\n"])
   ]
 
 -----------------------------

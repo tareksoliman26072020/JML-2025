@@ -480,6 +480,20 @@ instance CFGVisitor MethodProcessor where
               CFGT.Entry _ _ _ -> error $ printf "%s won't happen" loc
               CFGT.End _ _ _ -> error $ printf "%s won't happen" loc
               CFGT.Node theId _ _ -> theId /= forCondNodeId
+        {-env <$> get >>= \theEnv -> throwError $ printf
+          "meow::\n\n\
+          \1) %s\n\n\
+          \2) %s\n\n\
+          \3) %s\n\n\
+          \4) %s\n\n\
+          \5) %s\n\n\
+          \6) %s\n\n\
+          \7) %s\n\n\
+          \8) %s\n\n" (show theEnv) (show n)
+                      (show forBodyBranch) (show $ CFG.findEdge_via_id cfg forBodyBranch)
+                      (show $ CFG.findNode_via_id cfg forBodyBranch)
+                      (show $ CFG.getEndIfNode cfg $ CFG.findNode_via_id cfg forBodyBranch)
+                      (show forBody_forStep_path) (show $ CFG.getPath forBodyBranch cfg)-}
         -- implement a helper that takes as input `(accLogs,accState)`
         -- call it `visitForLoop`
         visitLoop cfg m_Acc

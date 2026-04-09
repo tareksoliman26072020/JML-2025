@@ -4537,6 +4537,25 @@ public void removeAtPosCall2() {
 /////////////////////
 
 //TODO
+/*
+[
+    (MethodHandle,SMethodHandle (Array Int) "takeWhileAsLongAsEven"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["arr"]),
+    (VarBindings,SVarBindings (fromList [
+        ("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 15}})])),
+    (VarAssignments,SVarAssignments [
+        ("res",(SymArray (Just Int) (Just (SymInt 0)) [],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 15}})),
+        ("res",(SymArray (Just Int) (Just (SymInt 1)) [SArrayIndexAccess (Array Int) "arr" (SymInt 0)],Node_Coor {varDeclAt = 14, varFrame = SR {branchStart = 4, branchEnd = 16}}))]),
+    (VarName "arr",SymVar (Array Int) "arr"),
+    (VarName "res",SymUnknown (SymArray (Just Int) (Just (SymInt 0)) []) [([(For,SR {branchStart = 2, branchEnd = 18}),(If,SR {branchStart = 4, branchEnd = 16})],14)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 18}),
+     SLoop (Just (Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}))
+           (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}}))
+           [Node {id = 4, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = BinOpExpr {expr1 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "arr"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, binOp = %, expr2 = NumberLiteral 2.0}, binOp = ==, expr2 = NumberLiteral 0.0})), parent = 2},Node {id = 17, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}})), parent = 2}]),
+    (Return,SymUnknown (SymArray (Just Int) (Just (SymInt 0)) []) [([(For,SR {branchStart = 2, branchEnd = 18}),(If,SR {branchStart = 4, branchEnd = 16})],14)])
+  ]
+*/
 public int[] takeWhileAsLongAsEven(int[] arr) {
   int[] res = new int[0];
   for(int i=0; i<arr.length; i++) {
@@ -4560,12 +4579,34 @@ public int[] takeWhileAsLongAsEven(int[] arr) {
 }
 
 //TODO
+/*
+[
+    (MethodHandle,SMethodHandle Void "takeWhileAsLongAsEvenCall1"),
+    (VarBindings,SVarBindings (fromList [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+    (VarAssignments,SVarAssignments [
+        ("arr",(SymArray (Just Int) (Just (SymInt 4)) [SymInt 2,SymInt 4,SymInt 6,SymInt 8],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+    (VarName "arr",SymArray (Just Int) (Just (SymInt 4)) [SymInt 2,SymInt 4,SymInt 6,SymInt 8]),
+    (Return,SymReturnVoid),
+    (Actions,SActions [SymString "[2, 4, 6, 8]\n"])
+  ]
+*/
 public void takeWhileAsLongAsEvenCall1() {
   int[] arr = takeWhileAsLongAsEven(new int[]{2,4,6,8});
   println(arr);
 }
 
 //TODO
+/*
+[
+    (MethodHandle,SMethodHandle Void "takeWhileAsLongAsEvenCall2"),
+    (VarBindings,SVarBindings (fromList [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+    (VarAssignments,SVarAssignments [
+        ("arr",(SymArray (Just Int) (Just (SymInt 2)) [SymInt 2,SymInt 4],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+    (VarName "arr",SymArray (Just Int) (Just (SymInt 2)) [SymInt 2,SymInt 4]),
+    (Return,SymReturnVoid),
+    (Actions,SActions [SymString "[2, 4]\n"])
+  ]
+*/
 public void takeWhileAsLongAsEvenCall2() {
   int[] arr = takeWhileAsLongAsEven(new int[]{2,4,7,6,8});
   println(arr);
