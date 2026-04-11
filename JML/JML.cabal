@@ -29,10 +29,10 @@ library
       CFG.Internal
       CFG.Types
       JML.Internal
-      JML.JML
       JML.Logs.Console
       JML.Logs.Log
       JML.Logs.PrettyPrint
+      JML.Method
       JML.Types
       Methods.JavaMethod
       Parser.ParseExpr

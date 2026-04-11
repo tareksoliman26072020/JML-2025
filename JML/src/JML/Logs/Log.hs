@@ -18,7 +18,11 @@ data LogTag =
 ppLogTag :: LogTag -> String
 ppLogTag = \case
   Meow str1 str2          -> printf "%s: %s %s" "red" str1 str2
-  NextSymExpr loc k v -> printf "%s: %s" "Next SymExpr" loc k v
+  NextSymExpr loc k v -> printf
+    "%s: %s\n\
+    \1) key = %s\n\
+    \2) value = %s"
+    "Next SymExpr" loc k v
   HorizontalLine str  -> printf "\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %s <<<<<<<<<<<<<<<<<<<<\n" str
   Nested nestedStr logTag -> printf "%s ==> %s" nestedStr (ppLogTag logTag)
   log -> error $ "SymbolicExecution.Logs.Log ==> TODO: " ++ show log

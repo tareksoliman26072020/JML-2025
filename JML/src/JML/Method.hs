@@ -1,5 +1,5 @@
 {-# Language LambdaCase #-}
-module JML.JML where
+module JML.Method where
 
 import Visitors.API
 import JML.Types
@@ -17,14 +17,19 @@ import Control.Monad.Except
 import Control.Monad.Reader
 
 globalLoc :: String
-globalLoc = "JML.JML"
+globalLoc = "JML.Method"
 
 instance SymbolicExecutionVisitor MethodProcessor where
 --visitSymExpr :: (SYM.SymStateKey,SY.SymExpr) -> MethodProcessor
-  visitSymExpr tu = MethodProcessor $ case tu of
+  visitSymExpr tu@(key,value) = MethodProcessor $ case tu of
     _ ->
-      let loc = globalLoc ++ "." ++ show tu
-      in throwError $ printf "TODO: %s" loc
+      let loc = globalLoc ++ ".visitSymExpr"
+      in throwError $ printf
+        "TODO:\n\
+        \1) %s\n\
+        \2) key = %s\n\
+        \3) value = %s"
+        loc (show key) (show value)
 
 -----------------------------
 -----------------------------

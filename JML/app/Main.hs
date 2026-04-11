@@ -28,7 +28,7 @@ import qualified JML.Types as JMLT
 import qualified JML.Internal as JML.Internal
 import qualified JML.Logs.Log as JML.Log (Log)
 import qualified JML.Logs.PrettyPrint as JML.PP.Log (ppLogs, LogKind(Console))
-import qualified JML.JML as JML (runSE)
+import qualified JML.Method as JML (runSE)
 
 import qualified Methods.JavaMethod as JavaMethod
 
@@ -259,17 +259,18 @@ printJMLMethod funName withLogs = do
         in case er of
              "" -> SYT.env s
              _  -> error $ printf
-               "Error1:\n\n\
-               \1) %s\n\n\
-               \2) funName: %s\n\n\
-               \3) %s" loc funName er
+               "Error1: %s\n\
+               \1) funName: %s\n\n\
+               \2) %s"
+               loc funName er
 
       se :: SYT.SymbolicExecution
       se = case find (\s -> SY.Internal.getFunName s == funName) ses of
+        Just se -> se
         Nothing -> error $ printf
-          "Error2:\n\n\
-          \1) %s\n\n\
-          \2) %s not found" loc funName
+          "Error2: %s\n\
+          \%s not found"
+          loc funName
       
       jml :: (String,[JML.Log.Log],JMLT.JMLState)
       jml@(er,logs,jmlState) = JML.runSE (JML.Internal.se_2_map ses) se
@@ -288,9 +289,8 @@ printJMLMethod funName withLogs = do
       print method
       putStrLn $ replicate 50 '='
       putStrLn $ printf
-        "Error3:\n\n\
-        \1) %s\n\n\
-        \2) %s" loc er
+        "Error3: %s\n\
+        \%s" loc er
       return method
 
 -----------------------------
