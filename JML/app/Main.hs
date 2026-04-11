@@ -1,4 +1,4 @@
-{-# Language LambdaCase #-}
+{-# Language LambdaCase, ScopedTypeVariables #-}
 module Main where
 
 import Text.ParserCombinators.Parsec
@@ -20,20 +20,19 @@ import qualified CFG.Types as CFGT (CFG(..), showCFG, Node(..))
 
 import qualified SymbolicExecution.Types as SYT
 import qualified SymbolicExecution.Method as SYM (runCFG)
-import qualified SymbolicExecution.Logs.PrettyPrint as SYT.Log
-import SymbolicExecution.Internal.Calculator-- (numericCalculator, booleanCalculator)
-import SymbolicExecution.Internal.Internal (cast, toSymType2)
+import qualified SymbolicExecution.Logs.PrettyPrint as SY.PP.Log
+import qualified SymbolicExecution.Internal.Calculator as SY.Calculator
+import qualified SymbolicExecution.Internal.Internal as SY.Internal (cast, toSymType2, getFunName)
+
+import qualified JML.Types as JMLT
+import qualified JML.Internal as JML.Internal
+import qualified JML.Logs.Log as JML.Log (Log)
+import qualified JML.Logs.PrettyPrint as JML.PP.Log (ppLogs, LogKind(Console))
+import qualified JML.JML as JML (runSE)
 
 import qualified Methods.JavaMethod as JavaMethod
 
 import Text.Printf (printf)
-
-cfg = CFGT.CFG {
-  CFGT.nodes = [
-    CFGT.Entry (AST.BuiltInType AST.Int) "boo21" [],
-    CFGT.End {CFGT.id = 1, CFGT.parent = 0, CFGT.mExpr = Just (AST.NumberLiteral 5.0)}],
-    CFGT.edges = [(0,[1])]
-}
 
 getAST :: String -> IO AST.Method
 getAST methodName = readFile "test1.java" >>=
@@ -42,7 +41,7 @@ getAST methodName = readFile "test1.java" >>=
   . find ((== methodName) . snd . AST.getMethodDecl)
   . fromRight undefined . parse parseDeclList ""
 
-getAST2 ::IO (Either ParseError Method)--AST.Method
+getAST2 ::IO (Either ParseError Method)
 getAST2 = readFile "test2.java" >>= return .
   parse parseExtDecl ""
 
@@ -88,12 +87,12 @@ printSymState1 funName withLogs = readFile "test1.java" >>=
                 let (er,logs,s) = SYM.runCFG cfgs cfg0 Nothing Nothing
                 in case er of
                      "" -> do if withLogs
-                                then putStrLn $ (SYT.Log.ppLogs SYT.Log.Console logs)
+                                then putStrLn $ (SY.PP.Log.ppLogs SY.PP.Log.Console logs)
                                 else return ()
                               return s
                                         
                      _  -> do if withLogs
-                                then putStrLn $ (SYT.Log.ppLogs SYT.Log.Console logs)
+                                then putStrLn $ (SY.PP.Log.ppLogs SY.PP.Log.Console logs)
                                 else return ()
                               putStrLn $ replicate 50 '='
                               print s
@@ -110,9 +109,9 @@ printSymState2 funName =
   (\(cfg,cfgs) ->
       let (er,logs,s) = SYM.runCFG cfgs cfg Nothing Nothing
       in case er of
-           "" -> do putStrLn $ (SYT.Log.ppLogs SYT.Log.Console logs)
+           "" -> do putStrLn $ (SY.PP.Log.ppLogs SY.PP.Log.Console logs)
                     return s
-           _  -> do putStrLn $ (SYT.Log.ppLogs SYT.Log.Console logs)
+           _  -> do putStrLn $ (SY.PP.Log.ppLogs SY.PP.Log.Console logs)
                     putStrLn $ replicate 50 '='
                     print s
                     putStrLn $ replicate 50 '='
@@ -140,8 +139,8 @@ writeSymStates1 fileName = readFile fileName >>=
                  let writingFun = writeFile
                        (printf "logs/%s.md" funName)
                        (case er of
-                          "" -> SYT.Log.ppLogs SYT.Log.Markdown logs ++ "\n\n# SymState:\n" ++ show s
-                          _  -> SYT.Log.ppLogs SYT.Log.Markdown logs ++ "\n\n# SymState:\n" ++ show s ++  "\n\n# error:\n" ++ er)
+                          "" -> SY.PP.Log.ppLogs SY.PP.Log.Markdown logs ++ "\n\n# SymState:\n" ++ show s
+                          _  -> SY.PP.Log.ppLogs SY.PP.Log.Markdown logs ++ "\n\n# SymState:\n" ++ show s ++  "\n\n# error:\n" ++ er)
                  isFolderThere <- doesDirectoryExist "logs"
                  if isFolderThere
                    then writingFun
@@ -161,8 +160,8 @@ writeSymStates2 =
                  let writingFun = writeFile
                        (printf "logs/%s.md" funName)
                        (case er of
-                          "" -> SYT.Log.ppLogs SYT.Log.Markdown logs ++ "\n\n# SymState:\n" ++ show s
-                          _  -> SYT.Log.ppLogs SYT.Log.Markdown logs ++ "\n\n# SymState:\n" ++ show s ++  "\n\n# error:\n" ++ er)
+                          "" -> SY.PP.Log.ppLogs SY.PP.Log.Markdown logs ++ "\n\n# SymState:\n" ++ show s
+                          _  -> SY.PP.Log.ppLogs SY.PP.Log.Markdown logs ++ "\n\n# SymState:\n" ++ show s ++  "\n\n# error:\n" ++ er)
                  isFolderThere <- doesDirectoryExist "logs"
                  if isFolderThere
                    then writingFun
@@ -183,8 +182,8 @@ writeSymState funName = readFile "test1.java" >>=
                     writingFun = writeFile
                        (printf "logs/%s.md" funName)
                        (case er of
-                          "" -> SYT.Log.ppLogs SYT.Log.Markdown logs ++ "\n\n# SymState:\n" ++ show s
-                          _  -> SYT.Log.ppLogs SYT.Log.Markdown logs ++ "\n\n# SymState:\n" ++ show s ++  "\n\n# error:\n" ++ er)
+                          "" -> SY.PP.Log.ppLogs SY.PP.Log.Markdown logs ++ "\n\n# SymState:\n" ++ show s
+                          _  -> SY.PP.Log.ppLogs SY.PP.Log.Markdown logs ++ "\n\n# SymState:\n" ++ show s ++  "\n\n# error:\n" ++ er)
                 isFolderThere <- doesDirectoryExist "logs"
                 if isFolderThere
                   then writingFun
@@ -218,6 +217,84 @@ expr = AST.BinOpExpr {
   AST.expr2 = AST.NumberLiteral 2.0
 }
 
+-----------------------------
+
+{-
+printSymState1 :: String -> Bool -> IO SYT.SymState
+printSymState1 funName withLogs = readFile "test1.java" >>=
+  (\cfgs -> case CFG2.findCFGByName funName cfgs of
+              Just cfg0 ->
+                let (er,logs,s) = SYM.runCFG cfgs cfg0 Nothing Nothing
+                in case er of
+                     "" -> do if withLogs
+                                then putStrLn $ (SY.PP.Log.ppLogs SY.PP.Log.Console logs)
+                                else return ()
+                              return s
+                                        
+                     _  -> do if withLogs
+                                then putStrLn $ (SY.PP.Log.ppLogs SY.PP.Log.Console logs)
+                                else return ()
+                              putStrLn $ replicate 50 '='
+                              print s
+                              putStrLn $ replicate 50 '='
+                              putStrLn $ "Error: " ++ er
+                              return s
+              Nothing   -> error $ "method " ++ funName ++ " does not exist")
+  . map CFG1.exec
+  . fromRight undefined . parse parseDeclList ""
+ -}
+printJMLMethod :: String -> Bool -> IO JMLT.Method
+printJMLMethod funName withLogs = do
+  unparsed <- readFile "test1.java"
+  let loc = "Main.printJMLMethod"
+  let parsed :: [AST.Method]
+      parsed = fromRight undefined (parse parseDeclList "" unparsed)
+      
+      cfgs :: [CFGT.CFG]
+      cfgs = map CFG1.exec parsed
+      
+      ses :: [SYT.SymbolicExecution]
+      ses = flip map cfgs $ \cfg ->
+        let (er,logs,s) = SYM.runCFG cfgs cfg Nothing Nothing
+        in case er of
+             "" -> SYT.env s
+             _  -> error $ printf
+               "Error1:\n\n\
+               \1) %s\n\n\
+               \2) funName: %s\n\n\
+               \3) %s" loc funName er
+
+      se :: SYT.SymbolicExecution
+      se = case find (\s -> SY.Internal.getFunName s == funName) ses of
+        Nothing -> error $ printf
+          "Error2:\n\n\
+          \1) %s\n\n\
+          \2) %s not found" loc funName
+      
+      jml :: (String,[JML.Log.Log],JMLT.JMLState)
+      jml@(er,logs,jmlState) = JML.runSE (JML.Internal.se_2_map ses) se
+
+      method :: JMLT.Method
+      method = JMLT.method jmlState
+
+  if withLogs
+    then putStrLn $ (JML.PP.Log.ppLogs JML.PP.Log.Console logs ++ "\n")
+    else return ()
+
+  case er of
+    "" -> return method
+    _  -> do
+      putStrLn $ replicate 50 '='
+      print method
+      putStrLn $ replicate 50 '='
+      putStrLn $ printf
+        "Error3:\n\n\
+        \1) %s\n\n\
+        \2) %s" loc er
+      return method
+
+-----------------------------
+
 symExpr1 :: SYT.SymExpr
 symExpr1 = SYT.SymFun SYT.ToString
   $ SYT.SBin (SYT.SymInt 1) SYT.Add (SYT.SymVar SYT.Int "n")
@@ -229,10 +306,10 @@ symExpr :: SYT.SymExpr
 symExpr = SYT.SBin symExpr1 SYT.Add symExpr2
 
 main :: IO ()
-main = print $ booleanCalculator $ SYT.SBin (SYT.SymInt 0) SYT.Lt (SYT.SymInt 0)
+main = print $ SY.Calculator.booleanCalculator $ SYT.SBin (SYT.SymInt 0) SYT.Lt (SYT.SymInt 0)
 
 run :: SYT.SymType
-run = toSymType2
+run = SY.Internal.toSymType2
   $ SYT.SymArray (Just SYT.Int) (Just $ SYT.SymInt 2) [SYT.SymInt 99,SYT.SymInt 5]
 
 printMethod :: String -> IO ()

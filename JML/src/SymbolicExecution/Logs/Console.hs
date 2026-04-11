@@ -120,4 +120,4 @@ ppConsoleLogTag = \case
         (yellow "DecrementLogDepth")
         (yellow "oldDepth") oldDepth
         (yellow "newDepth") newDepth
-    logTag -> error "Logs.Console ==> TODO"
+    logTag -> error $ "SymbolicExecution.Logs.Console ==> TODO: " ++ show logTag

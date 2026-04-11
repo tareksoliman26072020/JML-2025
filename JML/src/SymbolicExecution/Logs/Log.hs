@@ -179,7 +179,7 @@ ppLogTag = \case
         \  oldDepth: %d\n\
         \  newDepth: %d"
         oldDepth newDepth
-    log -> error "Logs.Log ==> TODO"
+    log -> error $ "SymbolicExecution.Logs.Log ==> TODO: " ++ show log
 
 data Header = Header {
     logScopeDepth :: Int,

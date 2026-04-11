@@ -1179,3 +1179,8 @@ learnsFrom orig new = let
               _ -> error $ printf "TODO: %s" loc
   _ -> theEnv
   ) orig new
+
+getFunName :: SymStateEnv -> String
+getFunName se = case Map.lookup MethodHandle se of
+  Just (SMethodHandle _ funName) -> funName
+  Nothing -> error "SymbolicExecution.Internal.Internal.getFunName.getFunName ==> won't happen"

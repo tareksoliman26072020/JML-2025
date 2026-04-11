@@ -2,7 +2,7 @@ module Visitors.API where
 
 import qualified Parser.Types as AST
 import qualified CFG.Types as CFG
-import qualified SymbolicExecution.Types as SYM
+import qualified SymbolicExecution.Types as SY
 
 class ASTVisitor v where
   visitMethod :: AST.Method -> v
@@ -11,5 +11,5 @@ class ASTVisitor v where
 class CFGVisitor v where
   visitNode :: CFG.Node -> v
 
-class SymStateVisitor v where
-  visitSymExpr :: (SYM.SymStateKey,SYM.SymExpr) -> v
+class SymbolicExecutionVisitor v where
+  visitSymExpr :: (SY.SymStateKey,SY.SymExpr) -> v
