@@ -702,6 +702,7 @@ cast2 vn newType tu@(symStateKey,symExpr) = case symStateKey of
          SActions _ -> symExpr
          SymNum _ -> symExpr
          SymInt _ -> symExpr
+         SymDouble _ -> symExpr
          SBool _ -> symExpr
          SymString _ -> symExpr
          SymArray mt ms li -> SymArray mt ms $ map (cast2 vn newType . (,) symStateKey) li
@@ -714,7 +715,11 @@ cast2 vn newType tu@(symStateKey,symExpr) = case symStateKey of
              | otherwise -> v
          SLoop _ _ _ -> symExpr
          SymReturnVoid -> symExpr
-         _ -> error $ printf "SymbolicExecution.Internal.cast2 ==> TODO ==> (%s ,, %s)" vn (show tu)
+         _ -> error $ printf
+           "SymbolicExecution.Internal.cast2 ==> TODO ==>\n\n\
+           \1) %s\n\n\
+           \2) %s\n\n\
+           \3) %s" vn (show newType) (show tu)
 
 -- A non-atomic SymExpr contains a plural number of SymExprs.
 -- This function returns all inner SymExprs inside that non-atomic SymExpr
@@ -763,6 +768,8 @@ lookupPartialSymExprs vn tu@(symStateKey,symExpr) = case symStateKey of
       SymNum _ -> []
       ----------
       SymInt _ -> []
+      ----------
+      SymDouble _ -> []
       ----------
       SymString _ -> []
       ----------

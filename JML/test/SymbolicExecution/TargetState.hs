@@ -16,6 +16,11 @@ target name = case lookup name allTargets of
 
 allTargets :: [(String,SymStateEnv)]
 allTargets = [
+  ("boo21",boo21), ("boo21_2",boo21_2), ("boo22",boo22),
+  ("boo22_2",boo22_2), ("boo23_3",boo23_3), ("boo23_3_1",boo23_3_1),
+  ("boo23_4",boo23_4), ("boo23_9",boo23_9), ("boo33_3",boo33_3),
+  ("boo33_4",boo33_4), ("boo33_5",boo33_5), ("boo33_6",boo33_6),
+  ("boo33_7",boo33_7),
   ("boo21_i",boo21_i), ("boo21_2_i",boo21_2_i), ("boo21_3_i",boo21_3_i),
   ("boo21_3_i_1",boo21_3_i_1), ("boo21_3_i_2",boo21_3_i_2), ("boo21_3_i_3",boo21_3_i_3),
   ("boo21_3_i_4",boo21_3_i_4), ("boo21_3_i_5",boo21_3_i_5), ("boo21_3_i_6",boo21_3_i_6),
@@ -152,6 +157,202 @@ allTargets = [
   ("quickSort", quickSort), ("quickSortCall1", quickSortCall1)
                           , ("quickSortCall2", quickSortCall2)
                           , ("quickSortCall3", quickSortCall3)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo21 :: SymStateEnv
+boo21 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo21"),
+    (Return,SymInt 5)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo21_2 :: SymStateEnv
+boo21_2 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo21_2"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("i",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
+    (VarName "i",SymVar SYT.Int "i"),
+    (Return,SymInt 5)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo22 :: SymStateEnv
+boo22 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo22"),
+    (Return,SymInt 5)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo22_2 :: SymStateEnv
+boo22_2 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo22_2"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymInt 5,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
+    (VarName "x",SymInt 5),
+    (Return,SymInt 5)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo23_3 :: SymStateEnv
+boo23_3 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo23_3"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymInt 8,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
+    (VarName "x",SymInt 8),
+    (Return,SymInt 5)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo23_3_1 :: SymStateEnv
+boo23_3_1 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo23_3_1"),
+    (Return,SymInt 8)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo23_4 :: SymStateEnv
+boo23_4 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo23_4"),
+    (Return,SymInt 8)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo23_9 :: SymStateEnv
+boo23_9 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "boo23_9"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymInt 8,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+    (VarName "x",SymInt 8),
+    (Return,SymInt 8)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo33_3 :: SymStateEnv
+boo33_3 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Double "boo33_3"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymDouble 1.0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})),
+        ("x",(SymDouble 1.1,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+    (VarName "x",SymDouble 1.1),
+    (Return,SymDouble 1.1)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo33_4 :: SymStateEnv
+boo33_4 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Double "boo33_4"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymDouble 1.0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})),
+        ("x",(SymDouble 1.1,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+    (VarName "x",SymDouble 1.1),
+    (Return,SymDouble 1.1)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo33_5 :: SymStateEnv
+boo33_5 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Double "boo33_5"),
+    (GlobalVars,SGlobalVars ["z","t"]),
+    (FormalParms,SFormalParms ["str"]),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),
+        ("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymDouble 1.0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("z",(SymVar SYT.UnknownGlobalVarSymType "t",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("x",(SymDouble 1.1,Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+    (VarName "str",SymVar SYT.String "str"),
+    (VarName "t",SymVar SYT.UnknownGlobalVarSymType "t"),
+    (VarName "x",SymDouble 1.1),
+    (VarName "y",SymVar SYT.Int "y"),
+    (VarName "z",SymVar SYT.UnknownGlobalVarSymType "t"),
+    (Return,SymDouble 1.1)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo33_6 :: SymStateEnv
+boo33_6 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Double "boo33_6"),
+    (GlobalVars,SGlobalVars ["z","t"]),
+    (FormalParms,SFormalParms ["str"]),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 6}}),
+        ("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 6}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymDouble 1.0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 6}})),
+        ("z",(SymVar SYT.UnknownNumSymType "t",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 6}})),
+        ("x",(SymDouble 1.1,Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 6}})),
+        ("z",(SymNum 1.0,Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 6}}))]),
+    (VarName "str",SymVar SYT.String "str"),
+    (VarName "t",SymVar SYT.UnknownNumSymType "t"),
+    (VarName "x",SymDouble 1.1),
+    (VarName "y",SymVar SYT.Int "y"),
+    (VarName "z",SymNum 1.0),
+    (Return,SymDouble 1.1)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo33_7 :: SymStateEnv
+boo33_7 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Double "boo33_7"),
+    (GlobalVars,SGlobalVars ["c"]),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymVar SYT.Double "c",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
+    (VarName "c",SymVar SYT.Double "c"),
+    (VarName "x",SymVar SYT.Double "c"),
+    (Return,SymVar SYT.Double "c")
   ]
 
 -----------------------------

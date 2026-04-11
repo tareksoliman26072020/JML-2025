@@ -8,6 +8,11 @@ import Prelude hiding (replicate, tail, sqrt)
 
 javaMethodInputs :: [(String, String)]
 javaMethodInputs = [
+  ("boo21",boo21), ("boo21_2",boo21_2), ("boo22",boo22),
+  ("boo22_2",boo22_2), ("boo23_3",boo23_3), ("boo23_3_1",boo23_3_1),
+  ("boo23_4",boo23_4), ("boo23_9",boo23_9), ("boo33_3",boo33_3),
+  ("boo33_4",boo33_4), ("boo33_5",boo33_5), ("boo33_6",boo33_6),
+  ("boo33_7",boo33_7),
   ("boo21_i",boo21_i), ("boo21_2_i",boo21_2_i), ("boo21_3_i",boo21_3_i),
   ("boo21_3_i_1",boo21_3_i_1), ("boo21_3_i_2",boo21_3_i_2), ("boo21_3_i_3",boo21_3_i_3),
   ("boo21_3_i_4",boo21_3_i_4), ("boo21_3_i_5",boo21_3_i_5), ("boo21_3_i_6",boo21_3_i_6),
@@ -153,6 +158,78 @@ javaMethodInputs = [
                           , ("quickSortCall2", quickSortCall2)
                           , ("quickSortCall3", quickSortCall3)
   ]
+
+boo21 = "public int boo21(){\n\
+        \  return 5;\n\
+        \}"
+
+boo21_2 = "public int boo21_2(){\n\
+          \  int i;\n\
+          \  return 5;\n\
+          \}"
+
+boo22 = "public int boo22(){\n\
+        \  return boo21();\n\
+        \}"
+
+boo22_2 = "public int boo22_2(){\n\
+          \  int x = boo21();\n\
+          \  return x;\n\
+          \}"
+
+boo23_3 = "public int boo23_3(){\n\
+          \  int x = 3 + boo21();\n\
+          \  return 5;\n\
+          \}"
+
+boo23_3_1 = "public int boo23_3_1() {\n\
+            \  return 3 + 5;\n\
+            \}"
+
+boo23_4 = "public int boo23_4(){\n\
+          \  return 3 + boo21();\n\
+          \}"
+
+boo23_9 = "public int boo23_9(){\n\
+          \  int x;\n\
+          \  x = 3 + boo21();\n\
+          \  return x;\n\
+          \}"
+
+boo33_3 = "public double boo33_3(){\n\
+          \  double x = 1;\n\
+          \  x+=0.1;\n\
+          \  return x;\n\
+          \}"
+
+boo33_4 = "public double boo33_4(){\n\
+          \  double x = 1;\n\
+          \  x = x + 0.1;\n\
+          \  return x;\n\
+          \}"
+
+boo33_5 = "public double boo33_5(String str){\n\
+          \  double x = 1;\n\
+          \  int y;\n\
+          \  z = t;\n\
+          \  x = x + 0.1;\n\
+          \  return x;\n\
+          \}"
+
+boo33_6 = "public double boo33_6(String str){\n\
+          \  double x = 1;\n\
+          \  int y;\n\
+          \  z = t;\n\
+          \  x = x + 0.1;\n\
+          \  z = 1;\n\
+          \  return x;\n\
+          \}"
+
+boo33_7 = "public double boo33_7(){\n\
+          \  double x;\n\
+          \  x = c;\n\
+          \  return x;\n\
+          \}"
 
 boo21_i = "public int boo21_i(int i){\n\
           \  return i;\n\
