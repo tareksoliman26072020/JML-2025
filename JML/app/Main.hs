@@ -36,9 +36,9 @@ cfg = CFGT.CFG {
 }
 
 getAST :: String -> IO AST.Method
-getAST methodName = readFile "test3.java" >>=
+getAST methodName = readFile "test1.java" >>=
   (\case Just x -> return x
-         Nothing -> fail $ printf "method: %s does not exist in test3.java" methodName)
+         Nothing -> fail $ printf "method: %s does not exist in test1.java" methodName)
   . find ((== methodName) . snd . AST.getMethodDecl)
   . fromRight undefined . parse parseDeclList ""
 
@@ -59,30 +59,30 @@ showSymbolTable = readFile "test2.java" >>= putStrLn
 ------------------------------
 
 getCFG :: String -> IO CFGT.CFG
-getCFG methodName = readFile "test3.java" >>=
+getCFG methodName = readFile "test1.java" >>=
   (\case Just x -> return $ CFG1.exec x
-         Nothing -> fail $ printf "method: %s does not exist in test3.java" methodName)
+         Nothing -> fail $ printf "method: %s does not exist in test1.java" methodName)
   . find ((== methodName) . snd . AST.getMethodDecl)
   . fromRight undefined . parse parseDeclList ""
 
 showCFG :: String -> IO ()
-showCFG methodName = readFile "test3.java" >>= putStrLn
+showCFG methodName = readFile "test1.java" >>= putStrLn
   . CFGT.showCFG
   . (\case Just x -> CFG1.exec x
-           Nothing -> error $ printf "method: %s does not exist in test3.java" methodName)
+           Nothing -> error $ printf "method: %s does not exist in test1.java" methodName)
   . find ((== methodName) . snd . AST.getMethodDecl)
   . fromRight undefined . parse parseDeclList ""
 
 ------------------------------
 
 getCFGs :: IO [CFGT.CFG]
-getCFGs = readFile "test3.java" >>= return
+getCFGs = readFile "test1.java" >>= return
   . map CFG1.exec
   . fromRight undefined . parse parseDeclList ""
 
 -- print specific given java method SymState to the console
 printSymState1 :: String -> Bool -> IO SYT.SymState
-printSymState1 funName withLogs = readFile "test3.java" >>=
+printSymState1 funName withLogs = readFile "test1.java" >>=
   (\cfgs -> case CFG2.findCFGByName funName cfgs of
               Just cfg0 ->
                 let (er,logs,s) = SYM.runCFG cfgs cfg0 Nothing Nothing
@@ -174,9 +174,9 @@ writeSymStates2 =
   -- [(Int,(String, String))]
   $ zip [1 :: Int ..] JavaMethod.javaMethodInputs
 
--- write logs of specific given java method from test3.java to logs/
+-- write logs of specific given java method from test1.java to logs/
 writeSymState :: String -> IO SYT.SymState
-writeSymState funName = readFile "test3.java" >>=
+writeSymState funName = readFile "test1.java" >>=
   (\cfgs -> case CFG2.findCFGByName funName cfgs of
               Just cfg0 -> do
                 let (er,logs,s) = SYM.runCFG cfgs cfg0 Nothing Nothing
@@ -197,7 +197,7 @@ writeSymState funName = readFile "test3.java" >>=
 ------------------------------
 
 getPath :: String -> Int -> IO [CFGT.Node]
-getPath funName startNodeId = readFile "test3.java" >>= return
+getPath funName startNodeId = readFile "test1.java" >>= return
   . CFG2.getPath startNodeId
   . (\cfgs -> case CFG2.findCFGByName funName cfgs of
                 Just cfg0 -> cfg0

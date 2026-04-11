@@ -848,6 +848,13 @@ objAccCalculator2 expr@(SObjAcc [varName,methodCall]) = \case
   expr2@(SymNull _)
     | methodCall == "length" -> SymNull Int
     | otherwise -> error "TODO2: objAccCalculator2"
+  expr2@(SymString str)
+    | methodCall == "length" -> SymInt $ fromIntegral $ length str
+    | otherwise -> error $ "TODO3: objAccCalculator2: " ++ show (expr,expr2)
+  expr2 -> error $ printf
+    "TODO4: objAccCalculator2:\n\n\
+    \1) %s\n\n\
+    \2) %s\n\n" (show expr) (show expr2)
 
 ----------------------------------------------------------------------
 ----------------------------------------------------------------------

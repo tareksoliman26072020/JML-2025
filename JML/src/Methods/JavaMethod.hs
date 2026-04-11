@@ -8,6 +8,21 @@ import Prelude hiding (replicate, tail, sqrt)
 
 javaMethodInputs :: [(String, String)]
 javaMethodInputs = [
+  ("boo21_i",boo21_i), ("boo21_2_i",boo21_2_i), ("boo21_3_i",boo21_3_i),
+  ("boo21_3_i_1",boo21_3_i_1), ("boo21_3_i_2",boo21_3_i_2), ("boo21_3_i_3",boo21_3_i_3),
+  ("boo21_3_i_4",boo21_3_i_4), ("boo21_3_i_5",boo21_3_i_5), ("boo21_3_i_6",boo21_3_i_6),
+  ("boo21_3_i_7",boo21_3_i_7), ("boo21_3_i_8",boo21_3_i_8), ("boo21_3_i_9",boo21_3_i_9),
+  ("boo22_i",boo22_i), ("boo22_i_2",boo22_i_2),
+  ("boo22_i_3",boo22_i_3), ("boo22_i_4",boo22_i_4),
+  ("boo22_i_5",boo22_i_5), ("boo22_2_i",boo22_2_i),
+  ("boo22_2_i_2",boo22_2_i_2), ("boo23_3_i",boo23_3_i),
+  ("boo23_3_i_2",boo23_3_i_2), ("boo23_4_i",boo23_4_i), ("boo23_4_i_2",boo23_4_i_2),
+  ("boo23_4_i_3",boo23_4_i_3), ("boo23_4_i_4",boo23_4_i_4), ("boo23_4_i_4_1",boo23_4_i_4_1),
+  ("boo23_4_i_5",boo23_4_i_5), ("boo23_5_i",boo23_5_i), ("boo23_6_i",boo23_6_i),
+  ("boo23_7_i",boo23_7_i), ("boo23_8_i",boo23_8_i), ("boo23_9_i",boo23_9_i),
+  ("boo23_9_i_2",boo23_9_i_2), ("boo23_10_i",boo23_10_i), ("boo23_10_i_2",boo23_10_i_2),
+  ("boo23_11_i",boo23_11_i), ("boo23_12_i",boo23_12_i), ("boo33_3_i",boo33_3_i),
+  ("boo33_4_i",boo33_4_i), ("boo33_4_i_call",boo33_4_i_call),
   ("boo24",boo24),
   ("boo24_2",boo24_2),
   ("boo25",boo25),
@@ -102,6 +117,7 @@ javaMethodInputs = [
   ("fillArray", fillArray), ("fillArrayCall", fillArrayCall),
   ("sqrt", sqrt), ("sqrtCall1", sqrtCall1),
                   ("sqrtCall2", sqrtCall2),
+  ("boo34", boo34), ("boo34Call", boo34Call),
   ("getMax", getMax), ("getMaxCall", getMaxCall),
   ("swap", swap), ("swapCall", swapCall),
   ("partition", partition), ("partitionCall1", partitionCall1),
@@ -137,6 +153,200 @@ javaMethodInputs = [
                           , ("quickSortCall2", quickSortCall2)
                           , ("quickSortCall3", quickSortCall3)
   ]
+
+boo21_i = "public int boo21_i(int i){\n\
+          \  return i;\n\
+          \}"
+
+boo21_2_i = "public int boo21_2_i(int i){\n\
+            \  i = 5;\n\
+            \  return i;\n\
+            \}"
+
+boo21_3_i = "public int boo21_3_i(int i){\n\
+            \  i += 2;\n\
+            \  return i;\n\
+            \}"
+
+boo21_3_i_1 = "public int boo21_3_i_1(int i){\n\
+              \  i += 2;\n\
+              \  return i+i;\n\
+              \}"
+
+boo21_3_i_2 = "public int boo21_3_i_2(int i){\n\
+              \  i += 2;\n\
+              \  int x = i + 5 + i;\n\
+              \  return x;\n\
+              \}"
+
+boo21_3_i_3 = "public int boo21_3_i_3(int i){\n\
+              \  i += 2;\n\
+              \  int x = i + 5 + i;\n\
+              \  return x + i + x;\n\
+              \}"
+
+boo21_3_i_4 = "public int boo21_3_i_4(int i){\n\
+              \  x += i + 2 + i;\n\
+              \  return x;\n\
+              \}"
+
+boo21_3_i_5 = "public int boo21_3_i_5(int i){\n\
+              \  x += i + 2 - 2*i;\n\
+              \  return x;\n\
+              \}"
+
+boo21_3_i_6 = "public int boo21_3_i_6(int i){\n\
+              \  x += 2 + 3*i - 2*i;\n\
+              \  return x;\n\
+              \}"
+
+boo21_3_i_7 = "public int boo21_3_i_7(int i){\n\
+              \  x += 2 + 3*i - 2*i - i;\n\
+              \  return x;\n\
+              \}"
+
+boo21_3_i_8 = "public int boo21_3_i_8(int i){\n\
+              \  x += i + 2 + 3*i;\n\
+              \  return x;\n\
+              \}"
+
+boo21_3_i_9 = "public int boo21_3_i_9(int i){\n\
+              \  i += i;\n\
+              \  return i;\n\
+              \}"
+
+boo22_i = "public int boo22_i(int i){\n\
+          \  return boo21_i(i);\n\
+          \}"
+
+boo22_i_2 = "public int boo22_i_2(int i){\n\
+            \  return boo21_i(i+4) + 1;\n\
+            \}"
+
+boo22_i_3 = "public int boo22_i_3(int i){\n\
+            \  return boo21_3_i(i);\n\
+            \}"
+
+boo22_i_4 = "public int boo22_i_4(int i){\n\
+            \  return boo21_3_i(i+4) * 5;\n\
+            \}"
+
+boo22_i_5 = "public int boo22_i_5(int i){\n\
+            \  return boo21_3_i(j);\n\
+            \}"
+
+boo22_2_i = "public int boo22_2_i(int i){\n\
+            \  int x = boo21_i(i*2);\n\
+            \  return x;\n\
+            \}"
+
+boo22_2_i_2 = "public int boo22_2_i_2(){\n\
+              \  int j = 6;\n\
+              \  int i = 3 + j;\n\
+              \  int x = boo21_i(i*2);\n\
+              \  return x + i + j;\n\
+              \}"
+
+boo23_3_i = "public int boo23_3_i(int i){\n\
+            \  int x = 3 + boo21_i(i+i);\n\
+            \  return 5;\n\
+            \}"
+
+boo23_3_i_2 = "public int boo23_3_i_2(){\n\
+              \  int i = 4;\n\
+              \  int x = 3 + boo21_i(i+i);\n\
+              \  return x+5;\n\
+              \}"
+
+boo23_4_i = "public int boo23_4_i(int i){\n\
+            \  return 3 + boo21_i(0);\n\
+            \}"
+
+boo23_4_i_2 = "public int boo23_4_i_2(){\n\
+              \  return 5 * boo21_i(0*4+2);\n\
+              \}"
+
+boo23_4_i_3 = "public int boo23_4_i_3(int i){\n\
+              \  return 5 * boo21_i(0*i+2);\n\
+              \}"
+
+boo23_4_i_4 = "public int boo23_4_i_4(int i){\n\
+              \  return 15 * boo21_i(3*i+2);\n\
+              \}"
+
+boo23_4_i_4_1 = "public int boo23_4_i_4_1(){\n\
+                \  return boo23_4_i_4(5);\n\
+                \}"
+
+boo23_4_i_5 = "public int boo23_4_i_5(int i){\n\
+              \  return 15 * boo21_i(1*i+2);\n\
+              \}"
+
+boo23_5_i = "public int boo23_5_i(int i){\n\
+            \  return 8;\n\
+            \}"
+
+boo23_6_i = "public double boo23_6_i(int i){\n\
+            \  return 8;\n\
+            \}"
+
+boo23_7_i = "public double boo23_7_i(double i){\n\
+            \  return 3+5+i;\n\
+            \}"
+
+boo23_8_i = "public int boo23_8_i(int i){\n\
+            \  return 3+5*i;\n\
+            \}"
+
+boo23_9_i = "public int boo23_9_i(int i){\n\
+            \  int x;\n\
+            \  x = 3 + boo21_i(i+2) - i;\n\
+            \  return x;\n\
+            \}"
+
+boo23_9_i_2 = "public int boo23_9_i_2(int i){\n\
+              \  int x;\n\
+              \  x = 3 + boo21_i(i+2) - 2*i;\n\
+              \  return x;\n\
+              \}"
+
+boo23_10_i = "public int boo23_10_i(int i){\n\
+             \  int x = 3+5+i;\n\
+             \  return x;\n\
+             \}"
+
+boo23_10_i_2 = "public int boo23_10_i_2(int i){\n\
+               \  int x = 3+i+5;\n\
+               \  return x;\n\
+               \}"
+
+boo23_11_i = "public int boo23_11_i(int i){\n\
+             \  int x = 3+5;\n\
+             \  x = 10-1;\n\
+             \  return x*i;\n\
+             \}"
+
+boo23_12_i = "public int boo23_12_i(int i){\n\
+             \  int x = 3 + boo21_i(i);\n\
+             \  return x;\n\
+             \}"
+
+boo33_3_i = "public double boo33_3_i(double i){\n\
+            \  double x = 1 + i;\n\
+            \  x+=0.1;\n\
+            \  return x;\n\
+            \}"
+
+boo33_4_i = "public double boo33_4_i(double i, double j){\n\
+            \  double x = 1 + i;\n\
+            \  x = x + 0.1 + j;\n\
+            \  return x;\n\
+            \}"
+
+boo33_4_i_call = "public double boo33_4_i_call(){\n\
+                 \  double x = 1 + boo33_4_i(8.8,7.6);\n\
+                 \  return x;\n\
+                 \}"
 
 boo24 :: String
 boo24 = "public int boo24(){\n\
@@ -1159,6 +1369,23 @@ sqrtCall1 = "public static int sqrtCall1() {\n\
 sqrtCall2 = "public static int sqrtCall2() {\n\
             \  int x = sqrt(8);\n\
             \  return x;\n\
+            \}"
+
+boo34 = "public void boo34(String input){\n\
+        \  if (input.length > 0) {\n\
+        \    String msg = \"non-empty\";\n\
+        \    status = msg;\n\
+        \  } else {\n\
+        \    String msg = \"empty\";\n\
+        \    status = msg;\n\
+        \  }\n\
+        \}"
+
+boo34Call = "public void boo34Call() {\n\
+            \  boo34(\"Hello\");\n\
+            \  println(status);\n\
+            \  boo34(\"\");\n\
+            \  println(status);\n\
             \}"
 
 sum1_WhileCall = "public int sum1_WhileCall() {\n\

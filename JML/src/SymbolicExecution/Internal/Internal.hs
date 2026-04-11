@@ -766,6 +766,8 @@ lookupPartialSymExprs vn tu@(symStateKey,symExpr) = case symStateKey of
       ----------
       SymString _ -> []
       ----------
+      SObjAcc _ -> []
+      ----------
       SymFun pf innerSymExpr ->
         let x = lookupPartialSymExprs vn (symStateKey,innerSymExpr)
         in if null x
@@ -781,6 +783,7 @@ lookupPartialSymExprs vn tu@(symStateKey,symExpr) = case symStateKey of
     --SymArray (Just Int) (Just 9) [SymInt 5,SymInt 4,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 1]
       SymArray _ _ elems -> flip concatMap elems
         $ lookupPartialSymExprs vn . (,) symStateKey
+      ----------
       _ -> error
         $ printf "SymbolicExecution.Internal.lookupPartialSymExprs ==> TODO ==> (%s ,, %s)" vn (show tu)
 
