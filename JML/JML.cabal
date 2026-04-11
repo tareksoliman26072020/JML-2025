@@ -28,6 +28,7 @@ library
       CFG.CFG
       CFG.Internal
       CFG.Types
+      JML.Logs.Log
       JML.Types
       Methods.JavaMethod
       Parser.ParseExpr

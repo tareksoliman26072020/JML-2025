@@ -1,7 +1,7 @@
 {-# Language FlexibleInstances, LambdaCase #-} -- to enable instancing MonadFail (Either String)
 module SymbolicExecution.Types where
 
-import qualified SymbolicExecution.Logs.Log as Log
+import qualified SymbolicExecution.Logs.Log as Log (Log,Header)
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Except
@@ -32,6 +32,8 @@ data SymStateKey = MethodHandle
                  deriving (Eq,Ord,Show)
 
 type SymStateEnv = Map.Map SymStateKey SymExpr
+type SymbolicExecution = SymStateEnv
+
 data SymState = SymState
  { env :: SymStateEnv
  , logHeader :: Log.Header
