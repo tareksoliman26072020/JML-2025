@@ -12,11 +12,11 @@ import qualified CFG.Types as CFGT (Node_Coor)
 import qualified JML.Logs.Log as Log (Log, Header)
 
 data Op = Add | Sub | Mul | Div | Gt | Ge | Lt | Le | Eq | Neq
-        deriving Show
+        deriving (Show,Eq)
 
 data Expr = Var String | Int Int | Bin Expr Op Expr | Not Expr | Old Expr
           | Result Expr
-          deriving Show
+          deriving (Show,Eq)
 
 data Clause =
     NormalBehavior {
@@ -35,17 +35,17 @@ data Clause =
   | LoopInvariant Expr
 --  | Signals String Expr
 --  | Assignable [String]
-  deriving Show
+  deriving (Show,Eq)
 
 data Method = Method {
   name    :: String,
   clauses :: [Clause]
-} deriving Show
+} deriving (Show,Eq)
 
 data JMLState = JMLState {
   method    :: Method,
   logHeader :: Log.Header
-}
+} deriving (Show,Eq)
 
 type JMLMonad =
   ExceptT String (ReaderT (Map.Map String SYT.SymbolicExecution)

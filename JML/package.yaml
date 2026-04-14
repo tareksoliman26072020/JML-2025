@@ -73,7 +73,18 @@ tests:
     - tasty-hunit
   SymbolicExecution-test:
     main:                Main.hs
-    source-dirs:         test
+    source-dirs:         test/SymbolicExecution
+    ghc-options:
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -threaded
+    dependencies:
+    - JML
+    - tasty
+    - tasty-hunit
+  JML-test:
+    main:                Main.hs
+    source-dirs:         test/JML
     ghc-options:
     - -rtsopts
     - -with-rtsopts=-N

@@ -90,14 +90,12 @@ test-suite JML-test
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
-      Color
-      SymbolicExecution.Main
-      SymbolicExecution.TargetState
+      TargetState
       Paths_JML
   autogen-modules:
       Paths_JML
   hs-source-dirs:
-      test
+      test/JML
   ghc-options: -Wall -Widentities -Wincomplete-record-updates -Wno-incomplete-uni-patterns -Wno-missing-home-modules -Wredundant-constraints -Wno-unused-imports -Wno-overlapping-patterns -Wname-shadowing -Wno-unused-do-bind -Wno-name-shadowing -Wno-unused-matches -Wno-unused-local-binds -Wno-incomplete-patterns -Wno-missing-signatures -Wno-orphans -rtsopts -with-rtsopts=-N -threaded
   build-depends:
       JML
@@ -115,14 +113,12 @@ test-suite SymbolicExecution-test
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
-      Color
-      SymbolicExecution.Main
-      SymbolicExecution.TargetState
+      TargetState
       Paths_JML
   autogen-modules:
       Paths_JML
   hs-source-dirs:
-      test
+      test/SymbolicExecution
   ghc-options: -Wall -Widentities -Wincomplete-record-updates -Wno-incomplete-uni-patterns -Wno-missing-home-modules -Wredundant-constraints -Wno-unused-imports -Wno-overlapping-patterns -Wname-shadowing -Wno-unused-do-bind -Wno-name-shadowing -Wno-unused-matches -Wno-unused-local-binds -Wno-incomplete-patterns -Wno-missing-signatures -Wno-orphans -rtsopts -with-rtsopts=-N -threaded
   build-depends:
       JML
