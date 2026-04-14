@@ -8,7 +8,7 @@ import qualified JML.Logs.Log as Log
 import qualified SymbolicExecution.Types as SYT (
   SymStateKey(..), SymExpr(..),
   SymbolicExecution, SymbolicExecutionKey, SymbolicExecutionValue)
-import qualified SymbolicExecution.Internal.Internal as SY (getFunName)
+import qualified SymbolicExecution.Internal.Internal as SY (getFunName, isGlobalVariable2)
 import qualified Data.Map as Map
 
 import Text.Printf
@@ -46,12 +46,9 @@ instance SymbolicExecutionVisitor MethodProcessor where
     (SYT.GlobalVars,SYT.SGlobalVars globalVars) -> do
       let loc = globalLoc ++ ".visitSymExpr.GlobalVars"
       tellNextLog $ Log.Location loc (show tu)
-      case globalVars of
-        [] -> do
-          tellNextLog
-            $ Log.Skip loc (show tu) "no global vars were mentioned"
-          return ER_NoGlobalVars
-        _ -> throwError $ createError ("TODO:: " ++ show sy) loc key value
+      tellNextLog
+        $ Log.Skip loc (show tu) "no global vars were mentioned"
+      return ER_NoGlobalVars
     -----------------------------
     (SYT.FormalParms,SYT.SFormalParms formalParms) -> do
       let loc = globalLoc ++ ".visitSymExpr.FormalParms"
@@ -93,12 +90,23 @@ instance SymbolicExecutionVisitor MethodProcessor where
           }
       return $ ER_Return newClause
     -----------------------------
+    -- a global variable `vn` has been re-assigned
+    -- this denotes `assignable` in JML
+    (SYT.VarName vn,symExpr)
+      | SY.isGlobalVariable2 vn sy &&
+        (case symExpr of
+           SYT.SymVar _ vn2 -> vn2 /= vn
+           _ -> True) -> do
+          let loc = globalLoc ++ ".visitSymExpr.VarName (1)"
+          tellNextLog $ Log.Location loc (show tu)
+          return $ ER_VarName_Global_Reassigned vn symExpr
+    -----------------------------
     (SYT.VarName vn,symExpr) -> do
-      let loc = globalLoc ++ ".visitSymExpr.VarName"
+      let loc = globalLoc ++ ".visitSymExpr.VarName (2)"
       tellNextLog $ Log.Location loc (show tu)
       tellNextLog
         $ Log.Skip loc (show tu) "nothing to do with VarName"
-      return $ ER_VarName vn symExpr
+      return $ ER_VarName_Skipped vn symExpr
     -----------------------------
     _ ->
       let loc = globalLoc ++ ".visitSymExpr"

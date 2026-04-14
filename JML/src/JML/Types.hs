@@ -62,7 +62,8 @@ data ExecutionResult =
   | ER_FormalParms [String]
   | ER_VarAssignments [(String,(SYT.SymbolicExecutionValue,CFGT.Node_Coor))]
   | ER_VarBindings (Map.Map String CFGT.Node_Coor)
-  | ER_VarName String SYT.SymbolicExecutionValue
+  | ER_VarName_Global_Reassigned String SYT.SymbolicExecutionValue
+  | ER_VarName_Skipped String SYT.SymbolicExecutionValue
   | ER_ReturnException Clause
   | ER_Return Clause
   deriving Show

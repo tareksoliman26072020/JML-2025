@@ -972,10 +972,30 @@ getVarNames2 (symStateKey,symExpr) = (case symStateKey of
     SymString _ -> []
     SymNum _ -> []
     SException _ _ _ -> []
-    SObjAcc [arrName,"length"] -> [arrName]
+    SObjAcc [arrName,"length"] -> []
     SymFun _ expr -> getVarNames2 (symStateKey,expr)
     SBool _ -> []
     symExpr -> error $ "TODO3:: getVarNames2 ==> " ++ show symExpr
+
+getVarNames3 :: SymExpr -> [String]
+getVarNames3 symExpr = case symExpr of
+  SymVar _ varName -> [varName]
+  SBin symExpr1 _ symExpr2 ->
+    getVarNames3 symExpr1 ++ getVarNames3 symExpr2
+  SNot symExpr -> getVarNames3 symExpr
+  SArrayIndexAccess s1 s2 s3 -> [s2]
+  SymArray onw two three -> []
+  SymUnknown _ _ -> []
+  SymNull _ -> []
+  SymDouble _ -> []
+  SymInt _ -> []
+  SymString _ -> []
+  SymNum _ -> []
+  SException _ _ _ -> []
+  SObjAcc [arrName,"length"] -> []
+  SymFun _ expr -> getVarNames3 expr
+  SBool _ -> []
+  symExpr -> error $ "TODO:: SymbolicExecution.Internal.getVarNames3 ==> " ++ show symExpr
 
 -- `getVarNames4` is to be used exclusively on if, for, and other kinds of `SymExpr`s
 -- which cause new branching

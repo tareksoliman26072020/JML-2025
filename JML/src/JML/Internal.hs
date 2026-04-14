@@ -86,8 +86,10 @@ addClause er = do
         ER_ReturnException (clause@ExceptionalBehavior{}) -> Just clause
         ER_Return (clause@NormalBehavior{}) -> Just clause
         ER_VarBindings _ -> Nothing
-        ER_VarName _ _ -> Nothing
+        ER_VarName_Skipped _ _ -> Nothing
         ER_VarAssignments _ -> Nothing
+        ER_NoGlobalVars -> Nothing
+        ER_FormalParms _ -> Nothing
         _ -> createError_er "TODO" loc er
   case maybeNewClause of
     Nothing -> do
