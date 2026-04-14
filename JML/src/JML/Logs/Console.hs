@@ -21,13 +21,27 @@ ppConsoleLog (Log counter logTag)
 
 ppConsoleLogTag :: LogTag -> String
 ppConsoleLogTag = \case
-  Meow str1 str2          -> printf "%s: %s %s" (cyan "red") str1 str2
+  Meow str1 str2          -> printf "%s: %s %s" (cyan "Meow") str1 str2
   HorizontalLine str      -> printf "\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %s <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n" (yellow str)
   NextSymExpr loc k v     -> printf
     "%s: %s\n\
-    \1) key = %s\n\
-    \2) value = %s"
-    (cyan loc) (yellow "Next SymExpr") k v
+    \  1) %s = %s\n\
+    \  2) %s = %s"
+    (cyan loc) (yellow "Next SymExpr") (yellow "Key") k (yellow "Value") v
   Nested nestedStr logTag -> printf "%s ==> %s" (red nestedStr) (ppConsoleLogTag logTag)
-
+  Location loc contents   -> printf
+    "%s in %s\n\
+    \  %s: %s" (yellow "Location") (cyan loc) (yellow "Contents") contents
+  Skip loc contents thing -> printf
+    "%s in %s\n\
+    \  %s: %s\n\
+    \  %s"
+    (yellow "Skip") (cyan loc)
+    (yellow "Contents") contents
+    (yellow thing)
+  AddClauseToState loc contents -> printf
+    "%s in %s\n\
+    \  %s: %s"
+    (yellow "Add clause to state") (cyan loc)
+    (yellow "Contents") contents
   logTag -> error $ "JML.Logs.Console ==> TODO: " ++ show logTag

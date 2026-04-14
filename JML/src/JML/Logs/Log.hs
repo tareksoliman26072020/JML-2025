@@ -10,6 +10,9 @@ data LogTag =
     HorizontalLine String
   | Nested String LogTag
   | NextSymExpr String String String
+  | Location String String
+  | Skip String String String
+  | AddClauseToState String String
   | Meow String String
   deriving (Show,Eq)
 
@@ -25,6 +28,21 @@ ppLogTag = \case
     "Next SymExpr" loc k v
   HorizontalLine str  -> printf "\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %s <<<<<<<<<<<<<<<<<<<<\n" str
   Nested nestedStr logTag -> printf "%s ==> %s" nestedStr (ppLogTag logTag)
+  Location loc contents   -> printf
+    "%s in %s\n\
+    \  %s: %s" "Location" loc "Contents" contents
+  Skip loc contents thing -> printf
+    "%s in %s\n\
+    \  %s: %s\n\
+    \  %s"
+    "Skip" loc
+    "Contents" contents
+    thing
+  AddClauseToState loc contents -> printf
+    "%s in %s\n\
+    \  %s: %s"
+    "Add clause to state" loc
+    "Contents" contents
   log -> error $ "SymbolicExecution.Logs.Log ==> TODO: " ++ show log
 
 data Header = Header {

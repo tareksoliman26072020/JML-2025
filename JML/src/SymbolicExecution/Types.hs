@@ -33,6 +33,8 @@ data SymStateKey = MethodHandle
 
 type SymStateEnv = Map.Map SymStateKey SymExpr
 type SymbolicExecution = SymStateEnv
+type SymbolicExecutionKey = SymStateKey
+type SymbolicExecutionValue = SymExpr
 
 data SymState = SymState
  { env :: SymStateEnv

@@ -38,6 +38,7 @@ allTargets = [
   ("boo33_4_i",boo33_4_i), ("boo33_4_i_call",boo33_4_i_call),
   ("boo24",boo24),
   ("boo24_2",boo24_2),
+  ("exceptionFun",exceptionFun),
   ("boo25",boo25),
   ("boo26_2",boo26_2),
   ("boo27",boo27),
@@ -974,6 +975,16 @@ boo24_2 = Map.fromList [
     (VarName "x",SException SYT.Int "Exception" "meow"),
     (Return,SException SYT.Int "Exception" "meow"),
     (Actions,SActions [SymString "Oopsie\n"])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+exceptionFun :: SymStateEnv
+exceptionFun = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "exceptionFun"),
+    (Return,SException SYT.Int "Exception" "thee")
   ]
 
 -----------------------------

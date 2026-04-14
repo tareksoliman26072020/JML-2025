@@ -12,4 +12,4 @@ class CFGVisitor v where
   visitNode :: CFG.Node -> v
 
 class SymbolicExecutionVisitor v where
-  visitSymExpr :: (SY.SymStateKey,SY.SymExpr) -> v
+  visitSymExpr :: SY.SymbolicExecution -> (SY.SymStateKey,SY.SymExpr) -> v

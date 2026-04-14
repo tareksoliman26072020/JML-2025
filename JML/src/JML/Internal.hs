@@ -12,7 +12,7 @@ import qualified Data.Map as Map
 import JML.Types
 import qualified JML.Logs.Log as Log
 
-import qualified SymbolicExecution.Types as SY (SymbolicExecution)
+import qualified SymbolicExecution.Types as SYT (SymbolicExecution, SymbolicExecutionValue, SymExpr(..))
 import qualified SymbolicExecution.Internal.Internal as SY.Internal (getFunName)
 
 tellNextLog :: Log.LogTag -> JMLMonad String
@@ -75,5 +75,36 @@ decrementLogDepth = do
   }
   --tell [Log.Log "?" $ Log.DecrementLogDepth depth (depth-1)]
 
-se_2_map :: [SY.SymbolicExecution] -> Map.Map String SY.SymbolicExecution
+se_2_map :: [SYT.SymbolicExecution] -> Map.Map String SYT.SymbolicExecution
 se_2_map = Map.fromList . map (\se -> (SY.Internal.getFunName se,se))
+
+addClause :: ExecutionResult -> JMLMonad ()
+addClause er = do
+  let loc = "JML.Internal.addClause"
+  tellNextLog $ Log.Location loc (show er)
+  let newClause = case er of
+        ER_ReturnException (clause@ExceptionalBehavior{}) -> clause
+        ER_Return (clause@NormalBehavior{}) -> clause
+        _ -> createError_er "TODO" loc er
+  tellNextLog $ Log.AddClauseToState loc (show er)
+  modify $ \(JMLState jmlMethod jmlLogHeader) -> JMLState {
+    method = Method {
+      name = name jmlMethod,
+      clauses = clauses jmlMethod ++ [newClause]
+    },
+    logHeader = jmlLogHeader
+  }
+
+createError_er :: String -> String -> ExecutionResult -> a
+createError_er prefix loc er = error $ printf
+  "%s:\n\
+  \1) %s\n\
+  \2) ExecutionResult = %s"
+  prefix
+  {-1)-}(loc ++ " ==> throwTheError")
+  {-2)-}(show er)
+
+extractEnsures :: SYT.SymbolicExecution -> SYT.SymbolicExecutionValue -> Maybe Expr
+extractEnsures sy symExpr = case symExpr of
+  SYT.SymInt num -> Just $ Int (fromIntegral num)
+  _ -> error $ "TODO: JML.Internal.extractEnsures"

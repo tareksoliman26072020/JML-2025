@@ -1110,6 +1110,25 @@ public int boo24_2(){
 //JavaMethod
 /*
 [
+    (MethodHandle,SMethodHandle Int "exceptionFun"),
+    (Return,SException Int "Exception" "thee")
+  ]
+*/
+/*@ exceptional_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   signals Exception;
+  @*/
+public int exceptionFun() throws Exception {
+  throw new Exception("thee");
+}
+
+////////////////////////////////////////
+
+//DONE
+//JavaMethod
+/*
+[
     (MethodHandle,SMethodHandle Int "boo25"),
     (GlobalVars,SGlobalVars []),
     (FormalParms,SFormalParms ["i"]),

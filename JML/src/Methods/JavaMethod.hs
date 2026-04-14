@@ -30,6 +30,7 @@ javaMethodInputs = [
   ("boo33_4_i",boo33_4_i), ("boo33_4_i_call",boo33_4_i_call),
   ("boo24",boo24),
   ("boo24_2",boo24_2),
+  ("exceptionFun",exceptionFun),
   ("boo25",boo25),
   ("boo26_2",boo26_2),
   ("boo27",boo27),
@@ -436,6 +437,11 @@ boo24_2 = "public int boo24_2(){\n\
           \  int x = 3 + boo25(11);\n\
           \  return x;\n\
           \}"
+
+exceptionFun :: String
+exceptionFun = "public int exceptionFun() {\n\
+               \  throw new Exception(\"thee\");\n\
+               \}"
 
 boo25 :: String
 boo25 = "public int boo25(int i){\n\

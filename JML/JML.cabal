@@ -33,6 +33,7 @@ library
       JML.Logs.Log
       JML.Logs.PrettyPrint
       JML.Method
+      JML.PrettyPrint
       JML.Types
       Methods.JavaMethod
       Parser.ParseExpr
