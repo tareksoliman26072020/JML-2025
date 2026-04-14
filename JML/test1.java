@@ -6,6 +6,11 @@
     (Return,SymInt 5)
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 5;
+  @*/
 public int boo21(){
   return 5;
 }
@@ -23,6 +28,11 @@ public int boo21(){
     (Return,SymInt 5)
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 5;
+  @*/
 public int boo21_2(){
   int i;
   return 5;
@@ -38,6 +48,11 @@ public int boo21_2(){
     (Return,SymInt 5)
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 5;
+  @*/
 public int boo22(){
   return boo21();
 }
@@ -57,6 +72,11 @@ public int boo22(){
     (Return,SymInt 5)
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 5;
+  @*/
 public int boo22_2(){
   int x = boo21();
   return x;
@@ -77,6 +97,11 @@ public int boo22_2(){
     (Return,SymInt 5)
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 5;
+  @*/
 public int boo23_3(){
   int x = 3 + boo21();
   return 5;
@@ -92,6 +117,11 @@ public int boo23_3(){
     (Return,SymInt 8)
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 8;
+  @*/
 public int boo23_3_1() {
   return 3 + 5;
 }
@@ -106,6 +136,11 @@ public int boo23_3_1() {
     (Return,SymInt 8)
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 8;
+  @*/
 public int boo23_4(){
   return 3 + boo21();
 }
@@ -125,6 +160,11 @@ public int boo23_4(){
     (Return,SymInt 8)
   ]
  */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 8;
+  @*/
 public int boo23_9(){
   int x;
   x = 3 + boo21();
@@ -147,6 +187,11 @@ public int boo23_9(){
     (Return,SymDouble 1.1)
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 1.1;
+  @*/
 public double boo33_3(){
   double x = 1;
   x+=0.1;
@@ -169,6 +214,11 @@ public double boo33_3(){
     (Return,SymDouble 1.1)
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 1.1;
+  @*/
 public double boo33_4(){
   double x = 1;
   x = x + 0.1;

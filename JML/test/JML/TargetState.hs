@@ -18,9 +18,9 @@ target name = case lookup name allTargets of
 
 allTargets :: [(String,Method)]
 allTargets = [
-  ("boo21",boo21){-, ("boo21_2",boo21_2), ("boo22",boo22),
+  ("boo21",boo21), ("boo21_2",boo21_2), ("boo22",boo22),
   ("boo22_2",boo22_2), ("boo23_3",boo23_3), ("boo23_3_1",boo23_3_1),
-  ("boo23_4",boo23_4), ("boo23_9",boo23_9), ("boo33_3",boo33_3),
+  ("boo23_4",boo23_4), ("boo23_9",boo23_9), ("boo33_3",boo33_3){-,
   ("boo33_4",boo33_4), ("boo33_5",boo33_5), ("boo33_6",boo33_6),
   ("boo33_7",boo33_7),
   ("boo21_i",boo21_i), ("boo21_2_i",boo21_2_i), ("boo21_3_i",boo21_3_i),
@@ -181,70 +181,151 @@ boo21 = Method {
 -----------------------------
 -----------------------------
 -----------------------------
-{-
+
 boo21_2 :: Method
-boo21_2 = undefined
+boo21_2 = Method {
+  name = "boo21_2",
+  clauses = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = Just (Int 5)
+    }
+  ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
 
 boo22 :: Method
-boo22 = undefined
+boo22 = Method {
+  name = "boo22",
+  clauses = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = Just (Int 5)
+    }
+  ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
 
 boo22_2 :: Method
-boo22_2 = undefined
+boo22_2 = Method {
+  name = "boo22_2",
+  clauses = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = Just (Int 5)
+    }
+  ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
 
 boo23_3 :: Method
-boo23_3 = undefined
+boo23_3 = Method {
+  name = "boo23_3",
+  clauses = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = Just (Int 5)
+    }
+  ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
 
 boo23_3_1 :: Method
-boo23_3_1 = undefined
+boo23_3_1 = Method {
+  name = "boo23_3_1",
+  clauses = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = Just (Int 8)
+    }
+  ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
 
 boo23_4 :: Method
-boo23_4 = undefined
+boo23_4 = Method {
+  name = "boo23_4",
+  clauses = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = Just (Int 8)
+    }
+  ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
 
 boo23_9 :: Method
-boo23_9 = undefined
+boo23_9 = Method {
+  name = "boo23_9",
+  clauses = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = Just (Int 8)
+    }
+  ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
 
 boo33_3 :: Method
-boo33_3 = undefined
+boo33_3 = Method {
+  name = "boo33_3",
+  clauses = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = Just (Double 1.1)
+    }
+  ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
 
 boo33_4 :: Method
-boo33_4 = undefined
+boo33_4 = Method {
+  name = "boo33_4",
+  clauses = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = Just (Double 1.1)
+    }
+  ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
-
+{-
 boo33_5 :: Method
 boo33_5 = undefined
 

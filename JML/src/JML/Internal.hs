@@ -82,18 +82,27 @@ addClause :: ExecutionResult -> JMLMonad ()
 addClause er = do
   let loc = "JML.Internal.addClause"
   tellNextLog $ Log.Location loc (show er)
-  let newClause = case er of
-        ER_ReturnException (clause@ExceptionalBehavior{}) -> clause
-        ER_Return (clause@NormalBehavior{}) -> clause
+  let maybeNewClause = case er of
+        ER_ReturnException (clause@ExceptionalBehavior{}) -> Just clause
+        ER_Return (clause@NormalBehavior{}) -> Just clause
+        ER_VarBindings _ -> Nothing
+        ER_VarName _ _ -> Nothing
+        ER_VarAssignments _ -> Nothing
         _ -> createError_er "TODO" loc er
-  tellNextLog $ Log.AddClauseToState loc (show er)
-  modify $ \(JMLState jmlMethod jmlLogHeader) -> JMLState {
-    method = Method {
-      name = name jmlMethod,
-      clauses = clauses jmlMethod ++ [newClause]
-    },
-    logHeader = jmlLogHeader
-  }
+  case maybeNewClause of
+    Nothing -> do
+      tellNextLog
+        $ Log.Skip loc (show er) "no clause will be added"
+      return ()
+    Just newClause -> do
+      tellNextLog $ Log.AddClauseToState loc (show er)
+      modify $ \(JMLState jmlMethod jmlLogHeader) -> JMLState {
+        method = Method {
+          name = name jmlMethod,
+          clauses = clauses jmlMethod ++ [newClause]
+        },
+        logHeader = jmlLogHeader
+      }
 
 createError_er :: String -> String -> ExecutionResult -> a
 createError_er prefix loc er = error $ printf
@@ -107,4 +116,5 @@ createError_er prefix loc er = error $ printf
 extractEnsures :: SYT.SymbolicExecution -> SYT.SymbolicExecutionValue -> Maybe Expr
 extractEnsures sy symExpr = case symExpr of
   SYT.SymInt num -> Just $ Int (fromIntegral num)
-  _ -> error $ "TODO: JML.Internal.extractEnsures"
+  SYT.SymDouble num -> Just $ Double num
+  _ -> error $ "TODO: JML.Internal.extractEnsures: " ++ show symExpr

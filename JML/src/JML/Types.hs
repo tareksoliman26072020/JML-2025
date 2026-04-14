@@ -14,7 +14,8 @@ import qualified JML.Logs.Log as Log (Log, Header)
 data Op = Add | Sub | Mul | Div | Gt | Ge | Lt | Le | Eq | Neq
         deriving (Show,Eq)
 
-data Expr = Var String | Int Int | Bin Expr Op Expr | Not Expr | Old Expr
+data Expr = Var String | Int Int | Double Double
+          | Bin Expr Op Expr | Not Expr | Old Expr
           | Result Expr
           deriving (Show,Eq)
 
@@ -60,6 +61,8 @@ data ExecutionResult =
   | ER_NoGlobalVars
   | ER_FormalParms [String]
   | ER_VarAssignments [(String,(SYT.SymbolicExecutionValue,CFGT.Node_Coor))]
+  | ER_VarBindings (Map.Map String CFGT.Node_Coor)
+  | ER_VarName String SYT.SymbolicExecutionValue
   | ER_ReturnException Clause
   | ER_Return Clause
   deriving Show

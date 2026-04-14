@@ -13,24 +13,6 @@ list ifEmpty ifFull = \case
   [] -> ifEmpty
   li -> ifFull li
 
-{-
-ppClause (ExceptionalBehavior {
-    requires = Nothing,
-    signals = "Exception",
-    assignable = [],
-    ensures = Nothing
-  })
-  ==>
-  ["@ ExceptionalBehavior"
-  ,"@   requires true;"
-  ,"@   assignable \nothing;"
-  ,"@   signals Exception;"]
-  ==>
-  "@ ExceptionalBehavior"
-  "  @   requires true;"
-  "  @   assignable \nothing;"
-  "  @   signals Exception;"
- -}
 ppClause :: Clause -> String
 ppClause clause = case clause of
   ExceptionalBehavior{} -> intercalate "\n  "
@@ -51,7 +33,7 @@ ppClause clause = case clause of
      case ensures clause of
        Nothing -> ""
        Just expr -> printf
-         "@   ensures %s;" (ppExpr expr)
+         "@   ensures \\result == %s;" (ppExpr expr)
     ]
 {-
 NormalBehavior {requires = Nothing, assignable = [], ensures = Just (Int 5)}
@@ -76,13 +58,14 @@ NormalBehavior {requires = Nothing, assignable = [], ensures = Just (Int 5)}
      case ensures clause of
        Nothing -> ""
        Just expr -> printf
-         "@   ensures %s;" (ppExpr expr)
+         "@   ensures \\result == %s;" (ppExpr expr)
     ]
   _ -> error $ "JML.PrettyPrint.ppClause ==> TODO: " ++ show clause
 
 ppExpr :: Expr -> String
 ppExpr expr = case expr of
   Int num -> show num
+  Double num -> show num
   _ -> error $ "JML.PrettyPrint.ppExpr ==> TODO: " ++ show expr
 
 ppClauses :: [Clause] -> String

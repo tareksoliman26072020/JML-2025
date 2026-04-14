@@ -51,7 +51,7 @@ instance SymbolicExecutionVisitor MethodProcessor where
           tellNextLog
             $ Log.Skip loc (show tu) "no global vars were mentioned"
           return ER_NoGlobalVars
-        _ -> throwError $ createError "TODO" loc key value
+        _ -> throwError $ createError ("TODO:: " ++ show sy) loc key value
     -----------------------------
     (SYT.FormalParms,SYT.SFormalParms formalParms) -> do
       let loc = globalLoc ++ ".visitSymExpr.FormalParms"
@@ -64,6 +64,12 @@ instance SymbolicExecutionVisitor MethodProcessor where
       tellNextLog
         $ Log.Skip loc (show tu) "nothing to do with varAssignments"
       return $ ER_VarAssignments varAssignments
+    -----------------------------
+    (SYT.VarBindings,SYT.SVarBindings varBindings) -> do
+      let loc = globalLoc ++ ".visitSymExpr.VarBindings"
+      tellNextLog
+        $ Log.Skip loc (show tu) "nothing to do with VarBindings"
+      return $ ER_VarBindings varBindings
     -----------------------------
     (SYT.Return,SYT.SException exceptionType exceptionName exceptionMessage) -> do
       let loc = globalLoc ++ ".visitSymExpr.Return Exception"
@@ -86,6 +92,13 @@ instance SymbolicExecutionVisitor MethodProcessor where
             ensures = extractEnsures sy symExpr
           }
       return $ ER_Return newClause
+    -----------------------------
+    (SYT.VarName vn,symExpr) -> do
+      let loc = globalLoc ++ ".visitSymExpr.VarName"
+      tellNextLog $ Log.Location loc (show tu)
+      tellNextLog
+        $ Log.Skip loc (show tu) "nothing to do with VarName"
+      return $ ER_VarName vn symExpr
     -----------------------------
     _ ->
       let loc = globalLoc ++ ".visitSymExpr"
