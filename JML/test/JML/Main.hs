@@ -31,10 +31,9 @@ javaMethodTests =
       sys = JML.Internal.se_2_map $ map snd li
   in testGroup "All tests" (do
        (name, symbolicExecution) <- li
-       let jml@(_,logs,jmlState) = runSE sys symbolicExecution
-           method = JMLT.method jmlState
+       let jml@(_,logs,jmlMethod) = runSE sys symbolicExecution
        return $ testCase (printf "Testing %s" (yellow name)) $
-         assertBool (printf "\n\n%s\n\n" (show method)) (method == Correct.target name))
+         assertBool (printf "\n\n%s\n\n" (show jmlMethod)) (jmlMethod == Correct.target name))
 
 yellow :: String -> String
 yellow = printf "\ESC[1;33m%s\ESC[m"
@@ -42,14 +41,7 @@ yellow = printf "\ESC[1;33m%s\ESC[m"
 getCFGs :: [(String,String)] -> [(String,CFGT.CFG)]
 getCFGs = map $ \(funName,source) ->
   (funName, CFG1.exec $ fromRight undefined $ parse parseExtDecl "" source)
-{-
-      jml :: (String,[JML.Log.Log],JMLT.JMLState)
-      jml@(er,logs,jmlState) = JML.runSE (JML.Internal.se_2_map ses) se
 
-      method :: JMLT.Method
-      method = JMLT.method jmlState
-
- -}
 getSymbolicExecutions :: [(String,CFGT.CFG)] -> [(String,SYT.SymbolicExecution)]
 getSymbolicExecutions li = let
   cfgs :: [CFGT.CFG]
@@ -57,7 +49,7 @@ getSymbolicExecutions li = let
   symbolicExecutions0 :: [(String,SYT.SymbolicExecution)]
   symbolicExecutions0 = flip map li $ \(methodName,cfg) -> let
     (_,_,symbolicExecution) = runCFG cfgs cfg Nothing Nothing
-    in (methodName,SYT.env symbolicExecution)
+    in (methodName,symbolicExecution)
   in symbolicExecutions0
 {-
 getJMLs :: [(String,CFGT.CFG)] -> [(String,Method)]

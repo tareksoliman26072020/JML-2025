@@ -81,7 +81,7 @@ getCFGs = readFile "test1.java" >>= return
   . fromRight undefined . parse parseDeclList ""
 
 -- print specific given java method SymState to the console
-printSymState1 :: String -> Bool -> IO SYT.SymState
+printSymState1 :: String -> Bool -> IO SYT.SymbolicExecution
 printSymState1 funName withLogs = readFile "test1.java" >>=
   (\cfgs -> case CFG2.findCFGByName funName cfgs of
               Just cfg0 ->
@@ -105,7 +105,7 @@ printSymState1 funName withLogs = readFile "test1.java" >>=
   . fromRight undefined . parse parseDeclList ""
 
 -- print specific given method in `JavaMethod.javaMethodInputs` to the console
-printSymState2 :: String -> IO SYT.SymState
+printSymState2 :: String -> IO SYT.SymbolicExecution
 printSymState2 funName =
   (\(cfg,cfgs) ->
       let (er,logs,s) = SYM.runCFG cfgs cfg Nothing Nothing
@@ -175,7 +175,7 @@ writeSymStates2 =
   $ zip [1 :: Int ..] JavaMethod.javaMethodInputs
 
 -- write logs of specific given java method from test1.java to logs/
-writeSymState :: String -> IO SYT.SymState
+writeSymState :: String -> IO SYT.SymbolicExecution
 writeSymState funName = readFile "test1.java" >>=
   (\cfgs -> case CFG2.findCFGByName funName cfgs of
               Just cfg0 -> do
@@ -220,30 +220,6 @@ expr = AST.BinOpExpr {
 
 -----------------------------
 
-{-
-printSymState1 :: String -> Bool -> IO SYT.SymState
-printSymState1 funName withLogs = readFile "test1.java" >>=
-  (\cfgs -> case CFG2.findCFGByName funName cfgs of
-              Just cfg0 ->
-                let (er,logs,s) = SYM.runCFG cfgs cfg0 Nothing Nothing
-                in case er of
-                     "" -> do if withLogs
-                                then putStrLn $ (SY.PP.Log.ppLogs SY.PP.Log.Console logs)
-                                else return ()
-                              return s
-                                        
-                     _  -> do if withLogs
-                                then putStrLn $ (SY.PP.Log.ppLogs SY.PP.Log.Console logs)
-                                else return ()
-                              putStrLn $ replicate 50 '='
-                              print s
-                              putStrLn $ replicate 50 '='
-                              putStrLn $ "Error: " ++ er
-                              return s
-              Nothing   -> error $ "method " ++ funName ++ " does not exist")
-  . map CFG1.exec
-  . fromRight undefined . parse parseDeclList ""
- -}
 printJMLMethod :: String -> Bool -> IO JMLT.Method
 printJMLMethod funName withLogs = do
   unparsed <- readFile "test1.java"
@@ -258,7 +234,7 @@ printJMLMethod funName withLogs = do
       ses = flip map cfgs $ \cfg ->
         let (er,logs,s) = SYM.runCFG cfgs cfg Nothing Nothing
         in case er of
-             "" -> SYT.env s
+             "" -> s
              _  -> error $ printf
                "Error1: %s\n\
                \1) funName: %s\n\n\
@@ -273,11 +249,8 @@ printJMLMethod funName withLogs = do
           \%s not found"
           loc funName
       
-      jml :: (String,[JML.Log.Log],JMLT.JMLState)
-      jml@(er,logs,jmlState) = JML.runSE (JML.Internal.se_2_map ses) se
-
-      method :: JMLT.Method
-      method = JMLT.method jmlState
+      jml :: (String,[JML.Log.Log],JMLT.Method)
+      jml@(er,logs,jmlMethod) = JML.runSE (JML.Internal.se_2_map ses) se
 
   if withLogs
     then putStrLn $ (JML.PP.Log.ppLogs JML.PP.Log.Console logs ++ "\n")
@@ -285,16 +258,16 @@ printJMLMethod funName withLogs = do
 
   case er of
     "" -> do
-      putStrLn $ JML.PP.ppClauses (JMLT.clauses method)
-      return method
+      putStrLn $ JML.PP.ppClauses (JMLT.clauses jmlMethod)
+      return jmlMethod
     _  -> do
       putStrLn $ replicate 50 '='
-      print method
+      print jmlMethod
       putStrLn $ replicate 50 '='
       putStrLn $ printf
         "Error3 in %s\n\
         \%s" loc er
-      return method
+      return jmlMethod
 
 -----------------------------
 

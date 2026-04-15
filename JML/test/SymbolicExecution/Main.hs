@@ -27,7 +27,7 @@ javaMethodTests =
        (name, cfg) <- li
        let (_,logs,s) = runCFG cfgs cfg Nothing Nothing
        return $ testCase (printf "Testing %s" (yellow name)) $
-         assertBool (printf "\n\n%s\n\n" (show $ env s)) (env s == Correct.target name))
+         assertBool (printf "\n\n%s\n\n" (show s)) (s == Correct.target name))
 
 getCFGs :: [(String,String)] -> [(String,CFGT.CFG)]
 getCFGs = map $ \(funName,source) ->

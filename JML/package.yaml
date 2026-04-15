@@ -60,17 +60,6 @@ executables:
     - JML
 
 tests:
-  JML-test:
-    main:                Main.hs
-    source-dirs:         test
-    ghc-options:
-    - -rtsopts
-    - -with-rtsopts=-N
-    - -threaded
-    dependencies:
-    - JML
-    - tasty
-    - tasty-hunit
   SymbolicExecution-test:
     main:                Main.hs
     source-dirs:         test/SymbolicExecution

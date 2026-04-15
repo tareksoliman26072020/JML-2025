@@ -126,7 +126,7 @@ data ExecutionResult =
   | ER_State SymState
   | ER_Logs [Log.Log]
   | ER_Triplet (ExecutionResult,ExecutionResult,ExecutionResult)
-  | ER_FunCall SymState
+  | ER_FunCall SymStateEnv
   | ER_FunHandle SymType String
   | ER_IfCond SymExpr  -- ^ boolean expressions found in if conditions. Its existance in the environment values map means that the ......
   | ER_PredefinedFunCall SymExpr

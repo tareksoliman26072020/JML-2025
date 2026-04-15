@@ -358,8 +358,8 @@ pick_known_symType2 = \case
   [t] -> t
   (t1 : t2 : rest) -> pick_known_symType2 $ pick_known_symType (t1,t2) : rest
 
-getReturnSymExpr :: SymState -> Maybe SymExpr
-getReturnSymExpr = Map.lookup Return . env
+getReturnSymExpr :: SymStateEnv -> Maybe SymExpr
+getReturnSymExpr = Map.lookup Return
 
 hasReturn :: SymStateEnv -> Bool
 hasReturn = Map.member Return
@@ -368,9 +368,9 @@ getSymExpr :: ExecutionResult -> Maybe SymExpr
 getSymExpr = \case
   ER_Expr symExpr -> Just symExpr
   ER_SymStateMapEntry _ symExpr -> Just symExpr
-  ER_FunCall symState -> case Map.lookup LoopFailure (env symState) of
+  ER_FunCall symStateEnv -> case Map.lookup LoopFailure symStateEnv of
     Just symExpr -> Just symExpr
-    Nothing -> getReturnSymExpr symState
+    Nothing -> getReturnSymExpr symStateEnv
   ER_ArrayCallExpr _ symExpr -> Just symExpr
   ER_PredefinedFunCall symExpr -> Just symExpr
   ER_VarExprObjAccess _ symExpr -> Just symExpr

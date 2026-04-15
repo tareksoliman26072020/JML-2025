@@ -116,7 +116,7 @@ instance SymbolicExecutionVisitor MethodProcessor where
 -----------------------------
 -----------------------------
 
-runSE :: Map.Map String SYT.SymbolicExecution -> SYT.SymbolicExecution -> (String,[Log.Log],JMLState)
+runSE :: Map.Map String SYT.SymbolicExecution -> SYT.SymbolicExecution -> (String,[Log.Log],Method)
 runSE sys sy =
   let loc = globalLoc ++ ".runSE"
       runner :: JMLMonad ()
@@ -156,4 +156,4 @@ runSE sys sy =
       run_s :: ((Either String (),[Log.Log]),JMLState)
       run_s@((er,logs),s) = runState run_w initialJMLState
 
-  in (either id (const "") er,logs,s)
+  in (either id (const "") er,logs,method s)
