@@ -35,6 +35,7 @@ library
       JML.Method
       JML.PrettyPrint
       JML.Types
+      Methods.Executions
       Methods.JavaMethod
       Parser.ParseExpr
       Parser.ParseStmt
