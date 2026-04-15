@@ -1,36 +1,36 @@
 {-# Language LambdaCase #-}
 module JML.PrettyPrint where
 
-import JML.Types (Clause(..), Expr(..))
+import JML.Types (Behavior(..), Expr(..))
 import Data.List (intercalate)
 import Text.Printf (printf)
 
 loc :: String
-loc = "JML.PrettyPrint.ppClause"
+loc = "JML.PrettyPrint.ppBehavior"
 
 list :: b -> ([a] -> b) -> [a] -> b
 list ifEmpty ifFull = \case
   [] -> ifEmpty
   li -> ifFull li
 
-ppClause :: Clause -> String
-ppClause clause = case clause of
+ppBehavior :: Behavior -> String
+ppBehavior behavior = case behavior of
   ExceptionalBehavior{} -> intercalate "\n  "
     $ filter (not . null) [
      -- ExceptionalBehavior
      "@ Exceptional Behavior"
     ,-- requires
       printf
-     "@   requires %s;" $ maybe "true" ppExpr (requires clause)
+     "@   requires %s;" $ maybe "true" ppExpr (requires behavior)
     ,-- signals
       printf
-     "@   signals %s;" (signals clause)
+     "@   signals %s;" (signals behavior)
     ,-- assignable
       printf
      "@   assignable %s;" $ list "\\nothing"
-       (intercalate ", " . map (show . ppExpr)) (assignable clause)
+       (intercalate ", " . map (show . ppExpr)) (assignable behavior)
     ,-- ensures
-     case ensures clause of
+     case ensures behavior of
        Nothing -> ""
        Just expr -> printf
          "@   ensures \\result == %s;" (ppExpr expr)
@@ -49,18 +49,18 @@ NormalBehavior {requires = Nothing, assignable = [], ensures = Just (Int 5)}
      "@ Normal Behavior"
     ,-- requires
       printf
-     "@   requires %s;" $ maybe "true" ppExpr (requires clause)
+     "@   requires %s;" $ maybe "true" ppExpr (requires behavior)
     ,-- assignable
       printf
      "@   assignable %s;" $ list "\\nothing"
-       (intercalate ", " . map (show . ppExpr)) (assignable clause)
+       (intercalate ", " . map (show . ppExpr)) (assignable behavior)
     ,-- ensures
-     case ensures clause of
+     case ensures behavior of
        Nothing -> ""
        Just expr -> printf
          "@   ensures \\result == %s;" (ppExpr expr)
     ]
-  _ -> error $ "JML.PrettyPrint.ppClause ==> TODO: " ++ show clause
+  _ -> error $ "JML.PrettyPrint.ppBehavior ==> TODO: " ++ show behavior
 
 ppExpr :: Expr -> String
 ppExpr expr = case expr of
@@ -68,7 +68,7 @@ ppExpr expr = case expr of
   Double num -> show num
   _ -> error $ "JML.PrettyPrint.ppExpr ==> TODO: " ++ show expr
 
-ppClauses :: [Clause] -> String
-ppClauses clauses =
-  let res = intercalate "\n  @ also\n" $ map ppClause clauses
+ppBehaviors :: [Behavior] -> String
+ppBehaviors behaviors =
+  let res = intercalate "\n  @ also\n" $ map ppBehavior behaviors
   in "/*" ++ res ++ "\n  @*/"

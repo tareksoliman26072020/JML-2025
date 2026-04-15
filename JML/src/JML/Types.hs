@@ -19,7 +19,7 @@ data Expr = Var String | Int Int | Double Double
           | Result Expr
           deriving (Show,Eq)
 
-data Clause =
+data Behavior =
     NormalBehavior {
       requires :: Maybe Expr,
       assignable :: [Expr],
@@ -31,20 +31,24 @@ data Clause =
       assignable :: [Expr],
       ensures :: Maybe Expr
     }
---  | Requires Expr
---  | Ensures Expr
+  deriving (Show,Eq)
+
+data Clause =
+    Requires Expr
+  | Ensures Expr
   | LoopInvariant Expr
---  | Signals String Expr
---  | Assignable [String]
+  | Signals String Expr
+  | Assignable [String]
   deriving (Show,Eq)
 
 data Method = Method {
-  name    :: String,
-  clauses :: [Clause]
+  name      :: String,
+  behaviors :: [Behavior]
 } deriving (Show,Eq)
 
 data JMLState = JMLState {
   method    :: Method,
+  jmlStack  :: [Clause],
   logHeader :: Log.Header
 } deriving (Show,Eq)
 
@@ -64,6 +68,6 @@ data ExecutionResult =
   | ER_VarBindings (Map.Map String CFGT.Node_Coor)
   | ER_VarName_Global_Reassigned String SYT.SymbolicExecutionValue
   | ER_VarName_Skipped String SYT.SymbolicExecutionValue
-  | ER_ReturnException Clause
-  | ER_Return Clause
+  | ER_ReturnException Behavior
+  | ER_Return Behavior
   deriving Show

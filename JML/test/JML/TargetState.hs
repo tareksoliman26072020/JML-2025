@@ -9,7 +9,7 @@ import SymbolicExecution.Types hiding (SymType(..), SymBinOp(..))
 import qualified SymbolicExecution.Types as SYT (SymType(..), SymBinOp(..))
 import qualified Data.Map.Lazy as Map
 -}
-import JML.Types (Method(..), Clause(..), Expr(..))
+import JML.Types (Method(..), Behavior(..), Expr(..))
 
 target :: String -> Method
 target name = case lookup name allTargets of
@@ -169,7 +169,7 @@ allTargets = [
 boo21 :: Method
 boo21 = Method {
   name = "boo21",
-  clauses = [
+  behaviors = [
     NormalBehavior {
       requires = Nothing,
       assignable = [],
@@ -185,7 +185,7 @@ boo21 = Method {
 boo21_2 :: Method
 boo21_2 = Method {
   name = "boo21_2",
-  clauses = [
+  behaviors = [
     NormalBehavior {
       requires = Nothing,
       assignable = [],
@@ -201,7 +201,7 @@ boo21_2 = Method {
 boo22 :: Method
 boo22 = Method {
   name = "boo22",
-  clauses = [
+  behaviors = [
     NormalBehavior {
       requires = Nothing,
       assignable = [],
@@ -217,7 +217,7 @@ boo22 = Method {
 boo22_2 :: Method
 boo22_2 = Method {
   name = "boo22_2",
-  clauses = [
+  behaviors = [
     NormalBehavior {
       requires = Nothing,
       assignable = [],
@@ -233,7 +233,7 @@ boo22_2 = Method {
 boo23_3 :: Method
 boo23_3 = Method {
   name = "boo23_3",
-  clauses = [
+  behaviors = [
     NormalBehavior {
       requires = Nothing,
       assignable = [],
@@ -249,7 +249,7 @@ boo23_3 = Method {
 boo23_3_1 :: Method
 boo23_3_1 = Method {
   name = "boo23_3_1",
-  clauses = [
+  behaviors = [
     NormalBehavior {
       requires = Nothing,
       assignable = [],
@@ -265,7 +265,7 @@ boo23_3_1 = Method {
 boo23_4 :: Method
 boo23_4 = Method {
   name = "boo23_4",
-  clauses = [
+  behaviors = [
     NormalBehavior {
       requires = Nothing,
       assignable = [],
@@ -281,7 +281,7 @@ boo23_4 = Method {
 boo23_9 :: Method
 boo23_9 = Method {
   name = "boo23_9",
-  clauses = [
+  behaviors = [
     NormalBehavior {
       requires = Nothing,
       assignable = [],
@@ -297,7 +297,7 @@ boo23_9 = Method {
 boo33_3 :: Method
 boo33_3 = Method {
   name = "boo33_3",
-  clauses = [
+  behaviors = [
     NormalBehavior {
       requires = Nothing,
       assignable = [],
@@ -313,7 +313,7 @@ boo33_3 = Method {
 boo33_4 :: Method
 boo33_4 = Method {
   name = "boo33_4",
-  clauses = [
+  behaviors = [
     NormalBehavior {
       requires = Nothing,
       assignable = [],
@@ -923,7 +923,7 @@ boo24_2 = Map.fromList [
 exceptionFun :: Method
 exceptionFun = Method {
   name = "exceptionFun",
-  clauses = [
+  behaviors = [
     ExceptionalBehavior {
       requires = Nothing,
       signals = "Exception",

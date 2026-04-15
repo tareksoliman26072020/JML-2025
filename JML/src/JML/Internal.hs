@@ -1,4 +1,4 @@
-{-# Language MultiWayIf #-}
+{-# Language MultiWayIf, LambdaCase #-}
 module JML.Internal where
 
 import Control.Monad.Writer
@@ -43,6 +43,7 @@ incrementLogEnumeration = do
         let newCounter = counter ++ [1]
         modify $ \jmlState -> JMLState {
           method = method jmlState,
+          jmlStack = jmlStack jmlState,
           logHeader = Log.Header depth newCounter
         }
         --tellingIt (depth,oldCounterStr) (depth,logNum newCounter)
@@ -51,6 +52,7 @@ incrementLogEnumeration = do
         let newCounter = take (depth-1) counter ++ [(counter !! (depth-1)) + 1]
         modify $ \jmlState -> JMLState {
           method = method jmlState,
+          jmlStack = jmlStack jmlState,
           logHeader = Log.Header depth newCounter
         }
         --tellingIt (depth,oldCounterStr) (depth,logNum newCounter)
@@ -62,6 +64,7 @@ incrementLogDepth = do
   Log.Header depth counter <- logHeader <$> get
   modify $ \jmlState -> JMLState {
     method = method jmlState,
+    jmlStack = jmlStack jmlState,
     logHeader = Log.Header (depth+1) counter
   }
   --tell [Log.Log "?" $ Log.IncrementLogDepth depth (depth+1)]
@@ -71,6 +74,7 @@ decrementLogDepth = do
   Log.Header depth counter <- logHeader <$> get
   modify $ \jmlState -> JMLState {
     method = method jmlState,
+    jmlStack = jmlStack jmlState,
     logHeader = Log.Header (depth-1) counter
   }
   --tell [Log.Log "?" $ Log.DecrementLogDepth depth (depth-1)]
@@ -78,33 +82,86 @@ decrementLogDepth = do
 se_2_map :: [SYT.SymbolicExecution] -> Map.Map String SYT.SymbolicExecution
 se_2_map = Map.fromList . map (\se -> (SY.Internal.getFunName se,se))
 
-addClause :: ExecutionResult -> JMLMonad ()
-addClause er = do
-  let loc = "JML.Internal.addClause"
+addBehavior :: ExecutionResult -> JMLMonad ()
+addBehavior er = do
+  let loc = "JML.Internal.addBehavior"
   tellNextLog $ Log.Location loc (show er)
-  let maybeNewClause = case er of
-        ER_ReturnException (clause@ExceptionalBehavior{}) -> Just clause
-        ER_Return (clause@NormalBehavior{}) -> Just clause
+  case er of
+    ER_ReturnException (behavior@ExceptionalBehavior{}) -> addBehaviorToState loc behavior
+    ER_Return (behavior@NormalBehavior{}) -> addBehaviorToState loc behavior
+    ER_VarName_Global_Reassigned vn _ -> addClauseToStack loc (Assignable [vn])
+    ER_VarBindings _ -> logSkipping loc
+    ER_VarName_Skipped _ _ -> logSkipping loc
+    ER_VarAssignments _ -> logSkipping loc
+    ER_NoGlobalVars -> logSkipping loc
+    ER_FormalParms _ -> logSkipping loc
+    _ -> createError_er "TODO" loc er    
+  where
+  addBehaviorToState :: String -> Behavior -> JMLMonad ()
+  addBehaviorToState loc newBehavior = do
+    tellNextLog $ Log.AddBehaviorToState (loc ++ ".addBehaviorToState") (show er)
+    modify $ \(JMLState jmlMethod stack jmlLogHeader) -> JMLState {
+      method = Method {
+        name = name jmlMethod,
+        behaviors = behaviors jmlMethod ++ [newBehavior]
+      },
+      jmlStack = stack,
+      logHeader = jmlLogHeader
+    }
+  addClauseToStack :: String -> Clause -> JMLMonad ()
+  addClauseToStack loc clause = do
+    tellNextLog $ Log.AddClauseToState (loc ++ ".addClauseToStack") (show clause)
+    modify $ \(JMLState jmlMethod stack jmlLogHeader) -> JMLState {
+      method = Method {
+        name = name jmlMethod,
+        behaviors = behaviors jmlMethod
+      },
+      jmlStack = case clause of
+        Assignable li -> alter (\case
+          Assignable li0 -> Just $ Assignable $ li0 ++ li
+          _ -> Just clause) stack
+        _ -> error $ printf "TODO: %s ==> %s" (loc ++ ".addClauseToStack") (show clause),
+      logHeader = jmlLogHeader
+    }
+  logSkipping :: String -> JMLMonad ()
+  logSkipping loc = do
+    tellNextLog
+      $ Log.Skip loc (show er) "no changes"
+    return ()
+
+alter :: (a -> Maybe b) -> [a] -> [b]
+alter f li = undefined
+
+{-
+addBehavior :: ExecutionResult -> JMLMonad ()
+addBehavior er = do
+  let loc = "JML.Internal.addBehavior"
+  tellNextLog $ Log.Location loc (show er)
+  let maybeNewBehavior = case er of
+        ER_ReturnException (behavior@ExceptionalBehavior{}) -> Just behavior
+        ER_Return (behavior@NormalBehavior{}) -> Just behavior
         ER_VarBindings _ -> Nothing
         ER_VarName_Skipped _ _ -> Nothing
         ER_VarAssignments _ -> Nothing
         ER_NoGlobalVars -> Nothing
         ER_FormalParms _ -> Nothing
         _ -> createError_er "TODO" loc er
-  case maybeNewClause of
+  case maybeNewBehavior of
     Nothing -> do
       tellNextLog
-        $ Log.Skip loc (show er) "no clause will be added"
+        $ Log.Skip loc (show er) "no behavior will be added"
       return ()
-    Just newClause -> do
-      tellNextLog $ Log.AddClauseToState loc (show er)
-      modify $ \(JMLState jmlMethod jmlLogHeader) -> JMLState {
+    Just newBehavior -> do
+      tellNextLog $ Log.AddBehaviorToState loc (show er)
+      modify $ \(JMLState jmlMethod stack jmlLogHeader) -> JMLState {
         method = Method {
           name = name jmlMethod,
-          clauses = clauses jmlMethod ++ [newClause]
+          behaviors = behaviors jmlMethod ++ [newBehavior]
         },
+        jmlStack = stack,
         logHeader = jmlLogHeader
       }
+-}
 
 createError_er :: String -> String -> ExecutionResult -> a
 createError_er prefix loc er = error $ printf

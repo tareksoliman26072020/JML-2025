@@ -12,6 +12,7 @@ data LogTag =
   | NextSymExpr String String String
   | Location String String
   | Skip String String String
+  | AddBehaviorToState String String
   | AddClauseToState String String
   | Meow String String
   deriving (Show,Eq)
@@ -38,6 +39,11 @@ ppLogTag = \case
     "Skip" loc
     "Contents" contents
     thing
+  AddBehaviorToState loc contents -> printf
+    "%s in %s\n\
+    \  %s: %s"
+    "Add behavior to state" loc
+    "Contents" contents
   AddClauseToState loc contents -> printf
     "%s in %s\n\
     \  %s: %s"

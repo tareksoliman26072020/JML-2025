@@ -39,6 +39,11 @@ ppConsoleLogTag = \case
     (yellow "Skip") (cyan loc)
     (yellow "Contents") contents
     (yellow thing)
+  AddBehaviorToState loc contents -> printf
+    "%s in %s\n\
+    \  %s: %s"
+    (yellow "Add behavior to state") (cyan loc)
+    (yellow "Contents") contents
   AddClauseToState loc contents -> printf
     "%s in %s\n\
     \  %s: %s"

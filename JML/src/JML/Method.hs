@@ -129,7 +129,7 @@ runSE sys sy =
             tellNextLog $ Log.NextSymExpr loc (show k) (show v)
             do incrementLogDepth
                er <- methodProcessorMonad $ visitSymExpr sy (k,v)
-               addClause er
+               addBehavior er
                decrementLogDepth
                return er
             return ()
@@ -139,8 +139,9 @@ runSE sys sy =
       initialJMLState = JMLState {
         method = Method {
           name = SY.getFunName sy,
-          clauses = []
+          behaviors = []
         },
+        jmlStack = [],
         logHeader = Log.Header 1 [0]
       }
 

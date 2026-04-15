@@ -26,7 +26,7 @@ import qualified SymbolicExecution.Internal.Internal as SY.Internal (cast, toSym
 
 import qualified JML.Types as JMLT
 import qualified JML.Internal as JML.Internal
-import qualified JML.PrettyPrint as JML.PP (ppClauses)
+import qualified JML.PrettyPrint as JML.PP (ppBehaviors)
 import qualified JML.Logs.Log as JML.Log (Log)
 import qualified JML.Logs.PrettyPrint as JML.PP.Log (ppLogs, LogKind(Console))
 import qualified JML.Method as JML (runSE)
@@ -258,7 +258,7 @@ printJMLMethod funName withLogs = do
 
   case er of
     "" -> do
-      putStrLn $ JML.PP.ppClauses (JMLT.clauses jmlMethod)
+      putStrLn $ JML.PP.ppBehaviors (JMLT.behaviors jmlMethod)
       return jmlMethod
     _  -> do
       putStrLn $ replicate 50 '='
