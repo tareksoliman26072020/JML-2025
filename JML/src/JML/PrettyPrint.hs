@@ -66,6 +66,7 @@ ppExpr :: Expr -> String
 ppExpr expr = case expr of
   Int num -> show num
   Double num -> show num
+  Var vn -> vn
   _ -> error $ "JML.PrettyPrint.ppExpr ==> TODO: " ++ show expr
 
 ppBehaviors :: [Behavior] -> String

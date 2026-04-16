@@ -20,8 +20,8 @@ allTargets :: [(String,Method)]
 allTargets = [
   ("boo21",boo21), ("boo21_2",boo21_2), ("boo22",boo22),
   ("boo22_2",boo22_2), ("boo23_3",boo23_3), ("boo23_3_1",boo23_3_1),
-  ("boo23_4",boo23_4), ("boo23_9",boo23_9), ("boo33_3",boo33_3){-,
-  ("boo33_4",boo33_4), ("boo33_5",boo33_5), ("boo33_6",boo33_6),
+  ("boo23_4",boo23_4), ("boo23_9",boo23_9), ("boo33_3",boo33_3),
+  ("boo33_4",boo33_4), ("boo33_5",boo33_5){-, ("boo33_6",boo33_6),
   ("boo33_7",boo33_7),
   ("boo21_i",boo21_i), ("boo21_2_i",boo21_2_i), ("boo21_3_i",boo21_3_i),
   ("boo21_3_i_1",boo21_3_i_1), ("boo21_3_i_2",boo21_3_i_2), ("boo21_3_i_3",boo21_3_i_3),
@@ -325,14 +325,23 @@ boo33_4 = Method {
 -----------------------------
 -----------------------------
 -----------------------------
-{-
+
 boo33_5 :: Method
-boo33_5 = undefined
+boo33_5 = Method {
+  name = "boo33_5",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [Var "z"],
+      ensures = Just (Double 1.1)
+    }
+  ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
-
+{-
 boo33_6 :: Method
 boo33_6 = undefined
 

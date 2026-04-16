@@ -18,6 +18,8 @@ import Control.Monad.State
 import Control.Monad.Except
 import Control.Monad.Reader
 
+import Data.Functor (($>))
+
 globalLoc :: String
 globalLoc = "JML.Method"
 
@@ -48,25 +50,29 @@ instance SymbolicExecutionVisitor MethodProcessor where
       tellNextLog $ Log.Location loc (show tu)
       tellNextLog
         $ Log.Skip loc (show tu) "no global vars were mentioned"
-      return ER_NoGlobalVars
+      let toReturn = ER_NoGlobalVars
+      tellNextLog (Log.Return loc (show toReturn)) $> toReturn
     -----------------------------
     (SYT.FormalParms,SYT.SFormalParms formalParms) -> do
       let loc = globalLoc ++ ".visitSymExpr.FormalParms"
       tellNextLog
         $ Log.Skip loc (show tu) "nothing to do with formalParms"
-      return $ ER_FormalParms formalParms
+      let toReturn = ER_FormalParms formalParms
+      tellNextLog (Log.Return loc (show toReturn)) $> toReturn
     -----------------------------
     (SYT.VarAssignments,SYT.SVarAssignments varAssignments) -> do
       let loc = globalLoc ++ ".visitSymExpr.VarAssignments"
       tellNextLog
         $ Log.Skip loc (show tu) "nothing to do with varAssignments"
-      return $ ER_VarAssignments varAssignments
+      let toReturn = ER_VarAssignments varAssignments
+      tellNextLog (Log.Return loc (show toReturn)) $> toReturn
     -----------------------------
     (SYT.VarBindings,SYT.SVarBindings varBindings) -> do
       let loc = globalLoc ++ ".visitSymExpr.VarBindings"
       tellNextLog
         $ Log.Skip loc (show tu) "nothing to do with VarBindings"
-      return $ ER_VarBindings varBindings
+      let toReturn = ER_VarBindings varBindings
+      tellNextLog (Log.Return loc (show toReturn)) $> toReturn
     -----------------------------
     (SYT.Return,SYT.SException exceptionType exceptionName exceptionMessage) -> do
       let loc = globalLoc ++ ".visitSymExpr.Return Exception"
@@ -77,8 +83,8 @@ instance SymbolicExecutionVisitor MethodProcessor where
             assignable = [],
             ensures = Nothing
           }
-      return $ ER_ReturnException newClause
-    --createError "TODO" loc key value
+      let toReturn = ER_ReturnException newClause
+      tellNextLog (Log.Return loc (show toReturn)) $> toReturn
     -----------------------------
     (SYT.Return,symExpr) -> do
       let loc = globalLoc ++ ".visitSymExpr.Return " ++ show symExpr
@@ -88,7 +94,8 @@ instance SymbolicExecutionVisitor MethodProcessor where
             assignable = [],
             ensures = extractEnsures sy symExpr
           }
-      return $ ER_Return newClause
+      let toReturn = ER_Return newClause
+      tellNextLog (Log.Return loc (show toReturn)) $> toReturn
     -----------------------------
     -- a global variable `vn` has been re-assigned
     -- this denotes `assignable` in JML
@@ -99,14 +106,16 @@ instance SymbolicExecutionVisitor MethodProcessor where
            _ -> True) -> do
           let loc = globalLoc ++ ".visitSymExpr.VarName (1)"
           tellNextLog $ Log.Location loc (show tu)
-          return $ ER_VarName_Global_Reassigned vn symExpr
+          let toReturn = ER_VarName_Global_Reassigned vn symExpr
+          tellNextLog (Log.Return loc (show toReturn)) $> toReturn
     -----------------------------
     (SYT.VarName vn,symExpr) -> do
       let loc = globalLoc ++ ".visitSymExpr.VarName (2)"
       tellNextLog $ Log.Location loc (show tu)
       tellNextLog
         $ Log.Skip loc (show tu) "nothing to do with VarName"
-      return $ ER_VarName_Skipped vn symExpr
+      let toReturn = ER_VarName_Skipped vn symExpr
+      tellNextLog (Log.Return loc (show toReturn)) $> toReturn
     -----------------------------
     _ ->
       let loc = globalLoc ++ ".visitSymExpr"
@@ -127,12 +136,17 @@ runSE sys sy =
              _ -> const True) $ \k v -> do
             tellNextLog $ Log.HorizontalLine "Next SymExpr"
             tellNextLog $ Log.NextSymExpr loc (show k) (show v)
-            do incrementLogDepth
-               er <- methodProcessorMonad $ visitSymExpr sy (k,v)
-               addBehavior er
-               decrementLogDepth
-               return er
-            return ()
+            incrementLogDepth >> incrementLogEnumeration
+            -- visiting
+            visited <-
+               incrementLogDepth *>
+                 (methodProcessorMonad $ visitSymExpr sy (k,v))
+                     <* decrementLogDepth
+            -- modifying the state
+            do incrementLogEnumeration
+               incrementLogDepth *> addBehavior visited <* decrementLogDepth
+            decrementLogDepth
+        --get >>= \theEnv -> throwError $ printf "MEOW::\n%s" (show theEnv)
         return ()
 
       initialJMLState :: JMLState

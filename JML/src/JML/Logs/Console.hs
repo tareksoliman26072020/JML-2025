@@ -32,6 +32,18 @@ ppConsoleLogTag = \case
   Location loc contents   -> printf
     "%s in %s\n\
     \  %s: %s" (yellow "Location") (cyan loc) (yellow "Contents") contents
+  Return loc contents   -> printf
+    "%s in %s\n\
+    \  %s: %s" (yellow "Return") (cyan loc) (yellow "Contents") contents
+  ReportTheState loc method jmlStack logHeader -> printf
+    "%s in %s\n\
+    \  %s: %s\n\
+    \  %s: %s\n\
+    \  %s: %s"
+    (yellow "Report The State") (cyan loc)
+    (yellow "method")    method
+    (yellow "jmlStack")  jmlStack
+    (yellow "logHeader") logHeader
   Skip loc contents thing -> printf
     "%s in %s\n\
     \  %s: %s\n\

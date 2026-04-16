@@ -95,73 +95,74 @@ addBehavior er = do
     ER_VarAssignments _ -> logSkipping loc
     ER_NoGlobalVars -> logSkipping loc
     ER_FormalParms _ -> logSkipping loc
-    _ -> createError_er "TODO" loc er    
+    _ -> createError_er "TODO" loc er
   where
+  -- adding the behavior
   addBehaviorToState :: String -> Behavior -> JMLMonad ()
   addBehaviorToState loc newBehavior = do
     tellNextLog $ Log.AddBehaviorToState (loc ++ ".addBehaviorToState") (show er)
     modify $ \(JMLState jmlMethod stack jmlLogHeader) -> JMLState {
       method = Method {
         name = name jmlMethod,
-        behaviors = behaviors jmlMethod ++ [newBehavior]
+        behaviors = behaviors jmlMethod ++ [addJMLStackToBehavior stack newBehavior]
       },
       jmlStack = stack,
       logHeader = jmlLogHeader
     }
+    get >>= \s -> tellNextLog $ Log.ReportTheState loc
+      (show $ method s) (show $ jmlStack s) (show $ logHeader s)
+    return ()
+  -- adding clause to stack
   addClauseToStack :: String -> Clause -> JMLMonad ()
   addClauseToStack loc clause = do
     tellNextLog $ Log.AddClauseToState (loc ++ ".addClauseToStack") (show clause)
     modify $ \(JMLState jmlMethod stack jmlLogHeader) -> JMLState {
-      method = Method {
-        name = name jmlMethod,
-        behaviors = behaviors jmlMethod
-      },
+      method = jmlMethod,
       jmlStack = case clause of
-        Assignable li -> alter (\case
-          Assignable li0 -> Just $ Assignable $ li0 ++ li
-          _ -> Just clause) stack
+        Assignable li -> addAssignableToStack stack li
         _ -> error $ printf "TODO: %s ==> %s" (loc ++ ".addClauseToStack") (show clause),
       logHeader = jmlLogHeader
     }
+    get >>= \s -> tellNextLog $ Log.ReportTheState loc
+      (show $ method s) (show $ jmlStack s) (show $ logHeader s)
+    return ()
   logSkipping :: String -> JMLMonad ()
   logSkipping loc = do
     tellNextLog
       $ Log.Skip loc (show er) "no changes"
     return ()
-
-alter :: (a -> Maybe b) -> [a] -> [b]
-alter f li = undefined
-
-{-
-addBehavior :: ExecutionResult -> JMLMonad ()
-addBehavior er = do
-  let loc = "JML.Internal.addBehavior"
-  tellNextLog $ Log.Location loc (show er)
-  let maybeNewBehavior = case er of
-        ER_ReturnException (behavior@ExceptionalBehavior{}) -> Just behavior
-        ER_Return (behavior@NormalBehavior{}) -> Just behavior
-        ER_VarBindings _ -> Nothing
-        ER_VarName_Skipped _ _ -> Nothing
-        ER_VarAssignments _ -> Nothing
-        ER_NoGlobalVars -> Nothing
-        ER_FormalParms _ -> Nothing
-        _ -> createError_er "TODO" loc er
-  case maybeNewBehavior of
-    Nothing -> do
-      tellNextLog
-        $ Log.Skip loc (show er) "no behavior will be added"
-      return ()
-    Just newBehavior -> do
-      tellNextLog $ Log.AddBehaviorToState loc (show er)
-      modify $ \(JMLState jmlMethod stack jmlLogHeader) -> JMLState {
-        method = Method {
-          name = name jmlMethod,
-          behaviors = behaviors jmlMethod ++ [newBehavior]
-        },
-        jmlStack = stack,
-        logHeader = jmlLogHeader
-      }
--}
+  -- adding jmlstack to behavior
+  addJMLStackToBehavior :: [Clause] -> Behavior -> Behavior
+  addJMLStackToBehavior clauses behavior =
+    foldl' addJMLClauseToBehavior behavior clauses
+  -- adding jml clause to behavior (helper for `addJMLStackToBehavior`)
+  addJMLClauseToBehavior :: Behavior -> Clause -> Behavior
+  addJMLClauseToBehavior behavior clause = 
+    let loc = "JML.Internal.addBehavior.addJMLClauseToBehavior"
+    in case clause of
+      Assignable li -> case behavior of
+        NormalBehavior{} -> NormalBehavior {
+          requires = requires behavior,
+          assignable = assignable behavior ++ map Var li,
+          ensures = ensures behavior
+        }
+        _ -> error $ printf
+          "%s: TODO1:\n\
+          \1) %s\n\
+          \2) %s" loc (show clause) (show behavior)
+      _ -> error $ printf "%s: TODO2: %s" loc (show clause)
+  -- looking up Assignable in jmlStack
+  getStackAssignable :: [Clause] -> Maybe Clause
+  getStackAssignable = find $ \case
+    Assignable li -> True
+    _ -> False
+  -- adding Assignable to jmlStack
+  addAssignableToStack :: [Clause] -> [String] -> [Clause]
+  addAssignableToStack clauses li = case getStackAssignable clauses of
+    Nothing -> clauses ++ [Assignable li]
+    Just _ -> flip map clauses $ \case
+      Assignable li0 -> Assignable $ li0 ++ li
+      clause -> clause
 
 createError_er :: String -> String -> ExecutionResult -> a
 createError_er prefix loc er = error $ printf

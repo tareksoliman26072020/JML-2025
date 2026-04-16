@@ -14,6 +14,8 @@ data LogTag =
   | Skip String String String
   | AddBehaviorToState String String
   | AddClauseToState String String
+  | Return String String
+  | ReportTheState String String String String
   | Meow String String
   deriving (Show,Eq)
 
@@ -32,6 +34,18 @@ ppLogTag = \case
   Location loc contents   -> printf
     "%s in %s\n\
     \  %s: %s" "Location" loc "Contents" contents
+  Return loc contents   -> printf
+    "%s in %s\n\
+    \  %s: %s" "Return" loc "Contents" contents
+  ReportTheState loc method jmlStack logHeader -> printf
+    "%s in %s\n\
+    \  %s: %s\n\
+    \  %s: %s\n\
+    \  %s: %s"
+    "Report The State" loc
+    "method"    method
+    "jmlStack"  jmlStack
+    "logHeader" logHeader
   Skip loc contents thing -> printf
     "%s in %s\n\
     \  %s: %s\n\
