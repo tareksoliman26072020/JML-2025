@@ -253,6 +253,7 @@ public double boo33_4(){
   @   requires true;
   @   assignable z;
   @   ensures \result == 1.1;
+  @   ensures z == \old(t);
   @*/
 public double boo33_5(String str){
   double x = 1;
@@ -291,6 +292,7 @@ public double boo33_5(String str){
   @   requires true;
   @   assignable z;
   @   ensures \result == 1.1;
+  @   ensures z == 1.0;
   @*/
 public double boo33_6(String str){
   double x = 1;

@@ -14,22 +14,22 @@ import qualified JML.Logs.Log as Log (Log, Header)
 data Op = Add | Sub | Mul | Div | Gt | Ge | Lt | Le | Eq | Neq
         deriving (Show,Eq)
 
-data Expr = Var String | Int Int | Double Double
+data Expr = Var String | Int Int | Double Double | Num Float
           | Bin Expr Op Expr | Not Expr | Old Expr | Expr `And` Expr
-          | Result Expr
+          | Expr `Equals` Expr | Result Expr
           deriving (Show,Eq)
 
 data Behavior =
     NormalBehavior {
       requires :: Maybe Expr,
       assignable :: [Expr],
-      ensures :: Maybe Expr
+      ensures :: [Expr]
     }
   | ExceptionalBehavior {
       requires :: Maybe Expr,
       signals :: String,
       assignable :: [Expr],
-      ensures :: Maybe Expr
+      ensures :: [Expr]
     }
   deriving (Show,Eq)
 

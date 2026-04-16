@@ -82,6 +82,15 @@ decrementLogDepth = do
 se_2_map :: [SYT.SymbolicExecution] -> Map.Map String SYT.SymbolicExecution
 se_2_map = Map.fromList . map (\se -> (SY.Internal.getFunName se,se))
 
+-- converts SymExpr to Expr
+symExprToExpr :: SYT.SymbolicExecutionValue -> Expr
+symExprToExpr symExpr =
+  let loc = "JML.Internal.symExprToExpr"
+  in case symExpr of
+       SYT.SymVar _ vn -> Var vn
+       SYT.SymNum num -> Num num
+       _ -> error $ printf "%s: TODO: %s" loc (show symExpr)
+
 addBehavior :: ExecutionResult -> JMLMonad ()
 addBehavior er = do
   let loc = "JML.Internal.addBehavior"
@@ -89,13 +98,26 @@ addBehavior er = do
   case er of
     ER_ReturnException (behavior@ExceptionalBehavior{}) -> addBehaviorToState loc behavior
     ER_Return (behavior@NormalBehavior{}) -> addBehaviorToState loc behavior
-    ER_VarName_Global_Reassigned vn _ -> addClauseToStack loc (Assignable [vn])
+    ER_VarName_Global_Reassigned vn symExpr -> do
+      addClauseToStack loc (Assignable [vn])
+      -- determine the left and right operand for the `Ensures` annotation
+      let rightOperand = case symExprToExpr symExpr of
+            expr@(Var _) -> Old expr
+            expr@(Num _) -> expr
+            expr -> error $ printf
+              "%s: TODO:\n\
+              \1) ER_VarName_Global_Reassigned %s %s\n\
+              \2) %s" loc
+              vn (show symExpr)
+              (show expr)
+          ensuresExpr = Var vn `Equals` rightOperand
+      addClauseToStack loc (Ensures ensuresExpr)
     ER_VarBindings _ -> logSkipping loc
     ER_VarName_Skipped _ _ -> logSkipping loc
     ER_VarAssignments _ -> logSkipping loc
     ER_NoGlobalVars -> logSkipping loc
     ER_FormalParms _ -> logSkipping loc
-    _ -> createError_er "TODO" loc er
+    _ -> createError_er "TODO2" loc er
   where
   -- adding the behavior
   addBehaviorToState :: String -> Behavior -> JMLMonad ()
@@ -122,12 +144,14 @@ addBehavior er = do
       method = jmlMethod,
       jmlStack = case clause of
         Assignable li -> addAssignableToStack stack li
+        Ensures expr -> addEnsuresToStack stack expr
         _ -> error $ printf "TODO: %s ==> %s" (loc ++ ".addClauseToStack") (show clause),
       logHeader = jmlLogHeader
     }
     get >>= \s -> tellNextLog $ Log.ReportTheState loc
       (show $ method s) (show $ jmlStack s) (show $ logHeader s)
     return ()
+  --
   logSkipping :: String -> JMLMonad ()
   logSkipping loc0 = do
     let loc = loc0 ++ ".logSkipping"
@@ -153,7 +177,17 @@ addBehavior er = do
           "%s: TODO1:\n\
           \1) %s\n\
           \2) %s" loc (show clause) (show behavior)
-      _ -> error $ printf "%s: TODO2: %s" loc (show clause)
+      Ensures expr -> case behavior of
+        NormalBehavior{} -> NormalBehavior {
+          requires = requires behavior,
+          assignable = assignable behavior,
+          ensures = ensures behavior ++ [expr]
+        }
+        _ -> error $ printf
+          "%s: TODO2:\n\
+          \1) %s\n\
+          \2) %s" loc (show clause) (show behavior)
+      _ -> error $ printf "%s: TODO3: %s" loc (show clause)
   -- looking up Assignable in jmlStack
   getStackAssignable :: [Clause] -> Maybe Clause
   getStackAssignable = find $ \case
@@ -166,6 +200,9 @@ addBehavior er = do
     Just _ -> flip map clauses $ \case
       Assignable li0 -> Assignable $ li0 ++ li
       clause -> clause
+  -- adding Ensures to jmlStack
+  addEnsuresToStack :: [Clause] -> Expr -> [Clause]
+  addEnsuresToStack clauses expr = clauses ++ [Ensures expr]
 
 createError_er :: String -> String -> ExecutionResult -> a
 createError_er prefix loc er = error $ printf
@@ -176,8 +213,8 @@ createError_er prefix loc er = error $ printf
   {-1)-}(loc ++ " ==> throwTheError")
   {-2)-}(show er)
 
-extractEnsures :: SYT.SymbolicExecution -> SYT.SymbolicExecutionValue -> Maybe Expr
+extractEnsures :: SYT.SymbolicExecution -> SYT.SymbolicExecutionValue -> [Expr]
 extractEnsures sy symExpr = case symExpr of
-  SYT.SymInt num -> Just $ Int (fromIntegral num)
-  SYT.SymDouble num -> Just $ Double num
+  SYT.SymInt num -> [Result $ Int (fromIntegral num)]
+  SYT.SymDouble num -> [Result $ Double num]
   _ -> error $ "TODO: JML.Internal.extractEnsures: " ++ show symExpr

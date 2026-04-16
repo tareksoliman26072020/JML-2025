@@ -81,7 +81,7 @@ instance SymbolicExecutionVisitor MethodProcessor where
             requires = Nothing,
             signals = exceptionName,
             assignable = [],
-            ensures = Nothing
+            ensures = []
           }
       let toReturn = ER_ReturnException newClause
       tellNextLog (Log.Return loc (show toReturn)) $> toReturn
@@ -142,11 +142,14 @@ runSE sys sy =
                incrementLogDepth *>
                  (methodProcessorMonad $ visitSymExpr sy (k,v))
                      <* decrementLogDepth
+            {-case visited of
+              ER_VarName_Global_Reassigned _ _ ->
+                throwError $ printf "MEOW::\n%s" (show visited)
+              _ -> return ()-}
             -- modifying the state
             do incrementLogEnumeration
                incrementLogDepth *> addBehavior visited <* decrementLogDepth
             decrementLogDepth
-        --get >>= \theEnv -> throwError $ printf "MEOW::\n%s" (show theEnv)
         return ()
 
       initialJMLState :: JMLState
