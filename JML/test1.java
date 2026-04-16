@@ -320,6 +320,11 @@ public double boo33_6(String str){
     (Return,SymVar Double "c")
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == c;
+  @*/
 public double boo33_7(){
   double x;
   x = c;
@@ -355,6 +360,11 @@ public double boo33_7(){
     (Return,SymVar Int "i")
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == i;
+  @*/
 public int boo21_i(int i){
   return i;
 }
@@ -373,9 +383,49 @@ public int boo21_i(int i){
     (Return,SymInt 5)
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 5;
+  @*/
 public int boo21_2_i(int i){
   i = 5;
   return i;
+}
+
+////////////////////////////////////////
+
+//TODO
+public double boo33_5_2(String str){
+  double x = 1;
+  int y;
+  z = str;
+  x = x + 0.1;
+  return x;
+}
+
+////////////////////////////////////////
+
+//TODO
+public double boo33_5_3(String str){
+  double x = 1;
+  int y;
+  str = str + "1";
+  z = str;
+  x = x + 0.1;
+  return x;
+}
+
+////////////////////////////////////////
+
+//TODO
+public double boo33_5_4(String str){
+  double x = 1;
+  int y;
+  z = str;
+  str = str + "1";
+  x = x + 0.1;
+  return x;
 }
 
 ////////////////////////////////////////

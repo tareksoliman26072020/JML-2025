@@ -21,9 +21,9 @@ allTargets = [
   ("boo21",boo21), ("boo21_2",boo21_2), ("boo22",boo22),
   ("boo22_2",boo22_2), ("boo23_3",boo23_3), ("boo23_3_1",boo23_3_1),
   ("boo23_4",boo23_4), ("boo23_9",boo23_9), ("boo33_3",boo33_3),
-  ("boo33_4",boo33_4), ("boo33_5",boo33_5), ("boo33_6",boo33_6){-,
+  ("boo33_4",boo33_4), ("boo33_5",boo33_5), ("boo33_6",boo33_6),
   ("boo33_7",boo33_7),
-  ("boo21_i",boo21_i), ("boo21_2_i",boo21_2_i), ("boo21_3_i",boo21_3_i),
+  ("boo21_i",boo21_i), ("boo21_2_i",boo21_2_i){-, ("boo21_3_i",boo21_3_i),
   ("boo21_3_i_1",boo21_3_i_1), ("boo21_3_i_2",boo21_3_i_2), ("boo21_3_i_3",boo21_3_i_3),
   ("boo21_3_i_4",boo21_3_i_4), ("boo21_3_i_5",boo21_3_i_5), ("boo21_3_i_6",boo21_3_i_6),
   ("boo21_3_i_7",boo21_3_i_7), ("boo21_3_i_8",boo21_3_i_8), ("boo21_3_i_9",boo21_3_i_9),
@@ -360,28 +360,55 @@ boo33_6 = Method {
 -----------------------------
 -----------------------------
 -----------------------------
-{-
+
 boo33_7 :: Method
-boo33_7 = undefined
+boo33_7 = Method {
+  name = "boo33_7",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [Result (Var "c")]
+    }
+  ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
 
 boo21_i :: Method
-boo21_i = undefined
+boo21_i = Method {
+  name = "boo21_i",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [Result (Var "i")]
+    }
+  ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
 
 boo21_2_i :: Method
-boo21_2_i = undefined
+boo21_2_i = Method {
+  name = "boo21_2_i",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [Result (Int 5)]
+    }
+  ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
-
+{-
 boo21_3_i :: Method
 boo21_3_i = undefined
 

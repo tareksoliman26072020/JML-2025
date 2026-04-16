@@ -1,7 +1,7 @@
 {-# Language LambdaCase #-}
 module JML.PrettyPrint where
 
-import JML.Types (Behavior(..), Expr(..))
+import JML.Types (Behavior(..), Expr(..), Op(..))
 import Data.List (intercalate)
 import Text.Printf (printf)
 
@@ -73,7 +73,13 @@ ppExpr expr = case expr of
   expr1 `Equals` expr2 -> printf "%s == %s" (ppExpr expr1) (ppExpr expr2)
   Old expr -> printf "\\old(%s)" (ppExpr expr)
   Result expr -> printf "\\result == %s" (ppExpr expr)
+  Bin expr1 op expr2 -> printf "%s %s %s" (ppExpr expr1) (ppOp op) (ppExpr expr2)
   _ -> error $ "JML.PrettyPrint.ppExpr ==> TODO: " ++ show expr
+
+ppOp :: Op -> String
+ppOp op = case op of
+  Add -> "+"
+  _ -> printf "JML.PrettyPrint.ppOp: TODO: %s" (show op)
 
 ppBehaviors :: [Behavior] -> String
 ppBehaviors behaviors =

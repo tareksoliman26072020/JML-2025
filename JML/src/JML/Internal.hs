@@ -12,7 +12,7 @@ import qualified Data.Map as Map
 import JML.Types
 import qualified JML.Logs.Log as Log
 
-import qualified SymbolicExecution.Types as SYT (SymbolicExecution, SymbolicExecutionValue, SymExpr(..))
+import qualified SymbolicExecution.Types as SYT (SymbolicExecution, SymbolicExecutionValue, SymExpr(..), SymBinOp(..))
 import qualified SymbolicExecution.Internal.Internal as SY.Internal (getFunName)
 
 tellNextLog :: Log.LogTag -> JMLMonad String
@@ -87,9 +87,18 @@ symExprToExpr :: SYT.SymbolicExecutionValue -> Expr
 symExprToExpr symExpr =
   let loc = "JML.Internal.symExprToExpr"
   in case symExpr of
+       SYT.SymDouble num -> Double num
+       SYT.SymInt num -> Int (fromIntegral num)
        SYT.SymVar _ vn -> Var vn
        SYT.SymNum num -> Num num
+       SYT.SBin symExpr1 op symExpr2 ->
+         Bin (symExprToExpr symExpr1) (symBinOpToOp op) (symExprToExpr symExpr2)
        _ -> error $ printf "%s: TODO: %s" loc (show symExpr)
+
+symBinOpToOp :: SYT.SymBinOp -> Op
+symBinOpToOp symBinOp = case symBinOp of
+  SYT.Add -> Add
+  _ -> error $ printf "JML.Internal.symBinOpToOp: TODO: %s" (show symBinOp)
 
 addBehavior :: ExecutionResult -> JMLMonad ()
 addBehavior er = do
@@ -214,7 +223,5 @@ createError_er prefix loc er = error $ printf
   {-2)-}(show er)
 
 extractEnsures :: SYT.SymbolicExecution -> SYT.SymbolicExecutionValue -> [Expr]
-extractEnsures sy symExpr = case symExpr of
-  SYT.SymInt num -> [Result $ Int (fromIntegral num)]
-  SYT.SymDouble num -> [Result $ Double num]
-  _ -> error $ "TODO: JML.Internal.extractEnsures: " ++ show symExpr
+extractEnsures sy symExpr = [Result $ symExprToExpr symExpr]
+
