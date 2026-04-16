@@ -249,6 +249,11 @@ public double boo33_4(){
     (Return,SymDouble 1.1)
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable z;
+  @   ensures \result == 1.1;
+  @*/
 public double boo33_5(String str){
   double x = 1;
   int y;
@@ -282,6 +287,11 @@ public double boo33_5(String str){
     (Return,SymDouble 1.1)
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable z;
+  @   ensures \result == 1.1;
+  @*/
 public double boo33_6(String str){
   double x = 1;
   int y;

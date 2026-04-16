@@ -66,6 +66,8 @@ data ExecutionResult =
   | ER_FormalParms [String]
   | ER_VarAssignments [(String,(SYT.SymbolicExecutionValue,CFGT.Node_Coor))]
   | ER_VarBindings (Map.Map String CFGT.Node_Coor)
+  -- a global variable has been reassigned
+  -- this results in an entry in `Assignable`, and entry in `ensures`
   | ER_VarName_Global_Reassigned String SYT.SymbolicExecutionValue
   | ER_VarName_Skipped String SYT.SymbolicExecutionValue
   | ER_ReturnException Behavior

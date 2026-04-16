@@ -28,7 +28,7 @@ ppBehavior behavior = case behavior of
     ,-- assignable
       printf
      "@   assignable %s;" $ list "\\nothing"
-       (intercalate ", " . map (show . ppExpr)) (assignable behavior)
+       (intercalate ", " . map ppExpr) (assignable behavior)
     ,-- ensures
      case ensures behavior of
        Nothing -> ""
@@ -53,7 +53,7 @@ NormalBehavior {requires = Nothing, assignable = [], ensures = Just (Int 5)}
     ,-- assignable
       printf
      "@   assignable %s;" $ list "\\nothing"
-       (intercalate ", " . map (show . ppExpr)) (assignable behavior)
+       (intercalate ", " . map ppExpr) (assignable behavior)
     ,-- ensures
      case ensures behavior of
        Nothing -> ""

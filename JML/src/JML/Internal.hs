@@ -99,8 +99,9 @@ addBehavior er = do
   where
   -- adding the behavior
   addBehaviorToState :: String -> Behavior -> JMLMonad ()
-  addBehaviorToState loc newBehavior = do
-    tellNextLog $ Log.AddBehaviorToState (loc ++ ".addBehaviorToState") (show er)
+  addBehaviorToState loc0 newBehavior = do
+    let loc = loc0 ++ ".addBehaviorToState"
+    tellNextLog $ Log.AddBehaviorToState loc (show er)
     modify $ \(JMLState jmlMethod stack jmlLogHeader) -> JMLState {
       method = Method {
         name = name jmlMethod,
@@ -114,8 +115,9 @@ addBehavior er = do
     return ()
   -- adding clause to stack
   addClauseToStack :: String -> Clause -> JMLMonad ()
-  addClauseToStack loc clause = do
-    tellNextLog $ Log.AddClauseToState (loc ++ ".addClauseToStack") (show clause)
+  addClauseToStack loc0 clause = do
+    let loc = loc0 ++ ".addClauseToStack"
+    tellNextLog $ Log.AddClauseToState loc (show clause)
     modify $ \(JMLState jmlMethod stack jmlLogHeader) -> JMLState {
       method = jmlMethod,
       jmlStack = case clause of
@@ -127,7 +129,8 @@ addBehavior er = do
       (show $ method s) (show $ jmlStack s) (show $ logHeader s)
     return ()
   logSkipping :: String -> JMLMonad ()
-  logSkipping loc = do
+  logSkipping loc0 = do
+    let loc = loc0 ++ ".logSkipping"
     tellNextLog
       $ Log.Skip loc (show er) "no changes"
     return ()
