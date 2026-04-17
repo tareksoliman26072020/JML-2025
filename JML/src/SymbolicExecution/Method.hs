@@ -373,7 +373,7 @@ instance CFGVisitor MethodProcessor where
                         in addGlobalVars
                       -- if there's a VarName that was assigned between `condBranchRange`
                       -- then make it unknown
-                      unknownVarAssigns = flip filter (getVarAssignments2 ma1) $ \case
+                      unknownVarAssigns = flip filter (getVarAssignments ma1) $ \case
                         (_,(_,CFGT.Node_Coor _ frameCoor)) ->
                           CFGT.branchStart frameCoor == CFGT.branchStart condBranchRange
                       -- will be used in ma2

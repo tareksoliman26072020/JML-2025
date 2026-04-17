@@ -74,6 +74,7 @@ ppExpr expr = case expr of
   Old expr -> printf "\\old(%s)" (ppExpr expr)
   Result expr -> printf "\\result == %s" (ppExpr expr)
   Bin expr1 op expr2 -> printf "%s %s %s" (ppExpr expr1) (ppOp op) (ppExpr expr2)
+  String str -> str
   _ -> error $ "JML.PrettyPrint.ppExpr ==> TODO: " ++ show expr
 
 ppOp :: Op -> String

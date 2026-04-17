@@ -15,6 +15,7 @@ data Op = Add | Sub | Mul | Div | Gt | Ge | Lt | Le | Eq | Neq
         deriving (Show,Eq)
 
 data Expr = Var String | Int Int | Double Double | Num Float
+          | String String
           | Bin Expr Op Expr | Not Expr | Old Expr | Expr `And` Expr
           | Expr `Equals` Expr | Result Expr
           deriving (Show,Eq)

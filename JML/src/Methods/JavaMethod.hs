@@ -13,7 +13,9 @@ javaMethodInputs = [
   ("boo23_4",boo23_4), ("boo23_9",boo23_9), ("boo33_3",boo33_3),
   ("boo33_4",boo33_4), ("boo33_5",boo33_5), ("boo33_6",boo33_6),
   ("boo33_7",boo33_7),
-  ("boo21_i",boo21_i), ("boo21_2_i",boo21_2_i), ("boo21_3_i",boo21_3_i),
+  ("boo21_i",boo21_i), ("boo21_2_i",boo21_2_i),
+  ("boo33_5_2",boo33_5_2), ("boo33_5_3",boo33_5_3), ("boo33_5_4",boo33_5_4),
+  ("boo21_3_i",boo21_3_i),
   ("boo21_3_i_1",boo21_3_i_1), ("boo21_3_i_2",boo21_3_i_2), ("boo21_3_i_3",boo21_3_i_3),
   ("boo21_3_i_4",boo21_3_i_4), ("boo21_3_i_5",boo21_3_i_5), ("boo21_3_i_6",boo21_3_i_6),
   ("boo21_3_i_7",boo21_3_i_7), ("boo21_3_i_8",boo21_3_i_8), ("boo21_3_i_9",boo21_3_i_9),
@@ -239,6 +241,32 @@ boo21_i = "public int boo21_i(int i){\n\
 boo21_2_i = "public int boo21_2_i(int i){\n\
             \  i = 5;\n\
             \  return i;\n\
+            \}"
+
+boo33_5_2 = "public double boo33_5_2(String str){\n\
+            \  double x = 1;\n\
+            \  int y;\n\
+            \  z = str;\n\
+            \  x = x + 0.1;\n\
+            \  return x;\n\
+            \}"
+
+boo33_5_3 = "public double boo33_5_3(String str){\n\
+            \  double x = 1;\n\
+            \  int y;\n\
+            \  str = str + \"1\";\n\
+            \  z = str;\n\
+            \  x = x + 0.1;\n\
+            \  return x;\n\
+            \}"
+
+boo33_5_4 = "public double boo33_5_4(String str){\n\
+            \  double x = 1;\n\
+            \  int y;\n\
+            \  z = str;\n\
+            \  str = str + \"1\";\n\
+            \  x = x + 0.1;\n\
+            \  return x;\n\
             \}"
 
 boo21_3_i = "public int boo21_3_i(int i){\n\

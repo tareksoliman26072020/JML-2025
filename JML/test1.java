@@ -395,7 +395,32 @@ public int boo21_2_i(int i){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
+/*
+Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Double "boo33_5_2"),
+    (GlobalVars,SGlobalVars ["z"]),
+    (FormalParms,SFormalParms ["str"]),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),
+        ("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymDouble 1.0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("z",(SymVar String "str",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("x",(SymDouble 1.1,Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+    (VarName "str",SymVar SYT.String "str"),
+    (VarName "x",SymDouble 1.1),
+    (VarName "y",SymVar SYT.Int "y"),
+    (VarName "z",SymVar SYT.String "str"),
+    (Return,SymDouble 1.1)
+  ]
+*/
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable z;
+  @   ensures \result == 1.1;
+  @   ensures z == str;
+  @*/
 public double boo33_5_2(String str){
   double x = 1;
   int y;
@@ -406,7 +431,27 @@ public double boo33_5_2(String str){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
+/*
+[
+    (MethodHandle,SMethodHandle Double "boo33_5_3"),
+    (GlobalVars,SGlobalVars ["z"]),
+    (FormalParms,SFormalParms ["str"]),
+    (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 6}}),("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 6}})])),
+    (VarAssignments,SVarAssignments [("x",(SymDouble 1.0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 6}})),("str",(SBin (SymVar String "str") Add (SymString "1"),Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 6}})),("z",(SBin (SymVar String "str") Add (SymString "1"),Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 6}})),("x",(SymDouble 1.1,Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 6}}))]),
+    (VarName "str",SBin (SymVar String "str") Add (SymString "1")),
+    (VarName "x",SymDouble 1.1),
+    (VarName "y",SymVar Int "y"),
+    (VarName "z",SBin (SymVar String "str") Add (SymString "1")),
+    (Return,SymDouble 1.1)
+  ]
+*/
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable z;
+  @   ensures \result == 1.1;
+  @   ensures z == \old(str) + 1;
+  @*/
 public double boo33_5_3(String str){
   double x = 1;
   int y;
@@ -418,7 +463,33 @@ public double boo33_5_3(String str){
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
+/*
+[
+    (MethodHandle,SMethodHandle SYT.Double "boo33_5_4"),
+    (GlobalVars,SGlobalVars ["z"]),
+    (FormalParms,SFormalParms ["str"]),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 6}}),
+        ("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 6}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymDouble 1.0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 6}})),
+        ("z",(SymVar SYT.String "str",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 6}})),
+        ("str",(SBin (SymVar SYT.String "str") SYT.Add (SymString "1"),Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 6}})),
+        ("x",(SymDouble 1.1,Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 6}}))]),
+    (VarName "str",SBin (SymVar SYT.String "str") SYT.Add (SymString "1")),
+    (VarName "x",SymDouble 1.1),
+    (VarName "y",SymVar SYT.Int "y"),
+    (VarName "z",SymVar SYT.String "str"),
+    (Return,SymDouble 1.1)
+  ]
+*/
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable z;
+  @   ensures \result == 1.1;
+  @   ensures z == \old(str);
+  @*/
 public double boo33_5_4(String str){
   double x = 1;
   int y;
@@ -442,6 +513,11 @@ public double boo33_5_4(String str){
     (Return,SBin (SymVar Int "i") Add (SymInt 2))
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == \old(i) + 2;
+  @*/
 public int boo21_3_i(int i){
   i += 2;
   return i;

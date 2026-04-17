@@ -13,7 +13,7 @@ import JML.Types
 import qualified JML.Logs.Log as Log
 
 import qualified SymbolicExecution.Types as SYT (SymbolicExecution, SymbolicExecutionValue, SymExpr(..), SymBinOp(..))
-import qualified SymbolicExecution.Internal.Internal as SY.Internal (getFunName)
+import qualified SymbolicExecution.Internal.Internal as SY.Internal (getFunName, isReassigned)
 
 tellNextLog :: Log.LogTag -> JMLMonad String
 tellNextLog logTag
@@ -83,16 +83,20 @@ se_2_map :: [SYT.SymbolicExecution] -> Map.Map String SYT.SymbolicExecution
 se_2_map = Map.fromList . map (\se -> (SY.Internal.getFunName se,se))
 
 -- converts SymExpr to Expr
-symExprToExpr :: SYT.SymbolicExecutionValue -> Expr
-symExprToExpr symExpr =
+symExprToExpr :: SYT.SymbolicExecution -> SYT.SymbolicExecutionValue -> Expr
+symExprToExpr sy symExpr =
   let loc = "JML.Internal.symExprToExpr"
   in case symExpr of
        SYT.SymDouble num -> Double num
        SYT.SymInt num -> Int (fromIntegral num)
-       SYT.SymVar _ vn -> Var vn
+     --SYT.SymVar _ vn -> Var vn
+       SYT.SymVar _ vn
+         | SY.Internal.isReassigned vn sy -> Old $ Var vn
+         | otherwise -> Var vn
        SYT.SymNum num -> Num num
        SYT.SBin symExpr1 op symExpr2 ->
-         Bin (symExprToExpr symExpr1) (symBinOpToOp op) (symExprToExpr symExpr2)
+         Bin (symExprToExpr sy symExpr1) (symBinOpToOp op) (symExprToExpr sy symExpr2)
+       SYT.SymString str -> String str
        _ -> error $ printf "%s: TODO: %s" loc (show symExpr)
 
 symBinOpToOp :: SYT.SymBinOp -> Op
@@ -100,8 +104,8 @@ symBinOpToOp symBinOp = case symBinOp of
   SYT.Add -> Add
   _ -> error $ printf "JML.Internal.symBinOpToOp: TODO: %s" (show symBinOp)
 
-addBehavior :: ExecutionResult -> JMLMonad ()
-addBehavior er = do
+addBehavior :: SYT.SymbolicExecution -> ExecutionResult -> JMLMonad ()
+addBehavior sy er = do
   let loc = "JML.Internal.addBehavior"
   tellNextLog $ Log.Location loc (show er)
   case er of
@@ -110,15 +114,16 @@ addBehavior er = do
     ER_VarName_Global_Reassigned vn symExpr -> do
       addClauseToStack loc (Assignable [vn])
       -- determine the left and right operand for the `Ensures` annotation
-      let rightOperand = case symExprToExpr symExpr of
-            expr@(Var _) -> Old expr
+      let rightOperand = symExprToExpr sy symExpr
+          {-rightOperand = case symExprToExpr sy symExpr of
+            expr@(Var _) -> expr
             expr@(Num _) -> expr
             expr -> error $ printf
               "%s: TODO:\n\
               \1) ER_VarName_Global_Reassigned %s %s\n\
               \2) %s" loc
               vn (show symExpr)
-              (show expr)
+              (show expr)-}
           ensuresExpr = Var vn `Equals` rightOperand
       addClauseToStack loc (Ensures ensuresExpr)
     ER_VarBindings _ -> logSkipping loc
@@ -223,5 +228,5 @@ createError_er prefix loc er = error $ printf
   {-2)-}(show er)
 
 extractEnsures :: SYT.SymbolicExecution -> SYT.SymbolicExecutionValue -> [Expr]
-extractEnsures sy symExpr = [Result $ symExprToExpr symExpr]
+extractEnsures sy symExpr = [Result $ symExprToExpr sy symExpr]
 

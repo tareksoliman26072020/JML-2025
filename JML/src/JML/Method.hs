@@ -138,17 +138,13 @@ runSE sys sy =
             tellNextLog $ Log.NextSymExpr loc (show k) (show v)
             incrementLogDepth >> incrementLogEnumeration
             -- visiting
-            visited <-
-               incrementLogDepth *>
-                 (methodProcessorMonad $ visitSymExpr sy (k,v))
-                     <* decrementLogDepth
+            visited <- visitingSymExpr sy (k,v)
             {-case visited of
               ER_VarName_Global_Reassigned _ _ ->
                 throwError $ printf "MEOW::\n%s" (show visited)
               _ -> return ()-}
             -- modifying the state
-            do incrementLogEnumeration
-               incrementLogDepth *> addBehavior visited <* decrementLogDepth
+            addingBehavior sy visited
             decrementLogDepth
         return ()
 
@@ -175,3 +171,13 @@ runSE sys sy =
       run_s@((er,logs),s) = runState run_w initialJMLState
 
   in (either id (const "") er,logs,method s)
+  where
+  visitingSymExpr :: SYT.SymbolicExecution -> (SYT.SymbolicExecutionKey,SYT.SymbolicExecutionValue) -> JMLMonad ExecutionResult
+  visitingSymExpr sy tu =
+    incrementLogDepth *>
+      (methodProcessorMonad $ visitSymExpr sy tu)
+      <* decrementLogDepth
+  addingBehavior :: SYT.SymbolicExecution -> ExecutionResult -> JMLMonad ()
+  addingBehavior sy visited = do
+    incrementLogEnumeration
+    incrementLogDepth *> addBehavior sy visited <* decrementLogDepth

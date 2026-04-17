@@ -1020,8 +1020,10 @@ getActions = maybe [] (\(SActions li) -> li) . Map.lookup Actions
 getVarAssignments :: SymStateEnv -> [(String,(SymExpr,CFGT.Node_Coor))]
 getVarAssignments = maybe [] (\(SVarAssignments li) -> li) . Map.lookup VarAssignments
 
-getVarAssignments2 :: SymStateEnv -> [(String,(SymExpr,CFGT.Node_Coor))]
-getVarAssignments2 = maybe [] (\(SVarAssignments li) -> li) . Map.lookup VarAssignments
+isReassigned :: String -> SymStateEnv -> Bool
+isReassigned vn sy = case find (\(vn2,_) -> vn2 == vn) (getVarAssignments sy) of
+  Just _ -> True
+  Nothing -> False
 
 getGlobalVars :: SymStateEnv -> [String]
 getGlobalVars = maybe [] (\(SGlobalVars li) -> li) . Map.lookup GlobalVars

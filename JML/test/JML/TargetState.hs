@@ -9,7 +9,7 @@ import SymbolicExecution.Types hiding (SymType(..), SymBinOp(..))
 import qualified SymbolicExecution.Types as SYT (SymType(..), SymBinOp(..))
 import qualified Data.Map.Lazy as Map
 -}
-import JML.Types (Method(..), Behavior(..), Expr(..))
+import JML.Types (Method(..), Behavior(..), Expr(..), Op(..))
 
 target :: String -> Method
 target name = case lookup name allTargets of
@@ -23,7 +23,9 @@ allTargets = [
   ("boo23_4",boo23_4), ("boo23_9",boo23_9), ("boo33_3",boo33_3),
   ("boo33_4",boo33_4), ("boo33_5",boo33_5), ("boo33_6",boo33_6),
   ("boo33_7",boo33_7),
-  ("boo21_i",boo21_i), ("boo21_2_i",boo21_2_i){-, ("boo21_3_i",boo21_3_i),
+  ("boo21_i",boo21_i), ("boo21_2_i",boo21_2_i),
+  ("boo33_5_2",boo33_5_2), ("boo33_5_3",boo33_5_3), ("boo33_5_4",boo33_5_4), 
+  ("boo21_3_i",boo21_3_i){-,
   ("boo21_3_i_1",boo21_3_i_1), ("boo21_3_i_2",boo21_3_i_2), ("boo21_3_i_3",boo21_3_i_3),
   ("boo21_3_i_4",boo21_3_i_4), ("boo21_3_i_5",boo21_3_i_5), ("boo21_3_i_6",boo21_3_i_6),
   ("boo21_3_i_7",boo21_3_i_7), ("boo21_3_i_8",boo21_3_i_8), ("boo21_3_i_9",boo21_3_i_9),
@@ -333,7 +335,7 @@ boo33_5 = Method {
     NormalBehavior {
       requires = Nothing,
       assignable = [Var "z"],
-      ensures = [Result $ Double 1.1 , Var "z" `Equals` Old (Var "t")]
+      ensures = [Result $ Double 1.1 , Var "z" `Equals` Var "t"]
     }
   ]
 }
@@ -408,14 +410,82 @@ boo21_2_i = Method {
 -----------------------------
 -----------------------------
 -----------------------------
-{-
+
+boo33_5_2 :: Method
+boo33_5_2 = Method {
+  name = "boo33_5_2",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [Var "z"],
+      ensures = [
+        Result (Double 1.1),
+        Var "z" `Equals` Var "str"
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo33_5_3 :: Method
+boo33_5_3 = Method {
+  name = "boo33_5_3",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [Var "z"],
+      ensures = [
+        Result (Double 1.1),
+        Var "z" `Equals` (Bin (Old (Var "str")) Add (String "1"))
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo33_5_4 :: Method
+boo33_5_4 = Method {
+  name = "boo33_5_4",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [Var "z"],
+      ensures = [
+        Result (Double 1.1),
+        Var "z" `Equals` Old (Var "str")
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
 boo21_3_i :: Method
-boo21_3_i = undefined
+boo21_3_i = Method {
+  name = "boo21_3_i",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [
+        Result (Bin (Old (Var "i")) Add (Int 2))
+      ]
+    }
+  ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
-
+{-
 boo21_3_i_1 :: Method
 boo21_3_i_1 = undefined
 
