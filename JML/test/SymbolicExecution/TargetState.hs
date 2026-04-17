@@ -29,7 +29,8 @@ allTargets = [
   ("boo21_3_i_7",boo21_3_i_7), ("boo21_3_i_8",boo21_3_i_8), ("boo21_3_i_9",boo21_3_i_9),
   ("boo22_i",boo22_i), ("boo22_i_2",boo22_i_2),
   ("boo22_i_3",boo22_i_3), ("boo22_i_4",boo22_i_4),
-  ("boo22_i_5",boo22_i_5), ("boo22_2_i",boo22_2_i),
+  ("boo22_i_5",boo22_i_5), ("boo22_i_5_call",boo22_i_5_call),
+  ("boo22_2_i",boo22_2_i),
   ("boo22_2_i_2",boo22_2_i_2), ("boo23_3_i",boo23_3_i),
   ("boo23_3_i_2",boo23_3_i_2), ("boo23_4_i",boo23_4_i), ("boo23_4_i_2",boo23_4_i_2),
   ("boo23_4_i_3",boo23_4_i_3), ("boo23_4_i_4",boo23_4_i_4), ("boo23_4_i_4_1",boo23_4_i_4_1),
@@ -673,6 +674,24 @@ boo22_i_5 = Map.fromList [
     (VarName "i",SymVar SYT.Int "i"),
     (VarName "j",SymVar SYT.Int "j"),
     (Return,SBin (SymVar SYT.Int "j") SYT.Add (SymInt 2))
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo22_i_5_call :: SymStateEnv
+boo22_i_5_call = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "boo22_i_5_call"),
+    (GlobalVars,SGlobalVars ["j"]),
+    (VarAssignments,SVarAssignments [
+        ("j",(SymInt 9,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+    (VarName "j",SymInt 9),
+    (Return,SymReturnVoid),
+    (Actions,SActions [
+        SymString "9.0\n",
+        SymString "11\n",
+        SymString "9\n"])
   ]
 
 -----------------------------

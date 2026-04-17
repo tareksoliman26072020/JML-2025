@@ -21,7 +21,8 @@ javaMethodInputs = [
   ("boo21_3_i_7",boo21_3_i_7), ("boo21_3_i_8",boo21_3_i_8), ("boo21_3_i_9",boo21_3_i_9),
   ("boo22_i",boo22_i), ("boo22_i_2",boo22_i_2),
   ("boo22_i_3",boo22_i_3), ("boo22_i_4",boo22_i_4),
-  ("boo22_i_5",boo22_i_5), ("boo22_2_i",boo22_2_i),
+  ("boo22_i_5",boo22_i_5), ("boo22_i_5_call",boo22_i_5_call),
+  ("boo22_2_i",boo22_2_i),
   ("boo22_2_i_2",boo22_2_i_2), ("boo23_3_i",boo23_3_i),
   ("boo23_3_i_2",boo23_3_i_2), ("boo23_4_i",boo23_4_i), ("boo23_4_i_2",boo23_4_i_2),
   ("boo23_4_i_3",boo23_4_i_3), ("boo23_4_i_4",boo23_4_i_4), ("boo23_4_i_4_1",boo23_4_i_4_1),
@@ -340,6 +341,13 @@ boo22_i_4 = "public int boo22_i_4(int i){\n\
 boo22_i_5 = "public int boo22_i_5(int i){\n\
             \  return boo21_3_i(j);\n\
             \}"
+
+boo22_i_5_call = "public void boo22_i_5_call() {\n\
+                 \  j = 9;\n\
+                 \  println(toString(j));\n\
+                 \  println(toString(boo22_i_5(666)));\n\
+                 \  println(toString(j));\n\
+                 \}"
 
 boo22_2_i = "public int boo22_2_i(int i){\n\
             \  int x = boo21_i(i*2);\n\

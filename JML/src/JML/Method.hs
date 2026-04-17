@@ -23,19 +23,6 @@ import Data.Functor (($>))
 globalLoc :: String
 globalLoc = "JML.Method"
 
-createError :: String -> String
-  -> SYT.SymbolicExecutionKey -> SYT.SymbolicExecutionValue
-  -> a
-createError prefix loc key value = error $ printf
-  "%s:\n\
-  \1) %s\n\
-  \2) key = %s\n\
-  \3) value = %s"
-  prefix
-  {-1)-}(loc ++ " ==> createError")
-  {-2)-}(show key)
-  {-3)-}(show value)
-
 instance SymbolicExecutionVisitor MethodProcessor where
 --visitSymExpr :: SYT.SymbolicExecution -> (SYT.SymStateKey,SYT.SymbolicExecutionValue) -> MethodProcessor
   visitSymExpr sy tu@(key,value) = MethodProcessor $ case tu of
@@ -51,28 +38,36 @@ instance SymbolicExecutionVisitor MethodProcessor where
       tellNextLog
         $ Log.Skip loc (show tu) "no global vars were mentioned"
       let toReturn = ER_NoGlobalVars
-      tellNextLog (Log.Return loc (show toReturn)) $> toReturn
+      tellingThenReturning loc toReturn
     -----------------------------
     (SYT.FormalParms,SYT.SFormalParms formalParms) -> do
       let loc = globalLoc ++ ".visitSymExpr.FormalParms"
       tellNextLog
         $ Log.Skip loc (show tu) "nothing to do with formalParms"
       let toReturn = ER_FormalParms formalParms
-      tellNextLog (Log.Return loc (show toReturn)) $> toReturn
+      tellingThenReturning loc toReturn
     -----------------------------
     (SYT.VarAssignments,SYT.SVarAssignments varAssignments) -> do
       let loc = globalLoc ++ ".visitSymExpr.VarAssignments"
       tellNextLog
         $ Log.Skip loc (show tu) "nothing to do with varAssignments"
       let toReturn = ER_VarAssignments varAssignments
-      tellNextLog (Log.Return loc (show toReturn)) $> toReturn
+      tellingThenReturning loc toReturn
     -----------------------------
     (SYT.VarBindings,SYT.SVarBindings varBindings) -> do
       let loc = globalLoc ++ ".visitSymExpr.VarBindings"
       tellNextLog
         $ Log.Skip loc (show tu) "nothing to do with VarBindings"
       let toReturn = ER_VarBindings varBindings
-      tellNextLog (Log.Return loc (show toReturn)) $> toReturn
+      tellingThenReturning loc toReturn
+    -----------------------------
+    (SYT.Return,SYT.SymReturnVoid) -> do
+      let loc = globalLoc ++ ".visitSymExpr.Return Void"
+      tellNextLog
+        $ Log.Skip loc (show tu) "return nothing because the method is of void"
+      tellNextLog $ Log.Location loc (show tu)
+      let toReturn = ER_ReturnVoid
+      tellingThenReturning loc toReturn
     -----------------------------
     (SYT.Return,SYT.SException exceptionType exceptionName exceptionMessage) -> do
       let loc = globalLoc ++ ".visitSymExpr.Return Exception"
@@ -84,7 +79,7 @@ instance SymbolicExecutionVisitor MethodProcessor where
             ensures = []
           }
       let toReturn = ER_ReturnException newClause
-      tellNextLog (Log.Return loc (show toReturn)) $> toReturn
+      tellingThenReturning loc toReturn
     -----------------------------
     (SYT.Return,symExpr) -> do
       let loc = globalLoc ++ ".visitSymExpr.Return " ++ show symExpr
@@ -95,7 +90,7 @@ instance SymbolicExecutionVisitor MethodProcessor where
             ensures = extractEnsures sy symExpr
           }
       let toReturn = ER_Return newClause
-      tellNextLog (Log.Return loc (show toReturn)) $> toReturn
+      tellingThenReturning loc toReturn
     -----------------------------
     -- a global variable `vn` has been re-assigned
     -- this denotes `assignable` in JML
@@ -107,7 +102,7 @@ instance SymbolicExecutionVisitor MethodProcessor where
           let loc = globalLoc ++ ".visitSymExpr.VarName (1)"
           tellNextLog $ Log.Location loc (show tu)
           let toReturn = ER_VarName_Global_Reassigned vn symExpr
-          tellNextLog (Log.Return loc (show toReturn)) $> toReturn
+          tellingThenReturning loc toReturn
     -----------------------------
     (SYT.VarName vn,symExpr) -> do
       let loc = globalLoc ++ ".visitSymExpr.VarName (2)"
@@ -115,11 +110,19 @@ instance SymbolicExecutionVisitor MethodProcessor where
       tellNextLog
         $ Log.Skip loc (show tu) "nothing to do with VarName"
       let toReturn = ER_VarName_Skipped vn symExpr
-      tellNextLog (Log.Return loc (show toReturn)) $> toReturn
+      tellingThenReturning loc toReturn
+    -----------------------------
+    (SYT.Actions,_) -> do
+      let loc = globalLoc ++ ".visitSymExpr.Actions"
+      tellNextLog $ Log.Location loc (show tu)
+      tellNextLog
+        $ Log.Skip loc (show tu) "I/O operation"
+      let toReturn = ER_Actions $ symExprToExpr sy value
+      tellingThenReturning loc toReturn
     -----------------------------
     _ ->
       let loc = globalLoc ++ ".visitSymExpr"
-      in throwError $ createError "TODO" loc key value
+      in throwError $ createError_sy "TODO" loc key value
 
 -----------------------------
 -----------------------------

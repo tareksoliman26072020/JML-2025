@@ -770,6 +770,11 @@ public int boo21_3_i_9(int i){
     (Return,SymVar Int "i")
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == i;
+  @*/
 public int boo22_i(int i){
   return boo21_i(i);
 }
@@ -786,6 +791,11 @@ public int boo22_i(int i){
     (Return,SBin (SymVar Int "i") Add (SymInt 5))
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == i + 5;
+  @*/
 public int boo22_i_2(int i){
   return boo21_i(i+4) + 1;
 }
@@ -802,6 +812,11 @@ public int boo22_i_2(int i){
     (Return,SBin (SymVar Int "i") Add (SymInt 2))
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == i + 2;
+  @*/
 public int boo22_i_3(int i){
   return boo21_3_i(i);
 }
@@ -818,6 +833,16 @@ public int boo22_i_3(int i){
     (Return,SBin (SBin (SymVar Int "i") Add (SymInt 6)) Mul (SymInt 5))
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == i + 6 * 5;
+  @*/
+/*@ public normal_behavior
+  @   requires -429496735 <= i && i <= 429496723;
+  @   assignable \nothing;
+  @   ensures \result == 5 * (\old(i) + 6);
+  @*/
 public int boo22_i_4(int i){
   return boo21_3_i(i+4) * 5;
 }
@@ -836,8 +861,38 @@ public int boo22_i_4(int i){
     (Return,SBin (SymVar Int "j") Add (SymInt 2))
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == j + 2;
+  @*/
 public int boo22_i_5(int i){
   return boo21_3_i(j);
+}
+
+/*
+[
+    (MethodHandle,SMethodHandle Void "boo22_i_5_call"),
+    (GlobalVars,SGlobalVars ["j"]),
+    (VarAssignments,SVarAssignments [("j",(SymInt 9,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+    (VarName "j",SymInt 9),
+    (Return,SymReturnVoid),
+    (Actions,SActions [
+        SymString "9.0\n",
+        SymString "11\n",
+        SymString "9\n"])
+  ]
+*/
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable j;
+  @   ensures j == 9;
+  @*/
+public void boo22_i_5_call() {
+  j = 9;
+  println(toString(j));
+  println(toString(boo22_i_5(666)));
+  println(toString(j));
 }
 
 ////////////////////////////////////////

@@ -28,10 +28,11 @@ allTargets = [
   ("boo21_3_i",boo21_3_i),
   ("boo21_3_i_1",boo21_3_i_1), ("boo21_3_i_2",boo21_3_i_2), ("boo21_3_i_3",boo21_3_i_3),
   ("boo21_3_i_4",boo21_3_i_4), ("boo21_3_i_5",boo21_3_i_5), ("boo21_3_i_6",boo21_3_i_6),
-  ("boo21_3_i_7",boo21_3_i_7), ("boo21_3_i_8",boo21_3_i_8), ("boo21_3_i_9",boo21_3_i_9){-,
+  ("boo21_3_i_7",boo21_3_i_7), ("boo21_3_i_8",boo21_3_i_8), ("boo21_3_i_9",boo21_3_i_9),
   ("boo22_i",boo22_i), ("boo22_i_2",boo22_i_2),
   ("boo22_i_3",boo22_i_3), ("boo22_i_4",boo22_i_4),
-  ("boo22_i_5",boo22_i_5), ("boo22_2_i",boo22_2_i),
+  ("boo22_i_5",boo22_i_5), ("boo22_i_5_call",boo22_i_5_call){-,
+  ("boo22_2_i",boo22_2_i),
   ("boo22_2_i_2",boo22_2_i_2), ("boo23_3_i",boo23_3_i),
   ("boo23_3_i_2",boo23_3_i_2), ("boo23_4_i",boo23_4_i), ("boo23_4_i_2",boo23_4_i_2),
   ("boo23_4_i_3",boo23_4_i_3), ("boo23_4_i_4",boo23_4_i_4), ("boo23_4_i_4_1",boo23_4_i_4_1),
@@ -701,69 +702,115 @@ boo21_3_i_9 = Method {
 -----------------------------
 -----------------------------
 -----------------------------
+
+boo22_i :: Method
+boo22_i = Method {
+  name = "boo22_i",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [
+        Result (Var "i")
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo22_i_2 :: Method
+boo22_i_2 = Method {
+  name = "boo22_i_2",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [
+        Result $ Bin (Var "i") Add (Int 5)
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo22_i_3 :: Method
+boo22_i_3 = Method {
+  name = "boo22_i_3",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [
+        Result $ Bin (Var "i") Add (Int 2)
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo22_i_4 :: Method
+boo22_i_4 = Method {
+  name = "boo22_i_4",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [
+        Result $ Bin (Bin (Var "i") Add (Int 6))
+                     Mul
+                     (Int 5)
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo22_i_5 :: Method
+boo22_i_5 = Method {
+  name = "boo22_i_5",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [
+        Result $ Bin (Var "j") Add (Int 2)
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo22_i_5_call :: Method
+boo22_i_5_call = Method {
+  name = "boo22_i_5_call",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [Var "j"],
+      ensures = [Var "j" `Equals` Int 9]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
 {-
-boo22_i :: SymStateEnv
-boo22_i = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo22_i"),
-    (FormalParms,SFormalParms ["i"]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (Return,SymVar SYT.Int "i")
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo22_i_2 :: SymStateEnv
-boo22_i_2 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo22_i_2"),
-    (FormalParms,SFormalParms ["i"]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (Return,SBin (SymVar SYT.Int "i") SYT.Add (SymInt 5))
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo22_i_3 :: SymStateEnv
-boo22_i_3 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo22_i_3"),
-    (FormalParms,SFormalParms ["i"]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (Return,SBin (SymVar SYT.Int "i") SYT.Add (SymInt 2))
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo22_i_4 :: SymStateEnv
-boo22_i_4 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo22_i_4"),
-    (FormalParms,SFormalParms ["i"]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (Return,SBin (SBin (SymVar SYT.Int "i") SYT.Add (SymInt 6)) SYT.Mul (SymInt 5))
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo22_i_5 :: SymStateEnv
-boo22_i_5 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo22_i_5"),
-    (GlobalVars,SGlobalVars ["j"]),
-    (FormalParms,SFormalParms ["i"]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (VarName "j",SymVar SYT.Int "j"),
-    (Return,SBin (SymVar SYT.Int "j") SYT.Add (SymInt 2))
-  ]
-
------------------------------
------------------------------
------------------------------
-
 boo22_2_i :: SymStateEnv
 boo22_2_i = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "boo22_2_i"),

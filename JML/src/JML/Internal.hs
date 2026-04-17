@@ -12,7 +12,7 @@ import qualified Data.Map as Map
 import JML.Types
 import qualified JML.Logs.Log as Log
 
-import qualified SymbolicExecution.Types as SYT (SymbolicExecution, SymbolicExecutionValue, SymExpr(..), SymBinOp(..))
+import qualified SymbolicExecution.Types as SYT (SymbolicExecution, SymbolicExecutionKey, SymbolicExecutionValue, SymExpr(..), SymBinOp(..))
 import qualified SymbolicExecution.Internal.Internal as SY.Internal (getFunName, isReassigned)
 
 tellNextLog :: Log.LogTag -> JMLMonad String
@@ -89,7 +89,6 @@ symExprToExpr sy symExpr =
   in case symExpr of
        SYT.SymDouble num -> Double num
        SYT.SymInt num -> Int (fromIntegral num)
-     --SYT.SymVar _ vn -> Var vn
        SYT.SymVar _ vn
          | SY.Internal.isReassigned vn sy -> Old $ Var vn
          | otherwise -> Var vn
@@ -97,6 +96,7 @@ symExprToExpr sy symExpr =
        SYT.SBin symExpr1 op symExpr2 ->
          Bin (symExprToExpr sy symExpr1) (symBinOpToOp op) (symExprToExpr sy symExpr2)
        SYT.SymString str -> String str
+       SYT.SActions symExprs -> Actions $ map (symExprToExpr sy) symExprs
        _ -> error $ printf "%s: TODO: %s" loc (show symExpr)
 
 symBinOpToOp :: SYT.SymBinOp -> Op
@@ -106,12 +106,21 @@ symBinOpToOp symBinOp = case symBinOp of
   SYT.Sub -> Sub
   _ -> error $ printf "JML.Internal.symBinOpToOp: TODO: %s" (show symBinOp)
 
+emptyNormalBehavior :: Behavior
+emptyNormalBehavior = NormalBehavior {
+  requires = Nothing,
+  assignable = [],
+  ensures = []
+}
+
 addBehavior :: SYT.SymbolicExecution -> ExecutionResult -> JMLMonad ()
 addBehavior sy er = do
   let loc = "JML.Internal.addBehavior"
   tellNextLog $ Log.Location loc (show er)
   case er of
     ER_ReturnException (behavior@ExceptionalBehavior{}) -> addBehaviorToState loc behavior
+    ER_ReturnVoid -> addBehaviorToState loc emptyNormalBehavior
+    ER_Actions _ -> logSkipping loc
     ER_Return (behavior@NormalBehavior{}) -> addBehaviorToState loc behavior
     ER_VarName_Global_Reassigned vn symExpr -> do
       addClauseToStack loc (Assignable [vn])
@@ -220,6 +229,7 @@ addBehavior sy er = do
   addEnsuresToStack :: [Clause] -> Expr -> [Clause]
   addEnsuresToStack clauses expr = clauses ++ [Ensures expr]
 
+-- throws error and reporting the relevant „ExecutionResult“
 createError_er :: String -> String -> ExecutionResult -> a
 createError_er prefix loc er = error $ printf
   "%s:\n\
@@ -228,6 +238,25 @@ createError_er prefix loc er = error $ printf
   prefix
   {-1)-}(loc ++ " ==> throwTheError")
   {-2)-}(show er)
+
+-- throws error and reporting the relevant entry in „SymbolicExecution“
+createError_sy :: String -> String
+  -> SYT.SymbolicExecutionKey -> SYT.SymbolicExecutionValue
+  -> a
+createError_sy prefix loc key value = error $ printf
+  "%s:\n\
+  \1) %s\n\
+  \2) key = %s\n\
+  \3) value = %s"
+  prefix
+  {-1)-}(loc ++ " ==> createError")
+  {-2)-}(show key)
+  {-3)-}(show value)
+
+tellingThenReturning :: String -> ExecutionResult -> JMLMonad ExecutionResult
+tellingThenReturning loc toReturn = do
+  tellNextLog $ Log.Return loc (show toReturn)
+  return toReturn
 
 extractEnsures :: SYT.SymbolicExecution -> SYT.SymbolicExecutionValue -> [Expr]
 extractEnsures sy symExpr = [Result $ symExprToExpr sy symExpr]

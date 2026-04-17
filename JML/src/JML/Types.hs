@@ -17,7 +17,7 @@ data Op = Add | Sub | Mul | Div | Gt | Ge | Lt | Le | Eq | Neq
 data Expr = Var String | Int Int | Double Double | Num Float
           | String String
           | Bin Expr Op Expr | Not Expr | Old Expr | Expr `And` Expr
-          | Expr `Equals` Expr | Result Expr
+          | Expr `Equals` Expr | Result Expr | Actions [Expr]
           deriving (Show,Eq)
 
 data Behavior =
@@ -73,4 +73,6 @@ data ExecutionResult =
   | ER_VarName_Skipped String SYT.SymbolicExecutionValue
   | ER_ReturnException Behavior
   | ER_Return Behavior
+  | ER_ReturnVoid
+  | ER_Actions Expr
   deriving (Show,Eq)
