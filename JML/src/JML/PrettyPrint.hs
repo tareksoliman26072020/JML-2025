@@ -80,7 +80,9 @@ ppExpr expr = case expr of
 ppOp :: Op -> String
 ppOp op = case op of
   Add -> "+"
-  _ -> printf "JML.PrettyPrint.ppOp: TODO: %s" (show op)
+  Mul -> "*"
+  Sub -> "-"
+  _ -> error $ printf "JML.PrettyPrint.ppOp: TODO: %s" (show op)
 
 ppBehaviors :: [Behavior] -> String
 ppBehaviors behaviors =

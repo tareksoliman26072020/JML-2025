@@ -25,10 +25,10 @@ allTargets = [
   ("boo33_7",boo33_7),
   ("boo21_i",boo21_i), ("boo21_2_i",boo21_2_i),
   ("boo33_5_2",boo33_5_2), ("boo33_5_3",boo33_5_3), ("boo33_5_4",boo33_5_4), 
-  ("boo21_3_i",boo21_3_i){-,
+  ("boo21_3_i",boo21_3_i),
   ("boo21_3_i_1",boo21_3_i_1), ("boo21_3_i_2",boo21_3_i_2), ("boo21_3_i_3",boo21_3_i_3),
   ("boo21_3_i_4",boo21_3_i_4), ("boo21_3_i_5",boo21_3_i_5), ("boo21_3_i_6",boo21_3_i_6),
-  ("boo21_3_i_7",boo21_3_i_7), ("boo21_3_i_8",boo21_3_i_8), ("boo21_3_i_9",boo21_3_i_9),
+  ("boo21_3_i_7",boo21_3_i_7), ("boo21_3_i_8",boo21_3_i_8), ("boo21_3_i_9",boo21_3_i_9){-,
   ("boo22_i",boo22_i), ("boo22_i_2",boo22_i_2),
   ("boo22_i_3",boo22_i_3), ("boo22_i_4",boo22_i_4),
   ("boo22_i_5",boo22_i_5), ("boo22_2_i",boo22_2_i),
@@ -485,122 +485,223 @@ boo21_3_i = Method {
 -----------------------------
 -----------------------------
 -----------------------------
-{-
+
 boo21_3_i_1 :: Method
-boo21_3_i_1 = undefined
+boo21_3_i_1 = Method {
+  name = "boo21_3_i_1",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [
+        Result $ Bin (Bin (Int 2)
+                          Mul
+                          (Old (Var "i")))
+                     Add
+                     (Int 4)
+      ]
+    }
+  ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
 
 boo21_3_i_2 :: Method
-boo21_3_i_2 = undefined
+boo21_3_i_2 = Method {
+  name = "boo21_3_i_2",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [
+        Result $ Bin (Bin (Int 2)
+                          Mul
+                          (Old (Var "i")))
+                     Add
+                     (Int 9)
+      ]
+    }
+  ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
 
 boo21_3_i_3 :: Method
-boo21_3_i_3 = undefined
-
------------------------------
------------------------------
------------------------------
-
-boo21_3_i_4 :: SymStateEnv
-boo21_3_i_4 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo21_3_i_4"),
-    (GlobalVars,SGlobalVars ["x"]),
-    (FormalParms,SFormalParms ["i"]),
-    (VarAssignments,SVarAssignments [
-        ("x",(SBin (SymVar SYT.Int "x") SYT.Add (SBin (SBin (SymInt 2) SYT.Mul (SymVar SYT.Int "i")) SYT.Add (SymInt 2)),Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (VarName "x",SBin (SymVar SYT.Int "x") SYT.Add (SBin (SBin (SymInt 2) SYT.Mul (SymVar SYT.Int "i")) SYT.Add (SymInt 2))),
-    (Return,SBin (SymVar SYT.Int "x") SYT.Add (SBin (SBin (SymInt 2) SYT.Mul (SymVar SYT.Int "i")) SYT.Add (SymInt 2)))
+boo21_3_i_3 = Method {
+  name = "boo21_3_i_3",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [
+        Result $ Bin (Bin (Int 5)
+                          Mul
+                          (Old (Var "i")))
+                     Add
+                     (Int 20)
+      ]
+    }
   ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
 
-boo21_3_i_5 :: SymStateEnv
-boo21_3_i_5 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo21_3_i_5"),
-    (GlobalVars,SGlobalVars ["x"]),
-    (FormalParms,SFormalParms ["i"]),
-    (VarAssignments,SVarAssignments [
-        ("x",(SBin (SymVar SYT.Int "x") SYT.Add (SBin (SymInt 2) SYT.Sub (SymVar SYT.Int "i")),Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (VarName "x",SBin (SymVar SYT.Int "x") SYT.Add (SBin (SymInt 2) SYT.Sub (SymVar SYT.Int "i"))),
-    (Return,SBin (SymVar SYT.Int "x") SYT.Add (SBin (SymInt 2) SYT.Sub (SymVar SYT.Int "i")))
+boo21_3_i_4 :: Method
+boo21_3_i_4 = Method {
+  name = "boo21_3_i_4",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [Var "x"],
+      ensures = [
+        Result $ Bin (Old (Var "x"))
+                     Add
+                     (Bin (Bin (Int 2) Mul (Var "i"))
+                          Add
+                          (Int 2)),
+        Var "x" `Equals` Bin (Old (Var "x"))
+                             Add
+                             (Bin (Bin (Int 2)
+                                       Mul
+                                       (Var "i"))
+                                  Add
+                                  (Int 2))
+      ]
+    }
   ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
 
-boo21_3_i_6 :: SymStateEnv
-boo21_3_i_6 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo21_3_i_6"),
-    (GlobalVars,SGlobalVars ["x"]),
-    (FormalParms,SFormalParms ["i"]),
-    (VarAssignments,SVarAssignments [
-        ("x",(SBin (SymVar SYT.Int "x") SYT.Add (SBin (SymInt 2) SYT.Add (SymVar SYT.Int "i")),Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (VarName "x",SBin (SymVar SYT.Int "x") SYT.Add (SBin (SymInt 2) SYT.Add (SymVar SYT.Int "i"))),
-    (Return,SBin (SymVar SYT.Int "x") SYT.Add (SBin (SymInt 2) SYT.Add (SymVar SYT.Int "i")))
+boo21_3_i_5 :: Method
+boo21_3_i_5 = Method {
+  name = "boo21_3_i_5",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [Var "x"],
+      ensures = [
+        Result $ Bin (Old (Var "x"))
+                     Add
+                     (Bin (Int 2)
+                          Sub
+                          (Var "i")),
+        Var "x" `Equals` Bin (Old (Var "x"))
+                             Add
+                             (Bin (Int 2)
+                                  Sub
+                                  (Var "i"))
+      ]
+    }
   ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
 
-boo21_3_i_7 :: SymStateEnv
-boo21_3_i_7 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo21_3_i_7"),
-    (GlobalVars,SGlobalVars ["x"]),
-    (FormalParms,SFormalParms ["i"]),
-    (VarAssignments,SVarAssignments [
-        ("x",(SBin (SymVar SYT.Int "x") SYT.Add (SymInt 2),Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (VarName "x",SBin (SymVar SYT.Int "x") SYT.Add (SymInt 2)),
-    (Return,SBin (SymVar SYT.Int "x") SYT.Add (SymInt 2))
+boo21_3_i_6 :: Method
+boo21_3_i_6 = Method {
+  name = "boo21_3_i_6",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [Var "x"],
+      ensures = [
+        Result $ Bin (Old (Var "x"))
+                     Add
+                     (Bin (Int 2)
+                          Add
+                          (Var "i")),
+        Var "x" `Equals` Bin (Old (Var "x"))
+                             Add
+                             (Bin (Int 2) Add (Var "i"))
+      ]
+    }
   ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
 
-boo21_3_i_8 :: SymStateEnv
-boo21_3_i_8 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo21_3_i_8"),
-    (GlobalVars,SGlobalVars ["x"]),
-    (FormalParms,SFormalParms ["i"]),
-    (VarAssignments,SVarAssignments [
-        ("x",(SBin (SymVar SYT.Int "x") SYT.Add (SBin (SymInt 2) SYT.Add (SBin (SymInt 4) SYT.Mul (SymVar SYT.Int "i"))),Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (VarName "x",SBin (SymVar SYT.Int "x") SYT.Add (SBin (SymInt 2) SYT.Add (SBin (SymInt 4) SYT.Mul (SymVar SYT.Int "i")))),
-    (Return,SBin (SymVar SYT.Int "x") SYT.Add (SBin (SymInt 2) SYT.Add (SBin (SymInt 4) SYT.Mul (SymVar SYT.Int "i"))))
+boo21_3_i_7 :: Method
+boo21_3_i_7 = Method {
+  name = "boo21_3_i_7",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [Var "x"],
+      ensures = [
+        Result $ Bin (Old (Var "x"))
+                     Add
+                     (Int 2),
+        Var "x" `Equals` Bin (Old (Var "x"))
+                             Add
+                             (Int 2)]
+    }
   ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
 
-boo21_3_i_9 :: SymStateEnv
-boo21_3_i_9 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo21_3_i_9"),
-    (FormalParms,SFormalParms ["i"]),
-    (VarAssignments,SVarAssignments [
-        ("i",(SBin (SymInt 2) SYT.Mul (SymVar SYT.Int "i"),Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
-    (VarName "i",SBin (SymInt 2) SYT.Mul (SymVar SYT.Int "i")),
-    (Return,SBin (SymInt 2) SYT.Mul (SymVar SYT.Int "i"))
+boo21_3_i_8 :: Method
+boo21_3_i_8 = Method {
+  name = "boo21_3_i_8",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [Var "x"],
+      ensures = [
+        Result $ Bin (Old (Var "x"))
+                     Add
+                     (Bin (Int 2)
+                          Add
+                          (Bin (Int 4) Mul (Var "i"))),
+        Var "x" `Equals` Bin (Old (Var "x"))
+                             Add
+                             (Bin (Int 2)
+                                  Add
+                                  (Bin (Int 4) Mul (Var "i")))
+      ]
+    }
   ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
 
+boo21_3_i_9 :: Method
+boo21_3_i_9 = Method {
+  name = "boo21_3_i_9",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [
+        Result $ Bin (Int 2)
+                     Mul
+                     (Old (Var "i"))
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+{-
 boo22_i :: SymStateEnv
 boo22_i = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "boo22_i"),

@@ -537,6 +537,11 @@ public int boo21_3_i(int i){
     (Return,SBin (SBin (SymInt 2) Mul (SymVar Int "i")) Add (SymInt 4))
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 2 * \old(i) + 4;
+  @*/
 public int boo21_3_i_1(int i){
   i += 2;
   return i+i;
@@ -560,6 +565,12 @@ public int boo21_3_i_1(int i){
     (Return,SBin (SBin (SymInt 2) Mul (SymVar Int "i")) Add (SymInt 9))
   ]
 */
+
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 2 * \old(i) + 9;
+  @*/
 public int boo21_3_i_2(int i){
   i += 2;
   int x = i + 5 + i;
@@ -581,6 +592,11 @@ public int boo21_3_i_2(int i){
     (Return,SBin (SBin (SymInt 5) Mul (SymVar Int "i")) Add (SymInt 20))
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 5 * \old(i) + 20;
+  @*/
 public int boo21_3_i_3(int i){
   i += 2;
   int x = i + 5 + i;
@@ -603,6 +619,12 @@ public int boo21_3_i_3(int i){
     (Return,SBin (SymVar Int "x") Add (SBin (SBin (SymInt 2) Mul (SymVar Int "i")) Add (SymInt 2)))
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable x;
+  @   ensures \result == \old(x) + 2 * i + 2;
+  @   ensures x == \old(x) + 2 * i + 2;
+  @*/
 public int boo21_3_i_4(int i){
   x += i + 2 + i;
   return x;
@@ -623,6 +645,12 @@ public int boo21_3_i_4(int i){
     (Return,SBin (SymVar Int "x") Add (SBin (SymInt 2) Sub (SymVar Int "i")))
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable x;
+  @   ensures \result == \old(x) + 2 - i;
+  @   ensures x == \old(x) + 2 - i;
+  @*/
 public int boo21_3_i_5(int i){
   x += i + 2 - 2*i;
   return x;
@@ -643,6 +671,12 @@ public int boo21_3_i_5(int i){
     (Return,SBin (SymVar Int "x") Add (SBin (SymInt 2) Add (SymVar Int "i")))
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable x;
+  @   ensures \result == \old(x) + 2 + i;
+  @   ensures x == \old(x) + 2 + i;
+  @*/
 public int boo21_3_i_6(int i){
   x += 2 + 3*i - 2*i;
   return x;
@@ -663,6 +697,12 @@ public int boo21_3_i_6(int i){
     (Return,SBin (SymVar Int "x") Add (SymInt 2))
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable x;
+  @   ensures \result == \old(x) + 2;
+  @   ensures x == \old(x) + 2;
+  @*/
 public int boo21_3_i_7(int i){
   x += 2 + 3*i - 2*i - i;
   return x;
@@ -684,6 +724,12 @@ public int boo21_3_i_7(int i){
     (Return,SBin (SymVar Int "x") Add (SBin (SymInt 2) Add (SBin (SymInt 4) Mul (SymVar Int "i"))))
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable x;
+  @   ensures \result == \old(x) + 2 + 4 * i;
+  @   ensures x == \old(x) + 2 + 4 * i;
+  @*/
 public int boo21_3_i_8(int i){
   x += i + 2 + 3*i;
   return x;
@@ -702,6 +748,11 @@ public int boo21_3_i_8(int i){
     (Return,SBin (SymInt 2) Mul (SymVar Int "i"))
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 2 * \old(i);
+  @*/
 public int boo21_3_i_9(int i){
   i += i;
   return i;

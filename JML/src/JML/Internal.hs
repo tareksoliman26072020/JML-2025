@@ -102,6 +102,8 @@ symExprToExpr sy symExpr =
 symBinOpToOp :: SYT.SymBinOp -> Op
 symBinOpToOp symBinOp = case symBinOp of
   SYT.Add -> Add
+  SYT.Mul -> Mul
+  SYT.Sub -> Sub
   _ -> error $ printf "JML.Internal.symBinOpToOp: TODO: %s" (show symBinOp)
 
 addBehavior :: SYT.SymbolicExecution -> ExecutionResult -> JMLMonad ()
