@@ -910,6 +910,11 @@ public void boo22_i_5_call() {
     (Return,SBin (SymVar Int "i") Mul (SymInt 2))
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == i * 2;
+  @*/
 public int boo22_2_i(int i){
   int x = boo21_i(i*2);
   return x;
@@ -936,6 +941,11 @@ public int boo22_2_i(int i){
     (Return,SymInt 33)
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 33;
+  @*/
 public int boo22_2_i_2(){
   int j = 6;
   int i = 3 + j;
@@ -958,6 +968,11 @@ public int boo22_2_i_2(){
     (Return,SymInt 5)
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 5;
+  @*/
 public int boo23_3_i(int i){
   int x = 3 + boo21_i(i+i);
   return 5;
@@ -981,6 +996,11 @@ public int boo23_3_i(int i){
     (Return,SymInt 16)
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 16;
+  @*/
 public int boo23_3_i_2(){
   int i = 4;
   int x = 3 + boo21_i(i+i);
@@ -999,6 +1019,11 @@ public int boo23_3_i_2(){
     (Return,SymInt 3)
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 3;
+  @*/
 public int boo23_4_i(int i){
   return 3 + boo21_i(0);
 }
@@ -1013,6 +1038,11 @@ public int boo23_4_i(int i){
     (Return,SymInt 10)
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 10;
+  @*/
 public int boo23_4_i_2(){
   return 5 * boo21_i(0*4+2);
 }
@@ -1029,6 +1059,11 @@ public int boo23_4_i_2(){
     (Return,SymInt 10)
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 10;
+  @*/
 public int boo23_4_i_3(int i){
   return 5 * boo21_i(0*i+2);
 }
@@ -1045,6 +1080,11 @@ public int boo23_4_i_3(int i){
     (Return,SBin (SymInt 15) Mul (SBin (SBin (SymInt 3) Mul (SymVar Int "i")) Add (SymInt 2)))
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 15 * ((3 * i) + 2);
+  @*/
 public int boo23_4_i_4(int i){
   return 15 * boo21_i(3*i+2);
 }
@@ -1059,6 +1099,11 @@ public int boo23_4_i_4(int i){
     (Return,SymInt 255)
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 255;
+  @*/
 public int boo23_4_i_4_1(){
   return boo23_4_i_4(5);
 }
@@ -1075,6 +1120,11 @@ public int boo23_4_i_4_1(){
     (Return,SBin (SymInt 15) Mul (SBin (SymVar Int "i") Add (SymInt 2)))
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 15 * (i + 2);
+  @*/
 public int boo23_4_i_5(int i){
   return 15 * boo21_i(1*i+2);
 }
@@ -1091,6 +1141,11 @@ public int boo23_4_i_5(int i){
     (Return,SymInt 8)
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 8;
+  @*/
 public int boo23_5_i(int i){
   return 8;
 }
@@ -1107,6 +1162,11 @@ public int boo23_5_i(int i){
     (Return,SymDouble 8.0)
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 8.0;
+  @*/
 public double boo23_6_i(int i){
   return 8;
 }
@@ -1123,6 +1183,11 @@ public double boo23_6_i(int i){
     (Return,SBin (SymDouble 8.0) Add (SymVar Double "i"))
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 8.0 + i;
+  @*/
 public double boo23_7_i(double i){
   return 3+5+i;
 }
@@ -1139,6 +1204,11 @@ public double boo23_7_i(double i){
     (Return,SBin (SymInt 3) Add (SBin (SymInt 5) Mul (SymVar Int "i")))
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 3 + (5 * i);
+  @*/
 public int boo23_8_i(int i){
   return 3+5*i;
 }
@@ -1158,6 +1228,11 @@ public int boo23_8_i(int i){
     (Return,SymInt 5)
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 5;
+  @*/
 public int boo23_9_i(int i){
   int x;
   x = 3 + boo21_i(i+2) - i;
@@ -1179,6 +1254,11 @@ public int boo23_9_i(int i){
     (Return,SBin (SymInt 5) Sub (SymVar Int "i"))
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 5 - i;
+  @*/
 public int boo23_9_i_2(int i){
   int x;
   x = 3 + boo21_i(i+2) - 2*i;
@@ -1202,6 +1282,11 @@ public int boo23_9_i_2(int i){
     (Return,SBin (SymInt 8) Add (SymVar Int "i"))
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 8 + i;
+  @*/
 public int boo23_10_i(int i){
   int x = 3+5+i;
   return x;
@@ -1222,6 +1307,11 @@ public int boo23_10_i(int i){
     (Return,SBin (SymInt 8) Add (SymVar Int "i"))
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 8 + i;
+  @*/
 public int boo23_10_i_2(int i){
   int x = 3+i+5;
   return x;
@@ -1242,6 +1332,11 @@ public int boo23_10_i_2(int i){
     (Return,SBin (SymInt 9) Mul (SymVar Int "i"))
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 9 * i;
+  @*/
 public int boo23_11_i(int i){
   int x = 3+5;
   x = 10-1;
@@ -1263,6 +1358,11 @@ public int boo23_11_i(int i){
     (Return,SBin (SymInt 3) Add (SymVar Int "i"))
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 3 + i;
+  @*/
 public int boo23_12_i(int i){
   int x = 3 + boo21_i(i);
   return x;
@@ -1283,6 +1383,11 @@ public int boo23_12_i(int i){
     (Return,SBin (SymDouble 1.1) Add (SymVar Double "i"))
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 1.1 + i;
+  @*/
 public double boo33_3_i(double i){
   double x = 1 + i;
   x+=0.1;
@@ -1308,6 +1413,11 @@ public double boo33_3_i(double i){
     (Return,SBin (SBin (SymDouble 1.1) Add (SymVar Double "i")) Add (SymVar Double "j"))
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == (1.1 + i) + j;
+  @*/
 public double boo33_4_i(double i, double j){
   double x = 1 + i;
   x = x + 0.1 + j;
@@ -1327,6 +1437,11 @@ public double boo33_4_i(double i, double j){
     (Return,SymDouble 18.5)
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 18.5;
+  @*/
 public double boo33_4_i_call(){
   double x = 1 + boo33_4_i(8.8,7.6);
   return x;

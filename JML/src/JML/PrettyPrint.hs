@@ -73,7 +73,11 @@ ppExpr expr = case expr of
   expr1 `Equals` expr2 -> printf "%s == %s" (ppExpr expr1) (ppExpr expr2)
   Old expr -> printf "\\old(%s)" (ppExpr expr)
   Result expr -> printf "\\result == %s" (ppExpr expr)
-  Bin expr1 op expr2 -> printf "%s %s %s" (ppExpr expr1) (ppOp op) (ppExpr expr2)
+  Bin expr1 op expr2 -> case (expr1,expr2) of
+    (Bin _ _ _,Bin _ _ _) -> printf "(%s) %s (%s)" (ppExpr expr1) (ppOp op) (ppExpr expr2)
+    (Bin _ _ _,_) -> printf "(%s) %s %s" (ppExpr expr1) (ppOp op) (ppExpr expr2)
+    (_,Bin _ _ _) -> printf "%s %s (%s)" (ppExpr expr1) (ppOp op) (ppExpr expr2)
+    _ -> printf "%s %s %s" (ppExpr expr1) (ppOp op) (ppExpr expr2)
   String str -> str
   _ -> error $ "JML.PrettyPrint.ppExpr ==> TODO: " ++ show expr
 

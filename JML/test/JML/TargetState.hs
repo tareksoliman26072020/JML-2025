@@ -1,14 +1,5 @@
 module TargetState (target) where
-{-
-import Prelude hiding (id, replicate, tail, sqrt)
-import qualified Data.Map as Map
 
-import CFG.Types
-import Parser.Types
-import SymbolicExecution.Types hiding (SymType(..), SymBinOp(..))
-import qualified SymbolicExecution.Types as SYT (SymType(..), SymBinOp(..))
-import qualified Data.Map.Lazy as Map
--}
 import JML.Types (Method(..), Behavior(..), Expr(..), Op(..))
 
 target :: String -> Method
@@ -31,7 +22,7 @@ allTargets = [
   ("boo21_3_i_7",boo21_3_i_7), ("boo21_3_i_8",boo21_3_i_8), ("boo21_3_i_9",boo21_3_i_9),
   ("boo22_i",boo22_i), ("boo22_i_2",boo22_i_2),
   ("boo22_i_3",boo22_i_3), ("boo22_i_4",boo22_i_4),
-  ("boo22_i_5",boo22_i_5), ("boo22_i_5_call",boo22_i_5_call){-,
+  ("boo22_i_5",boo22_i_5), ("boo22_i_5_call",boo22_i_5_call),
   ("boo22_2_i",boo22_2_i),
   ("boo22_2_i_2",boo22_2_i_2), ("boo23_3_i",boo23_3_i),
   ("boo23_3_i_2",boo23_3_i_2), ("boo23_4_i",boo23_4_i), ("boo23_4_i_2",boo23_4_i_2),
@@ -40,7 +31,7 @@ allTargets = [
   ("boo23_7_i",boo23_7_i), ("boo23_8_i",boo23_8_i), ("boo23_9_i",boo23_9_i),
   ("boo23_9_i_2",boo23_9_i_2), ("boo23_10_i",boo23_10_i), ("boo23_10_i_2",boo23_10_i_2),
   ("boo23_11_i",boo23_11_i), ("boo23_12_i",boo23_12_i), ("boo33_3_i",boo33_3_i),
-  ("boo33_4_i",boo33_4_i), ("boo33_4_i_call",boo33_4_i_call),
+  ("boo33_4_i",boo33_4_i), ("boo33_4_i_call",boo33_4_i_call){-,
   ("boo24",boo24),
   ("boo24_2",boo24_2)-},
   ("exceptionFun",exceptionFun){-,
@@ -810,351 +801,410 @@ boo22_i_5_call = Method {
 -----------------------------
 -----------------------------
 -----------------------------
+
+boo22_2_i :: Method
+boo22_2_i = Method {
+  name = "boo22_2_i",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [
+        Result $ Bin (Var "i") Mul (Int 2)
+      ]
+    }
+  ]}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo22_2_i_2 :: Method
+boo22_2_i_2 = Method {
+  name = "boo22_2_i_2",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [Result (Int 33)]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo23_3_i :: Method
+boo23_3_i = Method {
+  name = "boo23_3_i",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [Result (Int 5)]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo23_3_i_2 :: Method
+boo23_3_i_2 = Method {
+  name = "boo23_3_i_2",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [Result (Int 16)]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo23_4_i :: Method
+boo23_4_i = Method {
+  name = "boo23_4_i",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [Result (Int 3)]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo23_4_i_2 :: Method
+boo23_4_i_2 = Method {
+  name = "boo23_4_i_2",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [Result (Int 10)]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo23_4_i_3 :: Method
+boo23_4_i_3 = Method {
+  name = "boo23_4_i_3",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [Result (Int 10)]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo23_4_i_4 :: Method
+boo23_4_i_4 = Method {
+  name = "boo23_4_i_4",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [
+        Result $ Bin (Int 15)
+                     Mul
+                     (Bin (Bin (Int 3) Mul (Var "i"))
+                          Add
+                          (Int 2))
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo23_4_i_4_1 :: Method
+boo23_4_i_4_1 = Method {
+  name = "boo23_4_i_4_1",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [Result (Int 255)]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo23_4_i_5 :: Method
+boo23_4_i_5 = Method {
+  name = "boo23_4_i_5",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [
+        Result $ Bin (Int 15)
+                     Mul
+                     (Bin (Var "i") Add (Int 2))
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo23_5_i :: Method
+boo23_5_i = Method {
+  name = "boo23_5_i",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [Result (Int 8)]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo23_6_i :: Method
+boo23_6_i = Method {
+  name = "boo23_6_i",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [Result (Double 8.0)]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo23_7_i :: Method
+boo23_7_i = Method {
+  name = "boo23_7_i",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [
+        Result $ Bin (Double 8.0) Add (Var "i")
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo23_8_i :: Method
+boo23_8_i = Method {
+  name = "boo23_8_i",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [
+        Result $ Bin (Int 3)
+                     Add
+                     (Bin (Int 5) Mul (Var "i"))
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo23_9_i :: Method
+boo23_9_i = Method {
+  name = "boo23_9_i",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [Result (Int 5)]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo23_9_i_2 :: Method
+boo23_9_i_2 = Method {
+  name = "boo23_9_i_2",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [
+        Result $ Bin (Int 5) Sub (Var "i")
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo23_10_i :: Method
+boo23_10_i = Method {
+  name = "boo23_10_i",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [
+        Result $ Bin (Int 8) Add (Var "i")
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo23_10_i_2 :: Method
+boo23_10_i_2 = Method {
+  name = "boo23_10_i_2",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [
+        Result $ Bin (Int 8) Add (Var "i")
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo23_11_i :: Method
+boo23_11_i = Method {
+  name = "boo23_11_i",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [
+        Result $ Bin (Int 9) Mul (Var "i")
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo23_12_i :: Method
+boo23_12_i = Method {
+  name = "boo23_12_i",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [
+        Result $ Bin (Int 3) Add (Var "i")
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo33_3_i :: Method
+boo33_3_i = Method {
+  name = "boo33_3_i",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [
+        Result $ Bin (Double 1.1) Add (Var "i")
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo33_4_i :: Method
+boo33_4_i = Method {
+  name = "boo33_4_i",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [
+        Result $ Bin (Bin (Double 1.1) Add (Var "i"))
+                     Add
+                     (Var "j")
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo33_4_i_call :: Method
+boo33_4_i_call = Method {
+  name = "boo33_4_i_call",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [
+        Result (Double 18.5)
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
 {-
-boo22_2_i :: SymStateEnv
-boo22_2_i = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo22_2_i"),
-    (FormalParms,SFormalParms ["i"]),
-    (VarBindings,SVarBindings (Map.fromList [
-        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
-    (VarAssignments,SVarAssignments [
-        ("x",(SBin (SymVar SYT.Int "i") SYT.Mul (SymInt 2),Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (VarName "x",SBin (SymVar SYT.Int "i") SYT.Mul (SymInt 2)),
-    (Return,SBin (SymVar SYT.Int "i") SYT.Mul (SymInt 2))
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo22_2_i_2 :: SymStateEnv
-boo22_2_i_2 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo22_2_i_2"),
-    (VarBindings,SVarBindings (Map.fromList [
-        ("i",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}}),
-        ("j",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}}),
-        ("x",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
-    (VarAssignments,SVarAssignments [
-        ("j",(SymInt 6,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
-        ("i",(SymInt 9,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})),
-        ("x",(SymInt 18,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
-    (VarName "i",SymInt 9),
-    (VarName "j",SymInt 6),
-    (VarName "x",SymInt 18),
-    (Return,SymInt 33)
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo23_3_i :: SymStateEnv
-boo23_3_i = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo23_3_i"),
-    (FormalParms,SFormalParms ["i"]),
-    (VarBindings,SVarBindings (Map.fromList [
-        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
-    (VarAssignments,SVarAssignments [
-        ("x",(SBin (SymInt 3) SYT.Add (SBin (SymInt 2) SYT.Mul (SymVar SYT.Int "i")),Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (VarName "x",SBin (SymInt 3) SYT.Add (SBin (SymInt 2) SYT.Mul (SymVar SYT.Int "i"))),
-    (Return,SymInt 5)
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo23_3_i_2 :: SymStateEnv
-boo23_3_i_2 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo23_3_i_2"),
-    (VarBindings,SVarBindings (Map.fromList [
-        ("i",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}),
-        ("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
-    (VarAssignments,SVarAssignments [
-        ("i",(SymInt 4,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})),
-        ("x",(SymInt 11,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
-    (VarName "i",SymInt 4),
-    (VarName "x",SymInt 11),
-    (Return,SymInt 16)
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo23_4_i :: SymStateEnv
-boo23_4_i = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo23_4_i"),
-    (FormalParms,SFormalParms ["i"]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (Return,SymInt 3)
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo23_4_i_2 :: SymStateEnv
-boo23_4_i_2 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo23_4_i_2"),
-    (Return,SymInt 10)
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo23_4_i_3 :: SymStateEnv
-boo23_4_i_3 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo23_4_i_3"),
-    (FormalParms,SFormalParms ["i"]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (Return,SymInt 10)
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo23_4_i_4 :: SymStateEnv
-boo23_4_i_4 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo23_4_i_4"),
-    (FormalParms,SFormalParms ["i"]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (Return,SBin (SymInt 15) SYT.Mul (SBin (SBin (SymInt 3) SYT.Mul (SymVar SYT.Int "i")) SYT.Add (SymInt 2)))
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo23_4_i_4_1 :: SymStateEnv
-boo23_4_i_4_1 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo23_4_i_4_1"),
-    (Return,SymInt 255)
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo23_4_i_5 :: SymStateEnv
-boo23_4_i_5 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo23_4_i_5"),
-    (FormalParms,SFormalParms ["i"]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (Return,SBin (SymInt 15) SYT.Mul (SBin (SymVar SYT.Int "i") SYT.Add (SymInt 2)))
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo23_5_i :: SymStateEnv
-boo23_5_i = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo23_5_i"),
-    (FormalParms,SFormalParms ["i"]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (Return,SymInt 8)
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo23_6_i :: SymStateEnv
-boo23_6_i = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Double "boo23_6_i"),
-    (FormalParms,SFormalParms ["i"]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (Return,SymDouble 8.0)
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo23_7_i :: SymStateEnv
-boo23_7_i = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Double "boo23_7_i"),
-    (FormalParms,SFormalParms ["i"]),
-    (VarName "i",SymVar SYT.Double "i"),
-    (Return,SBin (SymDouble 8.0) SYT.Add (SymVar SYT.Double "i"))
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo23_8_i :: SymStateEnv
-boo23_8_i = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo23_8_i"),
-    (FormalParms,SFormalParms ["i"]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (Return,SBin (SymInt 3) SYT.Add (SBin (SymInt 5) SYT.Mul (SymVar SYT.Int "i")))
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo23_9_i :: SymStateEnv
-boo23_9_i = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo23_9_i"),
-    (FormalParms,SFormalParms ["i"]),
-    (VarBindings,SVarBindings (Map.fromList [
-        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
-    (VarAssignments,SVarAssignments [
-        ("x",(SymInt 5,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (VarName "x",SymInt 5),
-    (Return,SymInt 5)
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo23_9_i_2 :: SymStateEnv
-boo23_9_i_2 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo23_9_i_2"),
-    (FormalParms,SFormalParms ["i"]),
-    (VarBindings,SVarBindings (Map.fromList [
-        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
-    (VarAssignments,SVarAssignments [
-        ("x",(SBin (SymInt 5) SYT.Sub (SymVar SYT.Int "i"),Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (VarName "x",SBin (SymInt 5) SYT.Sub (SymVar SYT.Int "i")),
-    (Return,SBin (SymInt 5) SYT.Sub (SymVar SYT.Int "i"))
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo23_10_i :: SymStateEnv
-boo23_10_i = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo23_10_i"),
-    (FormalParms,SFormalParms ["i"]),
-    (VarBindings,SVarBindings (Map.fromList [
-        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
-    (VarAssignments,SVarAssignments [
-        ("x",(SBin (SymInt 8) SYT.Add (SymVar SYT.Int "i"),Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (VarName "x",SBin (SymInt 8) SYT.Add (SymVar SYT.Int "i")),
-    (Return,SBin (SymInt 8) SYT.Add (SymVar SYT.Int "i"))
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo23_10_i_2 :: SymStateEnv
-boo23_10_i_2 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo23_10_i_2"),
-    (FormalParms,SFormalParms ["i"]),
-    (VarBindings,SVarBindings (Map.fromList [
-        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
-    (VarAssignments,SVarAssignments [
-        ("x",(SBin (SymInt 8) SYT.Add (SymVar SYT.Int "i"),Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (VarName "x",SBin (SymInt 8) SYT.Add (SymVar SYT.Int "i")),
-    (Return,SBin (SymInt 8) SYT.Add (SymVar SYT.Int "i"))
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo23_11_i :: SymStateEnv
-boo23_11_i = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo23_11_i"),
-    (FormalParms,SFormalParms ["i"]),
-    (VarBindings,SVarBindings (Map.fromList [
-        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
-    (VarAssignments,SVarAssignments [
-        ("x",(SymInt 8,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})),
-        ("x",(SymInt 9,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (VarName "x",SymInt 9),
-    (Return,SBin (SymInt 9) SYT.Mul (SymVar SYT.Int "i"))
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo23_12_i :: SymStateEnv
-boo23_12_i = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo23_12_i"),
-    (FormalParms,SFormalParms ["i"]),
-    (VarBindings,SVarBindings (Map.fromList [
-        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
-    (VarAssignments,SVarAssignments [
-        ("x",(SBin (SymInt 3) SYT.Add (SymVar SYT.Int "i"),Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (VarName "x",SBin (SymInt 3) SYT.Add (SymVar SYT.Int "i")),
-    (Return,SBin (SymInt 3) SYT.Add (SymVar SYT.Int "i"))
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo33_3_i :: SymStateEnv
-boo33_3_i = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Double "boo33_3_i"),
-    (FormalParms,SFormalParms ["i"]),
-    (VarBindings,SVarBindings (Map.fromList [
-        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
-    (VarAssignments,SVarAssignments [
-        ("x",(SBin (SymDouble 1.0) SYT.Add (SymVar SYT.Double "i"),Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})),
-        ("x",(SBin (SymDouble 1.1) SYT.Add (SymVar SYT.Double "i"),Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
-    (VarName "i",SymVar SYT.Double "i"),
-    (VarName "x",SBin (SymDouble 1.1) SYT.Add (SymVar SYT.Double "i")),
-    (Return,SBin (SymDouble 1.1) SYT.Add (SymVar SYT.Double "i"))
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo33_4_i :: SymStateEnv
-boo33_4_i = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Double "boo33_4_i"),
-    (FormalParms,SFormalParms ["i","j"]),
-    (VarBindings,SVarBindings (Map.fromList [
-        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
-    (VarAssignments,SVarAssignments [
-        ("x",(SBin (SymDouble 1.0) SYT.Add (SymVar SYT.Double "i"),Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})),
-        ("x",(SBin (SBin (SymDouble 1.1) SYT.Add (SymVar SYT.Double "i")) SYT.Add (SymVar SYT.Double "j"),Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
-    (VarName "i",SymVar SYT.Double "i"),
-    (VarName "j",SymVar SYT.Double "j"),
-    (VarName "x",SBin (SBin (SymDouble 1.1) SYT.Add (SymVar SYT.Double "i")) SYT.Add (SymVar SYT.Double "j")),
-    (Return,SBin (SBin (SymDouble 1.1) SYT.Add (SymVar SYT.Double "i")) SYT.Add (SymVar SYT.Double "j"))
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo33_4_i_call :: SymStateEnv
-boo33_4_i_call = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Double "boo33_4_i_call"),
-    (VarBindings,SVarBindings (Map.fromList [
-        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
-    (VarAssignments,SVarAssignments [
-        ("x",(SymDouble 18.5,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
-    (VarName "x",SymDouble 18.5),
-    (Return,SymDouble 18.5)
-  ]
-
------------------------------
------------------------------
------------------------------
-
 boo24 :: SymStateEnv
 boo24 = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "boo24"),
