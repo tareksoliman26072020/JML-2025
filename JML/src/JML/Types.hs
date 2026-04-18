@@ -14,22 +14,25 @@ import qualified JML.Logs.Log as Log (Log, Header)
 data Op = Add | Sub | Mul | Div | Gt | Ge | Lt | Le | Eq | Neq
         deriving (Show,Eq)
 
-data Expr = Var String | Int Int | Double Double | Num Float
-          | String String
-          | Bin Expr Op Expr | Not Expr | Old Expr | Expr `And` Expr
-          | Expr `Equals` Expr | Result Expr | Actions [Expr]
+data JMLType = String_Type | Int_Type | Num_Type | Double_Type | Bool_Type
+             deriving (Show,Eq)
+
+data Expr = JMLVar JMLType String | JMLInt Int | JMLDouble Double | JMLNum Float
+          | JMLString String
+          | JMLBin Expr Op Expr | JMLNot Expr | JMLOld Expr | Expr `JMLAnd` Expr
+          | Expr `JMLEquals` Expr | JMLResult Expr | JMLActions [Expr]
           deriving (Show,Eq)
 
 data Behavior =
     NormalBehavior {
       requires :: Maybe Expr,
-      assignable :: [Expr],
+      assignable :: [String],
       ensures :: [Expr]
     }
   | ExceptionalBehavior {
       requires :: Maybe Expr,
       signals :: String,
-      assignable :: [Expr],
+      assignable :: [String],
       ensures :: [Expr]
     }
   deriving (Show,Eq)
@@ -75,4 +78,5 @@ data ExecutionResult =
   | ER_Return Behavior
   | ER_ReturnVoid
   | ER_Actions Expr
+  | ER_IfThenElse (Expr,Method) (Expr,Method)
   deriving (Show,Eq)

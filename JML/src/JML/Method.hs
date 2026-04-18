@@ -1,10 +1,12 @@
 {-# Language LambdaCase #-}
 module JML.Method where
 
+import Prelude hiding (negate)
 import Visitors.API
 import JML.Types
 import JML.Internal
 import qualified JML.Logs.Log as Log
+import JML.PrettyPrint (ppBehavior)
 import qualified SymbolicExecution.Types as SYT (
   SymStateKey(..), SymExpr(..),
   SymbolicExecution, SymbolicExecutionKey, SymbolicExecutionValue)
@@ -120,6 +122,66 @@ instance SymbolicExecutionVisitor MethodProcessor where
       let toReturn = ER_Actions $ symExprToExpr sy value
       tellingThenReturning loc toReturn
     -----------------------------
+    (SYT.ScopeRange _,SYT.SIte cond ifBody maybeElseBody) -> do
+      let loc = globalLoc ++ ".visitSymExpr.SIte"
+      tellNextLog $ Log.Location loc (show tu)
+      -- SIte SymExpr SymbolicExecution (Maybe SymbolicExecution)
+      -- process if
+      (ifRequires,ifMethod) <- do
+        tellNextLog $ Log.ProcessIfBody loc
+        let ifRequires = symExprToExpr sy cond
+        tellNextLog $ Log.IfConditionPreCondition loc (show ifRequires)
+        incrementLogEnumeration >> incrementLogDepth
+        sys <- ask
+        let (ifError,ifLogs,ifMethod) = runSE sys ifBody
+        -- is there an error
+        case ifError of
+          "" -> return ()
+          _  -> throwError $ createError_sy ("TODO1: " ++ ifError) loc key value
+        -- if logs
+        flip mapM_ ifLogs $ \(Log.Log _ logTag) ->
+          tellNextLog $ Log.Nested "if condition" logTag
+        decrementLogDepth
+        tellNextLog $ Log.IfBehavior loc (show $ behaviors ifMethod) (map ppBehavior $ behaviors ifMethod)
+        return (ifRequires,ifMethod)
+      -- process else
+      (elseRequires,elseMethod) <- do
+        case maybeElseBody of
+          -- no else body
+          Nothing -> do
+            tellNextLog $ Log.NoElseBody loc
+            throwError $ createError_sy "TODO2" loc key value
+          -- yes else body
+          Just elseBody -> do
+            tellNextLog $ Log.ProcessElseBody loc
+            let elseRequires = negate ifRequires
+            tellNextLog $ Log.ElseConditionPreCondition loc (show elseRequires)
+            incrementLogEnumeration >> incrementLogDepth
+            sys <- ask
+            let (elseError,elseLogs,elseMethod) = runSE sys elseBody
+            -- is there an error
+            case elseError of
+              "" -> return ()
+              _  -> throwError $ createError_sy ("TODO3: " ++ elseError) loc key value
+            -- else logs
+            flip mapM_ elseLogs $ \(Log.Log _ logTag) ->
+              tellNextLog $ Log.Nested "else condition" logTag
+            decrementLogDepth
+            tellNextLog $ Log.ElseBehavior loc (show $ behaviors elseMethod) (map ppBehavior $ behaviors elseMethod)
+            return (elseRequires,elseMethod)
+
+      return $ ER_IfThenElse (ifRequires,ifMethod) (elseRequires,elseMethod)
+      {-
+      throwError $ createError_sy (printf
+        "MEOW:\n\
+        \  ifRequires: %s\n\
+        \  ifMethod: %s\n\
+        \  elseRequires: %s\n\
+        \  elseMethod: %s"
+        (show ifRequires) (show ifMethod)
+        (show elseRequires) (show elseMethod)) loc key value
+        -}
+    -----------------------------
     _ ->
       let loc = globalLoc ++ ".visitSymExpr"
       in throwError $ createError_sy "TODO" loc key value
@@ -142,10 +204,6 @@ runSE sys sy =
             incrementLogDepth >> incrementLogEnumeration
             -- visiting
             visited <- visitingSymExpr sy (k,v)
-            {-case visited of
-              ER_VarName_Global_Reassigned _ _ ->
-                throwError $ printf "MEOW::\n%s" (show visited)
-              _ -> return ()-}
             -- modifying the state
             addingBehavior sy visited
             decrementLogDepth

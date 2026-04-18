@@ -2,6 +2,7 @@
 module JML.Logs.Log where
 
 import Text.Printf (printf)
+import Data.List (intercalate)
 
 data Log = Log String LogTag
          deriving (Show,Eq)
@@ -15,7 +16,16 @@ data LogTag =
   | AddBehaviorToState String String
   | AddClauseToState String String
   | Return String String
-  | ReportTheState String String String String
+  | ReportTheState String String String String String
+  | ProcessIfBody String
+  | ProcessElseBody String
+  | NoElseBody String
+  | IfConditionPreCondition String String
+  | ElseConditionPreCondition String String
+  | IfBehavior String String [String]
+  | ElseBehavior String String [String]
+  | IfBranchBehaviors String [(String,String)]
+  | ElseBranchBehaviors String [(String,String)]
   | Meow String String
   deriving (Show,Eq)
 
@@ -37,31 +47,88 @@ ppLogTag = \case
   Return loc contents   -> printf
     "%s in %s\n\
     \  %s: %s" "Return" loc "Contents" contents
-  ReportTheState loc method jmlStack logHeader -> printf
+  ProcessIfBody loc -> printf
+    "%s in %s" "Process If Body" loc
+  ProcessElseBody loc -> printf
+    "%s in %s" "Process Else Body" loc
+  NoElseBody loc -> printf
+    "%s in %s" "No Else Body" loc
+  IfConditionPreCondition loc contents -> printf
+    "%s in %s\n\
+    \  %s: %s" "If Condition PreCondition" loc "Expr" contents
+  ElseConditionPreCondition loc contents -> printf
+    "%s in %s\n\
+    \  %s: %s" "Else Condition PreCondition" loc "Expr" contents
+  IfBehavior loc contents ppContents -> printf
+    "%s in %s\n\
+    \  %s: %s\n\
+    \  %s:\n\
+    \    %s"
+    "If Behavior" loc
+    "Contents" contents
+    "Pretty Printed"
+    (intercalate "\n    " $ map (concatMap (\case '\n' -> "\n  "; ch -> [ch])) ppContents)
+  ElseBehavior loc contents ppContents -> printf
+    "%s in %s\n\
+    \  %s: %s\n\
+    \  %s:\n\
+    \    %s"
+    "Else Behavior" loc
+    "Contents" contents
+    "Pretty Printed"
+    (intercalate "\n    " $ map (concatMap (\case '\n' -> "\n  "; ch -> [ch])) ppContents)
+  IfBranchBehaviors loc behaviors -> printf
+    "%s in %s\n\
+    \  %s"
+    "If Branch Behaviors" loc
+    (intercalate "\n  "
+     $ map (\(num,(behavior,pp)) -> printf
+         "%s %s: %s\n\
+         \    %s:\n\
+         \      %s"
+         "behavior" (show num) behavior
+         "Pretty Printed" (concatMap (\case '\n' -> "\n    "; ch -> [ch]) pp))
+     $ zip [1 :: Int ..] behaviors)
+  ElseBranchBehaviors loc behaviors -> printf
+    "%s in %s\n\
+    \  %s"
+    "Else Branch Behaviors" loc
+    (intercalate "\n  "
+     $ map (\(num,(behavior,pp)) -> printf
+         "%s %s: %s\n\
+         \    %s:\n\
+         \      %s"
+         "behavior" (show num) behavior
+         "Pretty Printed" (concatMap (\case '\n' -> "\n    "; ch -> [ch]) pp))
+     $ zip [1 :: Int ..] behaviors)
+  ReportTheState loc method jmlStack logHeader pp -> printf
     "%s in %s\n\
     \  %s: %s\n\
     \  %s: %s\n\
-    \  %s: %s"
+    \  %s: %s\n\
+    \  %s:\n\
+    \    %s"
     "Report The State" loc
-    "method"    method
-    "jmlStack"  jmlStack
+    "method" method
+    "jmlStack" jmlStack
     "logHeader" logHeader
+    "Pretty Printed" (concatMap (\case '\n' -> "\n    "; ch -> [ch]) pp)
   Skip loc contents thing -> printf
     "%s in %s\n\
     \  %s: %s\n\
     \  %s"
-    "Skip" loc
+    "Skipping" loc
     "Contents" contents
     thing
   AddBehaviorToState loc contents -> printf
     "%s in %s\n\
     \  %s: %s"
-    "Add behavior to state" loc
+    "Adding behavior to state" loc
     "Contents" contents
   AddClauseToState loc contents -> printf
     "%s in %s\n\
     \  %s: %s"
-    "Add clause to state" loc
+    "Adding clause to state" loc
     "Contents" contents
   log -> error $ "SymbolicExecution.Logs.Log ==> TODO: " ++ show log
 
