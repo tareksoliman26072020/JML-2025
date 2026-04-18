@@ -1,6 +1,6 @@
 module TargetState (target) where
 
-import JML.Types (Method(..), Behavior(..), Expr(..), Op(..))
+import JML.Types (Method(..), Behavior(..), Expr(..), Op(..), JMLType(..))
 
 target :: String -> Method
 target name = case lookup name allTargets of
@@ -31,11 +31,11 @@ allTargets = [
   ("boo23_7_i",boo23_7_i), ("boo23_8_i",boo23_8_i), ("boo23_9_i",boo23_9_i),
   ("boo23_9_i_2",boo23_9_i_2), ("boo23_10_i",boo23_10_i), ("boo23_10_i_2",boo23_10_i_2),
   ("boo23_11_i",boo23_11_i), ("boo23_12_i",boo23_12_i), ("boo33_3_i",boo33_3_i),
-  ("boo33_4_i",boo33_4_i), ("boo33_4_i_call",boo33_4_i_call){-,
+  ("boo33_4_i",boo33_4_i), ("boo33_4_i_call",boo33_4_i_call),
   ("boo24",boo24),
-  ("boo24_2",boo24_2)-},
-  ("exceptionFun",exceptionFun){-,
-  ("boo25",boo25),
+  ("boo24_2",boo24_2),
+  ("exceptionFun",exceptionFun),
+  ("boo25",boo25){-,
   ("boo26_2",boo26_2),
   ("boo27",boo27),
   ("boo27_2",boo27_2),
@@ -167,7 +167,7 @@ boo21 = Method {
     NormalBehavior {
       requires = Nothing,
       assignable = [],
-      ensures = [Result $ Int 5]
+      ensures = [JMLResult $ JMLInt 5]
     }
   ]
 }
@@ -183,7 +183,7 @@ boo21_2 = Method {
     NormalBehavior {
       requires = Nothing,
       assignable = [],
-      ensures = [Result $ Int 5]
+      ensures = [JMLResult $ JMLInt 5]
     }
   ]
 }
@@ -199,7 +199,7 @@ boo22 = Method {
     NormalBehavior {
       requires = Nothing,
       assignable = [],
-      ensures = [Result $ Int 5]
+      ensures = [JMLResult $ JMLInt 5]
     }
   ]
 }
@@ -215,7 +215,7 @@ boo22_2 = Method {
     NormalBehavior {
       requires = Nothing,
       assignable = [],
-      ensures = [Result $ Int 5]
+      ensures = [JMLResult $ JMLInt 5]
     }
   ]
 }
@@ -231,7 +231,7 @@ boo23_3 = Method {
     NormalBehavior {
       requires = Nothing,
       assignable = [],
-      ensures = [Result $ Int 5]
+      ensures = [JMLResult $ JMLInt 5]
     }
   ]
 }
@@ -247,7 +247,7 @@ boo23_3_1 = Method {
     NormalBehavior {
       requires = Nothing,
       assignable = [],
-      ensures = [Result $ Int 8]
+      ensures = [JMLResult $ JMLInt 8]
     }
   ]
 }
@@ -263,7 +263,7 @@ boo23_4 = Method {
     NormalBehavior {
       requires = Nothing,
       assignable = [],
-      ensures = [Result $ Int 8]
+      ensures = [JMLResult $ JMLInt 8]
     }
   ]
 }
@@ -279,7 +279,7 @@ boo23_9 = Method {
     NormalBehavior {
       requires = Nothing,
       assignable = [],
-      ensures = [Result $ Int 8]
+      ensures = [JMLResult $ JMLInt 8]
     }
   ]
 }
@@ -295,7 +295,7 @@ boo33_3 = Method {
     NormalBehavior {
       requires = Nothing,
       assignable = [],
-      ensures = [Result $ Double 1.1]
+      ensures = [JMLResult $ JMLDouble 1.1]
     }
   ]
 }
@@ -311,7 +311,7 @@ boo33_4 = Method {
     NormalBehavior {
       requires = Nothing,
       assignable = [],
-      ensures = [Result $ Double 1.1]
+      ensures = [JMLResult $ JMLDouble 1.1]
     }
   ]
 }
@@ -326,8 +326,8 @@ boo33_5 = Method {
   behaviors = [
     NormalBehavior {
       requires = Nothing,
-      assignable = [Var "z"],
-      ensures = [Result $ Double 1.1 , Var "z" `Equals` Var "t"]
+      assignable = ["z"],
+      ensures = [JMLResult $ JMLDouble 1.1 , JMLVar Unknown_Type "z" `JMLEquals` JMLVar Unknown_Type "t"]
     }
   ]
 }
@@ -342,10 +342,10 @@ boo33_6 = Method {
   behaviors = [
     NormalBehavior {
       requires = Nothing,
-      assignable = [Var "z"],
+      assignable = ["z"],
       ensures = [
-        Result (Double 1.1),
-        Var "z" `Equals` Num 1.0
+        JMLResult (JMLDouble 1.1),
+        JMLVar Num_Type "z" `JMLEquals` JMLNum 1.0
       ]
     }
   ]
@@ -362,7 +362,7 @@ boo33_7 = Method {
     NormalBehavior {
       requires = Nothing,
       assignable = [],
-      ensures = [Result (Var "c")]
+      ensures = [JMLResult (JMLVar Double_Type "c")]
     }
   ]
 }
@@ -378,7 +378,7 @@ boo21_i = Method {
     NormalBehavior {
       requires = Nothing,
       assignable = [],
-      ensures = [Result (Var "i")]
+      ensures = [JMLResult (JMLVar Int_Type "i")]
     }
   ]
 }
@@ -394,7 +394,7 @@ boo21_2_i = Method {
     NormalBehavior {
       requires = Nothing,
       assignable = [],
-      ensures = [Result (Int 5)]
+      ensures = [JMLResult (JMLInt 5)]
     }
   ]
 }
@@ -409,10 +409,10 @@ boo33_5_2 = Method {
   behaviors = [
     NormalBehavior {
       requires = Nothing,
-      assignable = [Var "z"],
+      assignable = ["z"],
       ensures = [
-        Result (Double 1.1),
-        Var "z" `Equals` Var "str"
+        JMLResult (JMLDouble 1.1),
+        JMLVar String_Type "z" `JMLEquals` JMLVar String_Type "str"
       ]
     }
   ]
@@ -428,10 +428,10 @@ boo33_5_3 = Method {
   behaviors = [
     NormalBehavior {
       requires = Nothing,
-      assignable = [Var "z"],
+      assignable = ["z"],
       ensures = [
-        Result (Double 1.1),
-        Var "z" `Equals` (Bin (Old (Var "str")) Add (String "1"))
+        JMLResult (JMLDouble 1.1),
+        JMLVar String_Type "z" `JMLEquals` (JMLBin (JMLOld (JMLVar String_Type "str")) Add (JMLString "1"))
       ]
     }
   ]
@@ -447,10 +447,10 @@ boo33_5_4 = Method {
   behaviors = [
     NormalBehavior {
       requires = Nothing,
-      assignable = [Var "z"],
+      assignable = ["z"],
       ensures = [
-        Result (Double 1.1),
-        Var "z" `Equals` Old (Var "str")
+        JMLResult (JMLDouble 1.1),
+        JMLVar String_Type "z" `JMLEquals` JMLOld (JMLVar String_Type "str")
       ]
     }
   ]
@@ -468,7 +468,7 @@ boo21_3_i = Method {
       requires = Nothing,
       assignable = [],
       ensures = [
-        Result (Bin (Old (Var "i")) Add (Int 2))
+        JMLResult (JMLBin (JMLOld (JMLVar Int_Type "i")) Add (JMLInt 2))
       ]
     }
   ]
@@ -486,11 +486,11 @@ boo21_3_i_1 = Method {
       requires = Nothing,
       assignable = [],
       ensures = [
-        Result $ Bin (Bin (Int 2)
-                          Mul
-                          (Old (Var "i")))
-                     Add
-                     (Int 4)
+        JMLResult $ JMLBin (JMLBin (JMLInt 2)
+                                   Mul
+                                   (JMLOld (JMLVar Int_Type "i")))
+                           Add
+                           (JMLInt 4)
       ]
     }
   ]
@@ -508,11 +508,11 @@ boo21_3_i_2 = Method {
       requires = Nothing,
       assignable = [],
       ensures = [
-        Result $ Bin (Bin (Int 2)
-                          Mul
-                          (Old (Var "i")))
-                     Add
-                     (Int 9)
+        JMLResult $ JMLBin (JMLBin (JMLInt 2)
+                                   Mul
+                                   (JMLOld (JMLVar Int_Type "i")))
+                           Add
+                           (JMLInt 9)
       ]
     }
   ]
@@ -530,11 +530,11 @@ boo21_3_i_3 = Method {
       requires = Nothing,
       assignable = [],
       ensures = [
-        Result $ Bin (Bin (Int 5)
-                          Mul
-                          (Old (Var "i")))
-                     Add
-                     (Int 20)
+        JMLResult $ JMLBin (JMLBin (JMLInt 5)
+                                   Mul
+                                   (JMLOld (JMLVar Int_Type "i")))
+                           Add
+                           (JMLInt 20)
       ]
     }
   ]
@@ -550,20 +550,20 @@ boo21_3_i_4 = Method {
   behaviors = [
     NormalBehavior {
       requires = Nothing,
-      assignable = [Var "x"],
+      assignable = ["x"],
       ensures = [
-        Result $ Bin (Old (Var "x"))
-                     Add
-                     (Bin (Bin (Int 2) Mul (Var "i"))
-                          Add
-                          (Int 2)),
-        Var "x" `Equals` Bin (Old (Var "x"))
-                             Add
-                             (Bin (Bin (Int 2)
-                                       Mul
-                                       (Var "i"))
-                                  Add
-                                  (Int 2))
+        JMLResult $ JMLBin (JMLOld (JMLVar Int_Type "x"))
+                           Add
+                           (JMLBin (JMLBin (JMLInt 2) Mul (JMLVar Int_Type "i"))
+                                   Add
+                                   (JMLInt 2)),
+        JMLVar Int_Type "x" `JMLEquals` JMLBin (JMLOld (JMLVar Int_Type "x"))
+                                               Add
+                                              (JMLBin (JMLBin (JMLInt 2)
+                                                              Mul
+                                                              (JMLVar Int_Type "i"))
+                                                      Add
+                                                      (JMLInt 2))
       ]
     }
   ]
@@ -579,18 +579,18 @@ boo21_3_i_5 = Method {
   behaviors = [
     NormalBehavior {
       requires = Nothing,
-      assignable = [Var "x"],
+      assignable = ["x"],
       ensures = [
-        Result $ Bin (Old (Var "x"))
-                     Add
-                     (Bin (Int 2)
-                          Sub
-                          (Var "i")),
-        Var "x" `Equals` Bin (Old (Var "x"))
-                             Add
-                             (Bin (Int 2)
-                                  Sub
-                                  (Var "i"))
+        JMLResult $ JMLBin (JMLOld (JMLVar Int_Type "x"))
+                           Add
+                           (JMLBin (JMLInt 2)
+                                   Sub
+                                   (JMLVar Int_Type "i")),
+        JMLVar Int_Type "x" `JMLEquals` JMLBin (JMLOld (JMLVar Int_Type "x"))
+                                               Add
+                                               (JMLBin (JMLInt 2)
+                                                       Sub
+                                                       (JMLVar Int_Type "i"))
       ]
     }
   ]
@@ -606,16 +606,16 @@ boo21_3_i_6 = Method {
   behaviors = [
     NormalBehavior {
       requires = Nothing,
-      assignable = [Var "x"],
+      assignable = ["x"],
       ensures = [
-        Result $ Bin (Old (Var "x"))
+        JMLResult $ JMLBin (JMLOld (JMLVar Int_Type "x"))
                      Add
-                     (Bin (Int 2)
+                     (JMLBin (JMLInt 2)
                           Add
-                          (Var "i")),
-        Var "x" `Equals` Bin (Old (Var "x"))
+                          (JMLVar Int_Type "i")),
+        JMLVar Int_Type "x" `JMLEquals` JMLBin (JMLOld (JMLVar Int_Type "x"))
                              Add
-                             (Bin (Int 2) Add (Var "i"))
+                             (JMLBin (JMLInt 2) Add (JMLVar Int_Type "i"))
       ]
     }
   ]
@@ -631,14 +631,14 @@ boo21_3_i_7 = Method {
   behaviors = [
     NormalBehavior {
       requires = Nothing,
-      assignable = [Var "x"],
+      assignable = ["x"],
       ensures = [
-        Result $ Bin (Old (Var "x"))
-                     Add
-                     (Int 2),
-        Var "x" `Equals` Bin (Old (Var "x"))
-                             Add
-                             (Int 2)]
+        JMLResult $ JMLBin (JMLOld (JMLVar Int_Type "x"))
+                           Add
+                           (JMLInt 2),
+        JMLVar Int_Type "x" `JMLEquals` JMLBin (JMLOld (JMLVar Int_Type "x"))
+                                               Add
+                                               (JMLInt 2)]
     }
   ]
 }
@@ -653,18 +653,18 @@ boo21_3_i_8 = Method {
   behaviors = [
     NormalBehavior {
       requires = Nothing,
-      assignable = [Var "x"],
+      assignable = ["x"],
       ensures = [
-        Result $ Bin (Old (Var "x"))
-                     Add
-                     (Bin (Int 2)
-                          Add
-                          (Bin (Int 4) Mul (Var "i"))),
-        Var "x" `Equals` Bin (Old (Var "x"))
-                             Add
-                             (Bin (Int 2)
+        JMLResult $ JMLBin (JMLOld (JMLVar Int_Type "x"))
+                           Add
+                          (JMLBin (JMLInt 2)
                                   Add
-                                  (Bin (Int 4) Mul (Var "i")))
+                                  (JMLBin (JMLInt 4) Mul (JMLVar Int_Type "i"))),
+        JMLVar Int_Type "x" `JMLEquals` JMLBin (JMLOld (JMLVar Int_Type "x"))
+                                               Add
+                                               (JMLBin (JMLInt 2)
+                                                       Add
+                                                       (JMLBin (JMLInt 4) Mul (JMLVar Int_Type "i")))
       ]
     }
   ]
@@ -682,9 +682,9 @@ boo21_3_i_9 = Method {
       requires = Nothing,
       assignable = [],
       ensures = [
-        Result $ Bin (Int 2)
-                     Mul
-                     (Old (Var "i"))
+        JMLResult $ JMLBin (JMLInt 2)
+                           Mul
+                           (JMLOld (JMLVar Int_Type "i"))
       ]
     }
   ]
@@ -702,7 +702,7 @@ boo22_i = Method {
       requires = Nothing,
       assignable = [],
       ensures = [
-        Result (Var "i")
+        JMLResult (JMLVar Int_Type "i")
       ]
     }
   ]
@@ -720,7 +720,7 @@ boo22_i_2 = Method {
       requires = Nothing,
       assignable = [],
       ensures = [
-        Result $ Bin (Var "i") Add (Int 5)
+        JMLResult $ JMLBin (JMLVar Int_Type "i") Add (JMLInt 5)
       ]
     }
   ]
@@ -738,7 +738,7 @@ boo22_i_3 = Method {
       requires = Nothing,
       assignable = [],
       ensures = [
-        Result $ Bin (Var "i") Add (Int 2)
+        JMLResult $ JMLBin (JMLVar Int_Type "i") Add (JMLInt 2)
       ]
     }
   ]
@@ -756,9 +756,9 @@ boo22_i_4 = Method {
       requires = Nothing,
       assignable = [],
       ensures = [
-        Result $ Bin (Bin (Var "i") Add (Int 6))
-                     Mul
-                     (Int 5)
+        JMLResult $ JMLBin (JMLBin (JMLVar Int_Type "i") Add (JMLInt 6))
+                           Mul
+                           (JMLInt 5)
       ]
     }
   ]
@@ -776,7 +776,7 @@ boo22_i_5 = Method {
       requires = Nothing,
       assignable = [],
       ensures = [
-        Result $ Bin (Var "j") Add (Int 2)
+        JMLResult $ JMLBin (JMLVar Int_Type "j") Add (JMLInt 2)
       ]
     }
   ]
@@ -792,8 +792,8 @@ boo22_i_5_call = Method {
   behaviors = [
     NormalBehavior {
       requires = Nothing,
-      assignable = [Var "j"],
-      ensures = [Var "j" `Equals` Int 9]
+      assignable = ["j"],
+      ensures = [JMLVar Int_Type "j" `JMLEquals` JMLInt 9]
     }
   ]
 }
@@ -810,7 +810,7 @@ boo22_2_i = Method {
       requires = Nothing,
       assignable = [],
       ensures = [
-        Result $ Bin (Var "i") Mul (Int 2)
+        JMLResult $ JMLBin (JMLVar Int_Type "i") Mul (JMLInt 2)
       ]
     }
   ]}
@@ -826,7 +826,7 @@ boo22_2_i_2 = Method {
     NormalBehavior {
       requires = Nothing,
       assignable = [],
-      ensures = [Result (Int 33)]
+      ensures = [JMLResult (JMLInt 33)]
     }
   ]
 }
@@ -842,7 +842,7 @@ boo23_3_i = Method {
     NormalBehavior {
       requires = Nothing,
       assignable = [],
-      ensures = [Result (Int 5)]
+      ensures = [JMLResult (JMLInt 5)]
     }
   ]
 }
@@ -858,7 +858,7 @@ boo23_3_i_2 = Method {
     NormalBehavior {
       requires = Nothing,
       assignable = [],
-      ensures = [Result (Int 16)]
+      ensures = [JMLResult (JMLInt 16)]
     }
   ]
 }
@@ -874,7 +874,7 @@ boo23_4_i = Method {
     NormalBehavior {
       requires = Nothing,
       assignable = [],
-      ensures = [Result (Int 3)]
+      ensures = [JMLResult (JMLInt 3)]
     }
   ]
 }
@@ -890,7 +890,7 @@ boo23_4_i_2 = Method {
     NormalBehavior {
       requires = Nothing,
       assignable = [],
-      ensures = [Result (Int 10)]
+      ensures = [JMLResult (JMLInt 10)]
     }
   ]
 }
@@ -906,7 +906,7 @@ boo23_4_i_3 = Method {
     NormalBehavior {
       requires = Nothing,
       assignable = [],
-      ensures = [Result (Int 10)]
+      ensures = [JMLResult (JMLInt 10)]
     }
   ]
 }
@@ -923,11 +923,11 @@ boo23_4_i_4 = Method {
       requires = Nothing,
       assignable = [],
       ensures = [
-        Result $ Bin (Int 15)
+        JMLResult $ JMLBin (JMLInt 15)
                      Mul
-                     (Bin (Bin (Int 3) Mul (Var "i"))
-                          Add
-                          (Int 2))
+                     (JMLBin (JMLBin (JMLInt 3) Mul (JMLVar Int_Type "i"))
+                             Add
+                             (JMLInt 2))
       ]
     }
   ]
@@ -944,7 +944,7 @@ boo23_4_i_4_1 = Method {
     NormalBehavior {
       requires = Nothing,
       assignable = [],
-      ensures = [Result (Int 255)]
+      ensures = [JMLResult (JMLInt 255)]
     }
   ]
 }
@@ -961,9 +961,9 @@ boo23_4_i_5 = Method {
       requires = Nothing,
       assignable = [],
       ensures = [
-        Result $ Bin (Int 15)
-                     Mul
-                     (Bin (Var "i") Add (Int 2))
+        JMLResult $ JMLBin (JMLInt 15)
+                           Mul
+                           (JMLBin (JMLVar Int_Type "i") Add (JMLInt 2))
       ]
     }
   ]
@@ -980,7 +980,7 @@ boo23_5_i = Method {
     NormalBehavior {
       requires = Nothing,
       assignable = [],
-      ensures = [Result (Int 8)]
+      ensures = [JMLResult (JMLInt 8)]
     }
   ]
 }
@@ -996,7 +996,7 @@ boo23_6_i = Method {
     NormalBehavior {
       requires = Nothing,
       assignable = [],
-      ensures = [Result (Double 8.0)]
+      ensures = [JMLResult (JMLDouble 8.0)]
     }
   ]
 }
@@ -1013,7 +1013,7 @@ boo23_7_i = Method {
       requires = Nothing,
       assignable = [],
       ensures = [
-        Result $ Bin (Double 8.0) Add (Var "i")
+        JMLResult $ JMLBin (JMLDouble 8.0) Add (JMLVar Double_Type "i")
       ]
     }
   ]
@@ -1031,9 +1031,9 @@ boo23_8_i = Method {
       requires = Nothing,
       assignable = [],
       ensures = [
-        Result $ Bin (Int 3)
-                     Add
-                     (Bin (Int 5) Mul (Var "i"))
+        JMLResult $ JMLBin (JMLInt 3)
+                           Add
+                           (JMLBin (JMLInt 5) Mul (JMLVar Int_Type "i"))
       ]
     }
   ]
@@ -1050,7 +1050,7 @@ boo23_9_i = Method {
     NormalBehavior {
       requires = Nothing,
       assignable = [],
-      ensures = [Result (Int 5)]
+      ensures = [JMLResult (JMLInt 5)]
     }
   ]
 }
@@ -1067,7 +1067,7 @@ boo23_9_i_2 = Method {
       requires = Nothing,
       assignable = [],
       ensures = [
-        Result $ Bin (Int 5) Sub (Var "i")
+        JMLResult $ JMLBin (JMLInt 5) Sub (JMLVar Int_Type "i")
       ]
     }
   ]
@@ -1085,7 +1085,7 @@ boo23_10_i = Method {
       requires = Nothing,
       assignable = [],
       ensures = [
-        Result $ Bin (Int 8) Add (Var "i")
+        JMLResult $ JMLBin (JMLInt 8) Add (JMLVar Int_Type "i")
       ]
     }
   ]
@@ -1103,7 +1103,7 @@ boo23_10_i_2 = Method {
       requires = Nothing,
       assignable = [],
       ensures = [
-        Result $ Bin (Int 8) Add (Var "i")
+        JMLResult $ JMLBin (JMLInt 8) Add (JMLVar Int_Type "i")
       ]
     }
   ]
@@ -1121,7 +1121,7 @@ boo23_11_i = Method {
       requires = Nothing,
       assignable = [],
       ensures = [
-        Result $ Bin (Int 9) Mul (Var "i")
+        JMLResult $ JMLBin (JMLInt 9) Mul (JMLVar Int_Type "i")
       ]
     }
   ]
@@ -1139,7 +1139,7 @@ boo23_12_i = Method {
       requires = Nothing,
       assignable = [],
       ensures = [
-        Result $ Bin (Int 3) Add (Var "i")
+        JMLResult $ JMLBin (JMLInt 3) Add (JMLVar Int_Type "i")
       ]
     }
   ]
@@ -1157,7 +1157,7 @@ boo33_3_i = Method {
       requires = Nothing,
       assignable = [],
       ensures = [
-        Result $ Bin (Double 1.1) Add (Var "i")
+        JMLResult $ JMLBin (JMLDouble 1.1) Add (JMLVar Double_Type "i")
       ]
     }
   ]
@@ -1175,9 +1175,9 @@ boo33_4_i = Method {
       requires = Nothing,
       assignable = [],
       ensures = [
-        Result $ Bin (Bin (Double 1.1) Add (Var "i"))
-                     Add
-                     (Var "j")
+        JMLResult $ JMLBin (JMLBin (JMLDouble 1.1) Add (JMLVar Double_Type "i"))
+                           Add
+                           (JMLVar Double_Type "j")
       ]
     }
   ]
@@ -1195,7 +1195,7 @@ boo33_4_i_call = Method {
       requires = Nothing,
       assignable = [],
       ensures = [
-        Result (Double 18.5)
+        JMLResult (JMLDouble 18.5)
       ]
     }
   ]
@@ -1204,34 +1204,36 @@ boo33_4_i_call = Method {
 -----------------------------
 -----------------------------
 -----------------------------
-{-
-boo24 :: SymStateEnv
-boo24 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo24"),
-    (VarBindings,SVarBindings (Map.fromList [
-        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
-    (VarAssignments,SVarAssignments [
-        ("x",(SymInt 9,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
-    (VarName "x",SymInt 9),
-    (Return,SymInt 9)
+
+boo24 :: Method
+boo24 = Method {
+  name = "boo24",
+  behaviors = [
+    NormalBehavior {
+      requires = Nothing,
+      assignable = [],
+      ensures = [JMLResult (JMLInt 9)]
+    }
   ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
 
-boo24_2 :: SymStateEnv
-boo24_2 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo24_2"),
-    (VarBindings,SVarBindings (Map.fromList [
-        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
-    (VarAssignments,SVarAssignments [
-        ("x",(SException SYT.Int "Exception" "meow",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
-    (VarName "x",SException SYT.Int "Exception" "meow"),
-    (Return,SException SYT.Int "Exception" "meow"),
-    (Actions,SActions [SymString "Oopsie\n"])
+boo24_2 :: Method
+boo24_2 = Method {
+  name = "boo24_2",
+  behaviors = [
+    ExceptionalBehavior {
+      requires = Nothing,
+      signals = "Exception",
+      assignable = [],
+      ensures = []
+    }
   ]
--}
+}
+
 -----------------------------
 -----------------------------
 -----------------------------
@@ -1252,33 +1254,30 @@ exceptionFun = Method {
 -----------------------------
 -----------------------------
 -----------------------------
-{-
-boo25 :: SymStateEnv
-boo25 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo25"),
-    (GlobalVars,SGlobalVars []),
-    (FormalParms,SFormalParms ["i"]),
-    (VarAssignments,SVarAssignments []),
-    (VarName "i",SymVar SYT.Int "i"),
-    (ScopeRange (SR {branchStart = 1, branchEnd = 5}),
-     SIte (SBin (SymVar SYT.Int "i") SYT.Gt (SymInt 10))
-          (Map.fromList [
-              (MethodHandle,SMethodHandle SYT.Int "boo25"),
-              (FormalParms,SFormalParms ["i"]),
-              (VarName "i",SymVar SYT.Int "i"),
-              (Return,SException SYT.Int "Exception" "meow"),
-              (Actions,SActions [SymString "Oopsie\n"])])
-          (Just (Map.fromList [
-              (MethodHandle,SMethodHandle SYT.Int "boo25"),
-              (FormalParms,SFormalParms ["i"]),
-              (VarName "i",SymVar SYT.Int "i"),
-              (Return,SymInt 6)])))
+
+boo25 :: Method
+boo25 = Method {
+  name = "boo25",
+  behaviors = [
+    ExceptionalBehavior {
+      requires = Just (JMLBin (JMLVar Int_Type "i") Gt (JMLInt 10)),
+      signals = "Exception",
+      assignable = [],
+      ensures = []
+    },
+    NormalBehavior {
+      requires = Just (JMLBin (JMLVar Int_Type "i") Le (JMLInt 10)),
+      assignable = [],
+      ensures = [JMLResult (JMLInt 6)]
+    }
   ]
+}
+
 
 -----------------------------
 -----------------------------
 -----------------------------
-
+{-
 boo26_2 :: SymStateEnv
 boo26_2 = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "boo26_2"),

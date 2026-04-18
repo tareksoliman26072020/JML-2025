@@ -1487,6 +1487,11 @@ public double boo33_4_i_call(){
     (Return,SymInt 9)
   ]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 9;
+  @*/
 public int boo24(){
   int x = 3 + boo25(5);
   return x;
@@ -1508,6 +1513,11 @@ public int boo24(){
     (Actions,SActions [SymString "Oopsie\n"])
   ]
 */
+/*@ Exceptional Behavior
+  @   requires true;
+  @   signals Exception;
+  @   assignable \nothing;
+  @*/
 public int boo24_2(){
   int x = 3 + boo25(11);
   return x;
@@ -1549,6 +1559,16 @@ public int exceptionFun() throws Exception {
           (Just (fromList [(MethodHandle,SMethodHandle Int "boo25"),(FormalParms,SFormalParms ["i"]),(VarName "i",SymVar Int "i"),(Return,SymInt 6)])))
   ]
 */
+/*@ Exceptional Behavior
+  @   requires i > 10;
+  @   signals Exception;
+  @   assignable \nothing;
+  @ also
+  @ Normal Behavior
+  @   requires i <= 10;
+  @   assignable \nothing;
+  @   ensures \result == 6;
+  @*/
 public int boo25(int i){
   if(i>10){
     println("Oopsie");

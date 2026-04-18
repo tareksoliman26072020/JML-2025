@@ -14,7 +14,7 @@ import qualified JML.Logs.Log as Log (Log, Header)
 data Op = Add | Sub | Mul | Div | Gt | Ge | Lt | Le | Eq | Neq
         deriving (Show,Eq)
 
-data JMLType = String_Type | Int_Type | Num_Type | Double_Type | Bool_Type
+data JMLType = String_Type | Int_Type | Num_Type | Double_Type | Bool_Type | Unknown_Type
              deriving (Show,Eq)
 
 data Expr = JMLVar JMLType String | JMLInt Int | JMLDouble Double | JMLNum Float

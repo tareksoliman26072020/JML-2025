@@ -108,6 +108,9 @@ toJMLType symType = let
   loc = "JML.Internal.toJMLType" in
   case symType of
     SYT.Int -> Int_Type
+    SYT.Double -> Double_Type
+    SYT.String -> String_Type
+    SYT.UnknownGlobalVarSymType -> Unknown_Type
     _ -> error $ printf "%s: TODO: %s" loc (show symType)
 
 inferJMLType :: Expr -> JMLType
@@ -177,17 +180,25 @@ addBehavior sy er = do
   let loc = "JML.Internal.addBehavior"
   tellNextLog $ Log.Location loc (show er)
   case er of
-    ER_ReturnException (behavior@ExceptionalBehavior{}) -> addBehaviorToState loc behavior
-    ER_ReturnVoid -> addBehaviorToState loc emptyNormalBehavior
+    ER_ReturnException (behavior@ExceptionalBehavior{}) -> do
+      incrementLogEnumeration
+      incrementLogDepth *> addBehaviorToState loc behavior <* decrementLogDepth
+    ER_ReturnVoid -> do
+      incrementLogEnumeration
+      incrementLogDepth *> addBehaviorToState loc emptyNormalBehavior <* decrementLogDepth
     ER_Actions _ -> logSkipping loc
-    ER_Return (behavior@NormalBehavior{}) -> addBehaviorToState loc behavior
+    ER_Return (behavior@NormalBehavior{}) -> do
+      incrementLogEnumeration
+      incrementLogDepth *> addBehaviorToState loc behavior <* decrementLogDepth
     --
     ER_VarName_Global_Reassigned vn symExpr -> do
-      addClauseToStack loc (Assignable [vn])
+      do incrementLogEnumeration
+         incrementLogDepth *> addClauseToStack loc (Assignable [vn]) <* decrementLogDepth
       -- determine the left and right operand for the `Ensures` annotation
-      let rightOperand = symExprToExpr sy symExpr
-          ensuresExpr = JMLVar (inferJMLType rightOperand) vn `JMLEquals` rightOperand
-      addClauseToStack loc (Ensures ensuresExpr)
+      do let rightOperand = symExprToExpr sy symExpr
+             ensuresExpr = JMLVar (inferJMLType rightOperand) vn `JMLEquals` rightOperand
+         incrementLogEnumeration
+         incrementLogDepth *> addClauseToStack loc (Ensures ensuresExpr) <* decrementLogDepth
     ER_VarBindings _ -> logSkipping loc
     ER_VarName_Skipped _ _ -> logSkipping loc
     ER_VarAssignments _ -> logSkipping loc
@@ -246,9 +257,20 @@ addBehavior sy er = do
           logHeader = logHeader jmlState
         }
         return newElseMethod
-      ---------- add all behaviors in newIfMethod and newElseMethod to main behaviors
-      do mapM_ (addBehaviorToState loc) (behaviors newIfMethod)
-         mapM_ (addBehaviorToState loc) (behaviors newElseMethod)
+      -- add all behaviors in newIfMethod to main behaviors
+      do incrementLogEnumeration
+         incrementLogDepth
+         flip censor (mapM_ (addBehaviorToState loc) (behaviors newIfMethod))
+                     (map $ \(Log.Log str logTag) ->
+                        Log.Log str $ Log.Nested "Adding if body behaviors" logTag)
+         decrementLogDepth
+      -- add all behaviors in newElseMethod to main behaviors
+      do incrementLogEnumeration
+         incrementLogDepth
+         flip censor (mapM_ (addBehaviorToState loc) (behaviors newElseMethod))
+                     (map $ \(Log.Log str logTag) ->
+                        Log.Log str $ Log.Nested "Adding else body behaviors" logTag)
+         decrementLogDepth
       {-get >>= \s -> throwError $ printf
         "MEOW: %s\n\
         \  1) main method: %s\n\
