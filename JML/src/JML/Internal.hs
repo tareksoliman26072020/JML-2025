@@ -283,6 +283,10 @@ addBehavior sy er = do
                          Log.Log str $ Log.Nested "Adding else body behaviors" logTag)
           decrementLogDepth
       if | ifBodyHasReturn && elseBodyHasReturn -> return ()
+         -- if body has return statement
+         --     this means after the if-else statement,
+         --     the pre-condition is the negation of `ifRequire`
+         --     TODO: add to the jmlStack all assigned variables in the if body
          | ifBodyHasReturn -> do
              incrementLogEnumeration
              incrementLogDepth
@@ -290,6 +294,9 @@ addBehavior sy er = do
                          (map $ \(Log.Log str logTag) ->
                             Log.Log str $ Log.Nested "post if pre-condition" logTag)
              decrementLogDepth
+         -- else body has return statement
+         --     this means after the if-else statement,
+         --     the pre-condition is the negation of `elseRequire`
          | elseBodyHasReturn -> do
              incrementLogEnumeration
              incrementLogDepth

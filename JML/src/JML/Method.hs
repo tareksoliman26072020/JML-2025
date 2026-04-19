@@ -134,14 +134,15 @@ instance SymbolicExecutionVisitor MethodProcessor where
         tellNextLog $ Log.IfConditionPreCondition loc (show ifRequires)
         incrementLogEnumeration >> incrementLogDepth
         sys <- ask
-        let (ifError,ifLogs,ifMethod) = runSE sys ifBody
+        let (if_error_er,ifLogs,ifMethod) = runSE sys ifBody
         -- is there an error
-        case ifError of
-          "" -> return ()
-          _  -> throwError $ createError_sy ("TODO1: " ++ ifError) loc key value
+        let if_ers = case if_error_er of
+              Right if_ers -> if_ers
+              Left ifError -> createError_sy ("TODO1: " ++ ifError) loc key value
         -- if logs
-        flip mapM_ ifLogs $ \(Log.Log _ logTag) ->
-          tellNextLog $ Log.Nested "if body" logTag
+        flip mapM_ ifLogs $ \log -> do
+          Log.Header _ baseCounter <- logHeader <$> get
+          tellNextNestedLog baseCounter ["if body"] log
         decrementLogDepth
         tellNextLog $ Log.IfBehavior loc (show $ behaviors ifMethod) (map ppBehavior $ behaviors ifMethod)
         return (ifRequires,ifMethod)
@@ -160,14 +161,15 @@ instance SymbolicExecutionVisitor MethodProcessor where
             tellNextLog $ Log.ElseConditionPreCondition loc (show elseRequires)
             incrementLogEnumeration >> incrementLogDepth
             sys <- ask
-            let (elseError,elseLogs,elseMethod) = runSE sys elseBody
+            let (else_error_er,elseLogs,elseMethod) = runSE sys elseBody
             -- is there an error
-            case elseError of
-              "" -> return ()
-              _  -> throwError $ createError_sy ("TODO3: " ++ elseError) loc key value
+            let else_ers = case else_error_er of
+                  Right else_ers -> else_ers
+                  Left elseError -> createError_sy ("TODO3: " ++ elseError) loc key value
             -- else logs
-            flip mapM_ elseLogs $ \(Log.Log _ logTag) ->
-              tellNextLog $ Log.Nested "body else" logTag
+            flip mapM_ elseLogs $ \log -> do
+              Log.Header _ baseCounter <- logHeader <$> get
+              tellNextNestedLog baseCounter ["else body"] log
             decrementLogDepth
             tellNextLog $ Log.ElseBehavior loc (show $ behaviors elseMethod) (map ppBehavior $ behaviors elseMethod)
             return $ Just (elseRequires,elseMethod)
@@ -200,11 +202,12 @@ instance SymbolicExecutionVisitor MethodProcessor where
 -----------------------------
 -----------------------------
 
-runSE :: Map.Map String SYT.SymbolicExecution -> SYT.SymbolicExecution -> (String,[Log.Log],Method)
+runSE :: Map.Map String SYT.SymbolicExecution -> SYT.SymbolicExecution -> (Either String [ExecutionResult],[Log.Log],Method)
 runSE sys sy =
   let loc = globalLoc ++ ".runSE"
-      runner :: JMLMonad ()
+      runner :: JMLMonad [ExecutionResult]
       runner = do
+      --visited :: Map.Map SYT.SymbolicExecutionValue ExecutionResult
         visited <- flip Map.traverseWithKey
           (flip Map.filterWithKey sy $ \case
              SYT.MethodHandle -> const False
@@ -217,7 +220,8 @@ runSE sys sy =
             -- modifying the state
             addingBehavior sy visited
             decrementLogDepth
-        return ()
+            return visited
+        return $ Map.elems visited
 
       initialJMLState :: JMLState
       initialJMLState = JMLState {
@@ -229,19 +233,19 @@ runSE sys sy =
         logHeader = Log.Header 1 [0]
       }
 
-      run_e :: ReaderT (Map.Map String SYT.SymbolicExecution) (WriterT [Log.Log] (State JMLState)) (Either String ())
+      run_e :: ReaderT (Map.Map String SYT.SymbolicExecution) (WriterT [Log.Log] (State JMLState)) (Either String [ExecutionResult])
       run_e = runExceptT runner
 
-      run_r :: WriterT [Log.Log] (State JMLState) (Either String ())
+      run_r :: WriterT [Log.Log] (State JMLState) (Either String [ExecutionResult])
       run_r = runReaderT run_e sys
 
-      run_w :: State JMLState ((Either String ()),[Log.Log])
+      run_w :: State JMLState ((Either String [ExecutionResult]),[Log.Log])
       run_w = runWriterT run_r
 
-      run_s :: ((Either String (),[Log.Log]),JMLState)
+      run_s :: ((Either String [ExecutionResult],[Log.Log]),JMLState)
       run_s@((er,logs),s) = runState run_w initialJMLState
 
-  in (either id (const "") er,logs,method s)
+  in (er,logs,method s)
   where
   visitingSymExpr :: SYT.SymbolicExecution -> (SYT.SymbolicExecutionKey,SYT.SymbolicExecutionValue) -> JMLMonad ExecutionResult
   visitingSymExpr sy tu =

@@ -2307,6 +2307,18 @@ public static int boo28_6_6(int i){
   return x;
 }
 
+//TODO
+public static int boo28_6_6_2(int i){
+  int x = 1;
+  if(i >= 0){
+    x = 0;
+  }
+  else {
+    x++;
+  }
+  return i+x;
+}
+
 ////////////////////////////////////////
 
 //DONE

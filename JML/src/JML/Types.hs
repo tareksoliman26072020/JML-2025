@@ -43,6 +43,7 @@ data Clause =
   | LoopInvariant Expr
   | Signals String Expr
   | Assignable [String]
+  | VarAssignment String Expr
   deriving (Show,Eq)
 
 data Method = Method {
