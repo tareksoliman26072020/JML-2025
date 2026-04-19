@@ -18,7 +18,7 @@ ppBehavior behavior = case behavior of
   ExceptionalBehavior{} -> intercalate "\n  "
     $ filter (not . null) [
      -- ExceptionalBehavior
-     "@ Exceptional Behavior"
+     "@ exceptional_behavior"
     ,-- requires
       printf
      "@   requires %s;" $ maybe "true" ppExpr (requires behavior)
@@ -31,10 +31,6 @@ ppBehavior behavior = case behavior of
        (intercalate ", ") (assignable behavior)
     ,-- ensures
      intercalate "\n  " $ map (printf "@   ensures %s;" . ppExpr) (ensures behavior)
-     {-case ensures behavior of
-       Nothing -> ""
-       Just expr -> printf
-         "@   ensures \\result == %s;" (ppExpr expr)-}
     ]
 {-
 NormalBehavior {requires = Nothing, assignable = [], ensures = Just (Int 5)}
@@ -47,7 +43,7 @@ NormalBehavior {requires = Nothing, assignable = [], ensures = Just (Int 5)}
   NormalBehavior{} -> intercalate "\n  "
     $ filter (not . null) [
      -- Normal Behavior
-     "@ Normal Behavior"
+     "@ normal_behavior"
     ,-- requires
       printf
      "@   requires %s;" $ maybe "true" ppExpr (requires behavior)
@@ -88,6 +84,8 @@ ppOp op = case op of
   Sub -> "-"
   Gt -> ">"
   Le -> "<="
+  Ge -> ">="
+  Lt -> "<"
   _ -> error $ printf "JML.PrettyPrint.ppOp: TODO: %s" (show op)
 
 ppBehaviors :: [Behavior] -> String

@@ -10,7 +10,8 @@ import JML.PrettyPrint (ppBehavior)
 import qualified SymbolicExecution.Types as SYT (
   SymStateKey(..), SymExpr(..),
   SymbolicExecution, SymbolicExecutionKey, SymbolicExecutionValue)
-import qualified SymbolicExecution.Internal.Internal as SY (getFunName, isGlobalVariable2)
+import qualified SymbolicExecution.Internal.Internal as SY (
+  getFunName, isGlobalVariable2, hasReturn)
 import qualified Data.Map as Map
 
 import Text.Printf
@@ -140,17 +141,18 @@ instance SymbolicExecutionVisitor MethodProcessor where
           _  -> throwError $ createError_sy ("TODO1: " ++ ifError) loc key value
         -- if logs
         flip mapM_ ifLogs $ \(Log.Log _ logTag) ->
-          tellNextLog $ Log.Nested "if condition" logTag
+          tellNextLog $ Log.Nested "if body" logTag
         decrementLogDepth
         tellNextLog $ Log.IfBehavior loc (show $ behaviors ifMethod) (map ppBehavior $ behaviors ifMethod)
         return (ifRequires,ifMethod)
       -- process else
-      (elseRequires,elseMethod) <- do
+      maybeElse <- do
         case maybeElseBody of
           -- no else body
           Nothing -> do
             tellNextLog $ Log.NoElseBody loc
-            throwError $ createError_sy "TODO2" loc key value
+            --throwError $ createError_sy "TODO2" loc key value
+            return Nothing
           -- yes else body
           Just elseBody -> do
             tellNextLog $ Log.ProcessElseBody loc
@@ -165,12 +167,20 @@ instance SymbolicExecutionVisitor MethodProcessor where
               _  -> throwError $ createError_sy ("TODO3: " ++ elseError) loc key value
             -- else logs
             flip mapM_ elseLogs $ \(Log.Log _ logTag) ->
-              tellNextLog $ Log.Nested "else condition" logTag
+              tellNextLog $ Log.Nested "body else" logTag
             decrementLogDepth
             tellNextLog $ Log.ElseBehavior loc (show $ behaviors elseMethod) (map ppBehavior $ behaviors elseMethod)
-            return (elseRequires,elseMethod)
+            return $ Just (elseRequires,elseMethod)
 
-      return $ ER_IfThenElse (ifRequires,ifMethod) (elseRequires,elseMethod)
+      -- does ifBody have Return?
+      let ifBodyHasReturn = SY.hasReturn ifBody
+      -- does elseBody have Return?
+      let elseBodyHasReturn = case maybeElseBody of
+            Nothing -> False
+            Just elseBody -> SY.hasReturn elseBody
+      --throwError $ printf "MEOW: (%s,%s)" (show ifBodyHasReturn) (show elseBodyHasReturn)
+      return $ ER_IfThenElse (ifRequires,ifMethod) maybeElse
+                             (ifBodyHasReturn,elseBodyHasReturn)
       {-
       throwError $ createError_sy (printf
         "MEOW:\n\

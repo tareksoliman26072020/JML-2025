@@ -78,5 +78,5 @@ data ExecutionResult =
   | ER_Return Behavior
   | ER_ReturnVoid
   | ER_Actions Expr
-  | ER_IfThenElse (Expr,Method) (Expr,Method)
+  | ER_IfThenElse (Expr,Method) (Maybe (Expr,Method)) (Bool,Bool)
   deriving (Show,Eq)

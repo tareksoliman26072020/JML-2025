@@ -1,6 +1,7 @@
 {-# Language MultiWayIf, LambdaCase #-}
 module JML.Internal where
 
+import Prelude hiding (negate)
 import Control.Monad.Writer
 import Control.Monad.State (get,modify)
 import Control.Monad.Except (throwError)
@@ -101,6 +102,7 @@ symExprToExpr sy symExpr =
          JMLBin (symExprToExpr sy symExpr1) (symBinOpToOp op) (symExprToExpr sy symExpr2)
        SYT.SymString str -> JMLString str
        SYT.SActions symExprs -> JMLActions $ map (symExprToExpr sy) symExprs
+       SYT.SymUnknown symExpr _ -> symExprToExpr sy symExpr
        _ -> error $ printf "%s: TODO: %s" loc (show symExpr)
 
 toJMLType :: SYT.SymType -> JMLType
@@ -166,6 +168,8 @@ symBinOpToOp symBinOp = case symBinOp of
   SYT.Mul -> Mul
   SYT.Sub -> Sub
   SYT.Gt  -> Gt
+  SYT.Ge  -> Ge
+  SYT.Lt  -> Lt
   _ -> error $ printf "JML.Internal.symBinOpToOp: TODO: %s" (show symBinOp)
 
 emptyNormalBehavior :: Behavior
@@ -205,7 +209,8 @@ addBehavior sy er = do
     ER_NoGlobalVars -> logSkipping loc
     ER_FormalParms _ -> logSkipping loc
     --
-    ER_IfThenElse (ifRequires,ifMethod) (elseRequires,elseMethod) -> do
+    ER_IfThenElse (ifRequires,ifMethod) maybeElse
+                  (ifBodyHasReturn,elseBodyHasReturn) -> do
       originalStack <- jmlStack <$> get
       ---------- if
       newIfMethod <- do
@@ -233,30 +238,33 @@ addBehavior sy er = do
         }
         return newIfMethod
       ---------- else
-      newElseMethod <- do
-        -- add else cond to the main jmlstack
-        do incrementLogEnumeration
-           incrementLogDepth
-           flip censor (addClauseToStack loc (Requires elseRequires)) (map $ \(Log.Log str logTag) ->
-             Log.Log str $ Log.Nested "else requires" logTag)
-           decrementLogDepth
-        -- add main jmlStack to all the behaviors in elseMethod
-        newElseMethod <- do
-          mainStack <- jmlStack <$> get
-          return $ Method {
-            name      = name elseMethod,
-            behaviors = map (addJMLStackToBehavior mainStack) (behaviors elseMethod)
+      maybeNewElseMethod <- case maybeElse of
+        Nothing -> return Nothing
+        Just (elseRequires,elseMethod) -> do
+          -- add else cond to the main jmlstack
+          do incrementLogEnumeration
+             incrementLogDepth
+             flip censor (addClauseToStack loc (Requires elseRequires)) (map $ \(Log.Log str logTag) ->
+               Log.Log str $ Log.Nested "else requires" logTag)
+             decrementLogDepth
+          -- add main jmlStack to all the behaviors in elseMethod
+          newElseMethod <- do
+            mainStack <- jmlStack <$> get
+            return $ Method {
+              name      = name elseMethod,
+              behaviors = map (addJMLStackToBehavior mainStack) (behaviors elseMethod)
+            }
+          tellNextLog $ Log.ElseBranchBehaviors loc
+                      $ map (\behavior -> (show behavior,ppBehavior behavior))
+                      $ behaviors newElseMethod
+          -- remove the added else cond from the main jmlStack
+          modify $ \jmlState -> JMLState {
+            method    = method jmlState,
+            jmlStack  = originalStack,
+            logHeader = logHeader jmlState
           }
-        tellNextLog $ Log.ElseBranchBehaviors loc
-                    $ map (\behavior -> (show behavior,ppBehavior behavior))
-                    $ behaviors newElseMethod
-        -- remove the added else cond from the main jmlStack
-        modify $ \jmlState -> JMLState {
-          method    = method jmlState,
-          jmlStack  = originalStack,
-          logHeader = logHeader jmlState
-        }
-        return newElseMethod
+          return $ Just newElseMethod
+      ----------
       -- add all behaviors in newIfMethod to main behaviors
       do incrementLogEnumeration
          incrementLogDepth
@@ -265,12 +273,30 @@ addBehavior sy er = do
                         Log.Log str $ Log.Nested "Adding if body behaviors" logTag)
          decrementLogDepth
       -- add all behaviors in newElseMethod to main behaviors
-      do incrementLogEnumeration
-         incrementLogDepth
-         flip censor (mapM_ (addBehaviorToState loc) (behaviors newElseMethod))
-                     (map $ \(Log.Log str logTag) ->
-                        Log.Log str $ Log.Nested "Adding else body behaviors" logTag)
-         decrementLogDepth
+      case maybeNewElseMethod of
+        Nothing -> return ()
+        Just newElseMethod -> do
+          incrementLogEnumeration
+          incrementLogDepth
+          flip censor (mapM_ (addBehaviorToState loc) (behaviors newElseMethod))
+                      (map $ \(Log.Log str logTag) ->
+                         Log.Log str $ Log.Nested "Adding else body behaviors" logTag)
+          decrementLogDepth
+      if | ifBodyHasReturn && elseBodyHasReturn -> return ()
+         | ifBodyHasReturn -> do
+             incrementLogEnumeration
+             incrementLogDepth
+             flip censor (addClauseToStack loc (Requires $ negate ifRequires))
+                         (map $ \(Log.Log str logTag) ->
+                            Log.Log str $ Log.Nested "post if pre-condition" logTag)
+             decrementLogDepth
+         | elseBodyHasReturn -> do
+             incrementLogEnumeration
+             incrementLogDepth
+             flip censor (addClauseToStack loc (Requires $ negate $ maybe undefined fst maybeElse))
+                         (map $ \(Log.Log str logTag) ->
+                            Log.Log str $ Log.Nested "post else pre-condition" logTag)
+             decrementLogDepth
       {-get >>= \s -> throwError $ printf
         "MEOW: %s\n\
         \  1) main method: %s\n\

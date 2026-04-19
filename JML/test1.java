@@ -1586,6 +1586,11 @@ public int boo25(int i){
 /*
 [(MethodHandle,SMethodHandle Int "boo26_2"),(Return,SymInt 5)]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 5;
+  @*/
 public int boo26_2(){
   return boo27(-5);
 }
@@ -1607,6 +1612,16 @@ public int boo26_2(){
           (Just (fromList [(MethodHandle,SMethodHandle Int "boo27"),(FormalParms,SFormalParms ["i"]),(VarBindings,SVarBindings (fromList [("res",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 5}})])),(VarAssignments,SVarAssignments [("res",(SBin (SymInt (-1)) Mul (SymVar Int "i"),Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 5}}))]),(VarName "i",SymVar Int "i"),(VarName "res",SBin (SymInt (-1)) Mul (SymVar Int "i")),(Return,SBin (SymInt (-1)) Mul (SymVar Int "i"))])))
   ]
 */
+/*@ Normal Behavior
+  @   requires i >= 0;
+  @   assignable \nothing;
+  @   ensures \result == i;
+  @ also
+  @ Normal Behavior
+  @   requires i < 0;
+  @   assignable \nothing;
+  @   ensures \result == -1 * i;
+  @*/
 public int boo27(int i){
   if(i >= 0){
     return i;
@@ -1624,6 +1639,11 @@ public int boo27(int i){
 /*
 [(MethodHandle,SMethodHandle Int "boo27_2"),(Return,SymInt 5)]
 */
+/*@ Normal Behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 5;
+  @*/
 public int boo27_2() {
   return boo27(5);
 }
@@ -1648,6 +1668,16 @@ public int boo27_2() {
     (Return,SymInt 5)
   ]
 */
+/*@ normal_behavior
+  @   requires i >= 0;
+  @   assignable \nothing;
+  @   ensures \result == i;
+  @ also
+  @ normal_behavior
+  @   requires i < 0;
+  @   assignable \nothing;
+  @   ensures \result == 5;
+  @*/
 public int boo28(int i){
   int x = 1;
   if(i >= 0){
@@ -1671,6 +1701,11 @@ public int boo28(int i){
     (Actions,SActions [])
   ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 2;
+  @*/
 public int boo282(){
   int x = 1;
   if(x >= 0){
@@ -1695,6 +1730,11 @@ public int boo282(){
     (Return,SymInt 5)
   ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 5;
+  @*/
 public int boo283(){
   int x = 1;
   if(x < 0){
@@ -1711,6 +1751,11 @@ public int boo283(){
 /*
 [(MethodHandle,SMethodHandle Int "boo28_p"),(Return,SymInt 10)]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 10;
+  @*/
 public int boo28_p() {
   return boo28(10);
 }
@@ -1722,6 +1767,11 @@ public int boo28_p() {
 /*
 [(MethodHandle,SMethodHandle Int "boo28_m"),(Return,SymInt 5)]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 5;
+  @*/
 public int boo28_m() {
   return boo28(-10);
 }
@@ -1749,6 +1799,16 @@ public int boo28_m() {
     (Return,SymInt 5)
   ]
 */
+/*@ normal_behavior
+  @   requires i >= 0;
+  @   assignable \nothing;
+  @   ensures \result == i;
+  @ also
+  @ normal_behavior
+  @   requires i < 0;
+  @   assignable \nothing;
+  @   ensures \result == 5;
+  @*/
 public int boo28_2(int i){
   int x = 1;
   if(i >= 0){
@@ -1777,6 +1837,11 @@ public int boo28_2(int i){
     (Actions,SActions [])
   ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 4;
+  @*/
 public int boo28_2_1(){
   int x = 1;
   if(x >= 0){
@@ -1804,6 +1869,16 @@ public int boo28_2_1(){
     (Return,SymInt 5)
   ]
 */
+/*@ normal_behavior
+  @   requires i >= 0;
+  @   assignable \nothing;
+  @   ensures \result == i;
+  @ also
+  @ normal_behavior
+  @   requires i < 0;
+  @   assignable \nothing;
+  @   ensures \result == 5;
+  @*/
 public int boo28_4(int i){
   int x = 1;
   if(i >= 0){
@@ -1832,6 +1907,11 @@ public int boo28_4(int i){
     (Actions,SActions [])
   ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == i;
+  @*/
 public int boo28_4_1(int i){
   int x = 1;
   if(true){
@@ -1863,6 +1943,11 @@ public int boo28_4_1(int i){
     (Actions,SActions [])
   ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 5;
+  @*/
 public int boo28_4_2(int i){
   int x = 1;
   if(false){
@@ -1885,6 +1970,11 @@ public int boo28_4_2(int i){
     (Return,SymInt 10)
   ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 10;
+  @*/
 public int boo28_4_p() {
   return boo28_4(10);
 }
@@ -1899,6 +1989,11 @@ public int boo28_4_p() {
     (Return,SymInt 5)
   ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 5;
+  @*/
 public int boo28_4_m() {
   return boo28_4(-10);
 }
@@ -1920,6 +2015,16 @@ public int boo28_4_m() {
     (Return,SymInt 5)
   ]
 */
+/*@ normal_behavior
+  @   requires i >= 0;
+  @   assignable \nothing;
+  @   ensures \result == i + 1;
+  @ also
+  @ normal_behavior
+  @   requires i < 0;
+  @   assignable \nothing;
+  @   ensures \result == 5;
+  @*/
 public int boo28_5(int i){
   int x = 1;
   if(i >= 0){
@@ -1973,6 +2078,16 @@ public int boo28_5(int i){
     (Return,SymInt 7)
   ]
 */
+/*@ normal_behavior
+  @   requires i >= 0;
+  @   assignable \nothing;
+  @   ensures \result == i + 1;
+  @ also
+  @ normal_behavior
+  @   requires i < 0;
+  @   assignable \nothing;
+  @   ensures \result == 7;
+  @*/
 public static int boo28_6(int i){
   int x = 1;
   if(i >= 0){
@@ -2007,6 +2122,11 @@ public static int boo28_6(int i){
     (Actions,SActions [])
   ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == i + 1;
+  @*/
 public static int boo28_6_2(int i){
   int x = 1;
   if(x >= 0){
@@ -2038,6 +2158,11 @@ public static int boo28_6_2(int i){
     (Actions,SActions [])
   ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 7;
+  @*/
 public static int boo28_6_3(int i){
   int x = 1;
   if(x >= 0){
@@ -2074,6 +2199,11 @@ SymState {
   ], pc = []
 }
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 7;
+  @*/
 public static int boo28_6_4(int i){
   int x = 1;
   if(x < 0){
@@ -2105,6 +2235,11 @@ SymState {
   ], pc = []
 }
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 2;
+  @*/
 public static int boo28_6_5(int i){
   int x = 1;
   if(x < 0){
