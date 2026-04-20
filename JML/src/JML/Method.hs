@@ -90,7 +90,7 @@ instance SymbolicExecutionVisitor MethodProcessor where
       let newClause = NormalBehavior {
             requires = Nothing,
             assignable = [],
-            ensures = extractEnsures sy symExpr
+            ensures = [JMLResult $ symExprToExpr sy symExpr]
           }
       let toReturn = ER_Return newClause
       tellingThenReturning loc toReturn
@@ -112,7 +112,7 @@ instance SymbolicExecutionVisitor MethodProcessor where
       tellNextLog $ Log.Location loc (show tu)
       tellNextLog
         $ Log.Skip loc (show tu) "nothing to do with VarName"
-      let toReturn = ER_VarName_Skipped vn symExpr
+      let toReturn = ER_VarName vn symExpr
       tellingThenReturning loc toReturn
     -----------------------------
     (SYT.Actions,_) -> do
@@ -128,7 +128,7 @@ instance SymbolicExecutionVisitor MethodProcessor where
       tellNextLog $ Log.Location loc (show tu)
       -- SIte SymExpr SymbolicExecution (Maybe SymbolicExecution)
       -- process if
-      (ifRequires,ifMethod) <- do
+      (ifRequires,ifMethod,if_ers) <- do
         tellNextLog $ Log.ProcessIfBody loc
         let ifRequires = symExprToExpr sy cond
         tellNextLog $ Log.IfConditionPreCondition loc (show ifRequires)
@@ -145,7 +145,7 @@ instance SymbolicExecutionVisitor MethodProcessor where
           tellNextNestedLog baseCounter ["if body"] log
         decrementLogDepth
         tellNextLog $ Log.IfBehavior loc (show $ behaviors ifMethod) (map ppBehavior $ behaviors ifMethod)
-        return (ifRequires,ifMethod)
+        return (ifRequires,ifMethod,if_ers)
       -- process else
       maybeElse <- do
         case maybeElseBody of
@@ -172,7 +172,7 @@ instance SymbolicExecutionVisitor MethodProcessor where
               tellNextNestedLog baseCounter ["else body"] log
             decrementLogDepth
             tellNextLog $ Log.ElseBehavior loc (show $ behaviors elseMethod) (map ppBehavior $ behaviors elseMethod)
-            return $ Just (elseRequires,elseMethod)
+            return $ Just (elseRequires,elseMethod,else_ers)
 
       -- does ifBody have Return?
       let ifBodyHasReturn = SY.hasReturn ifBody
@@ -180,9 +180,7 @@ instance SymbolicExecutionVisitor MethodProcessor where
       let elseBodyHasReturn = case maybeElseBody of
             Nothing -> False
             Just elseBody -> SY.hasReturn elseBody
-      --throwError $ printf "MEOW: (%s,%s)" (show ifBodyHasReturn) (show elseBodyHasReturn)
-      return $ ER_IfThenElse (ifRequires,ifMethod) maybeElse
-                             (ifBodyHasReturn,elseBodyHasReturn)
+      return $ ER_IfThenElse (ifRequires,ifMethod,if_ers) maybeElse
       {-
       throwError $ createError_sy (printf
         "MEOW:\n\

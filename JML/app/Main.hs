@@ -250,13 +250,13 @@ printJMLMethod funName withLogs = do
           loc funName
       
       jml :: (Either String [JMLT.ExecutionResult],[JML.Log.Log],JMLT.Method)
-      jml@(eitherr,logs,jmlMethod) = JML.runSE (JML.Internal.se_2_map ses) se
+      jml@(error_ers,logs,jmlMethod) = JML.runSE (JML.Internal.se_2_map ses) se
 
   if withLogs
     then putStrLn $ (JML.PP.Log.ppLogs JML.PP.Log.Console logs ++ "\n")
     else return ()
 
-  case eitherr of
+  case error_ers of
     Right _ -> do
       putStrLn $ JML.PP.ppBehaviors (JMLT.behaviors jmlMethod)
       return jmlMethod

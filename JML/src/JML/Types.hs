@@ -21,18 +21,21 @@ data Expr = JMLVar JMLType String | JMLInt Int | JMLDouble Double | JMLNum Float
           | JMLString String
           | JMLBin Expr Op Expr | JMLNot Expr | JMLOld Expr | Expr `JMLAnd` Expr
           | Expr `JMLEquals` Expr | JMLResult Expr | JMLActions [Expr]
+          | JMLVoid {- this is made to be couples with `JMLResult` -}
           deriving (Show,Eq)
 
 data Behavior =
     NormalBehavior {
       requires :: Maybe Expr,
       assignable :: [String],
+    --vars :: [Expr],
       ensures :: [Expr]
     }
   | ExceptionalBehavior {
       requires :: Maybe Expr,
       signals :: String,
       assignable :: [String],
+    --vars :: [Expr],
       ensures :: [Expr]
     }
   deriving (Show,Eq)
@@ -74,10 +77,12 @@ data ExecutionResult =
   -- a global variable has been reassigned
   -- this results in an entry in `Assignable`, and entry in `ensures`
   | ER_VarName_Global_Reassigned String SYT.SymbolicExecutionValue
-  | ER_VarName_Skipped String SYT.SymbolicExecutionValue
+--  | ER_VarName_VarBinding String SYT.SymbolicExecutionValue
+  | ER_VarName String SYT.SymbolicExecutionValue
   | ER_ReturnException Behavior
   | ER_Return Behavior
   | ER_ReturnVoid
   | ER_Actions Expr
-  | ER_IfThenElse (Expr,Method) (Maybe (Expr,Method)) (Bool,Bool)
+  | ER_IfThenElse (Expr,Method,[ExecutionResult])
+           (Maybe (Expr,Method,[ExecutionResult]))
   deriving (Show,Eq)

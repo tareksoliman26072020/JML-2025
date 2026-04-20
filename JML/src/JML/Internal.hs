@@ -99,7 +99,9 @@ symExprToExpr sy symExpr =
          | otherwise -> JMLVar (toJMLType t) vn
        SYT.SymNum num -> JMLNum num
        SYT.SBin symExpr1 op symExpr2 ->
-         JMLBin (symExprToExpr sy symExpr1) (symBinOpToOp op) (symExprToExpr sy symExpr2)
+         JMLBin (symExprToExpr sy symExpr1)
+                (symBinOpToOp op)
+                (symExprToExpr sy symExpr2)
        SYT.SymString str -> JMLString str
        SYT.SActions symExprs -> JMLActions $ map (symExprToExpr sy) symExprs
        SYT.SymUnknown symExpr _ -> symExprToExpr sy symExpr
@@ -172,11 +174,20 @@ symBinOpToOp symBinOp = case symBinOp of
   SYT.Lt  -> Lt
   _ -> error $ printf "JML.Internal.symBinOpToOp: TODO: %s" (show symBinOp)
 
-emptyNormalBehavior :: Behavior
-emptyNormalBehavior = NormalBehavior {
+hasReturn :: [ExecutionResult] -> Bool
+hasReturn ers = case flip find ers (\case
+  ER_ReturnException _ -> True
+  ER_Return _ -> True
+  ER_ReturnVoid -> True
+  _ -> False) of
+  Just _ -> True
+  Nothing -> False
+
+voidNormalBehavior :: Behavior
+voidNormalBehavior = NormalBehavior {
   requires = Nothing,
   assignable = [],
-  ensures = []
+  ensures = [JMLResult JMLVoid]
 }
 
 addBehavior :: SYT.SymbolicExecution -> ExecutionResult -> JMLMonad ()
@@ -189,7 +200,7 @@ addBehavior sy er = do
       incrementLogDepth *> addBehaviorToState loc behavior <* decrementLogDepth
     ER_ReturnVoid -> do
       incrementLogEnumeration
-      incrementLogDepth *> addBehaviorToState loc emptyNormalBehavior <* decrementLogDepth
+      incrementLogDepth *> addBehaviorToState loc voidNormalBehavior <* decrementLogDepth
     ER_Actions _ -> logSkipping loc
     ER_Return (behavior@NormalBehavior{}) -> do
       incrementLogEnumeration
@@ -204,13 +215,13 @@ addBehavior sy er = do
          incrementLogEnumeration
          incrementLogDepth *> addClauseToStack loc (Ensures ensuresExpr) <* decrementLogDepth
     ER_VarBindings _ -> logSkipping loc
-    ER_VarName_Skipped _ _ -> logSkipping loc
+    ER_VarName _ _ -> logSkipping loc
     ER_VarAssignments _ -> logSkipping loc
     ER_NoGlobalVars -> logSkipping loc
     ER_FormalParms _ -> logSkipping loc
     --
-    ER_IfThenElse (ifRequires,ifMethod) maybeElse
-                  (ifBodyHasReturn,elseBodyHasReturn) -> do
+    ER_IfThenElse (ifRequires,ifMethod,if_ers) maybeElse
+                {-(ifBodyHasReturn,elseBodyHasReturn)-} -> do
       originalStack <- jmlStack <$> get
       ---------- if
       newIfMethod <- do
@@ -240,7 +251,7 @@ addBehavior sy er = do
       ---------- else
       maybeNewElseMethod <- case maybeElse of
         Nothing -> return Nothing
-        Just (elseRequires,elseMethod) -> do
+        Just (elseRequires,elseMethod,else_ers) -> do
           -- add else cond to the main jmlstack
           do incrementLogEnumeration
              incrementLogDepth
@@ -263,7 +274,7 @@ addBehavior sy er = do
             jmlStack  = originalStack,
             logHeader = logHeader jmlState
           }
-          return $ Just newElseMethod
+          return $ Just (newElseMethod,else_ers)
       ----------
       -- add all behaviors in newIfMethod to main behaviors
       do incrementLogEnumeration
@@ -275,18 +286,23 @@ addBehavior sy er = do
       -- add all behaviors in newElseMethod to main behaviors
       case maybeNewElseMethod of
         Nothing -> return ()
-        Just newElseMethod -> do
+        Just (newElseMethod,else_ers) -> do
           incrementLogEnumeration
           incrementLogDepth
           flip censor (mapM_ (addBehaviorToState loc) (behaviors newElseMethod))
                       (map $ \(Log.Log str logTag) ->
                          Log.Log str $ Log.Nested "Adding else body behaviors" logTag)
           decrementLogDepth
+      
+      let ifBodyHasReturn = hasReturn if_ers
+      let elseBodyHasReturn = case maybeNewElseMethod of
+            Nothing -> False
+            Just (_,else_ers) -> hasReturn else_ers
+      
       if | ifBodyHasReturn && elseBodyHasReturn -> return ()
          -- if body has return statement
          --     this means after the if-else statement,
          --     the pre-condition is the negation of `ifRequire`
-         --     TODO: add to the jmlStack all assigned variables in the if body
          | ifBodyHasReturn -> do
              incrementLogEnumeration
              incrementLogDepth
@@ -300,10 +316,26 @@ addBehavior sy er = do
          | elseBodyHasReturn -> do
              incrementLogEnumeration
              incrementLogDepth
-             flip censor (addClauseToStack loc (Requires $ negate $ maybe undefined fst maybeElse))
+             flip censor (addClauseToStack loc (Requires $ negate $ maybe undefined (\(elseRequires,_,_) -> elseRequires) maybeElse))
                          (map $ \(Log.Log str logTag) ->
                             Log.Log str $ Log.Nested "post else pre-condition" logTag)
              decrementLogDepth
+         | not ifBodyHasReturn -> undefined
+      
+      -- TODO: you need to add reassigned VarBindings to the stack
+      --    1) go to Method.hs, return ER_VarName_VarBinding when relevant
+      --    2) in `addBehavior`: use function `addClauseToStack` to add the VarBinding to stack
+      --    3) normal and exceptional behavior has new field called `vars` which keeps track of VarBindings
+      --    4) these registered VarBindings will then be used by `symExprToExpr` to convert `SYT.SymUnknown` to a known Expr in the if and else branches which don't return a statement
+      {-
+      if | not elseBodyHasReturn -> do
+             case maybeNewElseMethod of
+               Nothing -> return ()
+               Just (_,else_ers) -> throwError $ printf
+                 "MEOW in Internal::\n\
+                 \%s" (show else_ers)
+             --addExecutionResultToState
+        -}
       {-get >>= \s -> throwError $ printf
         "MEOW: %s\n\
         \  1) main method: %s\n\
@@ -468,7 +500,4 @@ tellingThenReturning :: String -> ExecutionResult -> JMLMonad ExecutionResult
 tellingThenReturning loc toReturn = do
   tellNextLog $ Log.Return loc (show toReturn)
   return toReturn
-
-extractEnsures :: SYT.SymbolicExecution -> SYT.SymbolicExecutionValue -> [Expr]
-extractEnsures sy symExpr = [JMLResult $ symExprToExpr sy symExpr]
 

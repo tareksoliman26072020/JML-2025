@@ -793,7 +793,10 @@ boo22_i_5_call = Method {
     NormalBehavior {
       requires = Nothing,
       assignable = ["j"],
-      ensures = [JMLVar Int_Type "j" `JMLEquals` JMLInt 9]
+      ensures = [
+        JMLResult JMLVoid,
+        JMLVar Int_Type "j" `JMLEquals` JMLInt 9
+      ]
     }
   ]
 }

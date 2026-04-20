@@ -30,7 +30,11 @@ ppBehavior behavior = case behavior of
      "@   assignable %s;" $ list "\\nothing"
        (intercalate ", ") (assignable behavior)
     ,-- ensures
-     intercalate "\n  " $ map (printf "@   ensures %s;" . ppExpr) (ensures behavior)
+     intercalate "\n  "
+     $ map (printf "@   ensures %s;" . ppExpr)
+     $ filter (\case JMLResult JMLVoid -> False
+                     _ -> True)
+     $ ensures behavior
     ]
 {-
 NormalBehavior {requires = Nothing, assignable = [], ensures = Just (Int 5)}
@@ -52,7 +56,11 @@ NormalBehavior {requires = Nothing, assignable = [], ensures = Just (Int 5)}
      "@   assignable %s;" $ list "\\nothing"
        (intercalate ", ") (assignable behavior)
     ,-- ensures
-     intercalate "\n  " $ map (printf "@   ensures %s;" . ppExpr) (ensures behavior)
+     intercalate "\n  "
+     $ map (printf "@   ensures %s;" . ppExpr)
+     $ filter (\case JMLResult JMLVoid -> False
+                     _ -> True)
+     $ ensures behavior
      {-case ensures behavior of
        Nothing -> ""
        Just expr -> printf
