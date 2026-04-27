@@ -248,7 +248,7 @@ hasSymVar = \case
   SymInt _ -> False
   SymString _ -> False
   SArrayIndexAccess _ _ symExpr -> hasSymVar symExpr
-  SymUnknown symExpr _ -> hasSymVar symExpr
+  SymUnknown (_,symExpr) _ -> hasSymVar symExpr
   symExpr -> error $ "SymbolicExecution.Internal.hasSymVar: " ++ show symExpr
 
 isSymFun :: SymExpr -> Bool
@@ -319,7 +319,7 @@ toSymType2 = \case
   SObjAcc li -> case li of
     [_,"length"] -> Int
     _ -> error $ "TODO1: toSymType2 ==> " ++ show (SObjAcc li)
-  (SymUnknown expr _) -> toSymType2 expr
+  (SymUnknown (_,expr) _) -> toSymType2 expr
   SBin a op b
     | isBooleanOperator op -> Bool
     | otherwise -> pick_known_symType (toSymType2 a,toSymType2 b)
@@ -618,11 +618,11 @@ cast symType symExpr = case (symType,symExpr) of
   ----------
   (UnknownGlobalVarSymType,SymString _) -> symExpr
   ----------
-  (_,SymUnknown expr reasons) ->
+  (_,SymUnknown (vn,expr) reasons) ->
     let t3 = toSymType2 expr
     in if symType `isInstanceOf` t3
          then let newType = pick_known_symType2 [symType,t3]
-              in SymUnknown (cast newType expr) reasons
+              in SymUnknown (vn,cast newType expr) reasons
        else error
          $ printf "TODO1 ~~> cast (%s) (%s)" (show symType) (show symExpr)
   ----------
@@ -697,7 +697,7 @@ cast2 vn newType tu@(symStateKey,symExpr) = case symStateKey of
            | otherwise -> symExpr
          SVarAssignments li -> SVarAssignments $ flip map li $ \(vn2,(expr,coor)) ->
            (vn2,(cast2 vn newType (VarName vn2,expr),coor))
-         SymUnknown expr reasons -> SymUnknown (cast2 vn newType (symStateKey,expr)) reasons 
+         SymUnknown (vn,expr) reasons -> SymUnknown (vn,cast2 vn newType (symStateKey,expr)) reasons 
          SVarBindings _ -> symExpr
          SActions _ -> symExpr
          SymNum _ -> symExpr
@@ -763,7 +763,7 @@ lookupPartialSymExprs vn tu@(symStateKey,symExpr) = case symStateKey of
         lookupPartialSymExprs vn (VarName vn2,symExpr)
         --(lookupPartialSymExprs vn . (,) symStateKey)
       ----------
-      SymUnknown ex _ -> lookupPartialSymExprs vn (symStateKey,ex)
+      SymUnknown (_,ex) _ -> lookupPartialSymExprs vn (symStateKey,ex)
       ----------
       SymNum _ -> []
       ----------
@@ -774,6 +774,8 @@ lookupPartialSymExprs vn tu@(symStateKey,symExpr) = case symStateKey of
       SymString _ -> []
       ----------
       SObjAcc _ -> []
+      ----------
+      SBool _ -> []
       ----------
       SymFun pf innerSymExpr ->
         let x = lookupPartialSymExprs vn (symStateKey,innerSymExpr)
@@ -816,7 +818,7 @@ existsIn vn tu@(symStateKey,symExpr) = (case symStateKey of
     SFormalParms _ -> False
     SBin symExpr1 _ symExpr2 -> any ((vn `existsIn`) . (,) symStateKey) [symExpr1,symExpr2]
     SVarAssignments _ -> False
-    SymUnknown expr _ -> existsIn vn (symStateKey,expr)
+    SymUnknown (_,expr) _ -> existsIn vn (symStateKey,expr)
     SymFun _ expr -> existsIn vn (symStateKey,expr)
     SArrayIndexAccess _ _ _ -> False
     SObjAcc _ -> False
@@ -1025,6 +1027,11 @@ isReassigned vn sy = case find (\(vn2,_) -> vn2 == vn) (getVarAssignments sy) of
   Just _ -> True
   Nothing -> False
 
+isNotAssigned :: String -> SymExpr -> Bool
+isNotAssigned vn symExpr = case symExpr of
+  SymVar _ vn2 -> vn == vn2
+  _ -> False
+
 getGlobalVars :: SymStateEnv -> [String]
 getGlobalVars = maybe [] (\(SGlobalVars li) -> li) . Map.lookup GlobalVars
 
@@ -1160,10 +1167,7 @@ ppSymExpr_no_symType = \case
   SymArray _ _ elems -> printf "[%s]" $ intercalate ", " (map ppSymExpr_no_symType elems)
   SArrayIndexAccess _ arrName arrIndexExpr ->
     printf "%s[%s]" arrName (ppSymExpr_no_symType arrIndexExpr)
-  --SymUnknown (SBin (SymVar Int "low") Sub (SymInt 1)) [
-  --  ([(For,SR {branchStart = 3, branchEnd = 10}),
-  --   (If,SR {branchStart = 5, branchEnd = 8})],6)]
-  SymUnknown symExpr _ -> printf "(Last Known Value: %s)" (ppSymExpr_no_symType symExpr)
+  SymUnknown (_,symExpr) _ -> printf "(Last Known Value: %s)" (ppSymExpr_no_symType symExpr)
   SObjAcc li -> intercalate "." li
   SException Int exceptionType exceptionName -> printf "%s %s" exceptionType exceptionName
   symExpr -> error $ "TODO2: ppSymExpr_no_symType ==> " ++ show symExpr

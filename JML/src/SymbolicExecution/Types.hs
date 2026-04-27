@@ -28,7 +28,7 @@ data SymStateKey = MethodHandle
                  | GlobalVars | FormalParms | VarBindings | VarAssignments
                  | VarName String | ScopeRange CFGT.ScopeRange | LoopFailure
                  | LoopConditions CFGT.ScopeRange | Continue | Break
-                 | Return | Exception | Actions
+                 | Exception | Actions | Return
                  deriving (Eq,Ord,Show)
 
 type SymStateEnv = Map.Map SymStateKey SymExpr
@@ -166,7 +166,7 @@ data SymExpr =
   | SActions [SymExpr]
   | SArrayIndexAccess SymType String SymExpr
   | SymArray (Maybe SymType) (Maybe SymExpr) [SymExpr]
-  | SymUnknown SymExpr [SymReason]
+  | SymUnknown (String,SymExpr) [SymReason]
   | SFormalParms [String]
   | SGlobalVars [String]
   | SymReturnVoid

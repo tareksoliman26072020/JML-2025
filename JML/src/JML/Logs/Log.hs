@@ -9,6 +9,7 @@ data Log = Log String LogTag
 
 data LogTag =
     HorizontalLine String
+  | LogTag String String String
   | Nested String LogTag
   | NextSymExpr String String String
   | Location String String
@@ -16,16 +17,21 @@ data LogTag =
   | AddBehaviorToState String String
   | AddClauseToState String String
   | Return String String
-  | ReportTheState String String String String String
+  | ReportTheState String String [(String,[String])] String String String String String
+  | ReportTheStack String String [(String,[String])]
+  | IfInnerJMLState String String String [(String,[String])] String String String String String
+  | ElseInnerJMLState String String String [(String,[String])] String String String String String
   | ProcessIfBody String
   | ProcessElseBody String
   | NoElseBody String
   | IfConditionPreCondition String String
   | ElseConditionPreCondition String String
+  | Behavior String String String
   | IfBehavior String String [String]
   | ElseBehavior String String [String]
   | IfBranchBehaviors String [(String,String)]
   | ElseBranchBehaviors String [(String,String)]
+  | ToBeProcessed String String
   | Meow String String
   deriving (Show,Eq)
 
@@ -34,6 +40,9 @@ data LogTag =
 ppLogTag :: LogTag -> String
 ppLogTag = \case
   Meow str1 str2          -> printf "%s: %s %s" "red" str1 str2
+  LogTag loc tag contents -> printf
+    "%s in %s\n\
+    \%s" tag loc contents
   NextSymExpr loc k v -> printf
     "%s: %s\n\
     \1) key = %s\n\
@@ -47,6 +56,9 @@ ppLogTag = \case
   Return loc contents   -> printf
     "%s in %s\n\
     \  %s: %s" "Return" loc "Contents" contents
+  ToBeProcessed loc contents -> printf
+    "%s in %s\n\
+    \  %s: %s" "To Be Processed" loc "Contents" contents
   ProcessIfBody loc -> printf
     "%s in %s" "Process If Body" loc
   ProcessElseBody loc -> printf
@@ -59,6 +71,15 @@ ppLogTag = \case
   ElseConditionPreCondition loc contents -> printf
     "%s in %s\n\
     \  %s: %s" "Else Condition PreCondition" loc "Expr" contents
+  Behavior loc contents pp -> printf
+    "%s in %s\n\
+    \  %s: %s\n\
+    \  %s:\n\
+    \    %s"
+    "Behavior" loc
+    "Contents" contents
+    "Pretty Printed"
+    (concatMap (\case '\n' -> "\n  "; ch -> [ch]) pp)
   IfBehavior loc contents ppContents -> printf
     "%s in %s\n\
     \  %s: %s\n\
@@ -101,8 +122,11 @@ ppLogTag = \case
          "behavior" (show num) behavior
          "Pretty Printed" (concatMap (\case '\n' -> "\n    "; ch -> [ch]) pp))
      $ zip [1 :: Int ..] behaviors)
-  ReportTheState loc method jmlStack logHeader pp -> printf
+  ReportTheState loc method jmlStack logHeader formals locals globals pp -> printf
     "%s in %s\n\
+    \  %s: %s\n\
+    \  %s: %s\n\
+    \  %s: %s\n\
     \  %s: %s\n\
     \  %s: %s\n\
     \  %s: %s\n\
@@ -110,8 +134,73 @@ ppLogTag = \case
     \    %s"
     "Report The State" loc
     "method" method
-    "jmlStack" jmlStack
+    "jmlStack"
+    (callReportTheState jmlStack)
+    {-(concatMap (\ch -> if
+       ch == '\n' then "\n  "
+       else [ch])
+     $ dropWhile (/= '\n')
+     $ ppLogTag $ ReportTheStack "" "" jmlStack)-}
     "logHeader" logHeader
+    "formals" formals
+    "locals" locals
+    "globals" globals
+    "Pretty Printed" (concatMap (\case '\n' -> "\n    "; ch -> [ch]) pp)
+  ReportTheStack loc tag li -> (printf "%s in %s\n" tag loc :: String) ++ (printf
+    $ intercalate "\n----------\n"
+    $ map (\(counter,(cond,vals)) -> printf
+        "  %s %s\n\
+        \  %s %s"
+       -- "stack before creating new behaviors" loc
+        (printf "%d.%d)" counter (1::Int) :: String) cond
+        (printf "%d.%d" counter (2::Int) :: String)
+        (intercalate ("\n" ++ replicate 6 ' ')
+         $ map (\(counter2,val) -> printf "%s %s" (printf "%d)" counter2 :: String) val)
+         $ zip [1::Int ..] vals))
+    $ zip [1::Int .. length li] li)
+  IfInnerJMLState loc err method jmlStack logHeader formals locals globals pp -> printf
+    "%s in %s\n\
+    \  %s: %s\n\ 
+    \  %s: %s\n\
+    \  %s:\
+    \    %s\n\
+    \  %s: %s\n\
+    \  %s: %s\n\
+    \  %s: %s\n\
+    \  %s: %s\n\
+    \  %s:\n\
+    \    %s"
+    "Report If Inner State" loc 
+    "error or ExecutionResults" err
+    "method" method
+    "jmlStack"
+    (callReportTheState jmlStack)
+    "logHeader" logHeader
+    "formals" formals
+    "locals" locals
+    "globals" globals
+    "Pretty Printed" (concatMap (\case '\n' -> "\n    "; ch -> [ch]) pp)
+  ElseInnerJMLState loc err method jmlStack logHeader formals locals globals pp -> printf
+    "%s in %s\n\
+    \  %s: %s\n\ 
+    \  %s: %s\n\
+    \  %s:\
+    \    %s\n\
+    \  %s: %s\n\
+    \  %s: %s\n\
+    \  %s: %s\n\
+    \  %s: %s\n\
+    \  %s:\n\
+    \    %s"
+    "Report Else Inner State" loc 
+    "error or ExecutionResults" err
+    "method" method
+    "jmlStack"
+    (callReportTheState jmlStack)
+    "logHeader" logHeader
+    "formals" formals
+    "locals" locals
+    "globals" globals
     "Pretty Printed" (concatMap (\case '\n' -> "\n    "; ch -> [ch]) pp)
   Skip loc contents thing -> printf
     "%s in %s\n\
@@ -131,6 +220,13 @@ ppLogTag = \case
     "Adding clause to state" loc
     "Contents" contents
   log -> error $ "SymbolicExecution.Logs.Log ==> TODO: " ++ show log
+  where
+  callReportTheState jmlStack =
+   concatMap (\ch -> if
+     ch == '\n' then "\n  "
+     else [ch])
+   $ dropWhile (/= '\n')
+   $ ppLogTag $ ReportTheStack "" "" jmlStack
 
 data Header = Header {
     logScopeDepth :: Int,

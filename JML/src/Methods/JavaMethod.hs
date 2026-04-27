@@ -57,6 +57,9 @@ javaMethodInputs = [
   ("boo28_6_4",boo28_6_4),
   ("boo28_6_5",boo28_6_5),
   ("boo28_6_6",boo28_6_6),
+  ("boo28_6_6_2",boo28_6_6_2),
+  ("boo28_6_6_3",boo28_6_6_3),
+  ("boo28_6_6_4",boo28_6_6_4),
   ("boo28_6_7",boo28_6_7),
   ("boo28_6_p",boo28_6_p),
   ("boo29",boo29),
@@ -720,6 +723,46 @@ boo28_6_6 = "public static int boo28_6_6(int i){\n\
             \  }\n\
             \  return x;\n\
             \}"
+
+boo28_6_6_2 :: String
+boo28_6_6_2 = "public static int boo28_6_6_2(int i){\n\
+              \  int x = 1;\n\
+              \  if(i >= 0){\n\
+              \    x = 0;\n\
+              \  }\n\
+              \  else {\n\
+              \    x++;\n\
+              \  }\n\
+              \  return i+x;\n\
+              \}"
+
+boo28_6_6_3 :: String
+boo28_6_6_3 = "public static int boo28_6_6_3(int i){\n\
+              \  int x = 1;\n\
+              \  if(i >= 0){\n\
+              \    x = 0;\n\
+              \    y = true;\n\
+              \  }\n\
+              \  else {\n\
+              \    x++;\n\
+              \    y = false;\n\
+              \  }\n\
+              \  return i+x;\n\
+              \}"
+
+boo28_6_6_4 = "public static int boo28_6_6_4(int i){\n\
+              \  int x = 1;\n\
+              \  if(i >= 0){\n\
+              \    int y = 0;\n\
+              \    y++;\n\
+              \    return i+y;\n\
+              \  }\n\
+              \  else {\n\
+              \    int z = 9;\n\
+              \    x++;\n\
+              \  }\n\
+              \  return x;\n\
+              \}"
 
 boo28_6_7 :: String
 boo28_6_7 = "public static int boo28_6_7(int i){\n\

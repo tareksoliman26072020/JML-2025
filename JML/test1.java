@@ -253,7 +253,7 @@ public double boo33_4(){
   @   requires true;
   @   assignable z;
   @   ensures \result == 1.1;
-  @   ensures z == \old(t);
+  @   ensures z == t;
   @*/
 public double boo33_5(String str){
   double x = 1;
@@ -2307,7 +2307,52 @@ public static int boo28_6_6(int i){
   return x;
 }
 
-//TODO
+////////////////////////////////////////
+
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle Int "boo28_6_6_2"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["i"]),
+    (VarBindings,SVarBindings (fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 6}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 6}})),
+        ("x",(SymInt 0,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 5}})),
+        ("x",(SymInt 2,Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 5}}))]),
+    (VarName "i",SymVar Int "i"),
+    (VarName "x",SymUnknown ("x",SymInt 1) [([(If,SR {branchStart = 2, branchEnd = 5})],3),([(If,SR {branchStart = 2, branchEnd = 5})],4)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 5}),
+     SIte (SBin (SymVar Int "i") Ge (SymInt 0))
+          (fromList [
+              (MethodHandle,SMethodHandle Int "boo28_6_6_2"),
+              (FormalParms,SFormalParms ["i"]),
+              (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 6}})])),
+              (VarAssignments,SVarAssignments [("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 6}})),("x",(SymInt 0,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 5}}))]),
+              (VarName "i",SymVar Int "i"),
+              (VarName "x",SymInt 0)])
+          (Just (fromList [
+              (MethodHandle,SMethodHandle Int "boo28_6_6_2"),
+              (FormalParms,SFormalParms ["i"]),
+              (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 6}})])),
+              (VarAssignments,SVarAssignments [("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 6}})),("x",(SymInt 2,Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 5}}))]),
+              (VarName "i",SymVar Int "i"),
+              (VarName "x",SymInt 2)]))),
+    (Return,SBin (SymVar Int "i") Add (SymUnknown ("x",SymInt 1) [([(If,SR {branchStart = 2, branchEnd = 5})],3),([(If,SR {branchStart = 2, branchEnd = 5})],4)]))
+  ]
+*/
+/*@ normal_behavior
+  @   requires i >= 0;
+  @   assignable \nothing;
+  @   ensures \result == i + 0;
+  @ also
+  @ normal_behavior
+  @   requires i < 0;
+  @   assignable \nothing;
+  @   ensures \result == i + 2;
+  @*/
 public static int boo28_6_6_2(int i){
   int x = 1;
   if(i >= 0){
@@ -2317,6 +2362,140 @@ public static int boo28_6_6_2(int i){
     x++;
   }
   return i+x;
+}
+
+////////////////////////////////////////
+
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle Int "boo28_6_6_3"),
+    (GlobalVars,SGlobalVars ["y"]),
+    (FormalParms,SFormalParms ["i"]),
+    (VarBindings,SVarBindings (fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),
+        ("x",(SymInt 0,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 7}})),
+        ("y",(SBool True,Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 7}})),
+        ("x",(SymInt 2,Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 2, branchEnd = 7}})),
+        ("y",(SBool False,Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 2, branchEnd = 7}}))]),
+    (VarName "i",SymVar Int "i"),
+    (VarName "x",SymUnknown ("x",SymInt 1) [
+        ([(If,SR {branchStart = 2, branchEnd = 7})],3),
+        ([(If,SR {branchStart = 2, branchEnd = 7})],5)]),
+    (VarName "y",SymUnknown ("y",SymVar Bool "y") [
+        ([(If,SR {branchStart = 2, branchEnd = 7})],4),
+        ([(If,SR {branchStart = 2, branchEnd = 7})],6)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 7}),
+     SIte (SBin (SymVar Int "i") Ge (SymInt 0))
+          (fromList [
+              (MethodHandle,SMethodHandle Int "boo28_6_6_3"),
+              (GlobalVars,SGlobalVars ["y"]),
+              (FormalParms,SFormalParms ["i"]),
+              (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
+              (VarAssignments,SVarAssignments [("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),("x",(SymInt 0,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 7}})),("y",(SBool True,Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 7}}))]),
+              (VarName "i",SymVar Int "i"),
+              (VarName "x",SymInt 0),
+              (VarName "y",SBool True)])
+          (Just (fromList [
+              (MethodHandle,SMethodHandle Int "boo28_6_6_3"),
+              (GlobalVars,SGlobalVars ["y"]),
+              (FormalParms,SFormalParms ["i"]),
+              (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
+              (VarAssignments,SVarAssignments [("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),("x",(SymInt 2,Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 2, branchEnd = 7}})),("y",(SBool False,Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 2, branchEnd = 7}}))]),
+              (VarName "i",SymVar Int "i"),
+              (VarName "x",SymInt 2),
+              (VarName "y",SBool False)]))),
+    (Return,SBin (SymVar Int "i") Add (SymUnknown ("x",SymInt 1) [([(If,SR {branchStart = 2, branchEnd = 7})],3),([(If,SR {branchStart = 2, branchEnd = 7})],5)]))
+  ]
+*/
+/*@ normal_behavior
+  @   requires i >= 0;
+  @   assignable y;
+  @   ensures \result == i + 0;
+  @   ensures y == true;
+  @ also
+  @ normal_behavior
+  @   requires i < 0;
+  @   assignable y;
+  @   ensures \result == i + 2;
+  @   ensures y == false;
+  @*/
+public static int boo28_6_6_3(int i){
+  int x = 1;
+  if(i >= 0){
+    x = 0;
+    y = true;
+  }
+  else {
+    x++;
+    y = false;
+  }
+  return i+x;
+}
+
+////////////////////////////////////////
+
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle Int "boo28_6_6_4"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["i"]),
+    (VarBindings,SVarBindings (fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+        ("x",(SymInt 2,Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 2, branchEnd = 8}}))]),
+    (VarName "i",SymVar Int "i"),
+    (VarName "x",SymUnknown ("x",SymInt 1) [([(If,SR {branchStart = 2, branchEnd = 8})],7)]),
+    (ScopeRange (SR {branchStart = 2, branchEnd = 8}),
+     SIte (SBin (SymVar Int "i") Ge (SymInt 0))
+          (fromList [
+              (MethodHandle,SMethodHandle Int "boo28_6_6_4"),
+              (FormalParms,SFormalParms ["i"]),
+              (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("y",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 8}})])),
+              (VarAssignments,SVarAssignments [("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),("y",(SymInt 0,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 8}})),("y",(SymInt 1,Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 8}}))]),
+              (VarName "i",SymVar Int "i"),
+              (VarName "x",SymInt 1),
+              (VarName "y",SymInt 1),
+              (Return,SBin (SymVar Int "i") Add (SymInt 1))])
+          (Just (fromList [
+              (MethodHandle,SMethodHandle Int "boo28_6_6_4"),
+              (FormalParms,SFormalParms ["i"]),
+              (VarBindings,SVarBindings (fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("z",Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 2, branchEnd = 8}})])),
+              (VarAssignments,SVarAssignments [("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),("z",(SymInt 9,Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 2, branchEnd = 8}})),("x",(SymInt 2,Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 2, branchEnd = 8}}))]),
+              (VarName "i",SymVar Int "i"),
+              (VarName "x",SymInt 2),
+              (VarName "z",SymInt 9)]))),
+    (Return,SymUnknown ("x",SymInt 1) [([(If,SR {branchStart = 2, branchEnd = 8})],7)])
+  ]
+*/
+/*@ normal_behavior
+  @   requires i >= 0;
+  @   assignable \nothing;
+  @   ensures \result == i + 1;
+  @ also
+  @ normal_behavior
+  @   requires i < 0;
+  @   assignable \nothing;
+  @   ensures \result == 2;
+  @*/
+public static int boo28_6_6_4(int i){
+  int x = 1;
+  if(i >= 0){
+    int y = 0;
+    y++;
+    return i+y;
+  }
+  else {
+    int z = 9;
+    x++;
+  }
+  return x;
 }
 
 ////////////////////////////////////////
@@ -3481,25 +3660,6 @@ public int ifFun5Call2() {
 
 //DONE
 //JavaMethod
-/*
-SymState {
-  env = fromList [
-    (MethodName "ifFun6",SMethodType String),
-    (GlobalVars,SGlobalVars ["y","m","s","c"]),
-    (FormalParms,SFormalParms ["n"]),
-    (VarAssignments,SVarAssignments [
-        ("m",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 4}}),
-        ("y",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 4}}),
-        ("s",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 6}})]),
-    (VarName "c",SymVar String "c"),
-    (VarName "m",SymUnknown (Int,"m",Nothing) [([(If,SR {branchStart = 1, branchEnd = 4})],2)]),
-    (VarName "n",SymVar Int "n"),
-    (VarName "s",SymString "something"),
-    (VarName "y",SymUnknown (UnknownNumSymType,"y",Just (SymVar UnknownNumSymType "y")) [([(If,SR {branchStart = 1, branchEnd = 4})],3)]),
-    (ScopeRange (SR {branchStart = 1, branchEnd = 4}),SIte (SBin (SymVar SYT.UnknownNumSymType "y") SYT.Ge (SymNum 0.0)) (SymState {env = Map.fromList [(MethodName "ifFun6",SMethodType SYT.String),(GlobalVars,SGlobalVars ["y","m"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("m",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 4}}),("y",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 4}})]),(VarName "m",SBin (SymVar SYT.Int "m") SYT.Add (SymVar SYT.Int "n")),(VarName "n",SymVar SYT.Int "n"),(VarName "y",SBin (SymNum (-1.0)) SYT.Mul (SymVar SYT.UnknownNumSymType "y"))], pc = []}) Nothing),
-    (Return,SymVar SYT.String "c")
-  ], pc = []}
-*/
 /*
 SymState {
   env = fromList [

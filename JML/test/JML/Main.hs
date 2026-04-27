@@ -8,6 +8,7 @@ import Methods.JavaMethod
 import Methods.Executions
 
 import JML.Method (runSE)
+import JML.Types (method)
 
 import qualified TargetState as Correct (target)
 
@@ -17,7 +18,8 @@ javaMethodTests :: TestTree
 javaMethodTests =
   testGroup "All tests" (do
     (name, symbolicExecution) <- getSymbolicExecutions
-    let jml@(_,logs,jmlMethod) = runSE symbolicExecutions symbolicExecution
+    let jml@(_,logs,jmlState) = runSE symbolicExecutions symbolicExecution
+        jmlMethod = method jmlState
     return $ testCase (printf "Testing %s" (yellow name)) $
       assertBool (printf "\n\n%s\n\n" (show jmlMethod)) (jmlMethod == Correct.target name))
 

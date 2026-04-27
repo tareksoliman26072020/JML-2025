@@ -83,6 +83,10 @@ ppExpr expr = case expr of
     (_,JMLBin _ _ _) -> printf "%s %s (%s)" (ppExpr expr1) (ppOp op) (ppExpr expr2)
     _ -> printf "%s %s %s" (ppExpr expr1) (ppOp op) (ppExpr expr2)
   JMLString str -> str
+  JMLVarUnknown _ str -> "JMLVarUnknown " ++ str
+  JMLBool b
+    | b -> "true"
+    | not b -> "false"
   _ -> error $ "JML.PrettyPrint.ppExpr ==> TODO: " ++ show expr
 
 ppOp :: Op -> String
@@ -97,6 +101,6 @@ ppOp op = case op of
   _ -> error $ printf "JML.PrettyPrint.ppOp: TODO: %s" (show op)
 
 ppBehaviors :: [Behavior] -> String
-ppBehaviors behaviors =
+ppBehaviors behaviors = 
   let res = intercalate "\n  @ also\n  " $ map ppBehavior behaviors
   in "/*" ++ res ++ "\n  @*/"

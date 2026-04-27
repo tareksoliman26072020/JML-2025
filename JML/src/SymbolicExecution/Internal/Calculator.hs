@@ -569,9 +569,9 @@ numericCalculator2 op = \case
   (a@(SException _ _ _),b) -> a
   (a,b@(SException _ _ _)) -> b
 ----------
-  (a@(SymUnknown expr _),b) ->
+  (a@(SymUnknown (_,expr) _),b) ->
     SBin a op (cast (toSymType2 expr) b)
-  (a,b@(SymUnknown expr _)) ->
+  (a,b@(SymUnknown (_,expr) _)) ->
     SBin (cast (toSymType2 expr) a) op b
 ----------
   (a@(SymFun _ symExpr1),b@(SymFun _ symExpr2)) ->

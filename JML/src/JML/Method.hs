@@ -1,4 +1,4 @@
-{-# Language LambdaCase #-}
+{-# Language LambdaCase, MultiWayIf #-}
 module JML.Method where
 
 import Prelude hiding (negate)
@@ -6,12 +6,13 @@ import Visitors.API
 import JML.Types
 import JML.Internal
 import qualified JML.Logs.Log as Log
-import JML.PrettyPrint (ppBehavior)
+import JML.PrettyPrint (ppBehavior, ppBehaviors)
 import qualified SymbolicExecution.Types as SYT (
   SymStateKey(..), SymExpr(..),
   SymbolicExecution, SymbolicExecutionKey, SymbolicExecutionValue)
 import qualified SymbolicExecution.Internal.Internal as SY (
-  getFunName, isGlobalVariable2, hasReturn)
+  getFunName, isGlobalVariable2, hasReturn, isLocalVar, hasFormalParameter,
+  isNotAssigned)
 import qualified Data.Map as Map
 
 import Text.Printf
@@ -40,7 +41,7 @@ instance SymbolicExecutionVisitor MethodProcessor where
       tellNextLog $ Log.Location loc (show tu)
       tellNextLog
         $ Log.Skip loc (show tu) "no global vars were mentioned"
-      let toReturn = ER_NoGlobalVars
+      let toReturn = ER_GlobalVars globalVars
       tellingThenReturning loc toReturn
     -----------------------------
     (SYT.FormalParms,SYT.SFormalParms formalParms) -> do
@@ -75,77 +76,85 @@ instance SymbolicExecutionVisitor MethodProcessor where
     (SYT.Return,SYT.SException exceptionType exceptionName exceptionMessage) -> do
       let loc = globalLoc ++ ".visitSymExpr.Return Exception"
       tellNextLog $ Log.Location loc (show tu)
-      let newClause = ExceptionalBehavior {
-            requires = Nothing,
-            signals = exceptionName,
-            assignable = [],
-            ensures = []
-          }
-      let toReturn = ER_ReturnException newClause
+      let toReturn = ER_ReturnException exceptionName
       tellingThenReturning loc toReturn
     -----------------------------
     (SYT.Return,symExpr) -> do
       let loc = globalLoc ++ ".visitSymExpr.Return " ++ show symExpr
       tellNextLog $ Log.Location loc (show tu)
-      let newClause = NormalBehavior {
-            requires = Nothing,
-            assignable = [],
-            ensures = [JMLResult $ symExprToExpr sy symExpr]
-          }
-      let toReturn = ER_Return newClause
+      let toReturn = ER_Return symExpr
       tellingThenReturning loc toReturn
     -----------------------------
     -- a global variable `vn` has been re-assigned
     -- this denotes `assignable` in JML
     (SYT.VarName vn,symExpr)
       | SY.isGlobalVariable2 vn sy &&
-        (case symExpr of
-           SYT.SymVar _ vn2 -> vn2 /= vn
-           _ -> True) -> do
+        not (SY.isNotAssigned vn symExpr) -> do
           let loc = globalLoc ++ ".visitSymExpr.VarName (1)"
           tellNextLog $ Log.Location loc (show tu)
-          let toReturn = ER_VarName_Global_Reassigned vn symExpr
+          let toReturn = ER_VarName_Global_Reassigned vn symExpr Nothing
+          tellingThenReturning loc toReturn
+    -----------------------------
+    -- a local variable `vn` has been re-assigned
+    -- this denotes `vars` in JML
+    (SYT.VarName vn,symExpr)
+      | (SY.isLocalVar vn sy || SY.hasFormalParameter vn sy)
+        && not (SY.isNotAssigned vn symExpr) -> do
+          let loc = globalLoc ++ ".visitSymExpr.VarName (2)"
+          tellNextLog $ Log.Location loc (show tu)
+          let toReturn = ER_VarName_VarBinding vn symExpr Nothing
           tellingThenReturning loc toReturn
     -----------------------------
     (SYT.VarName vn,symExpr) -> do
-      let loc = globalLoc ++ ".visitSymExpr.VarName (2)"
+      let loc = globalLoc ++ ".visitSymExpr.VarName (3)"
       tellNextLog $ Log.Location loc (show tu)
       tellNextLog
         $ Log.Skip loc (show tu) "nothing to do with VarName"
       let toReturn = ER_VarName vn symExpr
       tellingThenReturning loc toReturn
     -----------------------------
-    (SYT.Actions,_) -> do
+    (SYT.Actions,SYT.SActions li) -> do
       let loc = globalLoc ++ ".visitSymExpr.Actions"
       tellNextLog $ Log.Location loc (show tu)
-      tellNextLog
-        $ Log.Skip loc (show tu) "I/O operation"
-      let toReturn = ER_Actions $ symExprToExpr sy value
-      tellingThenReturning loc toReturn
+      if | null li -> do
+             tellNextLog $ Log.Skip loc (show tu) "no actions"
+             tellingThenReturning loc ER_Void
+         | otherwise -> do
+             let toReturn = ER_Actions $ symExprToExpr sy value
+             tellingThenReturning loc toReturn
     -----------------------------
-    (SYT.ScopeRange _,SYT.SIte cond ifBody maybeElseBody) -> do
+    (SYT.ScopeRange scopeRange,SYT.SIte cond ifBody maybeElseBody) -> do
       let loc = globalLoc ++ ".visitSymExpr.SIte"
       tellNextLog $ Log.Location loc (show tu)
       -- SIte SymExpr SymbolicExecution (Maybe SymbolicExecution)
       -- process if
-      (ifRequires,ifMethod,if_ers) <- do
+      (ifRequires,ifJMLState,if_ers) <- do
         tellNextLog $ Log.ProcessIfBody loc
         let ifRequires = symExprToExpr sy cond
         tellNextLog $ Log.IfConditionPreCondition loc (show ifRequires)
         incrementLogEnumeration >> incrementLogDepth
-        sys <- ask
-        let (if_error_er,ifLogs,ifMethod) = runSE sys ifBody
+        
+        res@(if_error_er,ifLogs,ifJMLState) <- do
+          sys <- ask
+          return $ runSE sys ifBody
+        
         -- is there an error
         let if_ers = case if_error_er of
               Right if_ers -> if_ers
               Left ifError -> createError_sy ("TODO1: " ++ ifError) loc key value
+        
         -- if logs
         flip mapM_ ifLogs $ \log -> do
           Log.Header _ baseCounter <- logHeader <$> get
           tellNextNestedLog baseCounter ["if body"] log
         decrementLogDepth
-        tellNextLog $ Log.IfBehavior loc (show $ behaviors ifMethod) (map ppBehavior $ behaviors ifMethod)
-        return (ifRequires,ifMethod,if_ers)
+        
+        tellNextLog $ Log.IfInnerJMLState loc (show if_error_er)
+          (show $ method ifJMLState) (map (\(Requires one two) -> (show one,map show two)) $ jmlStack ifJMLState) (show $ logHeader ifJMLState)
+          (show $ formalParms ifJMLState) (show $ localVars ifJMLState) (show $ globalVars ifJMLState)
+          (ppBehaviors $ behaviors $ method ifJMLState)
+        
+        return (ifRequires,ifJMLState,if_ers)
       -- process else
       maybeElse <- do
         case maybeElseBody of
@@ -160,8 +169,11 @@ instance SymbolicExecutionVisitor MethodProcessor where
             let elseRequires = negate ifRequires
             tellNextLog $ Log.ElseConditionPreCondition loc (show elseRequires)
             incrementLogEnumeration >> incrementLogDepth
-            sys <- ask
-            let (else_error_er,elseLogs,elseMethod) = runSE sys elseBody
+            
+            (else_error_er,elseLogs,elseJMLState) <- do
+              sys <- ask
+              return $ runSE sys elseBody
+            
             -- is there an error
             let else_ers = case else_error_er of
                   Right else_ers -> else_ers
@@ -171,26 +183,14 @@ instance SymbolicExecutionVisitor MethodProcessor where
               Log.Header _ baseCounter <- logHeader <$> get
               tellNextNestedLog baseCounter ["else body"] log
             decrementLogDepth
-            tellNextLog $ Log.ElseBehavior loc (show $ behaviors elseMethod) (map ppBehavior $ behaviors elseMethod)
-            return $ Just (elseRequires,elseMethod,else_ers)
+            
+            tellNextLog $ Log.ElseInnerJMLState loc (show else_error_er)
+              (show $ method ifJMLState) (map (\(Requires one two) -> (show one,map show two)) $ jmlStack ifJMLState) (show $ logHeader ifJMLState)
+              (show $ formalParms ifJMLState) (show $ localVars ifJMLState) (show $ globalVars ifJMLState)
+              (ppBehaviors $ behaviors $ method ifJMLState)
+            return $ Just (elseRequires,elseJMLState,else_ers)
 
-      -- does ifBody have Return?
-      let ifBodyHasReturn = SY.hasReturn ifBody
-      -- does elseBody have Return?
-      let elseBodyHasReturn = case maybeElseBody of
-            Nothing -> False
-            Just elseBody -> SY.hasReturn elseBody
-      return $ ER_IfThenElse (ifRequires,ifMethod,if_ers) maybeElse
-      {-
-      throwError $ createError_sy (printf
-        "MEOW:\n\
-        \  ifRequires: %s\n\
-        \  ifMethod: %s\n\
-        \  elseRequires: %s\n\
-        \  elseMethod: %s"
-        (show ifRequires) (show ifMethod)
-        (show elseRequires) (show elseMethod)) loc key value
-        -}
+      return $ ER_IfThenElse scopeRange (ifRequires,ifJMLState,if_ers) maybeElse
     -----------------------------
     _ ->
       let loc = globalLoc ++ ".visitSymExpr"
@@ -200,7 +200,7 @@ instance SymbolicExecutionVisitor MethodProcessor where
 -----------------------------
 -----------------------------
 
-runSE :: Map.Map String SYT.SymbolicExecution -> SYT.SymbolicExecution -> (Either String [ExecutionResult],[Log.Log],Method)
+runSE :: Map.Map String SYT.SymbolicExecution -> SYT.SymbolicExecution -> (Either String [ExecutionResult],[Log.Log],JMLState)
 runSE sys sy =
   let loc = globalLoc ++ ".runSE"
       runner :: JMLMonad [ExecutionResult]
@@ -227,8 +227,11 @@ runSE sys sy =
           name = SY.getFunName sy,
           behaviors = []
         },
-        jmlStack = [],
-        logHeader = Log.Header 1 [0]
+        jmlStack = [Requires (Nothing,Nothing) []],
+        logHeader = Log.Header 1 [0],
+        formalParms = [],
+        localVars = [],
+        globalVars = []
       }
 
       run_e :: ReaderT (Map.Map String SYT.SymbolicExecution) (WriterT [Log.Log] (State JMLState)) (Either String [ExecutionResult])
@@ -242,8 +245,37 @@ runSE sys sy =
 
       run_s :: ((Either String [ExecutionResult],[Log.Log]),JMLState)
       run_s@((er,logs),s) = runState run_w initialJMLState
+      {-
+      info :: ([String],[String],[String])
+      info@(formals,locals,globals) = (formalParms s,localVars s,globalVars s)
+      
+      -- sometimes the behaviors mentions vars which are not visible in the main scope
+      -- filter them out
+      res :: Method
+      res = Method {
+        name = name $ method s,
+        behaviors = flip map (behaviors $ method s) $ \behavior -> case behavior of
+          NormalBehavior{} -> NormalBehavior {
+            scopeRange = scopeRange behavior,
+            requires = requires behavior,
+            assignable = assignable behavior,
+            vars = flip filter (vars behavior) $ \case
+                     JMLVar _ vn `JMLEquals` _ -> vn `elem` (formals ++ locals ++ globals),
+            ensures = ensures behavior
+          }
+          ExceptionalBehavior{} -> ExceptionalBehavior {
+            scopeRange = scopeRange behavior,
+            requires = requires behavior,
+            signals = signals behavior,
+            assignable = assignable behavior,
+            vars = flip filter (vars behavior) $ \case
+                     JMLVar _ vn `JMLEquals` _ -> vn `elem` (formals ++ locals ++ globals),
+            ensures = ensures behavior
+          }
+      }
+      -}
 
-  in (er,logs,method s)
+  in (er,logs,s)
   where
   visitingSymExpr :: SYT.SymbolicExecution -> (SYT.SymbolicExecutionKey,SYT.SymbolicExecutionValue) -> JMLMonad ExecutionResult
   visitingSymExpr sy tu =

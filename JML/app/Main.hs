@@ -249,8 +249,10 @@ printJMLMethod funName withLogs = do
           \%s not found"
           loc funName
       
-      jml :: (Either String [JMLT.ExecutionResult],[JML.Log.Log],JMLT.Method)
-      jml@(error_ers,logs,jmlMethod) = JML.runSE (JML.Internal.se_2_map ses) se
+      jml :: (Either String [JMLT.ExecutionResult],[JML.Log.Log],JMLT.JMLState)
+      jml@(error_ers,logs,jmlState) = JML.runSE (JML.Internal.se_2_map ses) se
+      
+      jmlMethod = JMLT.method jmlState
 
   if withLogs
     then putStrLn $ (JML.PP.Log.ppLogs JML.PP.Log.Console logs ++ "\n")
