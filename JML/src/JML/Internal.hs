@@ -124,6 +124,13 @@ symExprToExpr sy symExpr =
        SYT.SymUnknown (vn,symExpr) _ -> JMLVarUnknown (toJMLType $ SY.Internal.toSymType2 symExpr) vn
        SYT.SException t str1 str2 -> JMLException (toJMLType t) str1 str2
        SYT.SBool b -> JMLBool b
+       SYT.SObjAcc li -> JMLObjAcc li
+       SYT.SArrayIndexAccess arrType arrName arrIndexSymExpr ->
+         JMLArrayIndexAccess (toJMLType arrType) arrName (symExprToExpr sy arrIndexSymExpr)
+--       SymArray (Just Int) (Just (SymInt 5)) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]
+       SYT.SymArray mElemType mArrSize symExprs ->
+         JMLArray (toJMLType <$> mElemType) (symExprToExpr sy <$> mArrSize) (map (symExprToExpr sy) symExprs)
+--         -> JMLArray mJMLType mArrSizeExpr symExprs -> 
        _ -> error $ printf "%s: TODO: %s" loc (show symExpr)
 
 toJMLType :: SYT.SymType -> JMLType
@@ -136,6 +143,7 @@ toJMLType symType = let
     SYT.UnknownGlobalVarSymType -> Unknown_Type
     SYT.Bool -> Bool_Type
     SYT.UnknownNumSymType -> Num_Type
+    SYT.Array symType -> Array_Type (toJMLType symType)
     _ -> error $ printf "%s: TODO: %s" loc (show symType)
 
 toJMLType2 :: Expr -> JMLType
@@ -217,6 +225,7 @@ symBinOpToOp symBinOp = case symBinOp of
   SYT.Gt  -> Gt
   SYT.Ge  -> Ge
   SYT.Lt  -> Lt
+  SYT.Le  -> Le
   _ -> error $ printf "JML.Internal.symBinOpToOp: TODO: %s" (show symBinOp)
 
 hasReturn :: [ExecutionResult] -> Bool
@@ -348,7 +357,7 @@ addBehavior sy er = do
         Nothing -> tellNextLog (Log.NoElseBody loc) $> Nothing
         Just (elseRequires,elseJMLState,else_ers) -> do
           elseBehaviors :: [Behavior] <- do
-            let newElseBehaviors = flip map (behaviors $ method elseJMLState)--importedElseBehaviors
+            let newElseBehaviors = flip map (behaviors $ method elseJMLState)
                   (flip addClauseToBehavior (Requires (Just scopeRange,Just elseRequires) []))
             forM newElseBehaviors $ \b -> do
               incrementLogEnumeration
@@ -388,9 +397,9 @@ addBehavior sy er = do
             -- if body returns, else body returns nothing
             | ifBodyHasReturn -> do
                 if | hasElseBody -> inheritClausesFromInnerState (jmlStack elseJMLState)
-                       (scopeRange,Just elseRequires) "no clauses to inherit"
+                       (scopeRange,Just elseRequires) "inheriting clauses from elseJMLState"
                    | otherwise -> inheritClausesFromInnerState []
-                       (scopeRange,Just $ negate ifRequires) "inheriting clauses from elseJMLState"
+                       (scopeRange,Just $ negate ifRequires) "no clauses to inherit"
             -- if body returns nothing, else body returns
             | elseBodyHasReturn -> do
                 inheritClausesFromInnerState (jmlStack ifJMLState) (scopeRange,Just ifRequires) "inheriting clauses from ifJMLState"
@@ -481,7 +490,7 @@ addBehavior sy er = do
     processJMLVarUnknown_behavior $ case behavior of
       NormalBehavior{} -> NormalBehavior {
         scopeRange = theScopeRange,
-        requires = thePreCondition,
+        requires = combinePreconditions thePreCondition (requires behavior),
         assignable = assignable behavior ++ gettingAssignable,
         vars = vars behavior ++ gettingVars,
         hasSideEffect = hasSideEffect behavior || gettingSideEffect,
@@ -489,13 +498,20 @@ addBehavior sy er = do
       }
       ExceptionalBehavior{} -> ExceptionalBehavior {
         scopeRange = theScopeRange,
-        requires = thePreCondition,
+        requires = combinePreconditions thePreCondition (requires behavior),
         signals = signals behavior,
         assignable = assignable behavior ++ gettingAssignable,
         vars = vars behavior ++ gettingVars,
         hasSideEffect = hasSideEffect behavior || gettingSideEffect,
         ensures = ensures behavior ++ gettingEnsures
       }
+  --
+  combinePreconditions :: Maybe Expr -> Maybe Expr -> Maybe Expr
+  combinePreconditions mPre1 mPre2 = case (mPre1,mPre2) of
+    (Nothing,Nothing) -> Nothing
+    (Nothing,Just pre2) -> Just pre2
+    (Just pre1,Nothing) -> Just pre1
+    (Just pre1,Just pre2) -> Just $ pre1 `JMLAnd` pre2
   --
   -- if a defaut clause exists, it gets replaced
   -- otherwise, a new clause is created
@@ -644,7 +660,14 @@ addBehavior sy er = do
          []     -> Nothing
   -- nub, but for clause
   nubClause :: Clause -> Clause
-  nubClause (Requires tu vals) = Requires tu $ nub vals
+--nubClause (Requires tu vals) = Requires tu $ nub vals
+  nubClause (Requires tu vals) = let
+    helper (val@(VarAssignment (_,vn1,_)) : rest) = val : (helper $ flip filter rest $ \case
+      VarAssignment (_,vn2,_) -> vn1 /= vn2
+      _ -> True) 
+    helper (val : rest) = val : helper rest
+    helper [] = [] in
+    Requires tu (helper $ nub vals)
 -- look up vars in a specific behavior
 -- which has a speicific scope range, and a specific pre-condition (requires)
 extractVarsFromState :: CFGT.ScopeRange -> Expr -> JMLMonad [Expr]

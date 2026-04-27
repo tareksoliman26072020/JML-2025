@@ -87,7 +87,13 @@ ppExpr expr = case expr of
   JMLBool b
     | b -> "true"
     | not b -> "false"
-  _ -> error $ "JML.PrettyPrint.ppExpr ==> TODO: " ++ show expr
+  JMLObjAcc li
+    | null li -> error $ "JML.PrettyPrint.ppExpr ==> TODO1: JMLObjAcc []"
+    | last li == "length" -> intercalate "." li
+    | otherwise -> printf "JMLObjAcc [%s]" (intercalate ", " li)
+  JMLArrayIndexAccess _ arrName arrIndexExpr -> printf "%s[%s]" arrName (ppExpr arrIndexExpr)
+  expr1 `JMLAnd` expr2 -> printf "%s && %s" (ppExpr expr1) (ppExpr expr2)
+  _ -> error $ "JML.PrettyPrint.ppExpr ==> TODO2: " ++ show expr
 
 ppOp :: Op -> String
 ppOp op = case op of

@@ -2515,6 +2515,16 @@ public static int boo28_6_6_4(int i){
     (Return,SymInt 5)
   ]
 */
+/*@ normal_behavior
+  @   requires i >= 0;
+  @   assignable \nothing;
+  @   ensures \result == i + 1;
+  @ also
+  @ normal_behavior
+  @   requires i < 0;
+  @   assignable \nothing;
+  @   ensures \result == 5;
+  @*/
 public static int boo28_6_7(int i){
   int x = 1;
   if(i >= 0){
@@ -2539,6 +2549,11 @@ public static int boo28_6_7(int i){
     (Return,SymInt 11)
   ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 11;
+  @*/
 public int boo28_6_p() {
   return boo28_6(10);
 }
@@ -2554,6 +2569,11 @@ public int boo28_6_p() {
     (Actions,SActions [])
   ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == false;
+  @*/
 public boolean boo29(){
   if(true){
     return false;
@@ -2642,6 +2662,24 @@ SymState {
           ], pc = []})))
   ], pc = []}
 */
+/*@ normal_behavior
+  @   requires z >= 0;
+  @   assignable t1, y, y1, y2;
+  @   ensures \result == 7;
+  @   ensures t1 == 7;
+  @   ensures y == 0.0;
+  @   ensures y1 == 0.0;
+  @   ensures y2 == 0.0;
+  @ also
+  @ normal_behavior
+  @   requires z < 0;
+  @   assignable t2, y, y1, y2;
+  @   ensures \result == 17;
+  @   ensures t2 == 17;
+  @   ensures y == 0.0;
+  @   ensures y1 == 0.0;
+  @   ensures y2 == 0.0;
+  @*/
 public int boo30(int z){
   int x1 = 0;
   int x2 = 0;
@@ -2674,6 +2712,12 @@ SymState {
     (Return,SymInt 0)
   ], pc = []}
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable z;
+  @   ensures \result == 0;
+  @   ensures z == 0;
+  @*/
 public int boo31(){
   z = 0;
   int x = z;
@@ -2704,6 +2748,16 @@ SymState {
   ], pc = []
 }
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable t1, y, y1, y2, z;
+  @   ensures \result == 7;
+  @   ensures t1 == 7;
+  @   ensures y == 0.0;
+  @   ensures y1 == 0.0;
+  @   ensures y2 == 0.0;
+  @   ensures z == 0;
+  @*/
 public int boo31_2(){
   z = 0;
   int x = z;
@@ -2731,6 +2785,16 @@ SymState {
   ], pc = []
 }
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable t2, y, y1, y2, z;
+  @   ensures \result == 0;
+  @   ensures t2 == 17;
+  @   ensures y == 0.0;
+  @   ensures y1 == 0.0;
+  @   ensures y2 == 0.0;
+  @   ensures z == 0;
+  @*/
 public int boo31_3(){
   z = 0;
   int x = z;
@@ -2757,6 +2821,11 @@ SymState {
   ], pc = []
 }
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == (y1 + y2) + y3;
+  @*/
 public int boo32(){
   int x = y1 + y2 + y3;
   return x;
@@ -2779,6 +2848,14 @@ SymState {
   ], pc = []
 }
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable y1, y2, y3;
+  @   ensures \result == 6;
+  @   ensures y1 == 1.0;
+  @   ensures y2 == 2.0;
+  @   ensures y3 == 3.0;
+  @*/
 public int boo32Call(){
   y1 = 1;
   y2 = 2;
@@ -2814,6 +2891,16 @@ SymState {
   ], pc = []
 }
 */
+/*@ exceptional_behavior
+  @   requires arr.length <= pos;
+  @   signals Exception;
+  @   assignable \nothing;
+  @ also
+  @ normal_behavior
+  @   requires arr.length > pos;
+  @   assignable \nothing;
+  @   ensures \result == arr[pos];
+  @*/
 public int elemAt(int[] arr, int pos) throws Exception {
   if(arr.length<=pos) {
     throw new Exception("not found");
@@ -2833,6 +2920,11 @@ SymState {
   ], pc = []
 }
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 4;
+  @*/
 public int elemAtCall() throws Exception {
   return elemAt(new int[]{6,5,4,7,8},2);
 }
@@ -2870,6 +2962,16 @@ SymState {
   ], pc = []
 }
 */
+/*@ exceptional_behavior
+  @   requires 5 <= pos;
+  @   signals Exception;
+  @   assignable \nothing;
+  @ also
+  @ normal_behavior
+  @   requires 5 > pos;
+  @   assignable \nothing;
+  @   ensures \result == arr[pos];
+  @*/
 public int elemAt2(int pos) throws Exception {
   int[] arr = new int[]{6,5,4,7,8};
   if(arr.length<=pos) {
@@ -2890,6 +2992,11 @@ SymState {
   ], pc = []
 }
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 4;
+  @*/
 public int elemAt2Call() {
   return elemAt2(2);
 }
@@ -2906,8 +3013,71 @@ SymState {
   ], pc = []
 }
 */
+/*@ exceptional_behavior
+  @   requires true;
+  @   signals Exception;
+  @   assignable \nothing;
+  @*/
 public int elemAt2Call2() {
   return elemAt2(5);
+}
+
+////////////////////////////////////////
+
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle Int "elemAt3"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["pos"]),
+    (VarAssignments,SVarAssignments []),
+    (VarName "pos",SymVar Int "pos"),
+    (ScopeRange (SR {branchStart = 1, branchEnd = 8}),
+     SIte (SBin (SymVar Int "pos") Lt (SymInt 0))
+          (fromList [(MethodHandle,SMethodHandle Int "elemAt3"),(FormalParms,SFormalParms ["pos"]),(VarName "pos",SymVar Int "pos"),(Return,SException Int "Exception" "too small")]) 
+          (Just (fromList [
+              (MethodHandle,SMethodHandle Int "elemAt3"),
+              (GlobalVars,SGlobalVars []),
+              (FormalParms,SFormalParms ["pos"]),
+              (VarBindings,SVarBindings (fromList [("arr",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 8}})])),
+              (VarAssignments,SVarAssignments [("arr",(SymArray (Just Int) (Just (SymInt 5)) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8],Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 8}}))]),
+              (VarName "arr",SymArray (Just Int) (Just (SymInt 5)) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),
+              (VarName "pos",SymVar Int "pos"),
+              (ScopeRange (SR {branchStart = 4, branchEnd = 2}),
+               SIte (SBin (SymInt 5) Le (SymVar Int "pos"))
+                    (fromList [(MethodHandle,SMethodHandle Int "elemAt3"),(FormalParms,SFormalParms ["pos"]),(VarBindings,SVarBindings (fromList [("arr",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 8}})])),(VarAssignments,SVarAssignments [("arr",(SymArray (Just Int) (Just (SymInt 5)) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8],Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 8}}))]),(VarName "arr",SymArray (Just Int) (Just (SymInt 5)) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),(VarName "pos",SymVar Int "pos"),(Return,SException Int "Exception" "not found")]) Nothing),
+              (Return,SArrayIndexAccess (Array Int) "arr" (SymVar Int "pos"))])
+          )
+    )
+  ]
+*/
+/*@ exceptional_behavior
+  @   requires pos < 0;
+  @   signals Exception;
+  @   assignable \nothing;
+  @ also
+  @ exceptional_behavior
+  @   requires pos >= 0 && 5 <= pos;
+  @   signals Exception;
+  @   assignable \nothing;
+  @ also
+  @ normal_behavior
+  @   requires pos >= 0 && 5 > pos;
+  @   assignable \nothing;
+  @   ensures \result == arr[pos];
+  @*/
+public int elemAt3(int pos) throws Exception {
+  if(pos<0) {
+    throw new Exception("too small");
+  }
+  else {
+    int[] arr = new int[]{6,5,4,7,8};
+    if(arr.length<=pos) {
+      throw new Exception("not found");
+    }
+    return arr[pos];
+  }
 }
 
 ////////////////////////////////////////

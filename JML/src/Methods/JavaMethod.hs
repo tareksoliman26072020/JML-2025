@@ -70,6 +70,7 @@ javaMethodInputs = [
   ("boo32", boo32), ("boo32Call", boo32Call),
   ("elemAt", elemAt), ("elemAtCall", elemAtCall),
   ("elemAt2", elemAt2), ("elemAt2Call", elemAt2Call), ("elemAt2Call2", elemAt2Call2),
+  ("elemAt3", elemAt3),
   ("elemAt4", elemAt4),
   ("strFun", strFun),
   ("voidFun1", voidFun1),
@@ -878,6 +879,20 @@ elemAt2Call2 :: String
 elemAt2Call2 = "public int elemAt2Call2() {\n\
                \  return elemAt2(5);\n\
                \}"
+
+elemAt3 :: String
+elemAt3 = "public int elemAt3(int pos) throws Exception {\n\
+          \  if(pos<0) {\n\
+          \    throw new Exception(\"too small\");\n\
+          \  }\n\
+          \  else {\n\
+          \    int[] arr = new int[]{6,5,4,7,8};\n\
+          \    if(arr.length<=pos) {\n\
+          \      throw new Exception(\"not found\");\n\
+          \    }\n\
+          \    return arr[pos];\n\
+          \  }\n\
+          \}"
 
 elemAt4 :: String
 elemAt4 = "public int elemAt4() {\n\

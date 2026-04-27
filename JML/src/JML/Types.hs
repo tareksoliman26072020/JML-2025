@@ -15,6 +15,7 @@ data Op = Add | Sub | Mul | Div | Gt | Ge | Lt | Le | Eq | Neq
         deriving (Show,Eq)
 
 data JMLType = String_Type | Int_Type | Num_Type | Double_Type | Bool_Type | Unknown_Type
+             | Array_Type JMLType
              deriving (Show,Eq)
 
 data Expr = JMLVar JMLType String | JMLVarUnknown JMLType String | JMLInt Int | JMLDouble Double | JMLNum Float | JMLBool Bool
@@ -22,6 +23,8 @@ data Expr = JMLVar JMLType String | JMLVarUnknown JMLType String | JMLInt Int | 
           | JMLBin Expr Op Expr | JMLNot Expr | JMLOld Expr | Expr `JMLAnd` Expr
           | Expr `JMLEquals` Expr | JMLResult Expr | JMLActions [Expr]
           | JMLException JMLType String String
+          | JMLObjAcc [String] | JMLArrayIndexAccess JMLType String Expr
+          | JMLArray (Maybe JMLType) (Maybe Expr) [Expr]
           | JMLVoid {- this is made to be coupled with `JMLResult` -}
           deriving (Show,Eq)
 

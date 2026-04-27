@@ -44,7 +44,7 @@ allTargets = [
   ("boo28_4_m",boo28_4_m), ("boo28_5",boo28_5), ("boo28_6",boo28_6), ("boo28_6_2",boo28_6_2),
   ("boo28_6_3",boo28_6_3), ("boo28_6_4",boo28_6_4), ("boo28_6_5",boo28_6_5),
   ("boo28_6_6",boo28_6_6), ("boo28_6_6_2",boo28_6_6_2), ("boo28_6_6_3",boo28_6_6_3),
-  ("boo28_6_6_4",boo28_6_6_4){-, ("boo28_6_7",boo28_6_7), ("boo28_6_p",boo28_6_p),
+  ("boo28_6_6_4",boo28_6_6_4), ("boo28_6_7",boo28_6_7), ("boo28_6_p",boo28_6_p),
   ("boo29",boo29),
   ("boo30",boo30),
   ("boo31",boo31), ("boo31_2", boo31_2), ("boo31_3", boo31_3),
@@ -52,6 +52,7 @@ allTargets = [
   ("elemAt", elemAt), ("elemAtCall", elemAtCall),
   ("elemAt2", elemAt2), ("elemAt2Call", elemAt2Call),
                         ("elemAt2Call2", elemAt2Call2),
+  ("elemAt3", elemAt3){-,
   ("elemAt4", elemAt4),
   ("strFun", strFun),
   ("voidFun1",voidFun1),
@@ -2056,334 +2057,427 @@ boo28_6_6_4 = Method {
 -----------------------------
 -----------------------------
 -----------------------------
+
+boo28_6_7 :: Method
+boo28_6_7 = Method {
+  name = "boo28_6_7",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Just (SR {branchStart = 2, branchEnd = 7}),
+      requires = Just (JMLBin (JMLVar Int_Type "i") Ge (JMLInt 0)),
+      assignable = [],
+      vars = [
+        JMLVar Int_Type "x" `JMLEquals` JMLInt 1,
+        JMLVar Int_Type "y" `JMLEquals` JMLInt 1
+      ],
+      hasSideEffect = False,
+      ensures = [JMLResult $ JMLBin (JMLVar Int_Type "i") Add (JMLInt 1)]
+    },
+    NormalBehavior {
+      scopeRange = Just (SR {branchStart = 2, branchEnd = 7}),
+      requires = Just (JMLBin (JMLVar Int_Type "i") Lt (JMLInt 0)),
+      assignable = [],
+      vars = [
+        JMLVar Int_Type "x" `JMLEquals` JMLInt 5
+      ],
+      hasSideEffect = False,
+      ensures = [JMLResult (JMLInt 5)]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo28_6_p :: Method
+boo28_6_p = Method {
+  name = "boo28_6_p",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = [],
+      vars = [],
+      hasSideEffect = False,
+      ensures = [JMLResult (JMLInt 11)]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo29 :: Method
+boo29 = Method {
+  name = "boo29",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = [],
+      vars = [],
+      hasSideEffect = False,
+      ensures = [JMLResult (JMLBool False)]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo30 :: Method
+boo30 = Method {
+  name = "boo30",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Just (SR {branchStart = 6, branchEnd = 11}),
+      requires = Just (JMLBin (JMLVar Int_Type "z") Ge (JMLInt 0)),
+      assignable = ["t1","y","y1","y2"],
+      vars = [
+        JMLVar Int_Type "t1" `JMLEquals` JMLInt 7,
+        JMLVar Int_Type "x1" `JMLEquals` JMLInt 0,
+        JMLVar Int_Type "x2" `JMLEquals` JMLInt 0,
+        JMLVar Num_Type "y" `JMLEquals` JMLNum 0.0,
+        JMLVar Num_Type "y1" `JMLEquals` JMLNum 0.0,
+        JMLVar Num_Type "y2" `JMLEquals` JMLNum 0.0
+      ],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult (JMLInt 7),
+        JMLVar Int_Type "t1" `JMLEquals` JMLInt 7,
+        JMLVar Num_Type "y" `JMLEquals` JMLNum 0.0,
+        JMLVar Num_Type "y1" `JMLEquals` JMLNum 0.0,
+        JMLVar Num_Type "y2" `JMLEquals` JMLNum 0.0
+      ]
+    },
+    NormalBehavior {
+      scopeRange = Just (SR {branchStart = 6, branchEnd = 11}),
+      requires = Just (JMLBin (JMLVar Int_Type "z") Lt (JMLInt 0)),
+      assignable = ["t2","y","y1","y2"],
+      vars = [
+        JMLVar Int_Type "t2" `JMLEquals` JMLInt 17,
+        JMLVar Int_Type "x1" `JMLEquals` JMLInt 0,
+        JMLVar Int_Type "x2" `JMLEquals` JMLInt 0,
+        JMLVar Num_Type "y" `JMLEquals` JMLNum 0.0,
+        JMLVar Num_Type "y1" `JMLEquals` JMLNum 0.0,
+        JMLVar Num_Type "y2" `JMLEquals` JMLNum 0.0
+      ],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult (JMLInt 17),
+        JMLVar Int_Type "t2" `JMLEquals` JMLInt 17,
+        JMLVar Num_Type "y" `JMLEquals` JMLNum 0.0,
+        JMLVar Num_Type "y1" `JMLEquals` JMLNum 0.0,
+        JMLVar Num_Type "y2" `JMLEquals` JMLNum 0.0
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo31 :: Method
+boo31 = Method {
+  name = "boo31",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = ["z"],
+      vars = [
+        JMLVar Int_Type "x" `JMLEquals` JMLInt 0,
+        JMLVar Int_Type "z" `JMLEquals` JMLInt 0
+      ],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult (JMLInt 0),
+        JMLVar Int_Type "z" `JMLEquals` JMLInt 0
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo31_2 :: Method
+boo31_2 = Method {
+  name = "boo31_2",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = ["t1","y","y1","y2","z"],
+      vars = [
+        JMLVar Int_Type "t1" `JMLEquals` JMLInt 7,
+        JMLVar Int_Type "x" `JMLEquals` JMLInt 0,
+        JMLVar Num_Type "y" `JMLEquals` JMLNum 0.0,
+        JMLVar Num_Type "y1" `JMLEquals` JMLNum 0.0,
+        JMLVar Num_Type "y2" `JMLEquals` JMLNum 0.0,
+        JMLVar Int_Type "z" `JMLEquals` JMLInt 0
+      ],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult (JMLInt 7),
+        JMLVar Int_Type "t1" `JMLEquals` JMLInt 7,
+        JMLVar Num_Type "y" `JMLEquals` JMLNum 0.0,
+        JMLVar Num_Type "y1" `JMLEquals` JMLNum 0.0,
+        JMLVar Num_Type "y2" `JMLEquals` JMLNum 0.0,
+        JMLVar Int_Type "z" `JMLEquals` JMLInt 0
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo31_3 :: Method
+boo31_3 = Method {
+  name = "boo31_3",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = ["t2","y","y1","y2","z"],
+      vars = [
+        JMLVar Int_Type "t2" `JMLEquals` JMLInt 17,
+        JMLVar Int_Type "x" `JMLEquals` JMLInt 0,
+        JMLVar Num_Type "y" `JMLEquals` JMLNum 0.0,
+        JMLVar Num_Type "y1" `JMLEquals` JMLNum 0.0,
+        JMLVar Num_Type "y2" `JMLEquals` JMLNum 0.0,
+        JMLVar Int_Type "z" `JMLEquals` JMLInt 0
+      ],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult (JMLInt 0),
+        JMLVar Int_Type "t2" `JMLEquals` JMLInt 17,
+        JMLVar Num_Type "y" `JMLEquals` JMLNum 0.0,
+        JMLVar Num_Type "y1" `JMLEquals` JMLNum 0.0,
+        JMLVar Num_Type "y2" `JMLEquals` JMLNum 0.0,
+        JMLVar Int_Type "z" `JMLEquals` JMLInt 0
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo32 :: Method
+boo32 = Method {
+  name = "boo32",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = [],
+      vars = [
+        JMLVar Int_Type "x" `JMLEquals` JMLBin (JMLBin (JMLVar Int_Type "y1") Add (JMLVar Int_Type "y2")) Add (JMLVar Int_Type "y3")
+      ],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult (JMLBin (JMLBin (JMLVar Int_Type "y1") Add (JMLVar Int_Type "y2")) Add (JMLVar Int_Type "y3"))
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+boo32Call :: Method
+boo32Call = Method {
+  name = "boo32Call",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = ["y1","y2","y3"],
+      vars = [
+        JMLVar Num_Type "y1" `JMLEquals` JMLNum 1.0,
+        JMLVar Num_Type "y2" `JMLEquals` JMLNum 2.0,
+        JMLVar Num_Type "y3" `JMLEquals` JMLNum 3.0
+      ],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult (JMLInt 6),
+        JMLVar Num_Type "y1" `JMLEquals` JMLNum 1.0,
+        JMLVar Num_Type "y2" `JMLEquals` JMLNum 2.0,
+        JMLVar Num_Type "y3" `JMLEquals` JMLNum 3.0
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+elemAt :: Method
+elemAt = Method {
+  name = "elemAt",
+  behaviors = [
+    ExceptionalBehavior {
+      scopeRange = Just (SR {branchStart = 1, branchEnd = 3}),
+      requires = Just (JMLBin (JMLObjAcc ["arr","length"]) Le (JMLVar Int_Type "pos")),
+      signals = "Exception",
+      assignable = [],
+      vars = [],
+      hasSideEffect = False,
+      ensures = []
+    },
+    NormalBehavior {
+      scopeRange = Just (SR {branchStart = 1, branchEnd = 3}),
+      requires = Just (JMLBin (JMLObjAcc ["arr","length"]) Gt (JMLVar Int_Type "pos")),
+      assignable = [],
+      vars = [],
+      hasSideEffect = False,
+      ensures = [JMLResult $ JMLArrayIndexAccess (Array_Type Int_Type) "arr" (JMLVar Int_Type "pos")]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+elemAtCall :: Method
+elemAtCall = Method {
+  name = "elemAtCall",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = [],
+      vars = [],
+      hasSideEffect = False,
+      ensures = [JMLResult (JMLInt 4)]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+elemAt2 :: Method
+elemAt2 = Method {
+  name = "elemAt2",
+  behaviors = [
+    ExceptionalBehavior {
+      scopeRange = Just (SR {branchStart = 2, branchEnd = 4}),
+      requires = Just (JMLBin (JMLInt 5) Le (JMLVar Int_Type "pos")),
+      signals = "Exception",
+      assignable = [],
+      vars = [
+        JMLVar (Array_Type Int_Type) "arr" `JMLEquals` JMLArray (Just Int_Type) (Just (JMLInt 5)) [JMLInt 6,JMLInt 5,JMLInt 4,JMLInt 7,JMLInt 8]
+      ],
+      hasSideEffect = False,
+      ensures = []
+    },
+    NormalBehavior {
+      scopeRange = Just (SR {branchStart = 2, branchEnd = 4}),
+      requires = Just (JMLBin (JMLInt 5) Gt (JMLVar Int_Type "pos")),
+      assignable = [],
+      vars = [
+        JMLVar (Array_Type Int_Type) "arr" `JMLEquals` JMLArray (Just Int_Type) (Just (JMLInt 5)) [JMLInt 6,JMLInt 5,JMLInt 4,JMLInt 7,JMLInt 8]
+      ],
+      hasSideEffect = False,
+      ensures = [JMLResult (JMLArrayIndexAccess (Array_Type Int_Type) "arr" (JMLVar Int_Type "pos"))]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+elemAt2Call :: Method
+elemAt2Call = Method {
+  name = "elemAt2Call",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = [],
+      vars = [],
+      hasSideEffect = False,
+      ensures = [JMLResult (JMLInt 4)]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+elemAt2Call2 :: Method
+elemAt2Call2 = Method {
+  name = "elemAt2Call2",
+  behaviors = [
+    ExceptionalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      signals = "Exception",
+      assignable = [],
+      vars = [],
+      hasSideEffect = False,
+      ensures = []
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+elemAt3 :: Method
+elemAt3 = Method {
+  name = "elemAt3",
+  behaviors = [
+    ExceptionalBehavior {
+      scopeRange = Just (SR {branchStart = 1, branchEnd = 8}),
+      requires = Just (JMLBin (JMLVar Int_Type "pos") Lt (JMLInt 0)),
+      signals = "Exception",
+      assignable = [],
+      vars = [],
+      hasSideEffect = False,
+      ensures = []
+    },
+    ExceptionalBehavior {
+      scopeRange = Just (SR {branchStart = 1, branchEnd = 8}),
+      requires = Just (JMLBin (JMLVar Int_Type "pos") Ge (JMLInt 0) `JMLAnd` JMLBin (JMLInt 5) Le (JMLVar Int_Type "pos")),
+      signals = "Exception",
+      assignable = [],
+      vars = [JMLVar (Array_Type Int_Type) "arr" `JMLEquals` JMLArray (Just Int_Type) (Just (JMLInt 5)) [JMLInt 6,JMLInt 5,JMLInt 4,JMLInt 7,JMLInt 8]],
+      hasSideEffect = False,
+      ensures = []
+    },
+    NormalBehavior {
+      scopeRange = Just (SR {branchStart = 1, branchEnd = 8}),
+      requires = Just (JMLBin (JMLVar Int_Type "pos") Ge (JMLInt 0) `JMLAnd` JMLBin (JMLInt 5) Gt (JMLVar Int_Type "pos")),
+      assignable = [],
+      vars = [JMLVar (Array_Type Int_Type) "arr" `JMLEquals` JMLArray (Just Int_Type) (Just (JMLInt 5)) [JMLInt 6,JMLInt 5,JMLInt 4,JMLInt 7,JMLInt 8]],
+      hasSideEffect = False,
+      ensures = [JMLResult (JMLArrayIndexAccess (Array_Type Int_Type) "arr" (JMLVar Int_Type "pos"))]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
 {-
-boo28_6_7 :: SymStateEnv
-boo28_6_7 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo28_6_7"),
-    (GlobalVars,SGlobalVars []),
-    (FormalParms,SFormalParms ["i"]),
-    (VarBindings,SVarBindings (Map.fromList [
-        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
-    (VarAssignments,SVarAssignments [
-        ("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
-        ("x",(SymInt 2,Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 2, branchEnd = 7}})),
-        ("x",(SymInt 5,Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
-    (VarName "i",SymVar SYT.Int "i"),
-    (VarName "x",SymInt 5),
-    (ScopeRange (SR {branchStart = 2, branchEnd = 7}),
-     SIte (SBin (SymVar SYT.Int "i") SYT.Ge (SymInt 0))
-          (Map.fromList [
-              (MethodHandle,SMethodHandle SYT.Int "boo28_6_7"),
-              (FormalParms,SFormalParms ["i"]),
-              (VarBindings,SVarBindings (Map.fromList [
-                  ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),
-                  ("y",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 7}})])),
-              (VarAssignments,SVarAssignments [
-                  ("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
-                  ("y",(SymInt 0,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 7}})),
-                  ("y",(SymInt 1,Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 7}}))]),
-              (VarName "i",SymVar SYT.Int "i"),
-              (VarName "x",SymInt 1),
-              (VarName "y",SymInt 1),
-              (Return,SBin (SymVar SYT.Int "i") SYT.Add (SymInt 1))])
-          (Just (Map.fromList [
-              (MethodHandle,SMethodHandle SYT.Int "boo28_6_7"),
-              (FormalParms,SFormalParms ["i"]),
-              (VarBindings,SVarBindings (Map.fromList [
-                  ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
-              (VarAssignments,SVarAssignments [
-                  ("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
-                  ("x",(SymInt 2,Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 2, branchEnd = 7}}))]),
-              (VarName "i",SymVar SYT.Int "i"),
-              (VarName "x",SymInt 2)]))),
-    (Return,SymInt 5)
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo28_6_p :: SymStateEnv
-boo28_6_p = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo28_6_p"),
-    (Return,SymInt 11)
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo29 :: SymStateEnv
-boo29 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Bool "boo29"),
-    (Return,SBool False),
-    (Actions,SActions [])
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo30 :: SymStateEnv
-boo30 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo30"),
-    (GlobalVars,SGlobalVars ["y","y1","y2","t1","t2"]),
-    (FormalParms,SFormalParms ["z"]),
-    (VarBindings,SVarBindings (Map.fromList [
-      ("x1",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}),
-      ("x2",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
-    (VarAssignments,SVarAssignments [
-        ("x1",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),
-        ("x2",(SymInt 0,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}})),
-        ("y",(SymNum 0.0,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 8}})),
-        ("y1",(SymNum 0.0,Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 8}})),
-        ("y2",(SymNum 0.0,Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 8}})),
-        ("t1",(SymInt 7,Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 6, branchEnd = 11}})),
-        ("t2",(SymInt 17,Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 6, branchEnd = 11}}))]),
-    (VarName "t1",SymUnknown (SymVar SYT.Int "t1") [([(If,SR {branchStart = 6, branchEnd = 11})],7)]),
-    (VarName "t2",SymUnknown (SymVar SYT.Int "t2") [([(If,SR {branchStart = 6, branchEnd = 11})],9)]),
-    (VarName "x1",SymInt 0),
-    (VarName "x2",SymInt 0),
-    (VarName "y",SymNum 0.0),
-    (VarName "y1",SymNum 0.0),
-    (VarName "y2",SymNum 0.0),
-    (VarName "z",SymVar SYT.Int "z"),
-    (ScopeRange (SR {branchStart = 6, branchEnd = 11}),
-     SIte (SBin (SymVar SYT.Int "z") SYT.Ge (SymInt 0))
-          (Map.fromList [
-              (MethodHandle,SMethodHandle SYT.Int "boo30"),
-              (GlobalVars,SGlobalVars ["y","y1","y2","t1"]),
-              (FormalParms,SFormalParms ["z"]),
-              (VarBindings,SVarBindings (Map.fromList [
-                  ("x1",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}),
-                  ("x2",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
-              (VarAssignments,SVarAssignments [
-                  ("x1",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),
-                  ("x2",(SymInt 0,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}})),
-                  ("y",(SymNum 0.0,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 8}})),
-                  ("y1",(SymNum 0.0,Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 8}})),
-                  ("y2",(SymNum 0.0,Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 8}})),
-                  ("t1",(SymInt 7,Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 6, branchEnd = 11}}))]),
-              (VarName "t1",SymInt 7),
-              (VarName "x1",SymInt 0),
-              (VarName "x2",SymInt 0),
-              (VarName "y",SymNum 0.0),
-              (VarName "y1",SymNum 0.0),
-              (VarName "y2",SymNum 0.0),
-              (VarName "z",SymVar SYT.Int "z"),
-              (Return,SymInt 7)
-          ])
-          (Just (Map.fromList [
-              (MethodHandle,SMethodHandle SYT.Int "boo30"),
-              (GlobalVars,SGlobalVars ["y","y1","y2","t2"]),
-              (FormalParms,SFormalParms ["z"]),
-              (VarBindings,SVarBindings (Map.fromList [
-                  ("x1",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}),
-                  ("x2",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
-              (VarAssignments,SVarAssignments [
-                  ("x1",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),
-                  ("x2",(SymInt 0,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}})),
-                  ("y",(SymNum 0.0,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 8}})),
-                  ("y1",(SymNum 0.0,Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 8}})),
-                  ("y2",(SymNum 0.0,Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 8}})),
-                  ("t2",(SymInt 17,Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 6, branchEnd = 11}}))]),
-              (VarName "t2",SymInt 17),
-              (VarName "x1",SymInt 0),
-              (VarName "x2",SymInt 0),
-              (VarName "y",SymNum 0.0),
-              (VarName "y1",SymNum 0.0),
-              (VarName "y2",SymNum 0.0),
-              (VarName "z",SymVar SYT.Int "z"),
-              (Return,SymInt 17)
-          ])))
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo31 :: SymStateEnv
-boo31 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo31"),
-    (GlobalVars,SGlobalVars ["z"]),
-    (VarBindings,SVarBindings (Map.fromList [("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
-    (VarAssignments,SVarAssignments [
-        ("z",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})),
-        ("x",(SymInt 0,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
-    (VarName "x",SymInt 0),
-    (VarName "z",SymInt 0),
-    (Return,SymInt 0)
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo31_2 :: SymStateEnv
-boo31_2 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo31_2"),
-    (GlobalVars,SGlobalVars ["z","y","y1","y2","t1"]),
-    (VarBindings,SVarBindings (Map.fromList [
-        ("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
-    (VarAssignments,SVarAssignments [
-        ("z",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})),
-        ("x",(SymInt 0,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
-    (VarName "t1",SymInt 7),
-    (VarName "x",SymInt 0),
-    (VarName "y",SymNum 0.0),
-    (VarName "y1",SymNum 0.0),
-    (VarName "y2",SymNum 0.0),
-    (VarName "z",SymInt 0),
-    (Return,SymInt 7)
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo31_3 :: SymStateEnv
-boo31_3 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo31_3"),
-    (GlobalVars,SGlobalVars ["z","y","y1","y2","t2"]),
-    (VarBindings,SVarBindings (Map.fromList [("x",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
-    (VarAssignments,SVarAssignments [
-        ("z",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
-        ("x",(SymInt 0,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
-    (VarName "t2",SymInt 17),
-    (VarName "x",SymInt 0),
-    (VarName "y",SymNum 0.0),
-    (VarName "y1",SymNum 0.0),
-    (VarName "y2",SymNum 0.0),
-    (VarName "z",SymInt 0),
-    (Return,SymInt 0)
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo32 :: SymStateEnv
-boo32 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo32"),
-    (GlobalVars,SGlobalVars ["y1","y2","y3"]),
-    (VarBindings,SVarBindings (Map.fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
-    (VarAssignments,SVarAssignments [
-        ("x",(SBin (SBin (SymVar SYT.Int "y1") SYT.Add (SymVar SYT.Int "y2")) SYT.Add (SymVar SYT.Int "y3"),Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
-    (VarName "x",SBin (SBin (SymVar SYT.Int "y1") SYT.Add (SymVar SYT.Int "y2")) SYT.Add (SymVar SYT.Int "y3")),
-    (VarName "y1",SymVar SYT.Int "y1"),
-    (VarName "y2",SymVar SYT.Int "y2"),
-    (VarName "y3",SymVar SYT.Int "y3"),
-    (Return,SBin (SBin (SymVar SYT.Int "y1") SYT.Add (SymVar SYT.Int "y2")) SYT.Add (SymVar SYT.Int "y3"))
-  ]
-
------------------------------
------------------------------
------------------------------
-
-boo32Call :: SymStateEnv
-boo32Call = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "boo32Call"),
-    (GlobalVars,SGlobalVars ["y1","y2","y3"]),
-    (VarAssignments,SVarAssignments [
-        ("y1",(SymNum 1.0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
-        ("y2",(SymNum 2.0,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})),
-        ("y3",(SymNum 3.0,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
-    (VarName "y1",SymNum 1.0),
-    (VarName "y2",SymNum 2.0),
-    (VarName "y3",SymNum 3.0),
-    (Return,SymInt 6)
-  ]
-
------------------------------
------------------------------
------------------------------
-
-elemAt :: SymStateEnv
-elemAt = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "elemAt"),
-    (GlobalVars,SGlobalVars []),
-    (FormalParms,SFormalParms ["arr","pos"]),
-    (VarAssignments,SVarAssignments []),
-    (VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),
-    (VarName "pos",SymVar SYT.Int "pos"),
-    (ScopeRange (SR {branchStart = 1, branchEnd = 3}),
-     SIte (SBin (SObjAcc ["arr","length"]) SYT.Le (SymVar SYT.Int "pos"))
-          (Map.fromList [
-               (MethodHandle,SMethodHandle SYT.Int "elemAt"),
-               (FormalParms,SFormalParms ["arr","pos"]),
-               (VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),
-               (VarName "pos",SymVar SYT.Int "pos"),
-               (Return,SException SYT.Int "Exception" "not found")
-             ])
-          Nothing),
-    (Return,SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymVar SYT.Int "pos"))
-  ]
-
------------------------------
------------------------------
------------------------------
-
-elemAtCall :: SymStateEnv
-elemAtCall = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "elemAtCall"),
-    (Return,SymInt 4)
-  ]
-
------------------------------
------------------------------
------------------------------
-
-elemAt2 :: SymStateEnv
-elemAt2 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "elemAt2"),
-    (GlobalVars,SGlobalVars []),
-    (FormalParms,SFormalParms ["pos"]),
-    (VarBindings,SVarBindings (Map.fromList [
-      ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
-    (VarAssignments,SVarAssignments [
-        ("arr",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
-    (VarName "arr",SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),
-    (VarName "pos",SymVar SYT.Int "pos"),
-    (ScopeRange (SR {branchStart = 2, branchEnd = 4}),
-     SIte (SBin (SymInt 5) SYT.Le (SymVar SYT.Int "pos"))
-          (Map.fromList [
-               (MethodHandle,SMethodHandle SYT.Int "elemAt2"),
-               (FormalParms,SFormalParms ["pos"]),
-               (VarBindings,SVarBindings (Map.fromList [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
-               (VarAssignments,SVarAssignments [
-                   ("arr",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
-               (VarName "arr",SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),
-               (VarName "pos",SymVar SYT.Int "pos"),
-               (Return,SException SYT.Int "Exception" "not found")
-             ])
-          Nothing),
-    (Return,SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymVar SYT.Int "pos"))
-  ]
-
------------------------------
------------------------------
------------------------------
-
-elemAt2Call :: SymStateEnv
-elemAt2Call = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "elemAt2Call"),
-    (Return,SymInt 4)
-  ]
-
------------------------------
------------------------------
------------------------------
-
-elemAt2Call2 :: SymStateEnv
-elemAt2Call2 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "elemAt2Call2"),
-    (Return,SException SYT.Int "Exception" "not found")
-  ]
-
------------------------------
------------------------------
------------------------------
-
 elemAt4 :: SymStateEnv
 elemAt4 = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "elemAt4"),

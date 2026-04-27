@@ -79,6 +79,7 @@ allTargets = [
   ("elemAt", elemAt), ("elemAtCall", elemAtCall),
   ("elemAt2", elemAt2), ("elemAt2Call", elemAt2Call),
                         ("elemAt2Call2", elemAt2Call2),
+  ("elemAt3", elemAt3),
   ("elemAt4", elemAt4),
   ("strFun", strFun),
   ("voidFun1",voidFun1),
@@ -2063,6 +2064,36 @@ elemAt2Call2 :: SymStateEnv
 elemAt2Call2 = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "elemAt2Call2"),
     (Return,SException SYT.Int "Exception" "not found")
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+elemAt3 :: SymStateEnv
+elemAt3 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Int "elemAt3"),
+    (GlobalVars,SGlobalVars []),
+    (FormalParms,SFormalParms ["pos"]),
+    (VarAssignments,SVarAssignments []),
+    (VarName "pos",SymVar SYT.Int "pos"),
+    (ScopeRange (SR {branchStart = 1, branchEnd = 8}),
+     SIte (SBin (SymVar SYT.Int "pos") SYT.Lt (SymInt 0))
+          (Map.fromList [(MethodHandle,SMethodHandle SYT.Int "elemAt3"),(FormalParms,SFormalParms ["pos"]),(VarName "pos",SymVar SYT.Int "pos"),(Return,SException SYT.Int "Exception" "too small")]) 
+          (Just (Map.fromList [
+              (MethodHandle,SMethodHandle SYT.Int "elemAt3"),
+              (GlobalVars,SGlobalVars []),
+              (FormalParms,SFormalParms ["pos"]),
+              (VarBindings,SVarBindings (Map.fromList [("arr",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 8}})])),
+              (VarAssignments,SVarAssignments [("arr",(SymArray (Just SYT.Int) (Just (SymInt 5)) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8],Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 8}}))]),
+              (VarName "arr",SymArray (Just SYT.Int) (Just (SymInt 5)) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),
+              (VarName "pos",SymVar SYT.Int "pos"),
+              (ScopeRange (SR {branchStart = 4, branchEnd = 2}),
+               SIte (SBin (SymInt 5) SYT.Le (SymVar SYT.Int "pos"))
+                    (Map.fromList [(MethodHandle,SMethodHandle SYT.Int "elemAt3"),(FormalParms,SFormalParms ["pos"]),(VarBindings,SVarBindings (Map.fromList [("arr",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 8}})])),(VarAssignments,SVarAssignments [("arr",(SymArray (Just SYT.Int) (Just (SymInt 5)) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8],Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 8}}))]),(VarName "arr",SymArray (Just SYT.Int) (Just (SymInt 5)) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),(VarName "pos",SymVar SYT.Int "pos"),(Return,SException SYT.Int "Exception" "not found")]) Nothing),
+              (Return,SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymVar SYT.Int "pos"))])
+          )
+    )
   ]
 
 -----------------------------
