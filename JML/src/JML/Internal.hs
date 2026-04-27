@@ -18,7 +18,7 @@ import qualified JML.Logs.Log as Log
 
 import qualified CFG.Types as CFGT ({-CFG, NodeID, Node, Node_Coor, -}ScopeRange)
 
-import qualified SymbolicExecution.Types as SYT (SymbolicExecution, SymbolicExecutionKey, SymStateKey(VarName), SymbolicExecutionValue, SymExpr(..), SymBinOp(..), SymType(..))
+import qualified SymbolicExecution.Types as SYT (SymbolicExecution, SymbolicExecutionKey, SymStateKey(VarName), SymbolicExecutionValue, SymExpr(..), SymBinOp(..), SymType(..), DefinedFun(..))
 import qualified SymbolicExecution.Internal.Internal as SY.Internal (
   getFunName, isReassigned, toSymType2)
 
@@ -127,11 +127,19 @@ symExprToExpr sy symExpr =
        SYT.SObjAcc li -> JMLObjAcc li
        SYT.SArrayIndexAccess arrType arrName arrIndexSymExpr ->
          JMLArrayIndexAccess (toJMLType arrType) arrName (symExprToExpr sy arrIndexSymExpr)
---       SymArray (Just Int) (Just (SymInt 5)) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]
        SYT.SymArray mElemType mArrSize symExprs ->
          JMLArray (toJMLType <$> mElemType) (symExprToExpr sy <$> mArrSize) (map (symExprToExpr sy) symExprs)
---         -> JMLArray mJMLType mArrSizeExpr symExprs -> 
+       SYT.SymFun definedFun symExpr -> SymFun
+         (toDefinedFun definedFun) (symExprToExpr sy symExpr)
+       SYT.SymNull symType -> JMLNull (toJMLType symType)
        _ -> error $ printf "%s: TODO: %s" loc (show symExpr)
+
+toDefinedFun :: SYT.DefinedFun -> DefinedFun
+toDefinedFun = \case
+  SYT.ToString -> ToString
+  SYT.Print -> Print
+  SYT.Println -> Println
+  SYT.UserDefined str -> UserDefined str
 
 toJMLType :: SYT.SymType -> JMLType
 toJMLType symType = let
@@ -198,6 +206,8 @@ inferJMLType expr = let
     JMLResult expr -> inferJMLType expr
     JMLVarUnknown t _ -> t
     JMLBool _ -> Bool_Type
+--inferJMLType: TODO: SymFun ToString (JMLBin (JMLInt 1) Add (JMLVar Int_Type "n"))
+    SymFun ToString _ -> String_Type
     _ -> error $ printf "%s: TODO: %s" loc (show expr)
 
 -- Bin (Var "i") Gt (Int 10)
@@ -226,6 +236,7 @@ symBinOpToOp symBinOp = case symBinOp of
   SYT.Ge  -> Ge
   SYT.Lt  -> Lt
   SYT.Le  -> Le
+  SYT.Eq  -> Eq
   _ -> error $ printf "JML.Internal.symBinOpToOp: TODO: %s" (show symBinOp)
 
 hasReturn :: [ExecutionResult] -> Bool

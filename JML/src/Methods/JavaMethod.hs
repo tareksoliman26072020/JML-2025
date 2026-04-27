@@ -89,6 +89,7 @@ javaMethodInputs = [
   ("ifFun2Call", ifFun2Call),
   ("ifFun2Call2", ifFun2Call2),
   ("ifFun3", ifFun3), ("voidFun3Call", voidFun3Call),
+  ("voidFun4", voidFun4), ("voidFun5", voidFun5), ("voidFun6", voidFun6),
   ("ifFun4", ifFun4), ("ifFun4Call", ifFun4Call),
   ("ifFun5", ifFun5),
   ("ifFun5Call1", ifFun5Call1),
@@ -936,6 +937,31 @@ voidFun3Call = "public void voidFun3Call() {\n\
                \  voidFun3(10);\n\
                \  println(z);\n\
                \}"
+
+voidFun4 :: String
+voidFun4 = "public void voidFun4() {\n\
+           \  int x;\n\
+           \  String y;\n\
+           \  x = 1;\n\
+           \  y = \"is one\";\n\
+           \  String z = toString(x) + \" \" + y;\n\
+           \  println(z);\n\
+           \}"
+
+voidFun5 :: String
+voidFun5 = "public void voidFun5() {\n\
+           \  println(\"Before\");\n\
+           \  voidFun4();\n\
+           \  println(\"After\");\n\
+           \}"
+
+voidFun6 :: String
+voidFun6 = "public void voidFun6(int n) {\n\
+           \  println(toString(n));\n\
+           \  println(toString(n+1));\n\
+           \  int x = n+1;\n\
+           \  println(toString(x));\n\
+           \}"
 
 manyArrs :: String
 manyArrs = "public void manyArrs() {\n\

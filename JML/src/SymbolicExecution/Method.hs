@@ -1853,7 +1853,7 @@ runCFG cfgs cfg mPath mSymState =
           id mSymState
       
       run_e :: ReaderT (Config,[CFGT.CFG]) (WriterT [Log.Log] (State SymState)) (Either String ())
-      run_e = runExceptT runner
+      run_e = runExceptT (runner <* (modify $ \s -> SymState (modifyVoidMethod $ env s) (logHeader s)))
       
       run_r :: WriterT [Log.Log] (State SymState) (Either String ())
       run_r = runReaderT run_e (defaultConfig,cfgs)

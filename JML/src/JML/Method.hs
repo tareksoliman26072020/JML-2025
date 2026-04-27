@@ -245,35 +245,6 @@ runSE sys sy =
 
       run_s :: ((Either String [ExecutionResult],[Log.Log]),JMLState)
       run_s@((er,logs),s) = runState run_w initialJMLState
-      {-
-      info :: ([String],[String],[String])
-      info@(formals,locals,globals) = (formalParms s,localVars s,globalVars s)
-      
-      -- sometimes the behaviors mentions vars which are not visible in the main scope
-      -- filter them out
-      res :: Method
-      res = Method {
-        name = name $ method s,
-        behaviors = flip map (behaviors $ method s) $ \behavior -> case behavior of
-          NormalBehavior{} -> NormalBehavior {
-            scopeRange = scopeRange behavior,
-            requires = requires behavior,
-            assignable = assignable behavior,
-            vars = flip filter (vars behavior) $ \case
-                     JMLVar _ vn `JMLEquals` _ -> vn `elem` (formals ++ locals ++ globals),
-            ensures = ensures behavior
-          }
-          ExceptionalBehavior{} -> ExceptionalBehavior {
-            scopeRange = scopeRange behavior,
-            requires = requires behavior,
-            signals = signals behavior,
-            assignable = assignable behavior,
-            vars = flip filter (vars behavior) $ \case
-                     JMLVar _ vn `JMLEquals` _ -> vn `elem` (formals ++ locals ++ globals),
-            ensures = ensures behavior
-          }
-      }
-      -}
 
   in (er,logs,s)
   where

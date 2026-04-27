@@ -19,14 +19,17 @@ data JMLType = String_Type | Int_Type | Num_Type | Double_Type | Bool_Type | Unk
              deriving (Show,Eq)
 
 data Expr = JMLVar JMLType String | JMLVarUnknown JMLType String | JMLInt Int | JMLDouble Double | JMLNum Float | JMLBool Bool
-          | JMLString String
+          | JMLString String | JMLNull JMLType
           | JMLBin Expr Op Expr | JMLNot Expr | JMLOld Expr | Expr `JMLAnd` Expr
           | Expr `JMLEquals` Expr | JMLResult Expr | JMLActions [Expr]
           | JMLException JMLType String String
           | JMLObjAcc [String] | JMLArrayIndexAccess JMLType String Expr
           | JMLArray (Maybe JMLType) (Maybe Expr) [Expr]
+          | SymFun DefinedFun Expr
           | JMLVoid {- this is made to be coupled with `JMLResult` -}
           deriving (Show,Eq)
+
+data DefinedFun = ToString | Print | Println | UserDefined String deriving (Show,Eq)
 
 data Behavior =
     NormalBehavior {

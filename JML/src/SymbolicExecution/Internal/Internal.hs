@@ -364,6 +364,14 @@ getReturnSymExpr = Map.lookup Return
 hasReturn :: SymStateEnv -> Bool
 hasReturn = Map.member Return
 
+modifyVoidMethod :: SymStateEnv -> SymStateEnv
+modifyVoidMethod sy
+  | Map.size sy == 1 = case Map.lookup MethodHandle sy of
+      Just (SMethodHandle Void _) -> Map.insert Return SymReturnVoid sy
+      Nothing -> error $ "TODO1: SymbolicExecution.Internal.Internal.whenVoidMethod:\n  " ++ show sy
+  | Map.null sy = error $ "TODO2: SymbolicExecution.Internal.Internal.whenVoidMethod"
+  | otherwise = sy
+
 getSymExpr :: ExecutionResult -> Maybe SymExpr
 getSymExpr = \case
   ER_Expr symExpr -> Just symExpr

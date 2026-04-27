@@ -3095,6 +3095,11 @@ SymState {
   ], pc = []
 }
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 7;
+  @*/
 public int elemAt4() {
   int[] arr = {6,5,4,7,8};
   return arr[3];
@@ -3116,6 +3121,11 @@ SymState {
   ], pc = []
 }
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == Tarek Soliman;
+  @*/
 public String strFun() {
   String firstName = "Tarek";
   String lastName = "Soliman";
@@ -3134,6 +3144,10 @@ SymState {
   ], pc = []
 }
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @*/
 public void voidFun1() {
   return;
 }
@@ -3149,6 +3163,10 @@ SymState {
   ], pc = []
 }
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @*/
 public void voidFun2() {
 }
 
@@ -3218,6 +3236,18 @@ SymState {
           ], pc = []})))
   ], pc = []}
 */
+/*@ normal_behavior
+  @   requires (1 + n) == 1;
+  @   assignable y2, z;
+  @   ensures y2 == "is not one";
+  @   ensures z == (toString(1 + n) + " ") + "is one";
+  @ also
+  @ normal_behavior
+  @   requires (1 + n) != 1;
+  @   assignable y2, z;
+  @   ensures y2 == "is not one";
+  @   ensures z == (toString(1 + n) + " ") + "is not one";
+  @*/
 public void voidFun3(int n) {
   int x;
   String y;
@@ -3247,6 +3277,12 @@ SymState {
     (Actions,SActions [SymString "11 is not one\n"])
   ], pc = []}
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable y2, z;
+  @   ensures y2 == "is not one";
+  @   ensures z == "11 is not one";
+  @*/
 public void voidFun3Call() {
   voidFun3(10);
   println(z);
@@ -3267,6 +3303,10 @@ SymState {
   ], pc = []
 }
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @*/
 public void voidFun4() {
   int x;
   String y;
@@ -3280,13 +3320,16 @@ public void voidFun4() {
 
 //DONE
 /*
-SymState {
-  env = fromList [
-    (MethodName "voidFun5",SMethodType Void),
-    (Actions,SActions ["Before\n","1 is one\n","After\n"])
-  ], pc = []
-}
+[
+    (MethodHandle,SMethodHandle Void "voidFun5"),
+    (Actions,SActions [SymString "Before\n",SymString "1 is one\n",SymString "After\n"]),
+    (Return,SymReturnVoid)
+  ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @*/
 public void voidFun5() {
   println("Before");
   voidFun4();
@@ -3295,11 +3338,34 @@ public void voidFun5() {
 
 ////////////////////////////////////////
 
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle Void "voidFun6"),
+    (FormalParms,SFormalParms ["n"]),
+    (VarBindings,SVarBindings (fromList [
+        ("x",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SBin (SymVar Int "n") Add (SymInt 1),Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+    (VarName "n",SymVar Int "n"),
+    (VarName "x",SBin (SymVar Int "n") Add (SymInt 1)),
+    (Actions,SActions [
+        SymFun Println (SymFun ToString (SymVar Int "n")),
+        SymFun Println (SymFun ToString (SBin (SymVar Int "n") Add (SymInt 1))),
+        SymFun Println (SymFun ToString (SBin (SymVar Int "n") Add (SymInt 1)))]),
+    (Return,SymReturnVoid)
+  ]
+*/
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @*/
 public void voidFun6(int n) {
-  println(n);
-  println(n+1);
+  println(toString(n));
+  println(toString(n+1));
   int x = n+1;
-  println(x);
+  println(toString(x));
 }
 
 ////////////////////////////////////////
@@ -3343,6 +3409,10 @@ SymState {
     (Actions,SActions ["[86, 57, 80, 34, 50, 48, 94]\n","[51, 84, 92, 87, 81]\n","[5, 75, 34, 10, 6]\n"])
   ], pc = []}
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @*/
 public void manyArrs2() {
   int[] numbers1 = new int[7];
   int[] numbers2 = {40, 55, 63, 17, 22};
@@ -3388,6 +3458,11 @@ SymState {
     (Return,SymArray (Just (Array Int)) (Just 2) [SymInt 99,SymInt 5])
   ], pc = []}
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == [99, 5];
+  @*/
 public int[] manyArrs3() {
   int[] numbers = new int[2];
   numbers[0] = 99;
@@ -3409,6 +3484,10 @@ public int[] manyArrs3() {
  (Actions,SActions ["[99, 0]\n"])
 ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @*/
 public void manyArrs4() {
   int[] numbers = new int[2];
   numbers[0] = 99;

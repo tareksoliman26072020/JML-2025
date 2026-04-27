@@ -1,7 +1,7 @@
 {-# Language LambdaCase #-}
 module JML.PrettyPrint where
 
-import JML.Types (Behavior(..), Expr(..), Op(..))
+import JML.Types (Behavior(..), Expr(..), Op(..), DefinedFun(..))
 import Data.List (intercalate)
 import Text.Printf (printf)
 
@@ -82,7 +82,7 @@ ppExpr expr = case expr of
     (JMLBin _ _ _,_) -> printf "(%s) %s %s" (ppExpr expr1) (ppOp op) (ppExpr expr2)
     (_,JMLBin _ _ _) -> printf "%s %s (%s)" (ppExpr expr1) (ppOp op) (ppExpr expr2)
     _ -> printf "%s %s %s" (ppExpr expr1) (ppOp op) (ppExpr expr2)
-  JMLString str -> str
+  JMLString str -> printf "\"%s\"" str
   JMLVarUnknown _ str -> "JMLVarUnknown " ++ str
   JMLBool b
     | b -> "true"
@@ -92,7 +92,10 @@ ppExpr expr = case expr of
     | last li == "length" -> intercalate "." li
     | otherwise -> printf "JMLObjAcc [%s]" (intercalate ", " li)
   JMLArrayIndexAccess _ arrName arrIndexExpr -> printf "%s[%s]" arrName (ppExpr arrIndexExpr)
+--JMLArray (Just Int_Type) (Just (JMLInt 2)) [JMLInt 99,JMLInt 5]
+  JMLArray _ _ elems -> printf "[%s]" (intercalate ", " $ map ppExpr elems)
   expr1 `JMLAnd` expr2 -> printf "%s && %s" (ppExpr expr1) (ppExpr expr2)
+  SymFun ToString expr -> printf "toString(%s)" (ppExpr expr)
   _ -> error $ "JML.PrettyPrint.ppExpr ==> TODO2: " ++ show expr
 
 ppOp :: Op -> String
@@ -104,6 +107,8 @@ ppOp op = case op of
   Le -> "<="
   Ge -> ">="
   Lt -> "<"
+  Eq -> "=="
+  Neq -> "!="
   _ -> error $ printf "JML.PrettyPrint.ppOp: TODO: %s" (show op)
 
 ppBehaviors :: [Behavior] -> String

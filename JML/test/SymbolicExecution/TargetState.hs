@@ -95,7 +95,8 @@ allTargets = [
   ("ifFun",ifFun),
   ("ifFun2",ifFun2),
   ("ifFunCall",ifFunCall), ("ifFun2Call",ifFun2Call), ("ifFun2Call2",ifFun2Call2),
-  ("ifFun3",ifFun3), ("voidFun3Call", voidFun3Call),
+  ("ifFun3",ifFun3), ("voidFun3Call", voidFun3Call), ("voidFun4",voidFun4),
+  ("voidFun5",voidFun5), ("voidFun6",voidFun6),
   ("ifFun4",ifFun4), ("ifFun4Call", ifFun4Call),
   ("ifFun5",ifFun5), ("ifFun5Call1",ifFun5Call1), ("ifFun5Call2",ifFun5Call2),
   ("ifFun6",ifFun6), ("ifFun6Call",ifFun6Call), ("ifFun6Call2", ifFun6Call2),
@@ -2142,7 +2143,8 @@ voidFun1 = Map.fromList [
 
 voidFun2 :: SymStateEnv
 voidFun2 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Void "voidFun2")
+    (MethodHandle,SMethodHandle SYT.Void "voidFun2"),
+    (Return,SymReturnVoid)
   ]
 
 -----------------------------
@@ -2217,6 +2219,60 @@ voidFun3Call = Map.fromList [
     (VarName "z",SymString "11 is not one"),
     (Return,SymReturnVoid),
     (Actions,SActions [SymString "11 is not one\n"])
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+voidFun4 :: SymStateEnv
+voidFun4 = Map.fromList [
+    (MethodHandle,SMethodHandle Void "voidFun4"),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 7}}),
+        ("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 7}}),
+        ("z",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 7}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SymInt 1,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 7}})),
+        ("y",(SymString "is one",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 7}})),
+        ("z",(SymString "1 is one",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 7}}))]),
+    (VarName "x",SymInt 1),
+    (VarName "y",SymString "is one"),
+    (VarName "z",SymString "1 is one"),
+    (Actions,SActions [SymString "1 is one\n"]),
+    (Return,SymReturnVoid)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+voidFun5 :: SymStateEnv
+voidFun5 = Map.fromList [
+  (MethodHandle,SMethodHandle Void "voidFun5"),
+  (Actions,SActions [SymString "Before\n",SymString "1 is one\n",SymString "After\n"]),
+  (Return,SymReturnVoid)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+voidFun6 :: SymStateEnv
+voidFun6 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "voidFun6"),
+    (FormalParms,SFormalParms ["n"]),
+    (VarBindings,SVarBindings (Map.fromList [
+        ("x",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+    (VarAssignments,SVarAssignments [
+        ("x",(SBin (SymVar SYT.Int "n") SYT.Add (SymInt 1),Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+    (VarName "n",SymVar SYT.Int "n"),
+    (VarName "x",SBin (SymVar SYT.Int "n") SYT.Add (SymInt 1)),
+    (Actions,SActions [
+        SymFun Println (SymFun ToString (SymVar SYT.Int "n")),
+        SymFun Println (SymFun ToString (SBin (SymVar SYT.Int "n") SYT.Add (SymInt 1))),
+        SymFun Println (SymFun ToString (SBin (SymVar SYT.Int "n") SYT.Add (SymInt 1)))]),
+    (Return,SymReturnVoid)
   ]
 
 -----------------------------

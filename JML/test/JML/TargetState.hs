@@ -1,7 +1,7 @@
 module TargetState (target) where
 
 import CFG.Types (ScopeRange(..))
-import JML.Types (Method(..), Behavior(..), Expr(..), Op(..), JMLType(..))
+import JML.Types (Method(..), Behavior(..), Expr(..), Op(..), JMLType(..), DefinedFun(..))
 
 target :: String -> Method
 target name = case lookup name allTargets of
@@ -52,7 +52,7 @@ allTargets = [
   ("elemAt", elemAt), ("elemAtCall", elemAtCall),
   ("elemAt2", elemAt2), ("elemAt2Call", elemAt2Call),
                         ("elemAt2Call2", elemAt2Call2),
-  ("elemAt3", elemAt3){-,
+  ("elemAt3", elemAt3),
   ("elemAt4", elemAt4),
   ("strFun", strFun),
   ("voidFun1",voidFun1),
@@ -62,13 +62,14 @@ allTargets = [
   ("manyArrs2",manyArrs2),
   ("manyArrs3",manyArrs3),
   ("manyArrs4", manyArrs4),
-  ("manyArrs5", manyArrs5),
+{-("manyArrs5", manyArrs5),
   ("manyArrs6", manyArrs6),
-  ("manyArrs7", manyArrs7), ("manyArrs7Call1", manyArrs7Call1), ("manyArrs7Call2", manyArrs7Call2),
-  ("ifFun",ifFun),
+  ("manyArrs7", manyArrs7), ("manyArrs7Call1", manyArrs7Call1), ("manyArrs7Call2", manyArrs7Call2),-}
+{-("ifFun",ifFun),
   ("ifFun2",ifFun2),
   ("ifFunCall",ifFunCall), ("ifFun2Call",ifFun2Call), ("ifFun2Call2",ifFun2Call2),
-  ("ifFun3",ifFun3), ("voidFun3Call", voidFun3Call),
+  ("ifFun3",ifFun3),-} ("voidFun3Call", voidFun3Call), ("voidFun4", voidFun4),
+  ("voidFun5",voidFun5), ("voidFun6",voidFun6){-,
   ("ifFun4",ifFun4), ("ifFun4Call", ifFun4Call),
   ("ifFun5",ifFun5), ("ifFun5Call1",ifFun5Call1), ("ifFun5Call2",ifFun5Call2),
   ("ifFun6",ifFun6), ("ifFun6Call",ifFun6Call), ("ifFun6Call2", ifFun6Call2),
@@ -77,7 +78,7 @@ allTargets = [
   ("ifFun9",ifFun9),
   ("ifFun10",ifFun10),
   ("ifFun11",ifFun11),
-  ("ifFun12",ifFun12),
+  ("ifFun12",ifFun12)-}{-,
   ("succFun", succFun), ("succFunCall", succFunCall), ("callSuccFun", callSuccFun), ("callCallSuccFun", callCallSuccFun),
   ("wrongSum1", wrongSum1),
   ("wrongSum2", wrongSum2),
@@ -2477,245 +2478,322 @@ elemAt3 = Method {
 -----------------------------
 -----------------------------
 -----------------------------
+
+elemAt4 :: Method
+elemAt4 = Method {
+  name = "elemAt4",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = [],
+      vars = [JMLVar (Array_Type Int_Type) "arr" `JMLEquals` JMLArray (Just Int_Type) (Just (JMLInt 5)) [JMLInt 6,JMLInt 5,JMLInt 4,JMLInt 7,JMLInt 8]],
+      hasSideEffect = False,
+      ensures = [JMLResult (JMLInt 7)]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+strFun :: Method
+strFun = Method {
+  name = "strFun",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = [],
+      vars = [
+        JMLVar String_Type "firstName" `JMLEquals` JMLString "Tarek",
+        JMLVar String_Type "lastName" `JMLEquals` JMLString "Soliman"
+      ],
+      hasSideEffect = False,
+      ensures = [JMLResult (JMLString "Tarek Soliman")]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+voidFun1 :: Method
+voidFun1 = Method {
+  name = "voidFun1",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = [],
+      vars = [],
+      hasSideEffect = False,
+      ensures = [JMLResult JMLVoid]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+voidFun2 :: Method
+voidFun2 = Method {
+  name = "voidFun2",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = [],
+      vars = [],
+      hasSideEffect = False,
+      ensures = [JMLResult JMLVoid]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+voidFun3 :: Method
+voidFun3 = Method {
+  name = "voidFun3",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Just (SR {branchStart = 6, branchEnd = 9}),
+      requires = Just (JMLBin (JMLBin (JMLInt 1) Add (JMLVar Int_Type "n")) Eq (JMLInt 1)), 
+      assignable = ["y2","z"],
+      vars = [
+        JMLVar Int_Type "x" `JMLEquals` JMLBin (JMLInt 1) Add (JMLVar Int_Type "n"),
+        JMLVar String_Type "y" `JMLEquals` JMLString "is one",
+        JMLVar String_Type "y2" `JMLEquals` JMLString "is not one",
+        JMLVar String_Type "z" `JMLEquals` JMLBin (JMLBin (SymFun ToString (JMLBin (JMLInt 1) Add (JMLVar Int_Type "n"))) Add (JMLString " ")) Add (JMLString "is one")
+      ],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult JMLVoid,
+        JMLVar String_Type "y2" `JMLEquals` JMLString "is not one",
+        JMLVar String_Type "z" `JMLEquals` JMLBin (JMLBin (SymFun ToString (JMLBin (JMLInt 1) Add (JMLVar Int_Type "n"))) Add (JMLString " ")) Add (JMLString "is one")
+      ]
+    },
+    NormalBehavior {
+      scopeRange = Just (SR {branchStart = 6, branchEnd = 9}),
+      requires = Just (JMLBin (JMLBin (JMLInt 1) Add (JMLVar Int_Type "n")) Neq (JMLInt 1)), 
+      assignable = ["y2","z"],
+      vars = [
+        JMLVar Int_Type "x" `JMLEquals` JMLBin (JMLInt 1) Add (JMLVar Int_Type "n"),
+        JMLVar String_Type "y" `JMLEquals` JMLString "is one",
+        JMLVar String_Type "y2" `JMLEquals` JMLString "is not one",
+        JMLVar String_Type "z" `JMLEquals` JMLBin (JMLBin (SymFun ToString (JMLBin (JMLInt 1) Add (JMLVar Int_Type "n"))) Add (JMLString " ")) Add (JMLString "is not one")
+      ],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult JMLVoid,
+        JMLVar String_Type "y2" `JMLEquals` JMLString "is not one",
+        JMLVar String_Type "z" `JMLEquals` JMLBin (JMLBin (SymFun ToString (JMLBin (JMLInt 1) Add (JMLVar Int_Type "n"))) Add (JMLString " ")) Add (JMLString "is not one")
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+voidFun3Call :: Method
+voidFun3Call = Method {
+  name = "voidFun3Call",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = ["y2","z"],
+      vars = [
+        JMLVar String_Type "y2" `JMLEquals` JMLString "is not one",
+        JMLVar String_Type "z" `JMLEquals` JMLString "11 is not one"
+      ],
+      hasSideEffect = True,
+      ensures = [
+        JMLResult JMLVoid,
+        JMLVar String_Type "y2" `JMLEquals` JMLString "is not one",
+        JMLVar String_Type "z" `JMLEquals` JMLString "11 is not one"
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+voidFun4 :: Method
+voidFun4 = Method {
+  name = "voidFun4",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = [],
+      vars = [
+        JMLVar Int_Type "x" `JMLEquals` JMLInt 1,
+        JMLVar String_Type "y" `JMLEquals` JMLString "is one",
+        JMLVar String_Type "z" `JMLEquals` JMLString "1 is one"
+      ],
+      hasSideEffect = True,
+      ensures = [JMLResult JMLVoid]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+voidFun5 :: Method
+voidFun5 = Method {
+  name = "voidFun5",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = [],
+      vars = [],
+      hasSideEffect = True,
+      ensures = [JMLResult JMLVoid]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+voidFun6 :: Method
+voidFun6 = Method {
+  name = "voidFun6",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = [],
+      vars = [JMLVar Int_Type "x" `JMLEquals` JMLBin (JMLVar Int_Type "n") Add (JMLInt 1)], 
+      hasSideEffect = True,
+      ensures = [JMLResult JMLVoid]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+manyArrs :: Method
+manyArrs = Method {
+  name = "manyArrs",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = [],
+      vars = [JMLVar (Array_Type Int_Type) "numbers" `JMLEquals` JMLArray (Just Int_Type) (Just (JMLInt 2)) [JMLInt 99,JMLInt 5]],
+      hasSideEffect = True,
+      ensures = [JMLResult JMLVoid]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+manyArrs2 :: Method
+manyArrs2 = Method {
+  name = "manyArrs2",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = [],
+      vars = [
+        JMLVar (Array_Type String_Type) "brand" `JMLEquals` JMLArray (Just String_Type) (Just (JMLInt 5)) [JMLString "Toyota",
+             JMLString "Mercedes",
+             JMLString "BMW",
+             JMLString "Volkswagen",
+             JMLString "Skoda"],
+        JMLVar (Array_Type Int_Type) "numbers1" `JMLEquals` JMLArray (Just Int_Type) (Just (JMLInt 7)) [JMLInt 86,
+             JMLInt 57,
+             JMLInt 80,
+             JMLInt 34,
+             JMLInt 50,
+             JMLInt 48,
+             JMLInt 94],
+        JMLVar (Array_Type Int_Type) "numbers2" `JMLEquals` JMLArray (Just Int_Type) (Just (JMLInt 5)) [JMLInt 51,
+             JMLInt 84,
+             JMLInt 92,
+             JMLInt 87,
+             JMLInt 81],
+        JMLVar (Array_Type Int_Type) "numbers3" `JMLEquals` JMLArray (Just Int_Type) (Just (JMLInt 5)) [JMLInt 5,
+             JMLInt 75,
+             JMLInt 34,
+             JMLInt 10,
+             JMLInt 6],
+        JMLVar (Array_Type String_Type) "strs" `JMLEquals` JMLArray (Just String_Type) (Just (JMLInt 3)) [JMLNull String_Type,
+             JMLString "meow",
+             JMLNull String_Type]
+      ],
+      hasSideEffect = True,
+      ensures = [JMLResult JMLVoid]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+manyArrs3 :: Method
+manyArrs3 = Method {
+  name = "manyArrs3",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = [],
+      vars = [JMLVar (Array_Type Int_Type) "numbers" `JMLEquals` JMLArray (Just Int_Type) (Just (JMLInt 2)) [JMLInt 99,JMLInt 5]],
+      hasSideEffect = False,
+      ensures = [JMLResult (JMLArray (Just Int_Type) (Just (JMLInt 2)) [JMLInt 99,JMLInt 5])]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+manyArrs4 :: Method
+manyArrs4 = Method {
+  name = "manyArrs4",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = [],
+      vars = [JMLVar (Array_Type Int_Type) "numbers" `JMLEquals` JMLArray (Just Int_Type) (Just (JMLInt 2)) [JMLInt 99,JMLNull Int_Type]],
+      hasSideEffect = True,
+      ensures = [JMLResult JMLVoid]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
 {-
-elemAt4 :: SymStateEnv
-elemAt4 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "elemAt4"),
-    (VarBindings,SVarBindings (Map.fromList [("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}})])),
-    (VarAssignments,SVarAssignments [
-        ("arr",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}}))]),
-    (VarName "arr",SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),
-    (Return,SymInt 7)
-  ]
-
------------------------------
------------------------------
------------------------------
-
-strFun :: SymStateEnv
-strFun = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.String "strFun"),
-    (VarBindings,SVarBindings (Map.fromList [("firstName",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}),("lastName",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
-    (VarAssignments,SVarAssignments [
-        ("firstName",(SymString "Tarek",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})),
-        ("lastName",(SymString "Soliman",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
-    (VarName "firstName",SymString "Tarek"),
-    (VarName "lastName",SymString "Soliman"),
-    (Return,SymString "Tarek Soliman")
-  ]
-
------------------------------
------------------------------
------------------------------
-
-voidFun1 :: SymStateEnv
-voidFun1 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Void "voidFun1"),
-    (Return,SymReturnVoid)
-  ]
-
------------------------------
------------------------------
------------------------------
-
-voidFun2 :: SymStateEnv
-voidFun2 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Void "voidFun2")
-  ]
-
------------------------------
------------------------------
------------------------------
-
-voidFun3 :: SymStateEnv
-voidFun3 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Void "voidFun3"),
-    (GlobalVars,SGlobalVars ["y2","z"]),
-    (FormalParms,SFormalParms ["n"]),
-    (VarBindings,SVarBindings (Map.fromList [
-        ("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 10}}),
-        ("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 10}})])),
-    (VarAssignments,SVarAssignments [
-        ("x",(SBin (SymInt 1) SYT.Add (SymVar SYT.Int "n"),Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 10}})),
-        ("y",(SymString "is one",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 10}})),
-        ("y2",(SymString "is not one",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 10}})),
-        ("z",(SBin (SBin (SymFun ToString (SBin (SymInt 1) SYT.Add (SymVar SYT.Int "n"))) SYT.Add (SymString " ")) SYT.Add (SymString "is one"),Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 6, branchEnd = 9}})),
-        ("z",(SBin (SBin (SymFun ToString (SBin (SymInt 1) SYT.Add (SymVar SYT.Int "n"))) SYT.Add (SymString " ")) SYT.Add (SymString "is not one"),Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 6, branchEnd = 9}}))]),
-    (VarName "n",SymVar SYT.Int "n"),
-    (VarName "x",SBin (SymInt 1) SYT.Add (SymVar SYT.Int "n")),
-    (VarName "y",SymString "is one"),
-    (VarName "y2",SymString "is not one"),
-    (VarName "z",SymUnknown (SymVar SYT.String "z") [
-        ([(If,SR {branchStart = 6, branchEnd = 9})],7),
-        ([(If,SR {branchStart = 6, branchEnd = 9})],8)]),
-    (ScopeRange (SR {branchStart = 6, branchEnd = 9}),
-     SIte (SBin (SBin (SymInt 1) SYT.Add (SymVar SYT.Int "n")) SYT.Eq (SymInt 1))
-          (Map.fromList [
-              (MethodHandle,SMethodHandle SYT.Void "voidFun3"),
-              (GlobalVars,SGlobalVars ["y2","z"]),
-              (FormalParms,SFormalParms ["n"]),
-              (VarBindings,SVarBindings (Map.fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 10}}),("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 10}})])),
-              (VarAssignments,SVarAssignments [
-                  ("x",(SBin (SymInt 1) SYT.Add (SymVar SYT.Int "n"),Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 10}})),
-                  ("y",(SymString "is one",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 10}})),
-                  ("y2",(SymString "is not one",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 10}})),
-                  ("z",(SBin (SBin (SymFun ToString (SBin (SymInt 1) SYT.Add (SymVar SYT.Int "n"))) SYT.Add (SymString " ")) SYT.Add (SymString "is one"),Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 6, branchEnd = 9}}))]),
-              (VarName "n",SymVar SYT.Int "n"),
-              (VarName "x",SBin (SymInt 1) SYT.Add (SymVar SYT.Int "n")),
-              (VarName "y",SymString "is one"),
-              (VarName "y2",SymString "is not one"),
-              (VarName "z",SBin (SBin (SymFun ToString (SBin (SymInt 1) SYT.Add (SymVar SYT.Int "n"))) SYT.Add (SymString " ")) SYT.Add (SymString "is one"))])
-          (Just (Map.fromList [
-              (MethodHandle,SMethodHandle SYT.Void "voidFun3"),
-              (GlobalVars,SGlobalVars ["y2","z"]),
-              (FormalParms,SFormalParms ["n"]),
-              (VarBindings,SVarBindings (Map.fromList [("x",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 10}}),("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 10}})])),
-              (VarAssignments,SVarAssignments [
-                  ("x",(SBin (SymInt 1) SYT.Add (SymVar SYT.Int "n"),Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 10}})),
-                  ("y",(SymString "is one",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 10}})),
-                  ("y2",(SymString "is not one",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 10}})),
-                  ("z",(SBin (SBin (SymFun ToString (SBin (SymInt 1) SYT.Add (SymVar SYT.Int "n"))) SYT.Add (SymString " ")) SYT.Add (SymString "is not one"),Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 6, branchEnd = 9}}))]),
-              (VarName "n",SymVar SYT.Int "n"),
-              (VarName "x",SBin (SymInt 1) SYT.Add (SymVar SYT.Int "n")),
-              (VarName "y",SymString "is one"),
-              (VarName "y2",SymString "is not one"),
-              (VarName "z",SBin (SBin (SymFun ToString (SBin (SymInt 1) SYT.Add (SymVar SYT.Int "n"))) SYT.Add (SymString " ")) SYT.Add (SymString "is not one"))]))),
-    (Return,SymReturnVoid)
-  ]
-
------------------------------
------------------------------
------------------------------
-
-voidFun3Call :: SymStateEnv
-voidFun3Call = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Void "voidFun3Call"),
-    (GlobalVars,SGlobalVars ["y2","z"]),
-    (VarName "y2",SymString "is not one"),
-    (VarName "z",SymString "11 is not one"),
-    (Return,SymReturnVoid),
-    (Actions,SActions [SymString "11 is not one\n"])
-  ]
-
------------------------------
------------------------------
------------------------------
-
-manyArrs :: SymStateEnv
-manyArrs = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Void "manyArrs"),
-    (VarBindings,SVarBindings (Map.fromList [
-        ("numbers",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
-    (VarAssignments,SVarAssignments [
-        ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
-        ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymNull SYT.Int],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})),
-        ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymInt 5],Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
-    (VarName "numbers",SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymInt 5]),
-    (Return,SymReturnVoid),
-    (Actions,SActions [SymString "[99, 5]\n"])
-  ]
-
------------------------------
------------------------------
------------------------------
-
-manyArrs2 :: SymStateEnv
-manyArrs2 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Void "manyArrs2"),
-    (VarBindings,SVarBindings (Map.fromList [("brand",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 29}}),("numbers1",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 29}}),("numbers2",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 29}}),("numbers3",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 29}}),("strs",Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 0, branchEnd = 29}})])),
-    (VarAssignments,SVarAssignments [
-        ("numbers1",(SymArray (Just SYT.Int) (Just $ SymInt 7) [SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers2",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 40,SymInt 55,SymInt 63,SymInt 17,SymInt 22],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers3",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("brand",(SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("strs",(SymArray (Just SYT.String) (Just $ SymInt 3) [SymNull SYT.String,SymNull SYT.String,SymNull SYT.String],Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("strs",(SymArray (Just SYT.String) (Just $ SymInt 3) [SymNull SYT.String,SymString "meow",SymNull SYT.String],Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers1",(SymArray (Just SYT.Int) (Just $ SymInt 7) [SymInt 86,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers1",(SymArray (Just SYT.Int) (Just $ SymInt 7) [SymInt 86,SymNull SYT.Int,SymInt 80,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers1",(SymArray (Just SYT.Int) (Just $ SymInt 7) [SymInt 86,SymInt 57,SymInt 80,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 10, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers1",(SymArray (Just SYT.Int) (Just $ SymInt 7) [SymInt 86,SymInt 57,SymInt 80,SymInt 34,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 11, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers1",(SymArray (Just SYT.Int) (Just $ SymInt 7) [SymInt 86,SymInt 57,SymInt 80,SymInt 34,SymInt 50,SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 12, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers1",(SymArray (Just SYT.Int) (Just $ SymInt 7) [SymInt 86,SymInt 57,SymInt 80,SymInt 34,SymInt 50,SymInt 48,SymNull SYT.Int],Node_Coor {varDeclAt = 13, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers1",(SymArray (Just SYT.Int) (Just $ SymInt 7) [SymInt 86,SymInt 57,SymInt 80,SymInt 34,SymInt 50,SymInt 48,SymInt 94],Node_Coor {varDeclAt = 14, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers2",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 51,SymInt 55,SymInt 63,SymInt 17,SymInt 22],Node_Coor {varDeclAt = 15, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers2",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 51,SymInt 84,SymInt 63,SymInt 17,SymInt 22],Node_Coor {varDeclAt = 16, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers2",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 51,SymInt 84,SymInt 92,SymInt 17,SymInt 22],Node_Coor {varDeclAt = 17, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers2",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 51,SymInt 84,SymInt 92,SymInt 87,SymInt 22],Node_Coor {varDeclAt = 18, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers2",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 51,SymInt 84,SymInt 92,SymInt 87,SymInt 81],Node_Coor {varDeclAt = 19, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers3",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymInt 43],Node_Coor {varDeclAt = 20, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers3",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymNull SYT.Int,SymNull SYT.Int,SymNull SYT.Int,SymInt 10,SymInt 43],Node_Coor {varDeclAt = 21, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers3",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymNull SYT.Int,SymNull SYT.Int,SymInt 34,SymInt 10,SymInt 43],Node_Coor {varDeclAt = 22, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers3",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymNull SYT.Int,SymInt 75,SymInt 34,SymInt 10,SymInt 43],Node_Coor {varDeclAt = 23, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers3",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymNull SYT.Int,SymInt 75,SymInt 34,SymInt 10,SymInt 6],Node_Coor {varDeclAt = 24, varFrame = SR {branchStart = 0, branchEnd = 29}})),
-        ("numbers3",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 5,SymInt 75,SymInt 34,SymInt 10,SymInt 6],Node_Coor {varDeclAt = 25, varFrame = SR {branchStart = 0, branchEnd = 29}}))]),
-    (VarName "brand",SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"]),
-    (VarName "numbers1",SymArray (Just SYT.Int) (Just $ SymInt 7) [SymInt 86,SymInt 57,SymInt 80,SymInt 34,SymInt 50,SymInt 48,SymInt 94]),
-    (VarName "numbers2",SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 51,SymInt 84,SymInt 92,SymInt 87,SymInt 81]),
-    (VarName "numbers3",SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 5,SymInt 75,SymInt 34,SymInt 10,SymInt 6]),
-    (VarName "strs",SymArray (Just SYT.String) (Just $ SymInt 3) [SymNull SYT.String,SymString "meow",SymNull SYT.String]),
-    (Return,SymReturnVoid),
-    (Actions,SActions [SymString "[86, 57, 80, 34, 50, 48, 94]\n",SymString "[51, 84, 92, 87, 81]\n",SymString "[5, 75, 34, 10, 6]\n"])
-  ]
-
------------------------------
------------------------------
------------------------------
-
-manyArrs3 :: SymStateEnv
-manyArrs3 = Map.fromList [
-    (MethodHandle,SMethodHandle (SYT.Array SYT.Int) "manyArrs3"),
-    (VarBindings,SVarBindings (Map.fromList [("numbers",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
-    (VarAssignments,SVarAssignments [
-        ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
-        ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymNull SYT.Int],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})),
-        ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymInt 5],Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
-    (VarName "numbers",SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymInt 5]),
-    (Return,SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymInt 5])
-  ]
-
------------------------------
------------------------------
------------------------------
-
-manyArrs4 :: SymStateEnv
-manyArrs4 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Void "manyArrs4"),
-    (VarBindings,SVarBindings (Map.fromList [("numbers",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
-    (VarAssignments,SVarAssignments [
-        ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
-        ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymNull SYT.Int],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
-    (VarName "numbers",SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymNull SYT.Int]),
-    (Return,SymReturnVoid),
-    (Actions,SActions [SymString "[99, 0]\n"])
-  ]
-
------------------------------
------------------------------
------------------------------
-
-manyArrs5 :: SymStateEnv
-manyArrs5 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Void "manyArrs5"),
-    (VarBindings,SVarBindings (Map.fromList [
-        ("brand",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
-    (VarAssignments,SVarAssignments [
-        ("brand",(SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),
-        ("brand",(SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "1. Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}})),
-        ("brand",(SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "1. Toyota",SymString "2. Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}})),
-        ("brand",(SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}})),
-        ("brand",(SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",SymString "4. Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}})),
-        ("brand",(SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",SymString "4. Volkswagen",SymString "5. Skoda"],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),
-    (VarName "brand",SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",SymString "4. Volkswagen",SymString "5. Skoda"]),
-    (LoopConditions (SR {branchStart = 2, branchEnd = 6}),
-     SLoopConditions [
-         Map.fromList [("brand.length",SymInt 5),("i",SymInt 0)],
-         Map.fromList [("brand.length",SymInt 5),("i",SymInt 1)],
-         Map.fromList [("brand.length",SymInt 5),("i",SymInt 2)],
-         Map.fromList [("brand.length",SymInt 5),("i",SymInt 3)],
-         Map.fromList [("brand.length",SymInt 5),("i",SymInt 4)]]),
-    (Return,SymReturnVoid),
-    (Actions,SActions [SymString "[1. Toyota, 2. Mercedes, 3. BMW, 4. Volkswagen, 5. Skoda]\n"])
-  ]
+manyArrs5 :: Method
+manyArrs5 = undefined
 
 -----------------------------
 -----------------------------
@@ -2793,11 +2871,11 @@ manyArrs7Call2 = Map.fromList [
   (Return,SymReturnVoid),
   (Actions,SActions [SymString "[1. Toyota, 2. Mercedes, 3. BMW, 4. Volkswagen, 5. Skoda]\n"])
   ]
-
+-}
 -----------------------------
 -----------------------------
 -----------------------------
-
+{-
 ifFun :: SymStateEnv
 ifFun = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "ifFun"),
