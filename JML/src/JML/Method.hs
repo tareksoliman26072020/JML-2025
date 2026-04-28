@@ -98,20 +98,17 @@ instance SymbolicExecutionVisitor MethodProcessor where
     -- a local variable `vn` has been re-assigned
     -- this denotes `vars` in JML
     (SYT.VarName vn,symExpr)
-      | (SY.isLocalVar vn sy || SY.hasFormalParameter vn sy)
-        && not (SY.isNotAssigned vn symExpr) -> do
+      |  not (SY.isNotAssigned vn symExpr) -> do
           let loc = globalLoc ++ ".visitSymExpr.VarName (2)"
           tellNextLog $ Log.Location loc (show tu)
-          let toReturn = ER_VarName_VarBinding vn symExpr Nothing
+          let toReturn = ER_VarName vn symExpr Nothing
           tellingThenReturning loc toReturn
-    -----------------------------
-    (SYT.VarName vn,symExpr) -> do
-      let loc = globalLoc ++ ".visitSymExpr.VarName (3)"
-      tellNextLog $ Log.Location loc (show tu)
-      tellNextLog
-        $ Log.Skip loc (show tu) "nothing to do with VarName"
-      let toReturn = ER_VarName vn symExpr
-      tellingThenReturning loc toReturn
+      | otherwise -> do
+          let loc = globalLoc ++ ".visitSymExpr.VarName (3)"
+          tellNextLog $ Log.Location loc (show tu)
+          tellNextLog $ Log.Skip loc (show tu) "varname remained unassigned"
+          let toReturn = ER_VarName_Unassigned vn symExpr Nothing
+          tellingThenReturning loc toReturn
     -----------------------------
     (SYT.Actions,SYT.SActions li) -> do
       let loc = globalLoc ++ ".visitSymExpr.Actions"

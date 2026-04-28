@@ -1559,7 +1559,7 @@ boo28 = Method {
       scopeRange = Just (SR {branchStart = 2, branchEnd = 5}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Lt (JMLInt 0)),
       assignable = [],
-      vars = [],
+      vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 1],
       hasSideEffect = False,
       ensures = [JMLResult (JMLInt 5)]
     }
@@ -1656,13 +1656,13 @@ boo28_2 = Method {
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 2,JMLVar Int_Type "y" `JMLEquals` JMLInt 0],
       hasSideEffect = False,
-      ensures = [JMLResult (JMLVar Int_Type "i")]}
-    ,
+      ensures = [JMLResult (JMLVar Int_Type "i")]
+    },
     NormalBehavior {
       scopeRange = Just (SR {branchStart = 2, branchEnd = 6}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Lt (JMLInt 0)),
       assignable = [],
-      vars = [],
+      vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 1],
       hasSideEffect = False,
       ensures = [JMLResult (JMLInt 5)]
     }

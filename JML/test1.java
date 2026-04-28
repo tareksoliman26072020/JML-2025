@@ -2294,6 +2294,16 @@ public static int boo28_6_5(int i){
     (Return,SymUnknown (SymInt 1) [([(If,SR {branchStart = 2, branchEnd = 7})],6)])
   ]
 */
+/*@ normal_behavior
+  @   requires i >= 0;
+  @   assignable \nothing;
+  @   ensures \result == i + 1;
+  @ also
+  @ normal_behavior
+  @   requires i < 0;
+  @   assignable \nothing;
+  @   ensures \result == 2;
+  @*/
 public static int boo28_6_6(int i){
   int x = 1;
   if(i >= 0){

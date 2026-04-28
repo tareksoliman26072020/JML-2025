@@ -94,8 +94,8 @@ data ExecutionResult =
   -- a global variable has been reassigned
   -- this results in an entry in `Assignable`, and entry in `ensures`
   | ER_VarName_Global_Reassigned String SYT.SymbolicExecutionValue (Maybe (CFGT.ScopeRange,Expr))
-  | ER_VarName_VarBinding String SYT.SymbolicExecutionValue (Maybe (CFGT.ScopeRange,Expr))
-  | ER_VarName String SYT.SymbolicExecutionValue
+  | ER_VarName String SYT.SymbolicExecutionValue (Maybe (CFGT.ScopeRange,Expr))
+  | ER_VarName_Unassigned String SYT.SymbolicExecutionValue (Maybe (CFGT.ScopeRange,Expr))
   | ER_ReturnException String
   | ER_Return SYT.SymbolicExecutionValue
   | ER_ReturnVoid

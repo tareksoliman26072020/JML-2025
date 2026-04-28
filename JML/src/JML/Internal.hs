@@ -121,7 +121,8 @@ symExprToExpr sy symExpr =
                 (symExprToExpr sy symExpr2)
        SYT.SymString str -> JMLString str
        SYT.SActions symExprs -> JMLActions $ map (symExprToExpr sy) symExprs
-       SYT.SymUnknown (vn,symExpr) _ -> JMLVarUnknown (toJMLType $ SY.Internal.toSymType2 symExpr) vn
+       SYT.SymUnknown (vn,symExpr) _ -> symExprToExpr sy symExpr
+         --JMLVarUnknown (toJMLType $ SY.Internal.toSymType2 symExpr) vn
        SYT.SException t str1 str2 -> JMLException (toJMLType t) str1 str2
        SYT.SBool b -> JMLBool b
        SYT.SObjAcc li -> JMLObjAcc li
@@ -293,7 +294,7 @@ addBehavior sy er = do
       do incrementLogEnumeration
          incrementLogDepth *> addToDefaultClause (Assignable [vn]) <* decrementLogDepth
       do case symExpr of
-           SYT.SymUnknown _ _ -> logSkipping loc
+           --SYT.SymUnknown _ _ -> logSkipping loc
            _ -> do
              let newVarAssignment = VarAssignment (
                    toJMLType $ SY.Internal.toSymType2 symExpr,
@@ -309,9 +310,9 @@ addBehavior sy er = do
          incrementLogEnumeration
          incrementLogDepth *> addToDefaultClause (Ensures ensuresExpr) <* decrementLogDepth
     --
-    ER_VarName_VarBinding vn symExpr mSR -> do
+    ER_VarName vn symExpr mSR -> do
       case symExpr of
-        SYT.SymUnknown _ _ -> logSkipping loc
+        --SYT.SymUnknown _ _ -> logSkipping loc
         _ -> do
           incrementLogEnumeration
           incrementLogDepth
@@ -321,6 +322,8 @@ addBehavior sy er = do
             symExprToExpr sy symExpr)
           decrementLogDepth
     --
+    ER_VarName_Unassigned _ _ _ -> logSkipping loc
+    --
     ER_VarBindings ma -> modify $ \jmlState -> JMLState {
       method    = method jmlState,
       jmlStack  = jmlStack jmlState,
@@ -329,7 +332,6 @@ addBehavior sy er = do
       localVars = Map.keys ma,
       globalVars = globalVars jmlState
     }
-    ER_VarName _ _ -> logSkipping loc
     ER_VarAssignments _ -> logSkipping loc
     ER_GlobalVars li -> modify $ \jmlState -> JMLState {
       method    = method jmlState,
@@ -430,8 +432,12 @@ addBehavior sy er = do
   addBehaviorViaReturn er = do
     let loc = "JML.Internal.addBehavior.addBehaviorViaReturn"
     tellNextLog $ Log.Location loc (show er)
+    tellingReportTheState loc
     let theJMLResult = case er of
-          ER_Return symExpr -> [JMLResult $ symExprToExpr sy symExpr]
+          ER_Return symExpr
+        {-    
+            | SY.Internal.hasSymUnknown symExpr -> meow
+            | otherwise -}-> [JMLResult $ symExprToExpr sy symExpr]
           ER_ReturnVoid -> [JMLResult JMLVoid]
           ER_ReturnException exceptionName -> []
         noRequireBehavior = case er of
@@ -686,12 +692,21 @@ addBehavior sy er = do
   nubClause :: Clause -> Clause
 --nubClause (Requires tu vals) = Requires tu $ nub vals
   nubClause (Requires tu vals) = let
+    helper (val@(VarAssignment (_,vn1,_)) : rest) = case find (\case
+      VarAssignment (_,vn2,_) -> vn2 == vn1
+      _ -> False) rest of
+        Just _ -> helper rest
+        Nothing -> val : helper rest
+    helper (val : rest) = val : helper rest
+    helper [] = [] in
+    Requires tu (helper $ nub vals){-
     helper (val@(VarAssignment (_,vn1,_)) : rest) = val : (helper $ flip filter rest $ \case
       VarAssignment (_,vn2,_) -> vn1 /= vn2
       _ -> True) 
     helper (val : rest) = val : helper rest
     helper [] = [] in
-    Requires tu (helper $ nub vals)
+    Requires tu (helper $ nub vals)-}
+
 -- look up vars in a specific behavior
 -- which has a speicific scope range, and a specific pre-condition (requires)
 extractVarsFromState :: CFGT.ScopeRange -> Expr -> JMLMonad [Expr]
