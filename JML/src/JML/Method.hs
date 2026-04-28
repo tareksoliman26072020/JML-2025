@@ -218,6 +218,7 @@ runSE sys sy =
             addingBehavior sy visited
             decrementLogDepth
             return visited
+        checkingRemovingDefaultBehavior
         return $ Map.elems visited
 
       initialJMLState :: JMLState
@@ -257,3 +258,7 @@ runSE sys sy =
   addingBehavior sy visited = do
     incrementLogEnumeration
     incrementLogDepth *> addBehavior sy visited <* decrementLogDepth
+  checkingRemovingDefaultBehavior :: JMLMonad ()
+  checkingRemovingDefaultBehavior = do
+    incrementLogEnumeration
+    incrementLogDepth *> checkRemovingDefaultBehavior <* decrementLogDepth

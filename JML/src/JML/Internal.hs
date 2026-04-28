@@ -15,6 +15,7 @@ import qualified Data.Map as Map
 import JML.Types
 import JML.PrettyPrint (ppBehavior, ppBehaviors)
 import qualified JML.Logs.Log as Log
+import Data.Maybe (isJust)
 
 import qualified CFG.Types as CFGT (ScopeRange)
 
@@ -523,22 +524,27 @@ addBehavior sy er = do
     gettingAssignable = concat [li | Assignable li <- values]
     gettingVars = [JMLVar t vn `JMLEquals` expr | VarAssignment (t,vn,expr) <- values]
     gettingSideEffect = HasSideEffect `elem` values
-    gettingEnsures = [expr | Ensures expr <- values] in
+    gettingEnsures = [expr | Ensures expr <- values]
+    newPreCondition = combinePreconditions thePreCondition (requires behavior) in
     processJMLVarUnknown_behavior $ case behavior of
       NormalBehavior{} -> NormalBehavior {
         scopeRange = theScopeRange,
-        requires = combinePreconditions thePreCondition (requires behavior),
-        assignable = assignable behavior ++ gettingAssignable,
-        vars = vars behavior ++ gettingVars,
+        requires = newPreCondition,
+        assignable = nub $ assignable behavior ++ gettingAssignable,
+        vars = (if newPreCondition == Nothing
+                  then id
+                else nubVars . processJMLVarUnknown_vars) $ vars behavior ++ gettingVars,
         hasSideEffect = hasSideEffect behavior || gettingSideEffect,
         ensures = ensures behavior ++ gettingEnsures
       }
       ExceptionalBehavior{} -> ExceptionalBehavior {
         scopeRange = theScopeRange,
-        requires = combinePreconditions thePreCondition (requires behavior),
+        requires = newPreCondition,
         signals = signals behavior,
-        assignable = assignable behavior ++ gettingAssignable,
-        vars = vars behavior ++ gettingVars,
+        assignable = nub $ assignable behavior ++ gettingAssignable,
+        vars = (if newPreCondition == Nothing
+                  then id
+                else nubVars . processJMLVarUnknown_vars) $ vars behavior ++ gettingVars,
         hasSideEffect = hasSideEffect behavior || gettingSideEffect,
         ensures = ensures behavior ++ gettingEnsures
       }
@@ -561,8 +567,12 @@ addBehavior sy er = do
     tellingReportTheState (loc ++ " <<before creating the clause>>")
     hasDefaultClause :: Bool <-
       (maybe False (const True) . find isDefaultClause . jmlStack) <$> get
+    defaultClauseVals :: [ClauseValue] <-
+      (maybe [] (\(Requires _ vals) -> vals) . find isDefaultClause . jmlStack) <$> get
     modify $ \(JMLState jmlMethod stack jmlLogHeader formal local global reAss) -> JMLState {
       method    = jmlMethod,
+      jmlStack = stack ++ [Requires (mSR,mPreCondition) $ defaultClauseVals ++ newValues],
+      {-
       jmlStack = if
         | hasDefaultClause -> flip map stack $ \case
             Requires (Nothing,Nothing) values -> nubClause $ processJMLVarUnknown_clause $
@@ -570,6 +580,7 @@ addBehavior sy er = do
                        (values ++ newValues)
             re -> re
         | otherwise -> stack ++ [Requires (mSR,mPreCondition) newValues],
+       -}
       logHeader = jmlLogHeader,
       formalParms = formal,
       localVars = local,
@@ -667,6 +678,14 @@ addBehavior sy er = do
     , vn == vn2
     ] of [expr] -> Just expr
          []     -> Nothing
+         vars   -> error $ printf
+           "TODO in JML.Internal.addBehavior.lookUpVar_behavior::\n\
+           \1) %s\n\
+           \2) %s\n\
+           \3) %s"
+           vn
+           (show behavior)
+           (show vars)
   processJMLVarUnknown_clause :: Clause -> Clause
   processJMLVarUnknown_clause (Requires tu vals) = let
     loc = "JML.Internal.addBehavior.processJMLVarUnknown_clause"
@@ -695,6 +714,32 @@ addBehavior sy er = do
       VarAssignment (t,name,expr) -> VarAssignment (t,name,helper expr)
       val@HasSideEffect -> val
     in Requires tu (map helper2 vals)
+  --
+  processJMLVarUnknown_vars :: [Expr] -> [Expr]
+  processJMLVarUnknown_vars vars = let
+    loc = "JML.Internal.addBehavior.processJMLVarUnknown_vars"
+    helper exprVal = case exprVal of
+      JMLVarUnknown _ vn expr ->
+        let same_vn = flip filter vars $ \case
+              JMLVar _ vn2 `JMLEquals` exprVal2 ->
+                (vn == vn2) && (exprVal /= exprVal2)
+        in case same_vn of
+             [] -> expr
+             [JMLVar _ _ `JMLEquals` expr2] -> expr2
+             _ -> error $ printf "TODO1 in %s" loc
+      JMLBin expr1 op expr2 -> JMLBin (helper expr1) op (helper expr2)
+      JMLNot expr -> JMLNot (helper expr)
+      expr1 `JMLAnd` expr2 -> (helper expr1) `JMLAnd` (helper expr2)
+      JMLInt _ -> exprVal
+      JMLDouble _ -> exprVal
+      JMLNum _ -> exprVal
+      JMLBool _ -> exprVal
+      JMLString _ -> exprVal
+      JMLVar _ _ -> exprVal
+      JMLArray mt ms elems -> JMLArray mt ms (map helper elems)
+      _ -> error $ printf "TODO2 in %s: %s" loc (show exprVal)
+    in flip map vars $ \(JMLVar t vn `JMLEquals` exprVal) ->
+         JMLVar t vn `JMLEquals` helper exprVal
   -- look up var in clause values
   lookUpVar_clause :: String -> [ClauseValue] -> Maybe Expr
   lookUpVar_clause vn vals = let
@@ -720,7 +765,6 @@ addBehavior sy er = do
     _ -> False
   -- nub, but for clause
   nubClause :: Clause -> Clause
---nubClause (Requires tu vals) = Requires tu $ nub vals
   nubClause (Requires tu vals) = let
     helper [] = []
     helper [val] = [val]
@@ -736,30 +780,25 @@ addBehavior sy er = do
            [VarAssignment (_,_,expr2)]
              | isJMLVarUnknown expr1 -> helper rest
              | otherwise -> val1 : helper no_vn
-           _ -> undefined--error $ "meow:: " ++ show (Requires tu (helper vals))
+           _ -> error $ "TODO in JML.Internal.addBehavior.nubClause:: " ++ show (Requires tu vals)
     helper (val1 : rest) = val1 : helper rest
     in Requires tu $ nub $ helper vals
-    {-
-    helper li = concat [ li2
-      | val1 <- vals, val2 <- drop 1 vals
-      , let li2 = case (val1,val2) of
-             (VarAssignment (_,vn1,expr1) , VarAssignment (_,vn2,expr2))
-               | vn1 == vn2 && isJMLVarUnknown expr1 -> [val2]
-               | vn1 == vn2 && isJMLVarUnknown expr2 -> [val1]
-               | vn1 == vn2 -> [val1]
-             _ -> [val1,val2]
-      ] in error $ "meow:: " ++ show (Requires tu (helper vals))
-     -}
-    {-
-  nubClause (Requires tu vals) = let
-    helper (val@(VarAssignment (_,vn1,_)) : rest) = case find (\case
-      VarAssignment (_,vn2,_) -> vn2 == vn1
-      _ -> False) rest of
-        Just _ -> helper rest
-        Nothing -> val : helper rest
-    helper (val : rest) = val : helper rest
-    helper [] = [] in
-    Requires tu (helper $ nub vals)-}
+  --
+  nubVars :: [Expr] -> [Expr]
+  nubVars [] = []
+  nubVars [var] = [var]
+  nubVars vars@(var1@(JMLVar _ vn1 `JMLEquals` exprVal1) : rest) =
+    let same_vn = flip filter rest $ \case
+          JMLVar _ vn2 `JMLEquals` _ -> vn1 == vn2
+        no_vn = flip filter rest $ \case
+          JMLVar _ vn2 `JMLEquals` _ -> vn1 /= vn2
+          _ -> True
+    in case same_vn of
+         [] -> var1 : nubVars rest
+         [JMLVar _ _ `JMLEquals` exprVal2]
+           | isJMLVarUnknown exprVal1 -> nubVars rest
+           | otherwise -> var1 : nubVars no_vn
+         _ -> error $ "TODO in JML.Internal.addBehavior.nubVars:: " ++ show vars
 
 -- look up vars in a specific behavior
 -- which has a speicific scope range, and a specific pre-condition (requires)
@@ -824,3 +863,37 @@ tellingReportTheStack :: String -> String -> [Clause] -> JMLMonad String
 tellingReportTheStack loc tag clauses =
   tellNextLog $ Log.ReportTheStack loc tag
   $ map (\(Requires one two) -> (show one,map show two)) clauses
+
+-- if all behaviors other than the default behavior (Requires == Nothing)
+-- cover all possible paths,
+-- then the default behavior is to be deleted
+checkRemovingDefaultBehavior :: JMLMonad ()
+checkRemovingDefaultBehavior = do
+  let loc = "JML.Internal.checkRemovingDefaultBehavior"
+  tellNextLog $ Log.Location loc ""
+  tellingReportTheState (loc ++ " <<before checking>>")
+  allPreConditions :: [Expr] <- get >>= \jmlState -> return [preCondition
+    | Just preCondition <- map requires (behaviors $ method jmlState)
+    ]
+  let check :: Bool
+      check = (not $ null allPreConditions) &&
+              (flip all allPreConditions $ \preCondition ->
+                 let itsNegation = negate preCondition
+                 in itsNegation `elem` allPreConditions)
+  if check then modify $ \jmlState -> JMLState {
+    method    = Method {
+      name      = name $ method jmlState,
+      behaviors = [behavior | behavior <- behaviors $ method jmlState
+                            , isJust $ requires behavior]
+    },
+    jmlStack  = jmlStack jmlState,
+    logHeader = logHeader jmlState,
+    formalParms = formalParms jmlState,
+    localVars = localVars jmlState,
+    globalVars = globalVars jmlState,
+    reAssigned = reAssigned jmlState
+  }
+  else return ()
+  if check
+    then tellingReportTheState (loc ++ " <<default behavior deleted>>") $> ()
+    else tellNextLog (Log.LogTag loc "default behavior is not deleted" "") $> ()
