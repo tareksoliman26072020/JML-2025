@@ -83,7 +83,7 @@ ppExpr expr = case expr of
     (_,JMLBin _ _ _) -> printf "%s %s (%s)" (ppExpr expr1) (ppOp op) (ppExpr expr2)
     _ -> printf "%s %s %s" (ppExpr expr1) (ppOp op) (ppExpr expr2)
   JMLString str -> printf "\"%s\"" str
-  JMLVarUnknown _ str -> "JMLVarUnknown " ++ str
+  JMLVarUnknown _ str _ -> "JMLVarUnknown " ++ str
   JMLBool b
     | b -> "true"
     | not b -> "false"

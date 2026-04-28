@@ -117,7 +117,8 @@ instance SymbolicExecutionVisitor MethodProcessor where
              tellNextLog $ Log.Skip loc (show tu) "no actions"
              tellingThenReturning loc ER_Void
          | otherwise -> do
-             let toReturn = ER_Actions $ symExprToExpr sy value
+             jmlState <- get
+             let toReturn = ER_Actions $ symExprToExpr jmlState value
              tellingThenReturning loc toReturn
     -----------------------------
     (SYT.ScopeRange scopeRange,SYT.SIte cond ifBody maybeElseBody) -> do
@@ -127,7 +128,8 @@ instance SymbolicExecutionVisitor MethodProcessor where
       -- process if
       (ifRequires,ifJMLState,if_ers) <- do
         tellNextLog $ Log.ProcessIfBody loc
-        let ifRequires = symExprToExpr sy cond
+        jmlState <- get
+        let ifRequires = symExprToExpr jmlState cond
         tellNextLog $ Log.IfConditionPreCondition loc (show ifRequires)
         incrementLogEnumeration >> incrementLogDepth
         
@@ -228,7 +230,8 @@ runSE sys sy =
         logHeader = Log.Header 1 [0],
         formalParms = [],
         localVars = [],
-        globalVars = []
+        globalVars = [],
+        reAssigned = []
       }
 
       run_e :: ReaderT (Map.Map String SYT.SymbolicExecution) (WriterT [Log.Log] (State JMLState)) (Either String [ExecutionResult])

@@ -1839,8 +1839,9 @@ boo28_6 = Method {
       requires = Just (JMLBin (JMLVar Int_Type "i") Lt (JMLInt 0)),
       assignable = [],
       vars = [
-        JMLVar Int_Type "y" `JMLEquals` JMLInt 2,
-        JMLVar Int_Type "x" `JMLEquals` JMLInt 2],
+        JMLVar Int_Type "x" `JMLEquals` JMLInt 2,
+        JMLVar Int_Type "y" `JMLEquals` JMLInt 2
+      ],
       hasSideEffect = False,
       ensures = [JMLResult (JMLInt 7)]
     }
@@ -2876,40 +2877,31 @@ manyArrs7Call2 = Map.fromList [
 -----------------------------
 -----------------------------
 {-
-ifFun :: SymStateEnv
-ifFun = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "ifFun"),
-    (GlobalVars,SGlobalVars []),
-    (FormalParms,SFormalParms ["n"]),
-    (VarBindings,SVarBindings (Map.fromList [("m",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}}),("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}),("x",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
-    (VarAssignments,SVarAssignments [
-        ("res",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),
-        ("m",(SymInt 0,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}})),
-        ("x",(SymInt 1,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 8}})),
-        ("res",(SymVar SYT.Int "n",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 4, branchEnd = 7}})),
-        ("m",(SBin (SymInt 2) SYT.Mul (SymVar SYT.Int "n"),Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 4, branchEnd = 7}}))]),
-    (VarName "m",SymUnknown (SymInt 0) [([(If,SR {branchStart = 4, branchEnd = 7})],6)]),
-    (VarName "n",SymVar SYT.Int "n"),
-    (VarName "res",SymUnknown (SymInt 0) [([(If,SR {branchStart = 4, branchEnd = 7})],5)]),
-    (VarName "x",SymInt 1),
-    (ScopeRange (SR {branchStart = 4, branchEnd = 7}),
-     SIte (SBin (SymVar SYT.Int "n") SYT.Ge (SymInt 0))
-          (Map.fromList [
-              (MethodHandle,SMethodHandle SYT.Int "ifFun"),
-              (FormalParms,SFormalParms ["n"]),
-              (VarBindings,SVarBindings (Map.fromList [("m",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}}),("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}),("x",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
-              (VarAssignments,SVarAssignments [
-                  ("res",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),
-                  ("m",(SymInt 0,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}})),
-                  ("x",(SymInt 1,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 8}})),
-                  ("res",(SymVar SYT.Int "n",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 4, branchEnd = 7}})),
-                  ("m",(SBin (SymInt 2) SYT.Mul (SymVar SYT.Int "n"),Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 4, branchEnd = 7}}))]),
-              (VarName "m",SBin (SymInt 2) SYT.Mul (SymVar SYT.Int "n")),
-              (VarName "n",SymVar SYT.Int "n"),
-              (VarName "res",SymVar SYT.Int "n"),
-              (VarName "x",SymInt 1)]) Nothing),
-    (Return,SBin (SymUnknown (SymInt 0) [([(If,SR {branchStart = 4, branchEnd = 7})],5)]) SYT.Add (SymInt 1))
+ifFun :: Method
+ifFun = Method {
+  name = "ifFun",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Just (SR {branchStart = 4, branchEnd = 7}),
+      requires = Just (JMLBin (JMLVar Int_Type "n") Ge (JMLInt 0)),
+      assignable = [],
+      vars = [
+        JMLVar Int_Type "m" `JMLEquals` JMLBin (JMLInt 2) Mul (JMLVar Int_Type "n"),
+        JMLVar Int_Type "res" `JMLEquals` JMLVar Int_Type "n",
+        JMLVar Int_Type "x" `JMLEquals` JMLInt 1], 
+      hasSideEffect = False,
+      ensures = [JMLResult $ JMLBin (JMLVar Int_Type "n") Add (JMLInt 1)]
+    },
+    NormalBehavior {
+      scopeRange = Just (SR {branchStart = 4, branchEnd = 7}),
+      requires = Just (JMLBin (JMLVar Int_Type "n") Lt (JMLInt 0)),
+      assignable = [],
+      vars = [],
+      hasSideEffect = False,
+      ensures = [JMLResult $ JMLBin (JMLInt 0) Add (JMLInt 1)]
+    }
   ]
+}
 
 -----------------------------
 -----------------------------

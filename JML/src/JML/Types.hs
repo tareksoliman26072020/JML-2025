@@ -18,7 +18,7 @@ data JMLType = String_Type | Int_Type | Num_Type | Double_Type | Bool_Type | Unk
              | Array_Type JMLType
              deriving (Show,Eq)
 
-data Expr = JMLVar JMLType String | JMLVarUnknown JMLType String | JMLInt Int | JMLDouble Double | JMLNum Float | JMLBool Bool
+data Expr = JMLVar JMLType String | JMLVarUnknown JMLType String Expr | JMLInt Int | JMLDouble Double | JMLNum Float | JMLBool Bool
           | JMLString String | JMLNull JMLType
           | JMLBin Expr Op Expr | JMLNot Expr | JMLOld Expr | Expr `JMLAnd` Expr
           | Expr `JMLEquals` Expr | JMLResult Expr | JMLActions [Expr]
@@ -74,7 +74,8 @@ data JMLState = JMLState {
   logHeader :: Log.Header,
   formalParms :: [String],
   localVars :: [String],
-  globalVars :: [String]
+  globalVars :: [String],
+  reAssigned :: [String]
 } deriving (Show,Eq)
 
 type JMLMonad =
