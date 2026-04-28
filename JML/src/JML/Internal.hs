@@ -401,10 +401,16 @@ addBehavior sy er = do
                    inheritClausesFromInnerState (jmlStack ifJMLState) (scopeRange,Just ifRequires)
                      "inheriting clauses from ifJMLState"
                    decrementLogDepth
-                do incrementLogDepth
-                   inheritClausesFromInnerState (jmlStack elseJMLState) (scopeRange,Just elseRequires)
-                     "inheriting clauses from elseJMLState"
-                   decrementLogDepth
+                if | hasElseBody -> do
+                       incrementLogDepth
+                       inheritClausesFromInnerState (jmlStack elseJMLState) (scopeRange,Just elseRequires)
+                         "inheriting clauses from elseJMLState"
+                       decrementLogDepth
+                   | otherwise -> do
+                       incrementLogDepth
+                       inheritClausesFromInnerState [] (scopeRange,Just $ negate ifRequires)
+                         "no clauses to inherit"
+                       decrementLogDepth
             -- if body returns, else body returns nothing
             | ifBodyHasReturn -> do
                 if | hasElseBody -> inheritClausesFromInnerState (jmlStack elseJMLState)
@@ -603,35 +609,42 @@ addBehavior sy er = do
   processJMLVarUnknown_behavior :: Behavior -> Behavior
   processJMLVarUnknown_behavior behavior = let
     loc = "JML.Internal.addBehavior.processJMLVarUnknown_behavior"
-    traverseExprs vars beh = map (helper beh) vars
-    helper beh = \case
-      JMLVarUnknown _ vn -> case lookUpVar_behavior vn beh of
+    traverseExprs vars = map helper vars
+    helper = \case
+      expr@(JMLVarUnknown _ vn) -> case lookUpVar_behavior vn behavior of
         Just val -> val
-        Nothing -> error $ printf "error in %s" loc
-      JMLBin expr1 op expr2 -> JMLBin (helper beh expr1) op (helper beh expr2)
-      JMLNot expr -> JMLNot (helper  beh expr)
-      expr1 `JMLAnd` expr2 -> (helper beh expr1) `JMLAnd` (helper beh expr2)
-      expr1 `JMLEquals` expr2 -> expr1 `JMLEquals` (helper beh expr2)
-      JMLResult expr -> JMLResult (helper beh expr)
-      JMLActions exprs -> JMLActions $ traverseExprs exprs beh
+        Nothing -> error $ printf
+          "error in %s\n\
+          \  1) %s\n\
+          \  2) %s\n\
+          \  %s" loc
+          (show expr)
+          (show behavior)
+          (ppBehavior behavior)
+      JMLBin expr1 op expr2 -> JMLBin (helper expr1) op (helper expr2)
+      JMLNot expr -> JMLNot (helper expr)
+      expr1 `JMLAnd` expr2 -> (helper expr1) `JMLAnd` (helper expr2)
+      expr1 `JMLEquals` expr2 -> expr1 `JMLEquals` (helper expr2)
+      JMLResult expr -> JMLResult (helper expr)
+      JMLActions exprs -> JMLActions $ traverseExprs exprs
       expr -> expr
     in case behavior of
     NormalBehavior{} -> NormalBehavior {
       scopeRange = scopeRange behavior,
       requires = requires behavior,
       assignable = assignable behavior,
-      vars = traverseExprs (vars behavior) behavior,
+      vars = traverseExprs (vars behavior),
       hasSideEffect = hasSideEffect behavior,
-      ensures = traverseExprs (ensures behavior) behavior
+      ensures = traverseExprs (ensures behavior)
     }
     ExceptionalBehavior{} -> ExceptionalBehavior {
       scopeRange = scopeRange behavior,
       requires = requires behavior,
       signals = signals behavior,
       assignable = assignable behavior,
-      vars = traverseExprs (vars behavior) behavior,
+      vars = traverseExprs (vars behavior),
       hasSideEffect = hasSideEffect behavior,
-      ensures = traverseExprs (ensures behavior) behavior
+      ensures = traverseExprs (ensures behavior)
     }
   -- look up var in behavior
   lookUpVar_behavior :: String -> Behavior -> Maybe Expr
