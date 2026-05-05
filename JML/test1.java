@@ -2294,6 +2294,16 @@ public static int boo28_6_5(int i){
     (Return,SymUnknown (SymInt 1) [([(If,SR {branchStart = 2, branchEnd = 7})],6)])
   ]
 */
+/*@ normal_behavior
+  @   requires i >= 0;
+  @   assignable \nothing;
+  @   ensures \result == i + 1;
+  @ also
+  @ normal_behavior
+  @   requires i < 0;
+  @   assignable \nothing;
+  @   ensures \result == 2;
+  @*/
 public static int boo28_6_6(int i){
   int x = 1;
   if(i >= 0){
@@ -2537,6 +2547,83 @@ public static int boo28_6_7(int i){
   }
   x = 5;
   return x;
+}
+
+////////////////////////////////////////
+
+//DONE
+//JavaMethod
+/*
+fromList [
+  (MethodHandle,SMethodHandle Int "boo28_6_8"),
+  (GlobalVars,SGlobalVars []),
+  (FormalParms,SFormalParms ["i"]),
+  (VarBindings,SVarBindings (fromList [
+    ("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
+  (VarAssignments,SVarAssignments [
+    ("res",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),
+    ("res",(SymInt 1,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 4}})),
+    ("res",(SBin (SymUnknown ("res",SymInt 0) [([(If,SR {branchStart = 2, branchEnd = 4})],3)]) Mul (SymInt 3),Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 5, branchEnd = 7}}))]),
+  (VarName "i",SymVar Int "i"),
+  (VarName "res",SymUnknown ("res",SymInt 0) [
+    ([(If,SR {branchStart = 2, branchEnd = 4})],3),
+    ([(If,SR {branchStart = 5, branchEnd = 7})],6)]),
+  (ScopeRange (SR {branchStart = 2, branchEnd = 4}),
+   SIte (SBin (SBin (SymVar Int "i") Mod (SymInt 2)) Eq (SymInt 0))
+        (fromList [(MethodHandle,SMethodHandle Int "boo28_6_8"),(FormalParms,SFormalParms ["i"]),(VarBindings,SVarBindings (fromList [("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})])),(VarAssignments,SVarAssignments [("res",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),("res",(SymInt 1,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 4}}))]),(VarName "i",SymVar Int "i"),(VarName "res",SymInt 1)])
+        Nothing),
+  (ScopeRange (SR {branchStart = 5, branchEnd = 7}),
+   SIte (SBin (SBin (SymVar Int "i") Mod (SymInt 3)) Eq (SymInt 0))
+        (fromList [(MethodHandle,SMethodHandle Int "boo28_6_8"),(GlobalVars,SGlobalVars []),(FormalParms,SFormalParms ["i"]),(VarBindings,SVarBindings (fromList [("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})])),(VarAssignments,SVarAssignments [("res",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),("res",(SymInt 1,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 4}})),("res",(SBin (SymUnknown ("res",SymInt 0) [([(If,SR {branchStart = 2, branchEnd = 4})],3)]) Mul (SymInt 3),Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 5, branchEnd = 7}}))]),(VarName "i",SymVar Int "i"),(VarName "res",SBin (SymUnknown ("res",SymInt 0) [([(If,SR {branchStart = 2, branchEnd = 4})],3)]) Mul (SymInt 3)),(ScopeRange (SR {branchStart = 2, branchEnd = 4}),SIte (SBin (SBin (SymVar Int "i") Mod (SymInt 2)) Eq (SymInt 0)) (fromList [(MethodHandle,SMethodHandle Int "boo28_6_8"),(FormalParms,SFormalParms ["i"]),(VarBindings,SVarBindings (fromList [("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})])),(VarAssignments,SVarAssignments [("res",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),("res",(SymInt 1,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 4}}))]),(VarName "i",SymVar Int "i"),(VarName "res",SymInt 1)]) Nothing)])
+        Nothing),
+  (Return,SymUnknown ("res",SymInt 0) [
+    ([(If,SR {branchStart = 2, branchEnd = 4})],3),
+    ([(If,SR {branchStart = 5, branchEnd = 7})],6)])]
+*/
+/*@ normal_behavior
+  @   requires ((i % 2) == 0) && ((i % 3) == 0);
+  @   assignable \nothing;
+  @   ensures \result == 1 * 3;
+  @ also
+  @ normal_behavior
+  @   requires ((i % 2) != 0) && ((i % 3) == 0);
+  @   assignable \nothing;
+  @   ensures \result == 0 * 3;
+  @ also
+  @ normal_behavior
+  @   requires ((i % 2) == 0) && ((i % 3) != 0);
+  @   assignable \nothing;
+  @   ensures \result == 1;
+  @ also
+  @ normal_behavior
+  @   requires ((i % 2) != 0) && ((i % 3) != 0);
+  @   assignable \nothing;
+  @   ensures \result == 0;
+  @*/
+public int boo28_6_8(int i) {
+  int res = 0;
+  if(i % 2 == 0) {
+    res += 1;
+  }
+
+  if(i % 3 == 0) {
+    res *= 3;
+  }
+  return res;
+}
+
+//DONE
+//JavaMethod
+/*
+fromList [
+  (MethodHandle,SMethodHandle Void "boo28_6_8_call"),
+  (Actions,SActions [SymString "0\n",SymString "1\n",SymString "3\n"])
+  ]
+*/
+public void boo28_6_8_call() {
+  println(toString(boo28_6_8(5)));
+  println(toString(boo28_6_8(8)));
+  println(toString(boo28_6_8(12)));
 }
 
 ////////////////////////////////////////
@@ -3650,6 +3737,16 @@ public static void manyArrs7Call2() {
  (ScopeRange (SR {branchStart = 4, branchEnd = 7}),SIte (SBin (SymVar Int "n") Ge (SymInt 0)) (SymState {env = fromList [(MethodName "ifFun",SMethodType Int),(FormalParms,SFormalParms ["n"]),(VarBindings,SVarBindings (fromList [("m",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}}),("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}),("x",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 8}})])),(VarAssignments,SVarAssignments [("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}),("m",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}}),("x",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 8}}),("res",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 4, branchEnd = 7}}),("m",Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 4, branchEnd = 7}})]),(VarName "m",SBin (SymInt 2) Mul (SymVar Int "n")),(VarName "n",SymVar Int "n"),(VarName "res",SymVar Int "n"),(VarName "x",SymInt 1)], pc = []}) Nothing),
  (Return,SBin (SymUnknown (Int,"res",Just (SymInt 0)) [([(If,SR {branchStart = 4, branchEnd = 7})],5)]) Add (SymInt 1))]
 */
+/*@ normal_behavior
+  @   requires n >= 0;
+  @   assignable \nothing;
+  @   ensures \result == n + 1;
+  @ also
+  @ normal_behavior
+  @   requires n < 0;
+  @   assignable \nothing;
+  @   ensures \result == 0 + 1;
+  @*/
 public int ifFun(int n) {
   int res = 0;
   int m = 0;

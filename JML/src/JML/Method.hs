@@ -98,20 +98,17 @@ instance SymbolicExecutionVisitor MethodProcessor where
     -- a local variable `vn` has been re-assigned
     -- this denotes `vars` in JML
     (SYT.VarName vn,symExpr)
-      | (SY.isLocalVar vn sy || SY.hasFormalParameter vn sy)
-        && not (SY.isNotAssigned vn symExpr) -> do
+      |  not (SY.isNotAssigned vn symExpr) -> do
           let loc = globalLoc ++ ".visitSymExpr.VarName (2)"
           tellNextLog $ Log.Location loc (show tu)
-          let toReturn = ER_VarName_VarBinding vn symExpr Nothing
+          let toReturn = ER_VarName vn symExpr Nothing
           tellingThenReturning loc toReturn
-    -----------------------------
-    (SYT.VarName vn,symExpr) -> do
-      let loc = globalLoc ++ ".visitSymExpr.VarName (3)"
-      tellNextLog $ Log.Location loc (show tu)
-      tellNextLog
-        $ Log.Skip loc (show tu) "nothing to do with VarName"
-      let toReturn = ER_VarName vn symExpr
-      tellingThenReturning loc toReturn
+      | otherwise -> do
+          let loc = globalLoc ++ ".visitSymExpr.VarName (3)"
+          tellNextLog $ Log.Location loc (show tu)
+          tellNextLog $ Log.Skip loc (show tu) "varname remained unassigned"
+          let toReturn = ER_VarName_Unassigned vn symExpr Nothing
+          tellingThenReturning loc toReturn
     -----------------------------
     (SYT.Actions,SYT.SActions li) -> do
       let loc = globalLoc ++ ".visitSymExpr.Actions"
@@ -120,17 +117,20 @@ instance SymbolicExecutionVisitor MethodProcessor where
              tellNextLog $ Log.Skip loc (show tu) "no actions"
              tellingThenReturning loc ER_Void
          | otherwise -> do
-             let toReturn = ER_Actions $ symExprToExpr sy value
+             jmlState <- get
+             let toReturn = ER_Actions $ symExprToExpr jmlState value
              tellingThenReturning loc toReturn
     -----------------------------
     (SYT.ScopeRange scopeRange,SYT.SIte cond ifBody maybeElseBody) -> do
       let loc = globalLoc ++ ".visitSymExpr.SIte"
       tellNextLog $ Log.Location loc (show tu)
+      originalStack <- jmlStack <$> get
       -- SIte SymExpr SymbolicExecution (Maybe SymbolicExecution)
       -- process if
       (ifRequires,ifJMLState,if_ers) <- do
         tellNextLog $ Log.ProcessIfBody loc
-        let ifRequires = symExprToExpr sy cond
+        jmlState <- get
+        let ifRequires = symExprToExpr jmlState cond
         tellNextLog $ Log.IfConditionPreCondition loc (show ifRequires)
         incrementLogEnumeration >> incrementLogDepth
         
@@ -215,10 +215,18 @@ runSE sys sy =
             incrementLogDepth >> incrementLogEnumeration
             -- visiting
             visited <- visitingSymExpr sy (k,v)
+            visited2 <- case visited of
+              ER_IfThenElse one two three -> do
+                nextPathEnumeration <- (+1) <$> getPathEnumeration
+                incrementPathEnumeration
+                tellNextLog $ Log.BranchNumIncremented loc (show nextPathEnumeration)
+                return $ ER_IfThenElse one two three
+              _ -> return visited
             -- modifying the state
-            addingBehavior sy visited
+            addingBehavior sy visited2
             decrementLogDepth
-            return visited
+            return visited2
+        --checkingRemovingDefaultBehavior
         return $ Map.elems visited
 
       initialJMLState :: JMLState
@@ -231,7 +239,9 @@ runSE sys sy =
         logHeader = Log.Header 1 [0],
         formalParms = [],
         localVars = [],
-        globalVars = []
+        globalVars = [],
+        reAssigned = [],
+        pathCreationEnumeration = 0
       }
 
       run_e :: ReaderT (Map.Map String SYT.SymbolicExecution) (WriterT [Log.Log] (State JMLState)) (Either String [ExecutionResult])
@@ -257,3 +267,7 @@ runSE sys sy =
   addingBehavior sy visited = do
     incrementLogEnumeration
     incrementLogDepth *> addBehavior sy visited <* decrementLogDepth
+  checkingRemovingDefaultBehavior :: JMLMonad ()
+  checkingRemovingDefaultBehavior = do
+    incrementLogEnumeration
+    incrementLogDepth *> checkRemovingDefaultBehavior <* decrementLogDepth

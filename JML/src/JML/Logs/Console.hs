@@ -38,6 +38,11 @@ ppConsoleLogTag = \case
   Return loc contents   -> printf
     "%s in %s\n\
     \  %s: %s" (yellow "Return") (cyan loc) (yellow "Contents") contents
+  BranchNumIncremented loc newNum -> printf
+    "%s in %s\n\
+    \  %s = %s"
+    (yellow "Branch Num Incremented") (cyan loc)
+    (yellow "New Value") newNum
   ToBeProcessed loc contents -> printf
     "%s in %s\n\
     \  %s: %s" (yellow "To Be Processed") (cyan loc) (yellow "Contents") contents
@@ -118,11 +123,6 @@ ppConsoleLogTag = \case
     (yellow "method") method
     (yellow "jmlStack")
     (callReportTheState jmlStack)
-    {-(concatMap (\ch -> if
-       ch == '\n' then "\n  "
-       else [ch])
-     $ dropWhile (/= '\n')
-     $ ppConsoleLogTag $ ReportTheStack "" "" jmlStack)-}
     (yellow "logHeader") logHeader
     (yellow "formals") formals
     (yellow "locals") locals

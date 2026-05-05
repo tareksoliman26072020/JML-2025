@@ -60,7 +60,7 @@ javaMethodInputs = [
   ("boo28_6_6_2",boo28_6_6_2),
   ("boo28_6_6_3",boo28_6_6_3),
   ("boo28_6_6_4",boo28_6_6_4),
-  ("boo28_6_7",boo28_6_7),
+  ("boo28_6_7",boo28_6_7), ("boo28_6_8",boo28_6_8), ("boo28_6_8_call",boo28_6_8_call),
   ("boo28_6_p",boo28_6_p),
   ("boo29",boo29),
   ("boo30", boo30),
@@ -780,6 +780,25 @@ boo28_6_7 = "public static int boo28_6_7(int i){\n\
             \  x = 5;\n\
             \  return x;\n\
             \}"
+
+boo28_6_8 :: String
+boo28_6_8 = "public int boo28_6_8(int i) {\n\
+            \  int res = 0;\n\
+            \  if(i % 2 == 0) {\n\
+            \    res += 1;\n\
+            \  }\n\
+            \  if(i % 3 == 0) {\n\
+            \    res *= 3;\n\
+            \  }\n\
+            \  return res;\n\
+            \}"
+
+boo28_6_8_call :: String
+boo28_6_8_call = "public void boo28_6_8_call() {\n\
+                 \  println(toString(boo28_6_8(5)));\n\
+                 \  println(toString(boo28_6_8(8)));\n\
+                 \  println(toString(boo28_6_8(12)));\n\
+                 \}"
 
 boo28_6_p :: String
 boo28_6_p = "public int boo28_6_p() {\n\

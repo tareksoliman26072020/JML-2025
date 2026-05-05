@@ -1,12 +1,15 @@
 {-# Language LambdaCase #-}
 module JML.PrettyPrint where
 
-import JML.Types (Behavior(..), Expr(..), Op(..), DefinedFun(..))
+import JML.Types (Behavior(..), Expr(..), Op(..), DefinedFun(..), Clause(..))
 import Data.List (intercalate)
 import Text.Printf (printf)
 
 loc :: String
 loc = "JML.PrettyPrint.ppBehavior"
+
+yellow :: String -> String
+yellow = printf "\ESC[1;33m%s\ESC[m"
 
 list :: b -> ([a] -> b) -> [a] -> b
 list ifEmpty ifFull = \case
@@ -68,6 +71,21 @@ NormalBehavior {requires = Nothing, assignable = [], ensures = Just (Int 5)}
     ]
   _ -> error $ "JML.PrettyPrint.ppBehavior ==> TODO: " ++ show behavior
 
+ppColoredClause :: Clause -> String
+ppColoredClause (Requires (one,two) three) = printf
+  "%s: %s\n\
+  \%s: %s\n\
+  \%s:\n\
+  \    %s"
+  (yellow "Scope Range") (show one)
+  (yellow "Pre Condition") (show two)
+  (yellow "Values")
+  (intercalate "\n    "
+   $ map (\(counter,value) -> printf
+      "%s %s" (yellow $ printf "%d)" counter) (show value))
+   $ zip [1::Int ..] three
+  )
+
 ppExpr :: Expr -> String
 ppExpr expr = case expr of
   JMLInt num -> show num
@@ -83,7 +101,7 @@ ppExpr expr = case expr of
     (_,JMLBin _ _ _) -> printf "%s %s (%s)" (ppExpr expr1) (ppOp op) (ppExpr expr2)
     _ -> printf "%s %s %s" (ppExpr expr1) (ppOp op) (ppExpr expr2)
   JMLString str -> printf "\"%s\"" str
-  JMLVarUnknown _ str -> "JMLVarUnknown " ++ str
+  JMLVarUnknown _ str _ -> "JMLVarUnknown " ++ str
   JMLBool b
     | b -> "true"
     | not b -> "false"
@@ -94,7 +112,6 @@ ppExpr expr = case expr of
   JMLArrayIndexAccess _ arrName arrIndexExpr -> printf "%s[%s]" arrName (ppExpr arrIndexExpr)
 --JMLArray (Just Int_Type) (Just (JMLInt 2)) [JMLInt 99,JMLInt 5]
   JMLArray _ _ elems -> printf "[%s]" (intercalate ", " $ map ppExpr elems)
-  expr1 `JMLAnd` expr2 -> printf "%s && %s" (ppExpr expr1) (ppExpr expr2)
   SymFun ToString expr -> printf "toString(%s)" (ppExpr expr)
   _ -> error $ "JML.PrettyPrint.ppExpr ==> TODO2: " ++ show expr
 
@@ -109,6 +126,9 @@ ppOp op = case op of
   Lt -> "<"
   Eq -> "=="
   Neq -> "!="
+  Mod -> "%"
+  And -> "&&"
+  Or -> "||"
   _ -> error $ printf "JML.PrettyPrint.ppOp: TODO: %s" (show op)
 
 ppBehaviors :: [Behavior] -> String

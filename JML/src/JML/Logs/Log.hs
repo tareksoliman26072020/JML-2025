@@ -32,6 +32,7 @@ data LogTag =
   | IfBranchBehaviors String [(String,String)]
   | ElseBranchBehaviors String [(String,String)]
   | ToBeProcessed String String
+  | BranchNumIncremented String String
   | Meow String String
   deriving (Show,Eq)
 
@@ -56,6 +57,11 @@ ppLogTag = \case
   Return loc contents   -> printf
     "%s in %s\n\
     \  %s: %s" "Return" loc "Contents" contents
+  BranchNumIncremented loc newNum -> printf
+    "%s in %s\n\
+    \  %s = %s"
+    "Branch Num Incremented" loc
+    "New Value" newNum
   ToBeProcessed loc contents -> printf
     "%s in %s\n\
     \  %s: %s" "To Be Processed" loc "Contents" contents
