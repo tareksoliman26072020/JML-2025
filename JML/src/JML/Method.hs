@@ -192,6 +192,13 @@ instance SymbolicExecutionVisitor MethodProcessor where
 
       return $ ER_IfThenElse scopeRange (ifRequires,ifJMLState,if_ers) maybeElse
     -----------------------------
+    (SYT.LoopConditions sr,SYT.SLoopConditions li) -> do
+      let loc = globalLoc ++ ".visitSymExpr.LoopConditions"
+      tellNextLog $ Log.Location loc (show tu)
+      tellNextLog $ Log.Skip loc (show tu) "Loop Conditions"
+      let toReturn = ER_LoopConditions sr li
+      tellingThenReturning loc toReturn
+    -----------------------------
     _ ->
       let loc = globalLoc ++ ".visitSymExpr"
       in throwError $ createError_sy "TODO" loc key value

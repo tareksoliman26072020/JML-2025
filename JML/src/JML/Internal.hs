@@ -304,6 +304,7 @@ addBehavior sy er = do
     ER_ReturnException _ -> addBehaviorViaReturn er
     ER_Void -> logSkipping loc
     ER_ReturnVoid -> addBehaviorViaReturn er
+    ER_LoopConditions _ _ -> logSkipping loc
     ER_Actions _ -> do
       incrementLogEnumeration
       incrementLogDepth *> addToDefaultClause HasSideEffect <* decrementLogDepth

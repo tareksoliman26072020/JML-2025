@@ -64,9 +64,9 @@ allTargets = [
   ("manyArrs2",manyArrs2),
   ("manyArrs3",manyArrs3),
   ("manyArrs4", manyArrs4),
-{-("manyArrs5", manyArrs5),
+  ("manyArrs5", manyArrs5),
   ("manyArrs6", manyArrs6),
-  ("manyArrs7", manyArrs7), ("manyArrs7Call1", manyArrs7Call1), ("manyArrs7Call2", manyArrs7Call2),-}
+{-("manyArrs7", manyArrs7),-} ("manyArrs7Call1", manyArrs7Call1), ("manyArrs7Call2", manyArrs7Call2),
 {-("ifFun",ifFun),
   ("ifFun2",ifFun2),
   ("ifFunCall",ifFunCall), ("ifFun2Call",ifFun2Call), ("ifFun2Call2",ifFun2Call2),
@@ -2893,44 +2893,64 @@ manyArrs4 = Method {
 -----------------------------
 -----------------------------
 -----------------------------
-{-
+
 manyArrs5 :: Method
-manyArrs5 = undefined
-
------------------------------
------------------------------
------------------------------
-
-manyArrs6 :: SymStateEnv
-manyArrs6 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Void "manyArrs6"),
-    (VarBindings,SVarBindings (Map.fromList [
-        ("brand",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
-    (VarAssignments,SVarAssignments [
-        ("brand",(SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}))]),
-    (VarName "brand",SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"]),
-    (LoopConditions (SR {branchStart = 2, branchEnd = 6}),
-     SLoopConditions [
-         Map.fromList [("brand.length",SymInt 5),("i",SymInt 0)],
-         Map.fromList [("brand.length",SymInt 5),("i",SymInt 1)],
-         Map.fromList [("brand.length",SymInt 5),("i",SymInt 2)],
-         Map.fromList [("brand.length",SymInt 5),("i",SymInt 3)],
-         Map.fromList [("brand.length",SymInt 5),("i",SymInt 4)]]),
-    (Return,SymReturnVoid),
-    (Actions,
-     SActions [
-         SymString "1. Toyota\n",
-         SymString "2. Mercedes\n",
-         SymString "3. BMW\n",
-         SymString "4. Volkswagen\n",
-         SymString "5. Skoda\n",
-         SymString "[Toyota, Mercedes, BMW, Volkswagen, Skoda]\n"])
+manyArrs5 = Method {
+  name = "manyArrs5",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = [],
+      vars = [
+        JMLVar (Array_Type String_Type) "brand" `JMLEquals`
+          JMLArray (Just String_Type) (Just (JMLInt 5)) [
+            JMLString "1. Toyota",
+            JMLString "2. Mercedes",
+            JMLString "3. BMW",
+            JMLString "4. Volkswagen",
+            JMLString "5. Skoda"
+          ]
+      ],
+      hasSideEffect = True,
+      ensures = [JMLResult JMLVoid]
+    }
   ]
+}
+
 
 -----------------------------
 -----------------------------
 -----------------------------
 
+manyArrs6 :: Method
+manyArrs6 = Method {
+  name = "manyArrs6",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = [],
+      vars = [
+        JMLVar (Array_Type String_Type) "brand" `JMLEquals`
+          JMLArray (Just String_Type) (Just (JMLInt 5)) [
+            JMLString "Toyota",
+            JMLString "Mercedes",
+            JMLString "BMW",
+            JMLString "Volkswagen",
+            JMLString "Skoda"
+          ]
+      ],
+      hasSideEffect = True,
+      ensures = [JMLResult JMLVoid]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+{-
 manyArrs7 :: SymStateEnv
 manyArrs7 = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Void "manyArrs7"),
@@ -2946,34 +2966,54 @@ manyArrs7 = Map.fromList [
     (Return,SymReturnVoid),
     (Actions,SActions [SymFun Println (SymVar (SYT.Array SYT.String) "brand")])
   ]
-
------------------------------
------------------------------
------------------------------
-
-manyArrs7Call1 :: SymStateEnv
-manyArrs7Call1 = Map.fromList [
- (MethodHandle,SMethodHandle SYT.Void "manyArrs7Call1"),
- (Return,SymReturnVoid),
- (Actions,SActions [SymString "[1. Toyota, 2. Mercedes, 3. BMW, 4. Volkswagen, 5. Skoda]\n"])
-  ]
-
------------------------------
------------------------------
------------------------------
-
-manyArrs7Call2 :: SymStateEnv
-manyArrs7Call2 = Map.fromList [
-  (MethodHandle,SMethodHandle SYT.Void "manyArrs7Call2"),
-  (VarBindings,SVarBindings (Map.fromList [("brand",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
-  (VarAssignments,SVarAssignments [("brand",(SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
-  (VarName "brand",SymArray (Just SYT.String) (Just $ SymInt 5) [
-     SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",
-     SymString "4. Volkswagen",SymString "5. Skoda"]),
-  (Return,SymReturnVoid),
-  (Actions,SActions [SymString "[1. Toyota, 2. Mercedes, 3. BMW, 4. Volkswagen, 5. Skoda]\n"])
-  ]
 -}
+-----------------------------
+-----------------------------
+-----------------------------
+
+manyArrs7Call1 :: Method
+manyArrs7Call1 = Method {
+  name = "manyArrs7Call1",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = [],
+      vars = [],
+      hasSideEffect = True,
+      ensures = [JMLResult JMLVoid]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+manyArrs7Call2 :: Method
+manyArrs7Call2 = Method {
+  name = "manyArrs7Call2",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = [],
+      vars = [
+        JMLVar (Array_Type String_Type) "brand" `JMLEquals`
+          JMLArray (Just String_Type) (Just (JMLInt 5)) [
+            JMLString "1. Toyota",
+            JMLString "2. Mercedes",
+            JMLString "3. BMW",
+            JMLString "4. Volkswagen",
+            JMLString "5. Skoda"
+          ]
+      ],
+      hasSideEffect = True,
+      ensures = [JMLResult JMLVoid]
+    }
+  ]
+}
+
 -----------------------------
 -----------------------------
 -----------------------------

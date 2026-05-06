@@ -3609,6 +3609,10 @@ fromList [
     (Actions,SActions [SymString "[1. Toyota, 2. Mercedes, 3. BMW, 4. Volkswagen, 5. Skoda]\n"])
   ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @*/
 public void manyArrs5() {
   String[] brand = new String[] {"Toyota","Mercedes","BMW","Volkswagen","Skoda"};
   for(int i=0; i<brand.length; i++) {
@@ -3649,6 +3653,10 @@ SymState {
   ], logHeader = Header {logScopeDepth = 1, logCounter = [5,3]}
 }
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @*/
 public void manyArrs6() {
   String[] brand = new String[] {"Toyota","Mercedes","BMW","Volkswagen","Skoda"};
   for(int i=0; i<brand.length; i++) {
@@ -3690,6 +3698,10 @@ public void manyArrs7(String[] meow) {
  (Actions,SActions [SymString "[1. Toyota, 2. Mercedes, 3. BMW, 4. Volkswagen, 5. Skoda]\n"])
 ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @*/
 public void manyArrs7Call1() {
   manyArrs7(new String[] {"Toyota","Mercedes","BMW","Volkswagen","Skoda"});
 }
@@ -3709,6 +3721,10 @@ public void manyArrs7Call1() {
  (Actions,SActions [SymString "[1. Toyota, 2. Mercedes, 3. BMW, 4. Volkswagen, 5. Skoda]\n"])
 ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @*/
 public static void manyArrs7Call2() {
     String[] brand = new String[] {"Toyota","Mercedes","BMW","Volkswagen","Skoda"};
     manyArrs7(brand);
