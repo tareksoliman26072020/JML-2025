@@ -593,6 +593,21 @@ addBehavior sy er = do
     (Just pre1,Nothing) -> Just pre1
     (Just pre1,Just pre2) -> Just $ JMLBin pre1 And pre2
   --
+  check_if_assignables_missing :: [String] -> Clause -> [(JMLType,String,Expr)]
+  check_if_assignables_missing allGlobalVars (Requires _ clauseValues) = let
+    loc = "JML.Internal.addBehavior.check_if_assignables_missing"
+    clause_globalVars_exprs = [(t,vn,expr)
+      | VarAssignment (t,vn,expr) <- clauseValues
+      , vn `elem` allGlobalVars
+      , let isReassigned = \case
+              JMLOld ex -> isReassigned ex
+              JMLVar _ vn2 -> vn /= vn2
+              ex -> error $ printf "TODO in %s: %s" loc (show ex)
+      , isReassigned expr]
+    clause_assignables = concat [li | Assignable li <- clauseValues]
+    to_be_assignable = [(t,v,expr) | (t,v,expr) <- clause_globalVars_exprs, v `notElem` clause_assignables]
+    in to_be_assignable
+  --
   -- if a defaut clause exists, it gets replaced
   -- otherwise, a new clause is created
   -- this was first used in ER_IfThenElse
@@ -618,12 +633,52 @@ addBehavior sy er = do
         defaultClauseVals = case (num,originalClauses) of
           (1,[Requires (Nothing,Nothing) vals]) -> vals
           _     -> []
+    -- new clause <<unprocessed>>
     let new_unprocessed_Clause = Requires (mSR,mPreCondition)
           $ defaultClauseVals ++ newValues
     tellNextLog
       $ Log.LogTag loc "new clause <unprocessed>"
       $ ppColoredClause new_unprocessed_Clause
-    let new_processed_Clause = nubClause $ processJMLVarUnknown_clause new_unprocessed_Clause
+    -- new clause <<processed>>
+    new_processed_Clause <- do
+      let processed = nubClause $ processJMLVarUnknown_clause new_unprocessed_Clause
+      -- if there are no new values, then there may be a reassigned globalvar
+      --     which was not marked as assignable yet
+      if null newValues then do
+           allGlobalVars <- globalVars <$> get
+           case check_if_assignables_missing allGlobalVars processed of
+             [] -> return processed
+             globalVars_to_add -> do
+               tellNextLog $ Log.LogTag loc
+                 "missing Assignables detected"
+                 $ intercalate "\n"
+                 $ map (\(counter,(_,v,_)) -> printf
+                     "  %s %s"
+                     (yellow $ printf "%d)" counter) v)
+                 $ zip [1::Int ..] globalVars_to_add
+               tellNextLog
+                 $ Log.LogTag loc "new clause <semi processed>"
+                 $ ppColoredClause processed
+               let Requires tu vals = processed
+               let gs = map (\(_,vn,_) -> vn) globalVars_to_add
+               return $ Requires tu
+                      $ -- add assignable(s)
+                        alterList
+                          (\case
+                              Just (Assignable li) ->
+                                [Assignable (li ++ gs)]
+                              Nothing ->
+                                [Assignable gs]
+                          )
+                          (\case
+                              Assignable _ -> True
+                              _ -> False
+                          )
+                          vals
+                        -- add ensure(s)
+                        ++ map (\(t,vn,expr) -> Ensures $ JMLVar t vn `JMLEquals` expr)
+                               globalVars_to_add
+         else return processed
     tellNextLog
       $ Log.LogTag loc "new clause <processed>"
       $ ppColoredClause new_processed_Clause
@@ -1052,3 +1107,16 @@ checkRemovingDefaultBehavior = do
       }
       tellingReportTheState (loc ++ " <<default behavior deleted>>") $> ()
     else tellNextLog (Log.LogTag loc "default behavior is not deleted" "") $> ()
+
+alterList :: (Maybe a -> [a]) -> (a -> Bool) -> [a] -> [a]
+alterList f p li = let
+  new_li = concat
+    [res | element <- li
+         , let--res :: [a]
+               res
+                 | p element = f $ Just element
+                 | otherwise = [element]
+    ] in
+  case find p new_li of
+    Just _ -> new_li
+    Nothing -> li ++ f Nothing

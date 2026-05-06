@@ -72,8 +72,8 @@ allTargets = [
   ("ifFunCall",ifFunCall), ("ifFun2Call",ifFun2Call), ("ifFun2Call2",ifFun2Call2),
   ("ifFun3",ifFun3), ("voidFun3Call", voidFun3Call), ("voidFun4", voidFun4),
   ("voidFun5",voidFun5), ("voidFun6",voidFun6),
-  ("ifFun4",ifFun4){-, ("ifFun4Call", ifFun4Call),
-  ("ifFun5",ifFun5), ("ifFun5Call1",ifFun5Call1), ("ifFun5Call2",ifFun5Call2),
+  ("ifFun4",ifFun4), ("ifFun4Call", ifFun4Call),
+  ("ifFun5",ifFun5), ("ifFun5Call1",ifFun5Call1), ("ifFun5Call2",ifFun5Call2){-,
   ("ifFun6",ifFun6), ("ifFun6Call",ifFun6Call), ("ifFun6Call2", ifFun6Call2),
   ("ifFun7",ifFun7), ("ifFun7Call",ifFun7Call), ("ifFun7Call2",ifFun7Call2), ("ifFun7Call3",ifFun7Call3),
   ("ifFun8",ifFun8), ("ifFun8Call",ifFun8Call),
@@ -3215,79 +3215,111 @@ ifFun4 = Method {
 -----------------------------
 -----------------------------
 -----------------------------
+
+ifFun4Call :: Method
+ifFun4Call = Method {
+  name = "ifFun4Call",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = ["y","z"],
+      vars = [
+        JMLVar Int_Type "y" `JMLEquals` JMLInt 12,
+        JMLVar Int_Type "z" `JMLEquals` JMLInt 12
+      ],
+      hasSideEffect = True,
+      ensures = [
+        JMLResult JMLVoid,
+        JMLVar Int_Type "y" `JMLEquals` JMLInt 12,
+        JMLVar Int_Type "z" `JMLEquals` JMLInt 12
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+ifFun5 :: Method
+ifFun5 = Method {
+  name = "ifFun5",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Just (SR {branchStart = 2, branchEnd = 4}),
+      requires = Just (JMLBin (JMLVar Int_Type "n") Ge (JMLInt 0)),
+      assignable = ["y"],
+      vars = [JMLVar Int_Type "y" `JMLEquals` JMLBin (JMLInt 2) Mul (JMLVar Int_Type "n")],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult (JMLBin (JMLInt 2) Mul (JMLVar Int_Type "n")),
+        JMLVar Int_Type "y" `JMLEquals` JMLBin (JMLInt 2) Mul (JMLVar Int_Type "n")
+      ]
+    },
+    NormalBehavior {
+      scopeRange = Just (SR {branchStart = 2, branchEnd = 4}),
+      requires = Just (JMLBin (JMLVar Int_Type "n") Lt (JMLInt 0)),
+      assignable = ["y"],
+      vars = [JMLVar Int_Type "y" `JMLEquals` JMLVar Int_Type "n"],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult $ JMLVar Int_Type "n",
+        JMLVar Int_Type "y" `JMLEquals` JMLVar Int_Type "n"
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+ifFun5Call1 :: Method
+ifFun5Call1 = Method {
+  name = "ifFun5Call1",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = ["y"],
+      vars = [JMLVar Int_Type "y" `JMLEquals` JMLInt 20
+      ],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult (JMLInt 20),
+        JMLVar Int_Type "y" `JMLEquals` JMLInt 20
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+ifFun5Call2 :: Method
+ifFun5Call2 = Method {
+  name = "ifFun5Call2",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = ["y"],
+      vars = [JMLVar Int_Type "y" `JMLEquals` JMLInt (-10)],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult (JMLInt (-10)),
+        JMLVar Int_Type "y" `JMLEquals` JMLInt (-10)
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
 {-
-ifFun4Call :: SymStateEnv
-ifFun4Call = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Void "ifFun4Call"),
-    (GlobalVars,SGlobalVars ["y","z"]),
-    (VarAssignments,SVarAssignments [
-        ("y",(SymInt 2,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 13}})),
-        ("z",(SymInt 3,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 13}})),
-        ("y",(SymInt (-1),Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 13}})),
-        ("z",(SymInt (-1),Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 0, branchEnd = 13}})),
-        ("y",(SymInt 3,Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 0, branchEnd = 13}})),
-        ("z",(SymInt 12,Node_Coor {varDeclAt = 10, varFrame = SR {branchStart = 0, branchEnd = 13}}))]),
-    (VarName "y",SymInt 12),
-    (VarName "z",SymInt 12),
-    (Return,SymReturnVoid),
-    (Actions,SActions [SymString "3\n",SymString "3\n",SymString "-1\n",SymString "-1\n",SymString "12\n",SymString "12\n"])
-  ]
-
------------------------------
------------------------------
------------------------------
-
-ifFun5 :: SymStateEnv
-ifFun5 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "ifFun5"),
-    (GlobalVars,SGlobalVars ["y"]),
-    (FormalParms,SFormalParms ["n"]),
-    (VarAssignments,SVarAssignments [
-        ("y",(SymVar SYT.Int "n",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
-        ("y",(SBin (SymInt 2) SYT.Mul (SymVar SYT.Int "n"),Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 4}}))]),
-    (VarName "n",SymVar SYT.Int "n"),
-    (VarName "y",SymUnknown (SymVar SYT.Int "n") [([(If,SR {branchStart = 2, branchEnd = 4})],3)]),
-    (ScopeRange (SR {branchStart = 2, branchEnd = 4}),
-     SIte (SBin (SymVar SYT.Int "n") SYT.Ge (SymInt 0))
-          (Map.fromList [
-              (MethodHandle,SMethodHandle SYT.Int "ifFun5"),
-              (GlobalVars,SGlobalVars ["y"]),
-              (FormalParms,SFormalParms ["n"]),
-              (VarAssignments,SVarAssignments [
-                  ("y",(SymVar SYT.Int "n",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
-                  ("y",(SBin (SymInt 2) SYT.Mul (SymVar SYT.Int "n"),Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 4}}))]),
-              (VarName "n",SymVar SYT.Int "n"),
-              (VarName "y",SBin (SymInt 2) SYT.Mul (SymVar SYT.Int "n"))]) Nothing),
-    (Return,SymUnknown (SymVar SYT.Int "n") [([(If,SR {branchStart = 2, branchEnd = 4})],3)])]
-
------------------------------
------------------------------
------------------------------
-
-ifFun5Call1 :: SymStateEnv
-ifFun5Call1 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "ifFun5Call1"),
-    (GlobalVars,SGlobalVars ["y"]),
-    (VarName "y",SymInt 20),
-    (Return,SymInt 20)
-  ]
-
------------------------------
------------------------------
------------------------------
-
-ifFun5Call2 :: SymStateEnv
-ifFun5Call2 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Int "ifFun5Call2"),
-    (GlobalVars,SGlobalVars ["y"]),
-    (VarName "y",SymInt (-10)),
-    (Return,SymInt (-10))
-  ]
-
------------------------------
------------------------------
------------------------------
-
 ifFun6 :: SymStateEnv
 ifFun6 = Map.fromList [
     (MethodHandle,SMethodHandle SYT.String "ifFun6"),

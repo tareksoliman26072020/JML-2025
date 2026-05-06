@@ -4002,6 +4002,12 @@ public int ifFun4(int n) {
     (Actions,SActions [SymString "3\n",SymString "3\n",SymString "-1\n",SymString "-1\n",SymString "12\n",SymString "12\n"])
   ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable y, z;
+  @   ensures y == 12;
+  @   ensures z == 12;
+  @*/
 public void ifFun4Call() {
   y = 2;
   z = ifFun4(1);
@@ -4031,10 +4037,25 @@ public void ifFun4Call() {
      ("y",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 4}})]),
  (VarName "n",SymVar Int "n"),
  (VarName "y",SymUnknown (Int,"y",Just (SymVar Int "n")) [([(If,SR {branchStart = 2, branchEnd = 4})],3)]),
- (ScopeRange (SR {branchStart = 2, branchEnd = 4}),SIte (SBin (SymVar Int "n") Ge (SymInt 0)) (SymState {env = fromList [(MethodName "ifFun5",SMethodType Int),(GlobalVars,SGlobalVars ["y"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("y",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("y",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 4}})]),(VarName "n",SymVar Int "n"),(VarName "y",SBin (SymInt 2) Mul (SymVar Int "n"))], pc = []}) Nothing),
+ (ScopeRange (SR {branchStart = 2, branchEnd = 4}),
+  SIte (SBin (SymVar Int "n") Ge (SymInt 0))
+       (SymState {env = fromList [(MethodName "ifFun5",SMethodType Int),(GlobalVars,SGlobalVars ["y"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("y",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("y",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 4}})]),(VarName "n",SymVar Int "n"),(VarName "y",SBin (SymInt 2) Mul (SymVar Int "n"))], pc = []})
+       Nothing),
  (Return,SymUnknown (Int,"y",Just (SymVar Int "n")) [([(If,SR {branchStart = 2, branchEnd = 4})],3)])
 ]
 */
+/*@ normal_behavior
+  @   requires n >= 0;
+  @   assignable y;
+  @   ensures \result == 2 * n;
+  @   ensures y == 2 * n;
+  @ also
+  @ normal_behavior
+  @   requires n < 0;
+  @   assignable y;
+  @   ensures \result == n;
+  @   ensures y == n;
+  @*/
 public int ifFun5(int n) {
   y = n;
   if(y>=0) {
@@ -4055,6 +4076,12 @@ public int ifFun5(int n) {
  (Return,SymInt 20)
 ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable y;
+  @   ensures \result == 20;
+  @   ensures y == 20;
+  @*/
 public int ifFun5Call1() {
   return ifFun5(10);
 }
@@ -4071,6 +4098,12 @@ public int ifFun5Call1() {
  (Return,SymInt (-10))
 ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable y;
+  @   ensures \result == -10;
+  @   ensures y == -10;
+  @*/
 public int ifFun5Call2() {
   return ifFun5(-10);
 }
