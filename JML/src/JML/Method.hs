@@ -12,7 +12,7 @@ import qualified SymbolicExecution.Types as SYT (
   SymbolicExecution, SymbolicExecutionKey, SymbolicExecutionValue)
 import qualified SymbolicExecution.Internal.Internal as SY (
   getFunName, isGlobalVariable2, hasReturn, isLocalVar, hasFormalParameter,
-  isNotAssigned)
+  isNotAssigned, isSymUnknown)
 import qualified Data.Map as Map
 
 import Text.Printf
@@ -89,6 +89,7 @@ instance SymbolicExecutionVisitor MethodProcessor where
     -- this denotes `assignable` in JML
     (SYT.VarName vn,symExpr)
       | SY.isGlobalVariable2 vn sy &&
+        not (SY.isSymUnknown symExpr) &&
         not (SY.isNotAssigned vn symExpr) -> do
           let loc = globalLoc ++ ".visitSymExpr.VarName (1)"
           tellNextLog $ Log.Location loc (show tu)

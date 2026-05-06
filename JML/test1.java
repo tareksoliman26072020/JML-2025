@@ -3945,10 +3945,21 @@ SymState {
     (MethodName "ifFun4",SMethodType Int),
     (GlobalVars,SGlobalVars ["y"]),
     (FormalParms,SFormalParms ["n"]),
-    (VarAssignments,SVarAssignments [("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 3}})]),
+    (VarAssignments,SVarAssignments [
+      ("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 3}})]),
     (VarName "n",SymVar Int "n"),
     (VarName "y",SymUnknown (Int,"y",Just (SymVar Int "y")) [([(If,SR {branchStart = 1, branchEnd = 3})],2)]),
-    (ScopeRange (SR {branchStart = 1, branchEnd = 3}),SIte (SBin (SymVar Int "y") Ge (SymInt 0)) (SymState {env = fromList [(MethodName "ifFun4",SMethodType Int),(GlobalVars,SGlobalVars ["y"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 3}})]),(VarName "n",SymVar Int "n"),(VarName "y",SBin (SymVar Int "y") Add (SymVar Int "n"))], pc = []}) Nothing),
+    (ScopeRange (SR {branchStart = 1, branchEnd = 3}),
+     SIte (SBin (SymVar Int "y") Ge (SymInt 0))
+          (SymState {env = fromList [
+              (MethodName "ifFun4",SMethodType Int),
+              (GlobalVars,SGlobalVars ["y"]),
+              (FormalParms,SFormalParms ["n"]),
+              (VarAssignments,SVarAssignments [("y",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 3}})]),
+              (VarName "n",SymVar Int "n"),
+              (VarName "y",SBin (SymVar Int "y") Add (SymVar Int "n"))
+          ], pc = []})
+          Nothing),
     (Return,SymUnknown (Int,"y",Just (SymVar Int "y")) [([(If,SR {branchStart = 1, branchEnd = 3})],2)])
   ], pc = []}
 */
@@ -3960,9 +3971,8 @@ SymState {
   @ also
   @ normal_behavior
   @   requires \old(y) < 0;
-  @   assignable y;
+  @   assignable \nothing;
   @   ensures \result == \old(y);
-  @   ensures y == \old(y);
   @*/
 public int ifFun4(int n) {
   if(y>=0) {

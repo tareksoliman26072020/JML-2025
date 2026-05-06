@@ -67,12 +67,12 @@ allTargets = [
   ("manyArrs5", manyArrs5),
   ("manyArrs6", manyArrs6),
 {-("manyArrs7", manyArrs7),-} ("manyArrs7Call1", manyArrs7Call1), ("manyArrs7Call2", manyArrs7Call2),
-{-("ifFun",ifFun),
+  ("ifFun",ifFun),
   ("ifFun2",ifFun2),
   ("ifFunCall",ifFunCall), ("ifFun2Call",ifFun2Call), ("ifFun2Call2",ifFun2Call2),
-  ("ifFun3",ifFun3),-} ("voidFun3Call", voidFun3Call), ("voidFun4", voidFun4),
-  ("voidFun5",voidFun5), ("voidFun6",voidFun6){-,
-  ("ifFun4",ifFun4), ("ifFun4Call", ifFun4Call),
+  ("ifFun3",ifFun3), ("voidFun3Call", voidFun3Call), ("voidFun4", voidFun4),
+  ("voidFun5",voidFun5), ("voidFun6",voidFun6),
+  ("ifFun4",ifFun4){-, ("ifFun4Call", ifFun4Call),
   ("ifFun5",ifFun5), ("ifFun5Call1",ifFun5Call1), ("ifFun5Call2",ifFun5Call2),
   ("ifFun6",ifFun6), ("ifFun6Call",ifFun6Call), ("ifFun6Call2", ifFun6Call2),
   ("ifFun7",ifFun7), ("ifFun7Call",ifFun7Call), ("ifFun7Call2",ifFun7Call2), ("ifFun7Call3",ifFun7Call3),
@@ -3200,14 +3200,13 @@ ifFun4 = Method {
     NormalBehavior {
       scopeRange = Just (SR {branchStart = 1, branchEnd = 3}),
       requires = Just (JMLBin (JMLOld (JMLVar Int_Type "y")) Lt (JMLInt 0)),
-      assignable = ["y"],
+      assignable = [],
       vars = [
         JMLVar Int_Type "y" `JMLEquals` JMLOld (JMLVar Int_Type "y")
       ],
       hasSideEffect = False,
       ensures = [
-        JMLResult (JMLOld (JMLVar Int_Type "y")),
-        JMLVar Int_Type "y" `JMLEquals` JMLOld (JMLVar Int_Type "y")
+        JMLResult (JMLOld (JMLVar Int_Type "y"))
       ]
     }
   ]
@@ -3216,7 +3215,7 @@ ifFun4 = Method {
 -----------------------------
 -----------------------------
 -----------------------------
-
+{-
 ifFun4Call :: SymStateEnv
 ifFun4Call = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Void "ifFun4Call"),
