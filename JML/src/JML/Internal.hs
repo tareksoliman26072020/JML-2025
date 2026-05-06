@@ -602,6 +602,7 @@ addBehavior sy er = do
       , let isReassigned = \case
               JMLOld ex -> isReassigned ex
               JMLVar _ vn2 -> vn /= vn2
+              JMLString _ -> False
               ex -> error $ printf "TODO in %s: %s" loc (show ex)
       , isReassigned expr]
     clause_assignables = concat [li | Assignable li <- clauseValues]
@@ -918,6 +919,7 @@ addBehavior sy er = do
       JMLBool _ -> False
       SymFun ToString expr -> hasJMLVarUnknown vn expr
       JMLOld expr -> hasJMLVarUnknown vn expr
+      JMLNum _ -> False
       _ -> error $ printf "TODO in %s ==> %s" loc (show expr)
   -- is JMLVar concrete?
   isJMLVarConcrete :: Expr -> Bool

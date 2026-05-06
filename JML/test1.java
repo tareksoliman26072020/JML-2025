@@ -4127,6 +4127,20 @@ SymState {
     (ScopeRange (SR {branchStart = 1, branchEnd = 4}),SIte (SBin (SymVar UnknownGlobalVarSymType "y") Ge (SymNum 0.0)) (SymState {env = fromList [(MethodName "ifFun6",SMethodType String),(GlobalVars,SGlobalVars ["y","m"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("m",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 4}}),("y",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 4}})]),(VarName "m",SBin (SymVar Int "m") Add (SymVar Int "n")),(VarName "n",SymVar Int "n"),(VarName "y",SBin (SymNum (-1.0)) Mul (SymVar UnknownGlobalVarSymType "y"))], pc = []}) Nothing),
     (Return,SymVar String "c")], pc = []}
 */
+/*@ normal_behavior
+  @   requires \old(y) >= 0.0;
+  @   assignable s, m, y;
+  @   ensures \result == c;
+  @   ensures s == "something";
+  @   ensures m == \old(m) + n;
+  @   ensures y == -1.0 * \old(y);
+  @ also
+  @ normal_behavior
+  @   requires \old(y) < 0.0;
+  @   assignable s;
+  @   ensures \result == c;
+  @   ensures s == "something";
+  @*/
 public String ifFun6(int n) {
   if(y>=0) {
     m += n;
@@ -4157,6 +4171,15 @@ SymState {
   ], logHeader = Header {logScopeDepth = 1, logCounter = [5,7]}
 }
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable c, m, s, y;
+  @   ensures \result == "6.0 dangerous something6";
+  @   ensures c == "dangerous";
+  @   ensures m == 11;
+  @   ensures s == "something";
+  @   ensures y == -5;
+  @*/
 public String ifFun6Call() {
   y = 5;
   m = 1;
@@ -4183,6 +4206,15 @@ public String ifFun6Call() {
     (Return,SymString "dangerous 11")
   ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable c, m, s, y;
+  @   ensures \result == "dangerous 11";
+  @   ensures c == "dangerous";
+  @   ensures m == 11;
+  @   ensures s == "something";
+  @   ensures y == -5.0;
+  @*/
 public String ifFun6Call2() {
   y = 5;
   m = 1;

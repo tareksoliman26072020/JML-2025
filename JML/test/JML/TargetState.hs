@@ -73,8 +73,8 @@ allTargets = [
   ("ifFun3",ifFun3), ("voidFun3Call", voidFun3Call), ("voidFun4", voidFun4),
   ("voidFun5",voidFun5), ("voidFun6",voidFun6),
   ("ifFun4",ifFun4), ("ifFun4Call", ifFun4Call),
-  ("ifFun5",ifFun5), ("ifFun5Call1",ifFun5Call1), ("ifFun5Call2",ifFun5Call2){-,
-  ("ifFun6",ifFun6), ("ifFun6Call",ifFun6Call), ("ifFun6Call2", ifFun6Call2),
+  ("ifFun5",ifFun5), ("ifFun5Call1",ifFun5Call1), ("ifFun5Call2",ifFun5Call2),
+  ("ifFun6",ifFun6), ("ifFun6Call",ifFun6Call), ("ifFun6Call2", ifFun6Call2){-,
   ("ifFun7",ifFun7), ("ifFun7Call",ifFun7Call), ("ifFun7Call2",ifFun7Call2), ("ifFun7Call3",ifFun7Call3),
   ("ifFun8",ifFun8), ("ifFun8Call",ifFun8Call),
   ("ifFun9",ifFun9),
@@ -3319,78 +3319,110 @@ ifFun5Call2 = Method {
 -----------------------------
 -----------------------------
 -----------------------------
+
+ifFun6 :: Method
+ifFun6 = Method {
+  name = "ifFun6",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Just (SR {branchStart = 1, branchEnd = 4}),
+      requires = Just (JMLBin (JMLOld (JMLVar Num_Type "y")) Ge (JMLNum 0.0)),
+      assignable = ["s","m","y"],
+      vars = [
+        JMLVar Int_Type "m" `JMLEquals` JMLBin (JMLOld (JMLVar Int_Type "m")) Add (JMLVar Int_Type "n"),
+        JMLVar String_Type "s" `JMLEquals` JMLString "something",
+        JMLVar Num_Type "y" `JMLEquals` JMLBin (JMLNum (-1.0)) Mul (JMLOld (JMLVar Num_Type "y"))
+      ],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult (JMLVar String_Type "c"),
+        JMLVar String_Type "s" `JMLEquals` JMLString "something",
+        JMLVar Int_Type "m" `JMLEquals` JMLBin (JMLOld (JMLVar Int_Type "m")) Add (JMLVar Int_Type "n"),
+        JMLVar Num_Type "y" `JMLEquals` JMLBin (JMLNum (-1.0)) Mul (JMLOld (JMLVar Num_Type "y"))
+      ]
+    },
+    NormalBehavior {
+      scopeRange = Just (SR {branchStart = 1, branchEnd = 4}),
+      requires = Just (JMLBin (JMLOld (JMLVar Num_Type "y")) Lt (JMLNum 0.0)),
+      assignable = ["s"],
+      vars = [
+        JMLVar Int_Type "m" `JMLEquals` JMLOld (JMLVar Int_Type "m"),
+        JMLVar String_Type "s" `JMLEquals` JMLString "something",
+        JMLVar Num_Type "y" `JMLEquals` JMLOld (JMLVar Num_Type "y")
+      ],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult (JMLVar String_Type "c"),
+        JMLVar String_Type "s" `JMLEquals` JMLString "something"
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+ifFun6Call :: Method
+ifFun6Call = Method {
+  name = "ifFun6Call",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = ["c","m","s","y"],
+      vars = [
+        JMLVar String_Type "c" `JMLEquals` JMLString "dangerous",
+        JMLVar Int_Type "m" `JMLEquals` JMLInt 11,
+        JMLVar String_Type "s" `JMLEquals` JMLString "something",
+        JMLVar Int_Type "y" `JMLEquals` JMLInt (-5)
+      ],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult (JMLString "6.0 dangerous something6"),
+        JMLVar String_Type "c" `JMLEquals` JMLString "dangerous",
+        JMLVar Int_Type "m" `JMLEquals` JMLInt 11,
+        JMLVar String_Type "s" `JMLEquals` JMLString "something",
+        JMLVar Int_Type "y" `JMLEquals` JMLInt (-5)
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+ifFun6Call2 :: Method
+ifFun6Call2 = Method {
+  name = "ifFun6Call2",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = ["c","m","s","y"],
+      vars = [
+        JMLVar String_Type "c" `JMLEquals` JMLString "dangerous",
+        JMLVar Int_Type "m" `JMLEquals` JMLInt 11,
+        JMLVar String_Type "s" `JMLEquals` JMLString "something",
+        JMLVar Num_Type "y" `JMLEquals` JMLNum (-5.0)
+      ],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult (JMLString "dangerous 11"),
+        JMLVar String_Type "c" `JMLEquals` JMLString "dangerous",
+        JMLVar Int_Type "m" `JMLEquals` JMLInt 11,
+        JMLVar String_Type "s" `JMLEquals` JMLString "something",
+        JMLVar Num_Type "y" `JMLEquals` JMLNum (-5.0)
+      ]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
 {-
-ifFun6 :: SymStateEnv
-ifFun6 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.String "ifFun6"),
-    (GlobalVars,SGlobalVars ["y","m","s","c"]),
-    (FormalParms,SFormalParms ["n"]),
-    (VarAssignments,SVarAssignments [
-        ("m",(SBin (SymVar SYT.Int "m") SYT.Add (SymVar SYT.Int "n"),Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 4}})),
-        ("y",(SBin (SymNum (-1.0)) SYT.Mul (SymVar SYT.UnknownNumSymType "y"),Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 4}})),
-        ("s",(SymString "something",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 6}}))]),
-    (VarName "c",SymVar SYT.String "c"),
-    (VarName "m",SymUnknown (SymVar SYT.Int "m") [([(If,SR {branchStart = 1, branchEnd = 4})],2)]),
-    (VarName "n",SymVar SYT.Int "n"),
-    (VarName "s",SymString "something"),
-    (VarName "y",SymUnknown (SymVar SYT.UnknownNumSymType "y") [([(If,SR {branchStart = 1, branchEnd = 4})],3)]),
-    (ScopeRange (SR {branchStart = 1, branchEnd = 4}),
-     SIte (SBin (SymVar SYT.UnknownNumSymType "y") SYT.Ge (SymNum 0.0))
-          (Map.fromList [
-              (MethodHandle,SMethodHandle SYT.String "ifFun6"),
-              (GlobalVars,SGlobalVars ["y","m"]),
-              (FormalParms,SFormalParms ["n"]),
-              (VarAssignments,SVarAssignments [
-                  ("m",(SBin (SymVar SYT.Int "m") SYT.Add (SymVar SYT.Int "n"),Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 4}})),
-                  ("y",(SBin (SymNum (-1.0)) SYT.Mul (SymVar SYT.UnknownNumSymType "y"),Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 4}}))]),
-              (VarName "m",SBin (SymVar SYT.Int "m") SYT.Add (SymVar SYT.Int "n")),
-              (VarName "n",SymVar SYT.Int "n"),
-              (VarName "y",SBin (SymNum (-1.0)) SYT.Mul (SymVar SYT.UnknownNumSymType "y"))]) Nothing),
-    (Return,SymVar SYT.String "c")
-  ]
-
------------------------------
------------------------------
------------------------------
-
-ifFun6Call :: SymStateEnv
-ifFun6Call = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.String "ifFun6Call"),
-    (GlobalVars,SGlobalVars ["y","m","c","s"]),
-    (VarAssignments,SVarAssignments [
-        ("y",(SymInt 5,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
-        ("m",(SymInt 1,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})),
-        ("c",(SymString "dangerous",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
-    (VarName "c",SymString "dangerous"),
-    (VarName "m",SymInt 11),
-    (VarName "s",SymString "something"),
-    (VarName "y",SymInt (-5)),
-    (Return,SymString "6.0 dangerous something6")
-  ]
-
------------------------------
------------------------------
------------------------------
-
-ifFun6Call2 :: SymStateEnv
-ifFun6Call2 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.String "ifFun6Call2"),
-    (GlobalVars,SGlobalVars ["y","m","c","s"]),
-    (VarAssignments,SVarAssignments [
-        ("y",(SymNum 5.0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
-        ("m",(SymInt 1,Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})),
-        ("c",(SymString "dangerous",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
-    (VarName "c",SymString "dangerous"),
-    (VarName "m",SymInt 11),
-    (VarName "s",SymString "something"),
-    (VarName "y",SymNum (-5.0)),
-    (Return,SymString "dangerous 11")
-  ]
-
------------------------------
------------------------------
------------------------------
-
 ifFun7 :: SymStateEnv
 ifFun7 = Map.fromList [
   (MethodHandle,SMethodHandle SYT.Void "ifFun7"),
