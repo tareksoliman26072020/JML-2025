@@ -862,6 +862,7 @@ addBehavior sy er = do
       JMLVar _ _ -> False
       JMLBool _ -> False
       SymFun ToString expr -> hasJMLVarUnknown vn expr
+      JMLOld expr -> hasJMLVarUnknown vn expr
       _ -> error $ printf "TODO in %s ==> %s" loc (show expr)
   -- is JMLVar concrete?
   isJMLVarConcrete :: Expr -> Bool

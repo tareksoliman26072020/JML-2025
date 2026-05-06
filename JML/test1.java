@@ -3784,6 +3784,11 @@ public int ifFun(int n) {
   (Return,SymInt 8)
 ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 8;
+  @*/
 public int ifFunCall() {
   return 4+ifFun(3);
 }
@@ -3809,6 +3814,16 @@ public int ifFunCall() {
  (Return,SBin (SymUnknown (Int,"res",Just (SymVar Int "y")) [([(If,SR {branchStart = 4, branchEnd = 7})],5)]) Add (SymInt 1))
 ]
 */
+/*@ normal_behavior
+  @   requires n >= 0;
+  @   assignable \nothing;
+  @   ensures \result == (y + n) + 1;
+  @ also
+  @ normal_behavior
+  @   requires n < 0;
+  @   assignable \nothing;
+  @   ensures \result == y + 1;
+  @*/
 public int ifFun2(int n) {
   int res = y;
   int m = 0;
@@ -3832,6 +3847,11 @@ public int ifFun2(int n) {
  (Return,SBin (SymGlobalVar Int "y" Nothing) Add (SymInt 11))
 ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == y + 11;
+  @*/
 public int ifFun2Call() {
   return ifFun2(10);
 }
@@ -3848,6 +3868,11 @@ public int ifFun2Call() {
  (Return,SBin (SymGlobalVar Int "y" Nothing) Add (SymInt 1))
 ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == y + 1;
+  @*/
 public int ifFun2Call2() {
   return ifFun2(-10);
 }
@@ -3889,6 +3914,16 @@ SymState {
                  (SymInt 1))
   ], pc = []}
 */
+/*@ normal_behavior
+  @   requires y >= 0.0;
+  @   assignable \nothing;
+  @   ensures \result == n + 1;
+  @ also
+  @ normal_behavior
+  @   requires y < 0.0;
+  @   assignable \nothing;
+  @   ensures \result == 0 + 1;
+  @*/
 public int ifFun3(int n) {
   int res = 0;
   int m = 0;
@@ -3917,6 +3952,18 @@ SymState {
     (Return,SymUnknown (Int,"y",Just (SymVar Int "y")) [([(If,SR {branchStart = 1, branchEnd = 3})],2)])
   ], pc = []}
 */
+/*@ normal_behavior
+  @   requires \old(y) >= 0;
+  @   assignable y;
+  @   ensures \result == \old(y) + n;
+  @   ensures y == \old(y) + n;
+  @ also
+  @ normal_behavior
+  @   requires \old(y) < 0;
+  @   assignable y;
+  @   ensures \result == \old(y);
+  @   ensures y == \old(y);
+  @*/
 public int ifFun4(int n) {
   if(y>=0) {
     y += n;
