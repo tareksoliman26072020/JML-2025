@@ -4257,6 +4257,18 @@ fromList [
             (VarName "w",SymString "bye")]))),
             (Return,SymReturnVoid)]
 */
+/*@ normal_behavior
+  @   requires (n % 2) == 0;
+  @   assignable s, v;
+  @   ensures s == "something";
+  @   ensures v == "hi";
+  @ also
+  @ normal_behavior
+  @   requires (n % 2) != 0;
+  @   assignable s, w;
+  @   ensures s == "something";
+  @   ensures w == "bye";
+  @*/
 public void ifFun7(int n) {
   if(n % 2 == 0) {
     v = "hi";
@@ -4279,6 +4291,12 @@ public void ifFun7(int n) {
  (Return,SymReturnVoid)
 ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable s, v;
+  @   ensures s == "something";
+  @   ensures v == "hi";
+  @*/
 public void ifFun7Call() {
   ifFun7(4);
 }
@@ -4297,6 +4315,13 @@ SymState {
   ], pc = []
 }
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable s, v, w;
+  @   ensures s == "something";
+  @   ensures v == "hi";
+  @   ensures w == "bye";
+  @*/
 public void ifFun7Call2() {
   ifFun7(4);
   ifFun7(5);

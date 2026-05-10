@@ -74,8 +74,8 @@ allTargets = [
   ("voidFun5",voidFun5), ("voidFun6",voidFun6),
   ("ifFun4",ifFun4), ("ifFun4Call", ifFun4Call),
   ("ifFun5",ifFun5), ("ifFun5Call1",ifFun5Call1), ("ifFun5Call2",ifFun5Call2),
-  ("ifFun6",ifFun6), ("ifFun6Call",ifFun6Call), ("ifFun6Call2", ifFun6Call2){-,
-  ("ifFun7",ifFun7), ("ifFun7Call",ifFun7Call), ("ifFun7Call2",ifFun7Call2), ("ifFun7Call3",ifFun7Call3),
+  ("ifFun6",ifFun6), ("ifFun6Call",ifFun6Call), ("ifFun6Call2", ifFun6Call2),
+  ("ifFun7",ifFun7), ("ifFun7Call",ifFun7Call), ("ifFun7Call2",ifFun7Call2){-, ("ifFun7Call3",ifFun7Call3),
   ("ifFun8",ifFun8), ("ifFun8Call",ifFun8Call),
   ("ifFun9",ifFun9),
   ("ifFun10",ifFun10),
@@ -3422,68 +3422,101 @@ ifFun6Call2 = Method {
 -----------------------------
 -----------------------------
 -----------------------------
-{-
-ifFun7 :: SymStateEnv
-ifFun7 = Map.fromList [
-  (MethodHandle,SMethodHandle SYT.Void "ifFun7"),
-  (GlobalVars,SGlobalVars ["v","w","s"]),
-  (FormalParms,SFormalParms ["n"]),
-  (VarAssignments,SVarAssignments [
-      ("v",(SymString "hi",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 4}})),
-      ("w",(SymString "bye",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 4}})),
-      ("s",(SymString "something",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 6}}))]),
-  (VarName "n",SymVar SYT.Int "n"),
-  (VarName "s",SymString "something"),
-  (VarName "v",SymUnknown (SymVar SYT.String "v") [([(If,SR {branchStart = 1, branchEnd = 4})],2)]),
-  (VarName "w",SymUnknown (SymVar SYT.String "w") [([(If,SR {branchStart = 1, branchEnd = 4})],3)]),
-  (ScopeRange (SR {branchStart = 1, branchEnd = 4}),
-   SIte (SBin (SBin (SymVar SYT.Int "n") SYT.Mod (SymInt 2)) SYT.Eq (SymInt 0))
-        (Map.fromList [
-            (MethodHandle,SMethodHandle SYT.Void "ifFun7"),
-            (GlobalVars,SGlobalVars ["v"]),
-            (FormalParms,SFormalParms ["n"]),
-            (VarAssignments,SVarAssignments [("v",(SymString "hi",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 4}}))]),
-            (VarName "n",SymVar SYT.Int "n"),
-            (VarName "v",SymString "hi")])
-        (Just (Map.fromList [
-            (MethodHandle,SMethodHandle SYT.Void "ifFun7"),
-            (GlobalVars,SGlobalVars ["w"]),
-            (FormalParms,SFormalParms ["n"]),
-            (VarAssignments,SVarAssignments [("w",(SymString "bye",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 4}}))]),
-            (VarName "n",SymVar SYT.Int "n"),
-            (VarName "w",SymString "bye")]))),
-            (Return,SymReturnVoid)
+
+ifFun7 :: Method
+ifFun7 = Method {
+  name = "ifFun7",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Just (SR {branchStart = 1, branchEnd = 4}),
+      requires = Just (JMLBin (JMLBin (JMLVar Int_Type "n") Mod (JMLInt 2)) Eq (JMLInt 0)), 
+      assignable = ["s","v"],
+      vars = [
+        JMLVar String_Type "s" `JMLEquals` JMLString "something",
+        JMLVar String_Type "v" `JMLEquals` JMLString "hi",
+        JMLVar String_Type "w" `JMLEquals` JMLOld (JMLVar String_Type "w")
+      ],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult JMLVoid,
+        JMLVar String_Type "s" `JMLEquals` JMLString "something",
+        JMLVar String_Type "v" `JMLEquals` JMLString "hi"
+      ]
+    },
+    NormalBehavior {
+      scopeRange = Just (SR {branchStart = 1, branchEnd = 4}),
+      requires = Just (JMLBin (JMLBin (JMLVar Int_Type "n") Mod (JMLInt 2)) Neq (JMLInt 0)),
+      assignable = ["s","w"],
+      vars = [
+        JMLVar String_Type "s" `JMLEquals` JMLString "something",
+        JMLVar String_Type "v" `JMLEquals` JMLOld (JMLVar String_Type "v"),
+        JMLVar String_Type "w" `JMLEquals` JMLString "bye"
+      ],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult JMLVoid,
+        JMLVar String_Type "s" `JMLEquals` JMLString "something",
+        JMLVar String_Type "w" `JMLEquals` JMLString "bye"
+      ]
+    }
   ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
 
-ifFun7Call :: SymStateEnv
-ifFun7Call = Map.fromList [
-  (MethodHandle,SMethodHandle SYT.Void "ifFun7Call"),
-  (GlobalVars,SGlobalVars ["v","s"]),
-  (VarName "s",SymString "something"),
-  (VarName "v",SymString "hi"),
-  (Return,SymReturnVoid)]
+ifFun7Call :: Method
+ifFun7Call = Method {
+  name = "ifFun7Call",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = ["s","v"],
+      vars = [
+        JMLVar String_Type "s" `JMLEquals` JMLString "something",
+        JMLVar String_Type "v" `JMLEquals` JMLString "hi"
+      ],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult JMLVoid,
+        JMLVar String_Type "s" `JMLEquals` JMLString "something",
+        JMLVar String_Type "v" `JMLEquals` JMLString "hi"
+      ]
+    }
+  ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
 
-ifFun7Call2 :: SymStateEnv
-ifFun7Call2 = Map.fromList [
-  (MethodHandle,SMethodHandle SYT.Void "ifFun7Call2"),
-  (GlobalVars,SGlobalVars ["v","s","w"]),
-  (VarName "s",SymString "something"),
-  (VarName "v",SymString "hi"),
-  (VarName "w",SymString "bye"),
-  (Return,SymReturnVoid)]
+ifFun7Call2 :: Method
+ifFun7Call2 = Method {
+  name = "ifFun7Call2",
+  behaviors = [
+    NormalBehavior {
+      scopeRange = Nothing,
+      requires = Nothing,
+      assignable = ["s","v","w"],
+      vars = [JMLVar String_Type "s" `JMLEquals` JMLString "something",JMLVar String_Type "v" `JMLEquals` JMLString "hi",JMLVar String_Type "w" `JMLEquals` JMLString "bye"
+      ],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult JMLVoid,
+        JMLVar String_Type "s" `JMLEquals` JMLString "something",
+        JMLVar String_Type "v" `JMLEquals` JMLString "hi",
+        JMLVar String_Type "w" `JMLEquals` JMLString "bye"
+      ]
+    }
+  ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
-
+{-
 ifFun7Call3 :: SymStateEnv
 ifFun7Call3 = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Void "ifFun7Call3"),
