@@ -4333,14 +4333,57 @@ public void ifFun7Call2() {
 //JavaMethod
 /*
 [
- (MethodName "ifFun7Call3",SMethodType Void),
- (GlobalVars,SGlobalVars ["t","v","w"]),
- (VarName "t",SymVar Int "t"),
- (VarName "v",SymUnknown (String,"v",Nothing) [([(If,SR {branchStart = 1, branchEnd = 4})],2)]),
- (VarName "w",SymUnknown (String,"w",Nothing) [([(If,SR {branchStart = 1, branchEnd = 4})],3)]),
- (Return,SymReturnVoid)
+    (MethodHandle,SMethodHandle Void "ifFun7Call3"),
+    (GlobalVars,SGlobalVars ["t","v","w","s"]),
+    (VarName "s",SymString "something"),
+    (VarName "t",SymVar Int "t"),
+    (VarName "v",SymUnknown ("v",SymVar String "v") [([(If,SR {branchStart = 1, branchEnd = 4})],2)]),
+    (VarName "w",SymUnknown ("w",SymVar String "w") [([(If,SR {branchStart = 1, branchEnd = 4})],3)]),
+    (Return,SymReturnVoid)
 ]
 */
+/*
+fromList [
+    (MethodHandle,SMethodHandle Void "ifFun7Call3"),
+    (GlobalVars,SGlobalVars ["t","v","w","s"]),
+    (VarName "s",SymString "something"),
+    (VarName "t",SymVar Int "t"),
+    (VarName "v",SymUnknown ("v",SymVar String "v") [([(If,SR {branchStart = 1, branchEnd = 4})],2)]),
+    (VarName "w",SymUnknown ("w",SymVar String "w") [([(If,SR {branchStart = 1, branchEnd = 4})],3)]),
+    (InheritedScopeRange "ifFun7" (SR {branchStart = 1, branchEnd = 4}),
+     SIte (SBin (SBin (SymVar Int "t") Mod (SymInt 2)) Eq (SymInt 0))
+          (fromList [
+              (MethodHandle,SMethodHandle Void "ifFun7"),
+              (GlobalVars,SGlobalVars ["v"]),
+              (FormalParms,SFormalParms ["n"]),
+              (VarAssignments,SVarAssignments [("v",(SymString "hi",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 4}}))]),
+              (VarName "n",SymVar Int "t"),
+              (VarName "t",SymVar Int "t"),
+              (VarName "v",SymString "hi")])
+          (Just (fromList [
+              (MethodHandle,SMethodHandle Void "ifFun7"),
+              (GlobalVars,SGlobalVars ["w"]),
+              (FormalParms,SFormalParms ["n"]),
+              (VarAssignments,SVarAssignments [("w",(SymString "bye",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 4}}))]),
+              (VarName "n",SymVar Int "t"),
+              (VarName "t",SymVar Int "t"),
+              (VarName "w",SymString "bye")]))),
+    (Return,SymReturnVoid)
+]
+*/
+/*@ normal_behavior
+  @   requires (t % 2) == 0;
+  @   assignable s, v;
+  @   ensures s == "something";
+  @   ensures v == "hi";
+  @ also
+  @ normal_behavior
+  @   requires (t % 2) != 0;
+  @   assignable s, w;
+  @   ensures s == "something";
+  @   ensures w == "bye";
+  @*/
+
 public void ifFun7Call3() {
   ifFun7(t);
 }
@@ -4361,6 +4404,16 @@ public void ifFun7Call3() {
  (ScopeRange (SR {branchStart = 1, branchEnd = 6}),SIte (SBin (SBin (SymVar Int "n") Mod (SymInt 2)) Eq (SymInt 0)) (SymState {env = fromList [(MethodName "ifFun8",SMethodType Void),(GlobalVars,SGlobalVars ["v"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("v",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 6}})]),(VarName "n",SymVar Int "n"),(VarName "v",SymString "hi"),(Actions,SActions ["hi\n"])], pc = []}) (Just (SymState {env = fromList [(MethodName "ifFun8",SMethodType Void),(GlobalVars,SGlobalVars ["w"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("w",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 1, branchEnd = 6}})]),(VarName "n",SymVar Int "n"),(VarName "w",SymString "bye"),(Actions,SActions ["bye\n"])], pc = []})))
 ]
 */
+/*@ normal_behavior
+  @   requires (n % 2) == 0;
+  @   assignable v;
+  @   ensures v == "hi";
+  @ also
+  @ normal_behavior
+  @   requires (n % 2) != 0;
+  @   assignable w;
+  @   ensures w == "bye";
+  @*/
 public void ifFun8(int n) {
   if(n % 2 == 0) {
     v = "hi";
@@ -4388,6 +4441,12 @@ SymState {
   ], pc = []
 }
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable v, w;
+  @   ensures v == "hi";
+  @   ensures w == "bye";
+  @*/
 public void ifFun8Call() {
   ifFun8(4);
   ifFun8(5);
@@ -4414,6 +4473,16 @@ public void ifFun8Call() {
  (ScopeRange (SR {branchStart = 1, branchEnd = 6}),SIte (SBin (SBin (SymVar Int "n") Mod (SymInt 2)) Eq (SymInt 0)) (SymState {env = fromList [(MethodName "ifFun9",SMethodType Void),(GlobalVars,SGlobalVars ["v"]),(FormalParms,SFormalParms ["n"]),(VarBindings,SVarBindings (fromList [("z",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 6}})])),(VarAssignments,SVarAssignments [("v",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 6}}),("z",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 6}}),("v",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 1, branchEnd = 6}})]),(VarName "n",SymVar Int "n"),(VarName "v",SymString "hi zu"),(VarName "z",SymInt 3)], pc = []}) (Just (SymState {env = fromList [(MethodName "ifFun9",SMethodType Void),(GlobalVars,SGlobalVars ["w"]),(FormalParms,SFormalParms ["n"]),(VarAssignments,SVarAssignments [("w",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 1, branchEnd = 6}})]),(VarName "n",SymVar Int "n"),(VarName "w",SymString "bye")], pc = []})))
 ]
 */
+/*@ normal_behavior
+  @   requires (n % 2) == 0;
+  @   assignable v;
+  @   ensures v == "hi zu";
+  @ also
+  @ normal_behavior
+  @   requires (n % 2) != 0;
+  @   assignable w;
+  @   ensures w == "bye";
+  @*/
 public void ifFun9(int n) {
   if(n % 2 == 0) {
     v = "hi";
@@ -4452,6 +4521,19 @@ SymState {
     (Return,SymInt 0)
   ], pc = []}
 */
+/*@ normal_behavior
+  @   requires \old(v) == "bye";
+  @   assignable t, v;
+  @   ensures \result == 0;
+  @   ensures t == i;
+  @   ensures v == "zuzu";
+  @ also
+  @ normal_behavior
+  @   requires \old(v) != "bye";
+  @   assignable t;
+  @   ensures \result == 0;
+  @   ensures t == i;
+  @*/
 public int ifFun10() {
   int res = 0;
   if(v == "bye") {
@@ -4478,6 +4560,11 @@ public int ifFun10() {
  (Return,SymInt 0)
 ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 0;
+  @*/
 public int ifFun11() {
   int res = 0;
   if(false) {
@@ -4502,12 +4589,128 @@ SymState {
     (ScopeRange (SR {branchStart = 2, branchEnd = 4}),SIte (SBin (SymVar Int "n") Ge (SymInt 0)) (SymState {env = fromList [(MethodName "ifFun12",SMethodType Int),(FormalParms,SFormalParms ["n"]),(VarBindings,SVarBindings (fromList [("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})])),(VarAssignments,SVarAssignments [("res",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("res",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 4}})]),(VarName "n",SymVar Int "n"),(VarName "res",SymInt 1)], pc = []}) Nothing),
     (Return,SymUnknown (Int,"res",Just (SymInt 0)) [([(If,SR {branchStart = 2, branchEnd = 4})],3)])], pc = []}
 */
+/*@ normal_behavior
+  @   requires n >= 0;
+  @   assignable \nothing;
+  @   ensures \result == 1;
+  @ also
+  @ normal_behavior
+  @   requires n < 0;
+  @   assignable \nothing;
+  @   ensures \result == 0;
+  @*/
 public int ifFun12(int n) {
   int res = 0;
   if(n >= 0) {
     res += 1;
   }
   return res;
+}
+
+/////////////////////
+
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle Void "ifFun13"),
+    (GlobalVars,SGlobalVars ["t","v","w","s","n"]),
+    (VarAssignments,SVarAssignments [
+        ("v",(SymString "hi",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 4}})),
+        ("w",(SymString "bye",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 4}})),
+        ("s",(SBin (SymString "something") Add (SymFun ToString (SymVar UnknownGlobalVarSymType "n")),Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 6}}))]),
+    (VarName "n",SymVar UnknownGlobalVarSymType "n"),
+    (VarName "s",SBin (SymString "something") Add (SymFun ToString (SymVar UnknownGlobalVarSymType "n"))),
+    (VarName "t",SymVar UnknownNumSymType "t"),
+    (VarName "v",SymUnknown ("v",SymVar String "v") [([(If,SR {branchStart = 1, branchEnd = 4})],2)]),
+    (VarName "w",SymUnknown ("w",SymVar String "w") [([(If,SR {branchStart = 1, branchEnd = 4})],3)]),
+    (ScopeRange (SR {branchStart = 1, branchEnd = 4}),
+     SIte (SBin (SBin (SymVar UnknownNumSymType "t") Mod (SymNum 2.0)) Eq (SymNum 0.0))
+          (fromList [
+              (MethodHandle,SMethodHandle Void "ifFun13"),
+              (GlobalVars,SGlobalVars ["t","v"]),
+              (VarAssignments,SVarAssignments [
+                  ("v",(SymString "hi",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 4}}))]),
+              (VarName "t",SymVar UnknownNumSymType "t"),
+              (VarName "v",SymString "hi")])
+          (Just (fromList [
+              (MethodHandle,SMethodHandle Void "ifFun13"),
+              (GlobalVars,SGlobalVars ["t","w"]),
+              (VarAssignments,SVarAssignments [
+                  ("w",(SymString "bye",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 4}}))]),
+              (VarName "t",SymVar UnknownNumSymType "t"),
+              (VarName "w",SymString "bye")]))),
+    (Return,SymReturnVoid)
+]
+*/
+/*@ normal_behavior
+  @   requires (t % 2.0) == 0.0;
+  @   assignable s, v;
+  @   ensures s == "something" + toString(n);
+  @   ensures v == "hi";
+  @ also
+  @ normal_behavior
+  @   requires (t % 2.0) != 0.0;
+  @   assignable s, w;
+  @   ensures s == "something" + toString(n);
+  @   ensures w == "bye";
+  @*/
+public void ifFun13() {
+  if(t % 2 == 0) {
+    v = "hi";
+  }
+  else {
+    w = "bye";
+  }
+  s = "something" + toString(n);
+}
+
+//DONE
+//JavaMethod
+/*
+[
+    (MethodHandle,SMethodHandle Void "ifFun13Call"),
+    (GlobalVars,SGlobalVars ["t","v","w","s","n"]),
+    (VarName "n",SymVar String "n"),
+    (VarName "s",SBin (SymString "something") Add (SymFun ToString (SymVar UnknownGlobalVarSymType "n"))),
+    (VarName "t",SymVar UnknownNumSymType "t"),
+    (VarName "v",SymUnknown ("v",SymVar String "v") [([(If,SR {branchStart = 1, branchEnd = 4})],2)]),
+    (VarName "w",SymUnknown ("w",SymVar String "w") [([(If,SR {branchStart = 1, branchEnd = 4})],3)]),
+    (InheritedScopeRange "ifFun13" (SR {branchStart = 1, branchEnd = 4}),
+     SIte (SBin (SBin (SymVar UnknownNumSymType "t") Mod (SymNum 2.0)) Eq (SymNum 0.0))
+          (fromList [
+              (MethodHandle,SMethodHandle Void "ifFun13"),
+              (GlobalVars,SGlobalVars ["t","v"]),
+              (FormalParms,SFormalParms []),
+              (VarAssignments,SVarAssignments [
+                  ("v",(SymString "hi",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 4}}))]),
+              (VarName "t",SymVar UnknownNumSymType "t"),
+              (VarName "v",SymString "hi")])
+          (Just (fromList [
+              (MethodHandle,SMethodHandle Void "ifFun13"),
+              (GlobalVars,SGlobalVars ["t","w"]),
+              (FormalParms,SFormalParms []),
+              (VarAssignments,SVarAssignments [
+                  ("w",(SymString "bye",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 4}}))]),
+              (VarName "t",SymVar UnknownNumSymType "t"),
+              (VarName "w",SymString "bye")]))),
+    (Return,SymReturnVoid)
+]
+*/
+/*@ normal_behavior
+  @   requires (t % 2.0) == 0.0;
+  @   assignable s, v;
+  @   ensures s == "something" + toString(n);
+  @   ensures v == "hi";
+  @ also
+  @ normal_behavior
+  @   requires (t % 2.0) != 0.0;
+  @   assignable s, w;
+  @   ensures s == "something" + toString(n);
+  @   ensures w == "bye";
+  @*/
+public void ifFun13Call() {
+  ifFun13();
 }
 
 /////////////////////
@@ -4525,6 +4728,10 @@ SymState {
   ], pc = []
 }
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @*/
 public void succFun(int i) {
   i += 1;
 }
@@ -4543,6 +4750,10 @@ public void succFun(int i) {
  (Actions,SActions [SymString "2\n"])
 ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @*/
 public void succFunCall() {
   int n = 2;
   succFun(n);
@@ -4571,6 +4782,11 @@ SymState {
  (Return,SBin (SymVar Int "n") Add (SymInt 1))
 ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == n;
+  @*/
 public int callSuccFun(int n) {
   succFun(n);
   return n;
@@ -4583,6 +4799,11 @@ public int callSuccFun(int n) {
 /*
 SymState {env = fromList [(MethodName "callCallSuccFun",SMethodType Int),(Return,SymInt 5)], pc = []}
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == 5;
+  @*/
 public int callCallSuccFun() {
   return callSuccFun(5);
 }
@@ -4971,14 +5192,6 @@ public int sum4Call() {
 
 //DONE
 //JavaMethod
-/*
-[
- (MethodHandle,SMethodHandle String "sum1Call1"),
- (Return,SymFun
-   (UserDefined "sum1Call1")
-   (SLoopFailure (SR {branchStart = 2, branchEnd = 6}) 20))
-]
-*/
 public String sum1Call1() {
   return toString(sum1(21));
 }
@@ -5135,6 +5348,11 @@ public static int getMaxCall() {
               (SBin (SObjAcc ["arr","length"]) Le (SymInt 1)))
 ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == (arr == null) || (arr.length <= 1);
+  @*/
 public static boolean arrayBoolean(int[] arr) {
   return arr == null || arr.length <= 1;
 }
@@ -5147,6 +5365,10 @@ public static boolean arrayBoolean(int[] arr) {
  (Actions,SActions [SymString "true\n",SymString "false\n",SymString "null"])
 ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @*/
 public static void arrayBooleanCall() {
   println(toString(arrayBoolean(new int[] {5})));
   println(toString(arrayBoolean(new int[] {5,6})));
@@ -6446,6 +6668,11 @@ public int processArray1Call() {
     (Return,SBin (SObjAcc ["arr","length"]) Eq (SymInt 0))
   ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == arr.length == 0;
+  @*/
 public boolean isEmpty(int[] arr) {
   return arr.length == 0;
 }
@@ -6460,6 +6687,11 @@ public boolean isEmpty(int[] arr) {
     (Return,SBool True)
   ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == true;
+  @*/
 public boolean callIsEmpty() {
   return isEmpty(new int[]{});
 }
@@ -6474,6 +6706,11 @@ public boolean callIsEmpty() {
     (Return,SBool False)
   ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == false;
+  @*/
 public boolean callIsNotEmpty() {
   return isEmpty(new int[]{1,2,3});
 }

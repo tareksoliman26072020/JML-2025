@@ -107,6 +107,7 @@ allTargets = [
   ("ifFun10",ifFun10),
   ("ifFun11",ifFun11),
   ("ifFun12",ifFun12),
+  ("ifFun13",ifFun13), ("ifFun13Call",ifFun13Call),
   ("succFun", succFun), ("succFunCall", succFunCall), ("callSuccFun", callSuccFun), ("callCallSuccFun", callCallSuccFun),
   ("wrongSum1", wrongSum1),
   ("wrongSum2", wrongSum2),
@@ -2920,6 +2921,26 @@ ifFun7Call3 = Map.fromList [
         ([(If,SR {branchStart = 1, branchEnd = 4})],2)]),
     (VarName "w",SymUnknown ("w",SymVar SYT.String "w") [
         ([(If,SR {branchStart = 1, branchEnd = 4})],3)]),
+    (InheritedScopeRange "ifFun7" (SR {branchStart = 1, branchEnd = 4}),
+     SIte (SBin (SBin (SymVar SYT.Int "t") SYT.Mod (SymInt 2)) SYT.Eq (SymInt 0))
+          (Map.fromList [
+              (MethodHandle,SMethodHandle SYT.Void "ifFun7"),
+              (GlobalVars,SGlobalVars ["v"]),
+              (FormalParms,SFormalParms ["n"]),
+              (VarAssignments,SVarAssignments [
+                  ("v",(SymString "hi",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 4}}))]),
+              (VarName "n",SymVar SYT.Int "t"),
+              (VarName "t",SymVar SYT.Int "t"),
+              (VarName "v",SymString "hi")])
+          (Just (Map.fromList [
+              (MethodHandle,SMethodHandle SYT.Void "ifFun7"),
+              (GlobalVars,SGlobalVars ["w"]),
+              (FormalParms,SFormalParms ["n"]),
+              (VarAssignments,SVarAssignments [
+                  ("w",(SymString "bye",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 4}}))]),
+              (VarName "n",SymVar SYT.Int "t"),
+              (VarName "t",SymVar SYT.Int "t"),
+              (VarName "w",SymString "bye")]))),
     (Return,SymReturnVoid)]
 
 -----------------------------
@@ -3097,6 +3118,76 @@ ifFun12 = Map.fromList [
               (VarName "n",SymVar SYT.Int "n"),
               (VarName "res",SymInt 1)]) Nothing),
     (Return,SymUnknown ("res",SymInt 0) [([(If,SR {branchStart = 2, branchEnd = 4})],3)])]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+ifFun13 :: SymStateEnv
+ifFun13 = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "ifFun13"),
+    (GlobalVars,SGlobalVars ["t","v","w","s","n"]),
+    (VarAssignments,SVarAssignments [
+        ("v",(SymString "hi",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 4}})),
+        ("w",(SymString "bye",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 4}})),
+        ("s",(SBin (SymString "something") SYT.Add (SymFun ToString (SymVar SYT.UnknownGlobalVarSymType "n")),Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 0, branchEnd = 6}}))]),
+    (VarName "n",SymVar SYT.UnknownGlobalVarSymType "n"),
+    (VarName "s",SBin (SymString "something") SYT.Add (SymFun ToString (SymVar SYT.UnknownGlobalVarSymType "n"))),
+    (VarName "t",SymVar SYT.UnknownNumSymType "t"),
+    (VarName "v",SymUnknown ("v",SymVar SYT.String "v") [([(If,SR {branchStart = 1, branchEnd = 4})],2)]),
+    (VarName "w",SymUnknown ("w",SymVar SYT.String "w") [([(If,SR {branchStart = 1, branchEnd = 4})],3)]),
+    (ScopeRange (SR {branchStart = 1, branchEnd = 4}),
+     SIte (SBin (SBin (SymVar SYT.UnknownNumSymType "t") SYT.Mod (SymNum 2.0)) SYT.Eq (SymNum 0.0))
+          (Map.fromList [
+              (MethodHandle,SMethodHandle SYT.Void "ifFun13"),
+              (GlobalVars,SGlobalVars ["t","v"]),
+              (VarAssignments,SVarAssignments [
+                  ("v",(SymString "hi",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 4}}))]),
+              (VarName "t",SymVar SYT.UnknownNumSymType "t"),
+              (VarName "v",SymString "hi")])
+          (Just (Map.fromList [
+              (MethodHandle,SMethodHandle SYT.Void "ifFun13"),
+              (GlobalVars,SGlobalVars ["t","w"]),
+              (VarAssignments,SVarAssignments [
+                  ("w",(SymString "bye",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 4}}))]),
+              (VarName "t",SymVar SYT.UnknownNumSymType "t"),
+              (VarName "w",SymString "bye")]))),
+    (Return,SymReturnVoid)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+ifFun13Call :: SymStateEnv
+ifFun13Call = Map.fromList [
+    (MethodHandle,SMethodHandle SYT.Void "ifFun13Call"),
+    (GlobalVars,SGlobalVars ["t","v","w","s","n"]),
+    (VarName "n",SymVar SYT.String "n"),
+    (VarName "s",SBin (SymString "something") SYT.Add (SymFun ToString (SymVar SYT.UnknownGlobalVarSymType "n"))),
+    (VarName "t",SymVar SYT.UnknownNumSymType "t"),
+    (VarName "v",SymUnknown ("v",SymVar SYT.String "v") [([(If,SR {branchStart = 1, branchEnd = 4})],2)]),
+    (VarName "w",SymUnknown ("w",SymVar SYT.String "w") [([(If,SR {branchStart = 1, branchEnd = 4})],3)]),
+    (InheritedScopeRange "ifFun13" (SR {branchStart = 1, branchEnd = 4}),
+     SIte (SBin (SBin (SymVar SYT.UnknownNumSymType "t") SYT.Mod (SymNum 2.0)) SYT.Eq (SymNum 0.0))
+          (Map.fromList [
+              (MethodHandle,SMethodHandle SYT.Void "ifFun13"),
+              (GlobalVars,SGlobalVars ["t","v"]),
+              (FormalParms,SFormalParms []),
+              (VarAssignments,SVarAssignments [
+                  ("v",(SymString "hi",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 4}}))]),
+              (VarName "t",SymVar SYT.UnknownNumSymType "t"),
+              (VarName "v",SymString "hi")])
+          (Just (Map.fromList [
+              (MethodHandle,SMethodHandle SYT.Void "ifFun13"),
+              (GlobalVars,SGlobalVars ["t","w"]),
+              (FormalParms,SFormalParms []),
+              (VarAssignments,SVarAssignments [
+                  ("w",(SymString "bye",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 4}}))]),
+              (VarName "t",SymVar SYT.UnknownNumSymType "t"),
+              (VarName "w",SymString "bye")]))),
+    (Return,SymReturnVoid)
+  ]
 
 -----------------------------
 -----------------------------
@@ -3392,6 +3483,10 @@ sum1 = Map.fromList [
 sum1Call1 :: SymStateEnv
 sum1Call1 = Map.fromList [
   (MethodHandle,SMethodHandle SYT.String "sum1Call1"),
+  (InheritedScopeRange "sum1" (SR {branchStart = 2, branchEnd = 6}),
+   SLoop Nothing
+         (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = Greater, expr2 = NumberLiteral 0.0}))
+         [Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = Plus, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}}), parent = 2},Node {id = 5, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "n"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = Minus, expr2 = NumberLiteral 1.0}}})), parent = 2}]),
   (Return,SLoopFailure (SR {branchStart = 2, branchEnd = 6}) 20)
  ]
 
@@ -3404,6 +3499,10 @@ sum1Call2 = Map.fromList [
   (MethodHandle,SMethodHandle SYT.String "sum1Call2"),
   (GlobalVars,SGlobalVars ["x"]),
   (VarName "x",SymVar SYT.Int "x"),
+  (InheritedScopeRange "sum1" (SR {branchStart = 2, branchEnd = 6}),
+   SLoop Nothing
+         (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = Greater, expr2 = NumberLiteral 0.0}))
+         [Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "res"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "res"}, binOp = Plus, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "n"}}}}), parent = 2},Node {id = 5, nodeData = ForStep (Just (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "n"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = Minus, expr2 = NumberLiteral 1.0}}})), parent = 2}]),
   (Return,SymFun ToString (
      (SymUnknown ("res",SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 6})],4)])))
   ]

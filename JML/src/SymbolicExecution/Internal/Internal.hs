@@ -1024,6 +1024,11 @@ getVarNameSymType varName ma = fmap toSymType2 (Map.lookup (VarName varName) ma)
 getVarNameSymExpr :: String -> SymStateEnv -> Maybe SymExpr
 getVarNameSymExpr varName ma = fmap id (Map.lookup (VarName varName) ma)
 
+getScopeRanges :: SymStateEnv -> SymStateEnv
+getScopeRanges = Map.filterWithKey $ \case
+  ScopeRange _ -> const True
+  _ -> const False
+
 getActions :: SymStateEnv -> [SymExpr]
 getActions = maybe [] (\(SActions li) -> li) . Map.lookup Actions
 
@@ -1178,6 +1183,7 @@ ppSymExpr_no_symType = \case
   SymUnknown (_,symExpr) _ -> printf "(Last Known Value: %s)" (ppSymExpr_no_symType symExpr)
   SObjAcc li -> intercalate "." li
   SException Int exceptionType exceptionName -> printf "%s %s" exceptionType exceptionName
+  SymFun ToString symExpr -> printf "toString(%s)" (ppSymExpr_no_symType symExpr)
   symExpr -> error $ "TODO2: ppSymExpr_no_symType ==> " ++ show symExpr
 
 ------------------------------

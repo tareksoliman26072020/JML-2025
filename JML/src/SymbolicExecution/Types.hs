@@ -26,7 +26,9 @@ newtype MethodProcessor = MethodProcessor {
 
 data SymStateKey = MethodHandle
                  | GlobalVars | FormalParms | VarBindings | VarAssignments
-                 | VarName String | ScopeRange CFGT.ScopeRange | LoopFailure
+                 | VarName String
+                 | ScopeRange CFGT.ScopeRange | InheritedScopeRange String CFGT.ScopeRange
+                 | LoopFailure
                  | LoopConditions CFGT.ScopeRange | Continue | Break
                  | Exception | Actions | Return
                  deriving (Eq,Ord,Show)

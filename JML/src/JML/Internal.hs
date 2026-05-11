@@ -255,6 +255,7 @@ symBinOpToOp symBinOp = case symBinOp of
   SYT.Le  -> Le
   SYT.Eq  -> Eq
   SYT.Mod -> Mod
+  SYT.Or  -> Or
   _ -> error $ printf "JML.Internal.symBinOpToOp: TODO: %s" (show symBinOp)
 
 hasReturn :: [ExecutionResult] -> Bool
@@ -382,7 +383,7 @@ addBehavior sy er = do
       pathCreationEnumeration = pathCreationEnumeration jmlState
     }
     --
-    ER_IfThenElse scopeRange (ifRequires,ifJMLState,if_ers) maybeElse -> do
+    ER_IfThenElse (_,scopeRange) (ifRequires,ifJMLState,if_ers) maybeElse -> do
       tellingReportTheState loc
       ---------- if
       -- add the behaviors of the if body
@@ -1122,3 +1123,4 @@ alterList f p li = let
   case find p new_li of
     Just _ -> new_li
     Nothing -> li ++ f Nothing
+

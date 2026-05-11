@@ -122,76 +122,8 @@ instance SymbolicExecutionVisitor MethodProcessor where
              let toReturn = ER_Actions $ symExprToExpr jmlState value
              tellingThenReturning loc toReturn
     -----------------------------
-    (SYT.ScopeRange scopeRange,SYT.SIte cond ifBody maybeElseBody) -> do
-      let loc = globalLoc ++ ".visitSymExpr.SIte"
-      tellNextLog $ Log.Location loc (show tu)
-      originalStack <- jmlStack <$> get
-      -- SIte SymExpr SymbolicExecution (Maybe SymbolicExecution)
-      -- process if
-      (ifRequires,ifJMLState,if_ers) <- do
-        tellNextLog $ Log.ProcessIfBody loc
-        jmlState <- get
-        let ifRequires = symExprToExpr jmlState cond
-        tellNextLog $ Log.IfConditionPreCondition loc (show ifRequires)
-        incrementLogEnumeration >> incrementLogDepth
-        
-        res@(if_error_er,ifLogs,ifJMLState) <- do
-          sys <- ask
-          return $ runSE sys ifBody
-        
-        -- is there an error
-        let if_ers = case if_error_er of
-              Right if_ers -> if_ers
-              Left ifError -> createError_sy ("TODO1: " ++ ifError) loc key value
-        
-        -- if logs
-        flip mapM_ ifLogs $ \log -> do
-          Log.Header _ baseCounter <- logHeader <$> get
-          tellNextNestedLog baseCounter ["if body"] log
-        decrementLogDepth
-        
-        tellNextLog $ Log.IfInnerJMLState loc (show if_error_er)
-          (show $ method ifJMLState) (map (\(Requires one two) -> (show one,map show two)) $ jmlStack ifJMLState) (show $ logHeader ifJMLState)
-          (show $ formalParms ifJMLState) (show $ localVars ifJMLState) (show $ globalVars ifJMLState)
-          (ppBehaviors $ behaviors $ method ifJMLState)
-        
-        return (ifRequires,ifJMLState,if_ers)
-      -- process else
-      maybeElse <- do
-        case maybeElseBody of
-          -- no else body
-          Nothing -> do
-            tellNextLog $ Log.NoElseBody loc
-            --throwError $ createError_sy "TODO2" loc key value
-            return Nothing
-          -- yes else body
-          Just elseBody -> do
-            tellNextLog $ Log.ProcessElseBody loc
-            let elseRequires = negate ifRequires
-            tellNextLog $ Log.ElseConditionPreCondition loc (show elseRequires)
-            incrementLogEnumeration >> incrementLogDepth
-            
-            (else_error_er,elseLogs,elseJMLState) <- do
-              sys <- ask
-              return $ runSE sys elseBody
-            
-            -- is there an error
-            let else_ers = case else_error_er of
-                  Right else_ers -> else_ers
-                  Left elseError -> createError_sy ("TODO3: " ++ elseError) loc key value
-            -- else logs
-            flip mapM_ elseLogs $ \log -> do
-              Log.Header _ baseCounter <- logHeader <$> get
-              tellNextNestedLog baseCounter ["else body"] log
-            decrementLogDepth
-            
-            tellNextLog $ Log.ElseInnerJMLState loc (show else_error_er)
-              (show $ method ifJMLState) (map (\(Requires one two) -> (show one,map show two)) $ jmlStack ifJMLState) (show $ logHeader ifJMLState)
-              (show $ formalParms ifJMLState) (show $ localVars ifJMLState) (show $ globalVars ifJMLState)
-              (ppBehaviors $ behaviors $ method ifJMLState)
-            return $ Just (elseRequires,elseJMLState,else_ers)
-
-      return $ ER_IfThenElse scopeRange (ifRequires,ifJMLState,if_ers) maybeElse
+    (SYT.ScopeRange scopeRange,expr@(SYT.SIte cond ifBody maybeElseBody)) ->
+      visitSymExpr_SIte (key,expr)
     -----------------------------
     (SYT.LoopConditions sr,SYT.SLoopConditions li) -> do
       let loc = globalLoc ++ ".visitSymExpr.LoopConditions"
@@ -200,9 +132,90 @@ instance SymbolicExecutionVisitor MethodProcessor where
       let toReturn = ER_LoopConditions sr li
       tellingThenReturning loc toReturn
     -----------------------------
+    (SYT.InheritedScopeRange funCallName funCallScopeRange,expr) ->
+      visitSymExpr_SIte (key,expr)
+    -----------------------------
     _ ->
       let loc = globalLoc ++ ".visitSymExpr"
       in throwError $ createError_sy "TODO" loc key value
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+visitSymExpr_SIte :: (SYT.SymStateKey,SYT.SymbolicExecutionValue) -> JMLMonad ExecutionResult
+visitSymExpr_SIte tu@(key,value@(SYT.SIte cond ifBody maybeElseBody)) = do
+  let loc = "JML.Internal.visitSymExpr_SIte"
+  tellNextLog $ Log.Location loc (show tu)
+  originalStack <- jmlStack <$> get
+  -- SIte SymExpr SymbolicExecution (Maybe SymbolicExecution)
+  -- process if
+  (ifRequires,ifJMLState,if_ers) <- do
+    tellNextLog $ Log.ProcessIfBody loc
+    jmlState <- get
+    let ifRequires = symExprToExpr jmlState cond
+    tellNextLog $ Log.IfConditionPreCondition loc (show ifRequires)
+    incrementLogEnumeration >> incrementLogDepth
+        
+    res@(if_error_er,ifLogs,ifJMLState) <- do
+      sys <- ask
+      return $ runSE sys ifBody
+       
+    -- is there an error
+    let if_ers = case if_error_er of
+          Right if_ers -> if_ers
+          Left ifError -> createError_sy ("TODO1: " ++ ifError) loc key value
+        
+    -- if logs
+    flip mapM_ ifLogs $ \log -> do
+      Log.Header _ baseCounter <- logHeader <$> get
+      tellNextNestedLog baseCounter ["if body"] log
+    decrementLogDepth
+        
+    tellNextLog $ Log.IfInnerJMLState loc (show if_error_er)
+      (show $ method ifJMLState) (map (\(Requires one two) -> (show one,map show two)) $ jmlStack ifJMLState) (show $ logHeader ifJMLState)
+      (show $ formalParms ifJMLState) (show $ localVars ifJMLState) (show $ globalVars ifJMLState)
+      (ppBehaviors $ behaviors $ method ifJMLState)
+        
+    return (ifRequires,ifJMLState,if_ers)
+  -- process else
+  maybeElse <- do
+    case maybeElseBody of
+      -- no else body
+      Nothing -> do
+        tellNextLog $ Log.NoElseBody loc
+        return Nothing
+      -- yes else body
+      Just elseBody -> do
+        tellNextLog $ Log.ProcessElseBody loc
+        let elseRequires = negate ifRequires
+        tellNextLog $ Log.ElseConditionPreCondition loc (show elseRequires)
+        incrementLogEnumeration >> incrementLogDepth
+          
+        (else_error_er,elseLogs,elseJMLState) <- do
+          sys <- ask
+          return $ runSE sys elseBody
+           
+        -- is there an error
+        let else_ers = case else_error_er of
+              Right else_ers -> else_ers
+              Left elseError -> createError_sy ("TODO3: " ++ elseError) loc key value
+        -- else logs
+        flip mapM_ elseLogs $ \log -> do
+          Log.Header _ baseCounter <- logHeader <$> get
+          tellNextNestedLog baseCounter ["else body"] log
+        decrementLogDepth
+            
+        tellNextLog $ Log.ElseInnerJMLState loc (show else_error_er)
+          (show $ method ifJMLState) (map (\(Requires one two) -> (show one,map show two)) $ jmlStack ifJMLState) (show $ logHeader ifJMLState)
+          (show $ formalParms ifJMLState) (show $ localVars ifJMLState) (show $ globalVars ifJMLState)
+          (ppBehaviors $ behaviors $ method ifJMLState)
+        return $ Just (elseRequires,elseJMLState,else_ers)
+  return $ ER_IfThenElse
+    (case key of
+       SYT.ScopeRange scopeRange -> (Nothing,scopeRange)
+       SYT.InheritedScopeRange funCallName scopeRange -> (Just funCallName,scopeRange))
+    (ifRequires,ifJMLState,if_ers) maybeElse
 
 -----------------------------
 -----------------------------

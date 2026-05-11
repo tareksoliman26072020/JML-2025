@@ -105,6 +105,7 @@ javaMethodInputs = [
   ("ifFun10", ifFun10),
   ("ifFun11", ifFun11),
   ("ifFun12", ifFun12),
+  ("ifFun13", ifFun13), ("ifFun13Call", ifFun13Call),
   ("succFun", succFun), ("succFunCall", succFunCall), ("callSuccFun", callSuccFun), ("callCallSuccFun", callCallSuccFun),
   ("wrongSum1", wrongSum1),
   ("wrongSum2", wrongSum2),
@@ -1291,6 +1292,22 @@ ifFun12 = "public int ifFun12(int n) {\n\
           \  }\n\
           \  return res;\n\
           \}"
+
+ifFun13 :: String
+ifFun13 = "public void ifFun13() {\n\
+          \  if(t % 2 == 0) {\n\
+          \    v = \"hi\";\n\
+          \  }\n\
+          \  else {\n\
+          \    w = \"bye\";\n\
+          \  }\n\
+          \  s = \"something\" + toString(n);\n\
+          \}"
+
+ifFun13Call :: String
+ifFun13Call = "public void ifFun13Call() {\n\
+              \  ifFun13();\n\
+              \}"
 
 succFun :: String
 succFun = "public void succFun(int i) {\n\

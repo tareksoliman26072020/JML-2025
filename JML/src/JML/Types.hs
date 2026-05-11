@@ -102,7 +102,7 @@ data ExecutionResult =
   | ER_Return SYT.SymbolicExecutionValue
   | ER_ReturnVoid
   | ER_Actions Expr
-  | ER_IfThenElse CFGT.ScopeRange
+  | ER_IfThenElse (Maybe String,CFGT.ScopeRange)
            (Expr,JMLState,[ExecutionResult]) (Maybe (Expr,JMLState,[ExecutionResult]))
   | ER_LoopConditions CFGT.ScopeRange [Map.Map String SYT.SymbolicExecutionValue]
   deriving (Show,Eq)

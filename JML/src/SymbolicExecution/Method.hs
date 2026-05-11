@@ -782,7 +782,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                  $ map toSymType2 [symExpr1,symExpr2])
                 (ER_SymStateMapEntry vn symExpr1)
             ER_Expr symExpr2 -> return ()
-            _ -> throwError $ "TODO3 ==> visitExpr -> FunCallExpr: " ++ show er)
+            _ -> throwError $ "TODO1 ==> visitExpr -> FunCallExpr: " ++ show er)
             actualParms (map snd actualParms1)
           -- global vars to be inserted into the method call Map.Map
           -- Global vars which have the same name of formal parms get excluded
@@ -841,6 +841,13 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                 VarName vn
                   | vn `elem` inherit_globalVars -> True
                 _ -> False
+          --mapKeys :: Ord k2 => (k1 -> k2) -> Map k1 a -> Map k2 a 
+          let inherit_scopeRanges = flip Map.mapKeys (getScopeRanges funCallSymState2Env) $ \case
+                ScopeRange sr -> InheritedScopeRange funCallName sr
+                {-SIte cond sr_ifSymStateEnv maybe_sr_elseSymStateEnv ->
+                expr -> throwError $ printf
+                  "TODO2 in %s ==>\n\
+                  \  %s" loc (show expr)-}
           ----------
           -- inheriting the method call's actual parms (only when the actual parameter is an array)
           -- if they are defined outside the method call.
@@ -953,6 +960,13 @@ visitExpr (expr@AST.FunCallExpr{}) = do
               modify $ \symState -> SymState
                 (Map.union inherit_actualParms (env symState)) (logHeader symState)
           ----------
+          if Map.null inherit_scopeRanges
+            then return ()
+            else do
+              tellNextLog $ Log.ModifyState (loc ++ " -> inheriting ScopeRanges") ("ScopeRanges",show inherit_scopeRanges)
+              modify $ \symState -> SymState
+                (Map.union inherit_scopeRanges (env symState)) (logHeader symState)
+          ----------
           tellNextLog $ Log.RunSymStateActualMethodCall (show funCallSymState2Env)
           let toReturn = ER_FunCall funCallSymState2Env
           tellNextLog (Log.Return "visitExpr -> FunCallExpr ==> 1" (show toReturn)) $> toReturn
@@ -964,13 +978,8 @@ visitExpr (expr@AST.FunCallExpr{}) = do
           ers <- flip mapM (AST.funArgs expr) $ \ex -> do
             er <- visitExpr ex
             return er
-            --return (er,let Just e = getSymExpr er in e)
 
           let funArgsExprs = flip map ers $ \er -> let Just e = getSymExpr er in e
-{-
-          funArgsExprs <- flip mapM (AST.funArgs expr) $ \ex ->
-            ((\m -> let Just e = m in e) . getSymExpr) <$> visitExpr ex
- -}         
           -- funArgsExprs = [SBin (SymInt 1) Add (SymVar Int "n")]
           -- toReturn = ER_Expr (SBin (SymInt 1) Add (SymVar Int "n"))
           let toReturn =

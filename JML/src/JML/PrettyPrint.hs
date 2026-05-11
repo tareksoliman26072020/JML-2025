@@ -113,6 +113,7 @@ ppExpr expr = case expr of
 --JMLArray (Just Int_Type) (Just (JMLInt 2)) [JMLInt 99,JMLInt 5]
   JMLArray _ _ elems -> printf "[%s]" (intercalate ", " $ map ppExpr elems)
   SymFun ToString expr -> printf "toString(%s)" (ppExpr expr)
+  JMLNull _ -> "null"
   _ -> error $ "JML.PrettyPrint.ppExpr ==> TODO2: " ++ show expr
 
 ppOp :: Op -> String

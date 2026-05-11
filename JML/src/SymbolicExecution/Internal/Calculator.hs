@@ -940,7 +940,7 @@ funCallCalculator = \case
                  $ printf "[%s]" (intercalate ", " $ flip map symExprs2 (\(SymString str) -> str))
           else SymFun ToString $ SymArray mt ms symExprs2
      SymNum num -> SymString $ show num
-     symExpr@(SymVar _ _) -> cast String symExpr
+     symExpr@(SymVar _ _) -> SymFun ToString symExpr
      SBin expr1 op expr2 ->
        case (whichCalculator expr1 op expr2) argExpr of
          res
