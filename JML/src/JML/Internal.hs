@@ -4,6 +4,7 @@ module JML.Internal where
 import Prelude hiding (negate)
 import Control.Monad (foldM)
 import Control.Monad.Writer
+import Control.Monad.Reader (ask)
 import Control.Monad.State (get,modify)
 import Control.Monad.Except (throwError)
 import Text.Printf (printf)
@@ -22,7 +23,7 @@ import qualified CFG.Types as CFGT (ScopeRange)
 
 import qualified SymbolicExecution.Types as SYT (SymbolicExecution, SymbolicExecutionKey, SymStateKey(VarName), SymbolicExecutionValue, SymExpr(..), SymBinOp(..), SymType(..), DefinedFun(..))
 import qualified SymbolicExecution.Internal.Internal as SY.Internal (
-  getFunName, toSymType2)
+  getFunName, toSymType2, getVarNameSymType)
 
 yellow :: String -> String
 yellow = printf "\ESC[1;33m%s\ESC[m"
@@ -116,6 +117,12 @@ se_2_map = Map.fromList . map (\se -> (SY.Internal.getFunName se,se))
 
 isReassigned :: String -> JMLState -> Bool
 isReassigned vn jmlState = vn `elem` reAssigned jmlState
+
+isFormalParm :: String -> JMLState -> Bool
+isFormalParm varName jmlState = varName `elem` formalParms jmlState
+
+isGlobalVar :: String -> JMLState -> Bool
+isGlobalVar varName jmlState = varName `elem` globalVars jmlState
 
 -- converts SymExpr to Expr
 symExprToExpr :: JMLState -> SYT.SymbolicExecutionValue -> Expr
@@ -297,6 +304,70 @@ emptyNormalBehavior = NormalBehavior {
   ensures = []
 }
 
+getSymbolicExecution :: JMLMonad SYT.SymbolicExecution
+getSymbolicExecution = do
+  allSymStates <- ask
+  jmlState <- get
+  return $ allSymStates Map.! (name $ method jmlState)
+
+-- creates a pre condition such as `requires <arrName> != null`
+--     when array is accessed
+createExpr_arr_not_null :: Expr -> SYT.SymbolicExecution -> [Expr]
+createExpr_arr_not_null expr symExec = flip map (whichArrsAccessed expr) $ \case
+  (Just arrType,arrName) -> JMLBin
+    (JMLVar arrType arrName) Neq (JMLNull arrType)
+  (Nothing,arrName) -> let
+    Just arrType = toJMLType
+      <$> SY.Internal.getVarNameSymType arrName symExec
+    in JMLBin (JMLVar arrType arrName) Neq (JMLNull arrType)
+
+-- This functions gets passed an array name `arrName`
+--     and a jml-expression.
+-- Then this jml-expression will get scanned for this `arrName`
+--     to find an expression of the form <JMLBin (JMLVar _ <arrName>) _ (JMLNull _)>
+-- if such expression is found, then return True.
+equalsNullIn :: String -> Expr -> Bool
+equalsNullIn arrName expr = let
+  loc = "JML.Internal.equalsNullIn" in case expr of
+  JMLBin (JMLVar (Array_Type _) arrName2) _ (JMLNull _) -> arrName == arrName2
+  JMLBin expr1 _ expr2 -> any (arrName `equalsNullIn`) [expr1,expr2]
+  JMLVar _ _ -> False
+  JMLInt _ -> False
+  JMLDouble _ -> False
+  JMLNum _ -> False
+  JMLBool _ -> False
+  JMLString _ -> False
+  JMLNull _ -> False
+  JMLObjAcc _ -> False
+  JMLArrayIndexAccess _ _ _ -> False
+  _ -> error $ printf "TODO1 in %s ==> %s" loc (show expr)
+
+isJMLVarUnknown :: Expr -> Bool
+isJMLVarUnknown = \case
+  JMLVarUnknown _ _ _ -> True
+  _ -> False
+
+whichArrsAccessed :: Expr -> [(Maybe JMLType,String)]
+whichArrsAccessed expr = let
+  loc = "JML.Internal.whichArrsAccessed" in case expr of
+  JMLObjAcc [arrName,"length"] -> [(Nothing,arrName)]
+  JMLArrayIndexAccess arrType arrName _ -> [(Just arrType,arrName)]
+  JMLArray _ _ arrElems -> concatMap whichArrsAccessed arrElems
+  JMLArray _ _ _ -> error $ printf "TODO3 in %s ==> %s" loc (show expr)
+  JMLVar _ _ -> []
+  JMLVarUnknown _ _ expr -> whichArrsAccessed expr
+  JMLInt _ -> []
+  JMLDouble _ -> []
+  JMLNum _ -> []
+  JMLBool _ -> []
+  JMLString _ -> []
+  JMLNull _ -> []
+  JMLBin expr1 _ expr2 -> concatMap whichArrsAccessed [expr1,expr2]
+  JMLOld expr -> whichArrsAccessed expr
+  JMLException _ _ _ -> []
+  SymFun _ expr -> whichArrsAccessed expr
+  _ -> error $ printf "TODO4 in %s ==> %s" loc (show expr)
+
 addBehavior :: SYT.SymbolicExecution -> ExecutionResult -> JMLMonad ()
 addBehavior sy er = do
   let loc = "JML.Internal.addBehavior"
@@ -314,31 +385,43 @@ addBehavior sy er = do
     ER_VarName_Global_Reassigned vn symExpr mSR -> do
       do incrementLogEnumeration
          incrementLogDepth *> addToDefaultClause (Assignable [vn]) <* decrementLogDepth
-      do jmlState <- get
-         let newVarAssignment = VarAssignment (
+      jmlState <- get
+      let expr = symExprToExpr jmlState symExpr
+      do let newVarAssignment = VarAssignment (
                toJMLType $ SY.Internal.toSymType2 symExpr,
                vn,
-               symExprToExpr jmlState symExpr)
+               expr)
          incrementLogEnumeration
          incrementLogDepth
          addToDefaultClause newVarAssignment
          decrementLogDepth
+         
       -- determine the left and right operand for the `Ensures` annotation
-      do jmlState <- get
-         let rightOperand = symExprToExpr jmlState symExpr
+      do let rightOperand = expr
              ensuresExpr = JMLVar (inferJMLType rightOperand) vn `JMLEquals` rightOperand
          incrementLogEnumeration
          incrementLogDepth *> addToDefaultClause (Ensures ensuresExpr) <* decrementLogDepth
+      
+      -- if an array is being accessed, then add required arr != null
+      case whichArrsAccessed expr of
+        [] -> return ()
+        _ -> throwError $ printf
+          "TODO in %s" (loc ++ " ==> ER_VarName_Global_Reassigned")
     --
     ER_VarName vn symExpr mSR -> do
       jmlState <- get
+      let expr = symExprToExpr jmlState symExpr
       incrementLogEnumeration
       incrementLogDepth
       addToDefaultClause $ VarAssignment (
         toJMLType $ SY.Internal.toSymType2 symExpr,
         vn,
-        symExprToExpr jmlState symExpr)
+        expr)
       decrementLogDepth
+      case whichArrsAccessed expr of
+        [] -> return ()
+        _ -> throwError $ printf
+          "TODO in %s" (loc ++ " ==> ER_VarName_Global_Reassigned")
     --
     ER_VarName_Unassigned _ _ _ -> logSkipping loc
     --
@@ -388,8 +471,23 @@ addBehavior sy er = do
       ---------- if
       -- add the behaviors of the if body
       ifBehaviors :: [Behavior] <- do
-        let newIfBehaviors = flip map (behaviors $ method ifJMLState)
-              (flip addClauseToBehavior (Requires (Just scopeRange,Just ifRequires) []))
+        -- check if an array is accessed (read).
+        -- if yes, then modify the precondition correspondingly
+        modified_ifRequires <- do
+          jmlState <- get
+          symExec <- getSymbolicExecution
+          let new_preConds = flip filter (createExpr_arr_not_null ifRequires symExec)
+                $ \(JMLBin (JMLVar _ arrName) _ _) ->
+                     (not $ arrName `equalsNullIn` ifRequires) &&
+                     (any (\f -> f arrName jmlState) [isFormalParm,isGlobalVar])
+          return $ case new_preConds of
+            [] -> Just ifRequires
+            li -> foldl' (\l r -> combinePreconditions (Just r) l) (Just ifRequires) li
+        let newIfBehaviors =
+              [res | b <- behaviors $ method ifJMLState
+                   , let clause = Requires (Just scopeRange,modified_ifRequires) []
+                         res = addClauseToBehavior b clause
+                   ]
         forM newIfBehaviors $ \b -> do
           incrementLogEnumeration
           incrementLogDepth *> addBehaviorToState b <* decrementLogDepth
@@ -403,8 +501,23 @@ addBehavior sy er = do
         Nothing -> tellNextLog (Log.NoElseBody loc) $> Nothing
         Just (elseRequires,elseJMLState,else_ers) -> do
           elseBehaviors :: [Behavior] <- do
-            let newElseBehaviors = flip map (behaviors $ method elseJMLState)
-                  (flip addClauseToBehavior (Requires (Just scopeRange,Just elseRequires) []))
+            -- check if an array is accessed (read).
+            -- if yes, then modify the precondition correspondingly
+            modified_elseRequires <- do
+              jmlState <- get
+              symExec <- getSymbolicExecution
+              let new_preConds = flip filter (createExpr_arr_not_null elseRequires symExec)
+                    $ \(JMLBin (JMLVar _ arrName) _ _) ->
+                         (not $ arrName `equalsNullIn` elseRequires) &&
+                         (any (\f -> f arrName jmlState) [isFormalParm,isGlobalVar])
+              return $ case new_preConds of
+                [] -> Just elseRequires
+                li -> foldl' (\l r -> combinePreconditions (Just r) l) (Just elseRequires) li
+            let newElseBehaviors =
+                  [res | b <- behaviors $ method elseJMLState
+                       , let clause = Requires (Just scopeRange,modified_elseRequires) []
+                             res = addClauseToBehavior b clause
+                       ]
             forM newElseBehaviors $ \b -> do
               incrementLogEnumeration
               incrementLogDepth *> addBehaviorToState b <* decrementLogDepth
@@ -485,15 +598,34 @@ addBehavior sy er = do
     let loc = "JML.Internal.addBehavior.addBehaviorViaReturn"
     tellNextLog $ Log.Location loc (show er)
     tellingReportTheState loc
-    jmlState <- get
-    let theJMLResult = case er of
-          ER_Return symExpr -> [JMLResult $ symExprToExpr jmlState symExpr]
-          ER_ReturnVoid -> [JMLResult JMLVoid]
-          ER_ReturnException exceptionName -> []
-        noRequireBehavior = case er of
+    -- `maybeArrAccessed` denotes requires <arrName> != null
+    -- `symExec` is used to figure out the type of the array
+    -- that is accessed
+    (theJMLResult,maybeArrAccessed) <- case er of
+      ER_Return symExpr -> do
+        jmlState <- get
+        symExec <- getSymbolicExecution
+        let expr = symExprToExpr jmlState symExpr
+        -- Every expression in `accessedArrays` has the form:
+        -- JMLBin <JMLVar _ <Array Name>> Neq (JMLNull _)
+        accessedArrays :: [Expr] <- do
+          jmlState <- get
+          return $ flip filter (createExpr_arr_not_null expr symExec)
+            $ \(JMLBin (JMLVar _ arrName) _ _) ->
+                (not $ arrName `equalsNullIn` expr) &&
+                (any (\f -> f arrName jmlState) [isFormalParm,isGlobalVar])
+        return $ (,) [JMLResult expr]
+               $ case accessedArrays of
+                   [] -> Nothing
+                   (firstExpr : rest) -> foldl'
+                     (\l r -> combinePreconditions l (Just r))
+                     (Just firstExpr) rest
+      ER_ReturnVoid -> return $ (,) [JMLResult JMLVoid] Nothing
+      ER_ReturnException exceptionName -> return $ (,) [] Nothing
+    let noRequireBehavior = case er of
           ER_Return symExpr -> NormalBehavior {
             scopeRange = Nothing,
-            requires = Nothing,
+            requires = maybeArrAccessed,
             assignable = [],
             vars = [],
             hasSideEffect = False,
@@ -501,7 +633,7 @@ addBehavior sy er = do
           }
           ER_ReturnVoid -> NormalBehavior {
             scopeRange = Nothing,
-            requires = Nothing,
+            requires = maybeArrAccessed,
             assignable = [],
             vars = [],
             hasSideEffect = False,
@@ -562,15 +694,13 @@ addBehavior sy er = do
     gettingVars = [JMLVar t vn `JMLEquals` expr | VarAssignment (t,vn,expr) <- values]
     gettingSideEffect = HasSideEffect `elem` values
     gettingEnsures = [expr | Ensures expr <- values]
-    newPreCondition = combinePreconditions thePreCondition (requires behavior)
+    newPreCondition = combinePreconditions (requires behavior) thePreCondition
     processing = processJMLVarUnknown_behavior $ case behavior of
       NormalBehavior{} -> NormalBehavior {
         scopeRange = theScopeRange,
         requires = newPreCondition,
         assignable = nub $ assignable behavior ++ gettingAssignable,
-        vars = {-(if newPreCondition == Nothing
-                  then id
-                else nubVars . processJMLVarUnknown_vars) $-} vars behavior ++ gettingVars,
+        vars = vars behavior ++ gettingVars,
         hasSideEffect = hasSideEffect behavior || gettingSideEffect,
         ensures = ensures behavior ++ gettingEnsures
       }
@@ -579,9 +709,7 @@ addBehavior sy er = do
         requires = newPreCondition,
         signals = signals behavior,
         assignable = nub $ assignable behavior ++ gettingAssignable,
-        vars = {-(if newPreCondition == Nothing
-                  then id
-                else nubVars . processJMLVarUnknown_vars) $-} vars behavior ++ gettingVars,
+        vars = vars behavior ++ gettingVars,
         hasSideEffect = hasSideEffect behavior || gettingSideEffect,
         ensures = ensures behavior ++ gettingEnsures
       } in
@@ -760,11 +888,6 @@ addBehavior sy er = do
                forM_ (zip [1::Int ..] originalStack) $
                  \(counter,Requires old values) ->
                    helper old values (printf "%s %d of %d" nestedMsg counter len)
-           {-_ -> throwError $ printf
-                 "MEOW:\n\
-                 \  originalStack: %s\n\
-                 \  innerStateClauses: %s"
-                 (show originalStack) (show innerStateClauses)-}
        -- yes clauses ==> createClause with no clauses + new pre condition
        | otherwise -> let
            len = length innerStateClauses in do
@@ -902,11 +1025,6 @@ addBehavior sy er = do
         | VarAssignment (_,vn2,exprVal) <- vals
         , vn == vn2
         ]
-  --
-  isJMLVarUnknown :: Expr -> Bool
-  isJMLVarUnknown = \case
-    JMLVarUnknown _ _ _ -> True
-    _ -> False
   -- does an expression has JMLVarUnknown for `vn`?
   hasJMLVarUnknown :: String -> Expr -> Bool
   hasJMLVarUnknown vn expr = let
@@ -921,6 +1039,7 @@ addBehavior sy er = do
       SymFun ToString expr -> hasJMLVarUnknown vn expr
       JMLOld expr -> hasJMLVarUnknown vn expr
       JMLNum _ -> False
+      JMLArrayIndexAccess _ _ expr -> hasJMLVarUnknown vn expr
       _ -> error $ printf "TODO in %s ==> %s" loc (show expr)
   -- is JMLVar concrete?
   isJMLVarConcrete :: Expr -> Bool

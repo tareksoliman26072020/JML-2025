@@ -2427,7 +2427,14 @@ elemAt = Method {
   behaviors = [
     ExceptionalBehavior {
       scopeRange = Just (SR {branchStart = 1, branchEnd = 3}),
-      requires = Just (JMLBin (JMLObjAcc ["arr","length"]) Le (JMLVar Int_Type "pos")),
+      requires = Just
+        $ JMLBin (JMLBin (JMLVar (Array_Type Int_Type) "arr")
+                         Neq
+                         (JMLNull (Array_Type Int_Type)))
+                 And
+                 (JMLBin (JMLObjAcc ["arr","length"])
+                         Le
+                         (JMLVar Int_Type "pos")),
       signals = "Exception",
       assignable = [],
       vars = [],
@@ -2436,7 +2443,14 @@ elemAt = Method {
     },
     NormalBehavior {
       scopeRange = Just (SR {branchStart = 1, branchEnd = 3}),
-      requires = Just (JMLBin (JMLObjAcc ["arr","length"]) Gt (JMLVar Int_Type "pos")),
+      requires = Just
+        $ JMLBin (JMLBin (JMLVar (Array_Type Int_Type) "arr")
+                         Neq
+                         (JMLNull (Array_Type Int_Type)))
+                 And
+                 (JMLBin (JMLObjAcc ["arr","length"])
+                         Gt
+                         (JMLVar Int_Type "pos")),
       assignable = [],
       vars = [],
       hasSideEffect = False,
@@ -2555,9 +2569,9 @@ elemAt3 = Method {
     ExceptionalBehavior {
       scopeRange = Just (SR {branchStart = 1, branchEnd = 8}),
       requires = Just
-          $ JMLBin (JMLBin (JMLVar Int_Type "pos") Ge (JMLInt 0))
+          $ JMLBin (JMLBin (JMLInt 5) Le (JMLVar Int_Type "pos"))
                    And
-                   (JMLBin (JMLInt 5) Le (JMLVar Int_Type "pos")),
+                   (JMLBin (JMLVar Int_Type "pos") Ge (JMLInt 0)),
       signals = "Exception",
       assignable = [],
       vars = [JMLVar (Array_Type Int_Type) "arr" `JMLEquals` JMLArray (Just Int_Type) (Just (JMLInt 5)) [JMLInt 6,JMLInt 5,JMLInt 4,JMLInt 7,JMLInt 8]],
@@ -2567,9 +2581,9 @@ elemAt3 = Method {
     NormalBehavior {
       scopeRange = Just (SR {branchStart = 1, branchEnd = 8}),
       requires = Just
-          $ JMLBin (JMLBin (JMLVar Int_Type "pos") Ge (JMLInt 0))
+          $ JMLBin (JMLBin (JMLInt 5) Gt (JMLVar Int_Type "pos"))
                    And
-                   (JMLBin (JMLInt 5) Gt (JMLVar Int_Type "pos")),
+                   (JMLBin (JMLVar Int_Type "pos") Ge (JMLInt 0)),
       assignable = [],
       vars = [JMLVar (Array_Type Int_Type) "arr" `JMLEquals` JMLArray (Just Int_Type) (Just (JMLInt 5)) [JMLInt 6,JMLInt 5,JMLInt 4,JMLInt 7,JMLInt 8]],
       hasSideEffect = False,
@@ -4456,7 +4470,7 @@ isEmpty = Method {
   behaviors = [
     NormalBehavior {
       scopeRange = Nothing,
-      requires = Nothing,
+      requires = Just (JMLBin (JMLVar (Array_Type Int_Type) "arr") Neq (JMLNull (Array_Type Int_Type))),
       assignable = [],
       vars = [],
       hasSideEffect = False,

@@ -2979,12 +2979,12 @@ SymState {
 }
 */
 /*@ exceptional_behavior
-  @   requires arr.length <= pos;
+  @   requires (arr != null) && (arr.length <= pos);
   @   signals Exception;
   @   assignable \nothing;
   @ also
   @ normal_behavior
-  @   requires arr.length > pos;
+  @   requires (arr != null) && (arr.length > pos);
   @   assignable \nothing;
   @   ensures \result == arr[pos];
   @*/
@@ -3145,12 +3145,12 @@ public int elemAt2Call2() {
   @   assignable \nothing;
   @ also
   @ exceptional_behavior
-  @   requires pos >= 0 && 5 <= pos;
+  @   requires (5 <= pos) && (pos >= 0);
   @   signals Exception;
   @   assignable \nothing;
   @ also
   @ normal_behavior
-  @   requires pos >= 0 && 5 > pos;
+  @   requires (5 > pos) && (pos >= 0);
   @   assignable \nothing;
   @   ensures \result == arr[pos];
   @*/
@@ -6669,7 +6669,7 @@ public int processArray1Call() {
   ]
 */
 /*@ normal_behavior
-  @   requires true;
+  @   requires arr != null;
   @   assignable \nothing;
   @   ensures \result == arr.length == 0;
   @*/
