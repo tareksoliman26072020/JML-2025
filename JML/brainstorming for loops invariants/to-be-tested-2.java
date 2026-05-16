@@ -841,3 +841,64 @@ public static int[] quickSortCall3() {
   quickSort(arr);
   return arr;
 }
+
+////////////////////
+
+public int factorial(int n) {
+  int p = 1;
+  for (int c = 1; c <= n; c++) {
+    p *= c;
+  }
+  return p;
+}
+
+////////////////////
+
+public int[] reverseCopy(int[] arr) {
+  int[] res = new int[arr.length];
+  for (int i = 0; i < arr.length; i++) {
+    res[i] = arr[arr.length - 1 - i];
+  }
+  return res;
+}
+
+////////////////////
+
+public int indexOf(int[] arr, int x) {
+  for (int i = 0; i < arr.length; i++) {
+    if (arr[i] == x) return i;
+  }
+  return -1;
+}
+
+////////////////////
+
+public int countEverySecond(int[] arr) {
+  int c = 0;
+  for (int i = 0; i < arr.length; i += 2) {
+    c++;
+  }
+  return c;
+}
+
+////////////////////
+
+public int dotProduct(int[] a, int[] b) {
+  int res = 0;
+  for (int i = 0; i < a.length; i++) {
+    res += a[i] * b[i];
+  }
+  return res;
+}
+
+////////////////////
+
+public static int sum(int[] a) {
+  int i = 0;
+  int s = 0;
+  while (i < a.length) {
+    s = s + a[i];
+    i = i + 1;
+  }
+  return s;
+}

@@ -237,8 +237,6 @@ ArrayFillTemplate:
 
 This is “synthesis” because your tool **creates** the invariant automatically. It is “template-based” because it creates it from known invariant schemas, not from unconstrained logical search. TODO: what is meant with (invariant schemas) vs (unconstrained logical search)?
 
-
-
 Symbolic execution gives you expressions like:
 
 ```
@@ -415,47 +413,3 @@ For the first implementation, `validateInvariant` can be syntactic and conservat
    ```
    
    For simple methods like `fillArray`, `copyArray`, `sumOddNums`, `getMax`, and `isAscending`, this can work very well. For `partition`, `bubbleSort`, and iterative `quickSort`, you will need more domain-specific templates, because those algorithms require semantic facts like permutation preservation, sorted suffixes, pivot partitioning, and stack segment validity.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
