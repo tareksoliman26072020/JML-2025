@@ -20,6 +20,9 @@ ppConsoleLog (Log counter logTag)
 
 ppConsoleLogTag :: LogTag -> String
 ppConsoleLogTag = \case
+    LogTag loc tag contents -> printf
+      "%s in %s\n\
+      \%s" (yellow tag) (cyan loc) contents
     FunHandle loc name t    -> printf "(%s): %s: %s %s"
         (cyan loc) (yellow "Fun infos") (show t) name
     MethodEnd loc           -> printf "(%s): %s" (cyan loc) (yellow "Method End")

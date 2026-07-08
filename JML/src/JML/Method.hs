@@ -4,16 +4,18 @@ module JML.Method where
 import Prelude hiding (negate)
 import Visitors.API
 import JML.Types
-import JML.Internal
+import JML.Internal.Internal
+import JML.Internal.LoopInvariants (inferLoopInvariantTemplates)
 import qualified JML.Logs.Log as Log
 import JML.PrettyPrint (ppBehavior, ppBehaviors)
 import qualified SymbolicExecution.Types as SYT (
   SymStateKey(..), SymExpr(..),
-  SymbolicExecution, SymbolicExecutionKey, SymbolicExecutionValue)
+  SymbolicExecution, SymbolicExecutionKey, SymbolicExecutionValue, LoopSummary(loopExitFacts))
 import qualified SymbolicExecution.Internal.Internal as SY (
   getFunName, isGlobalVariable2, hasReturn, isLocalVar, hasFormalParameter,
   isNotAssigned, isSymUnknown)
 import qualified Data.Map as Map
+import Data.Maybe (fromJust)
 
 import Text.Printf
 
@@ -135,6 +137,29 @@ instance SymbolicExecutionVisitor MethodProcessor where
     (SYT.InheritedScopeRange funCallName funCallScopeRange,expr) ->
       visitSymExpr_SIte (key,expr)
     -----------------------------
+--  (ArrayAccess "res",SymArrayAccess [(SObjAcc ["arr","length"],Just False)])
+    (SYT.ArrayAccess,SYT.SymArrayAccess li) -> do
+      let loc = globalLoc ++ ".visitSymExpr.ArrayAccess"
+      tellNextLog $ Log.Location loc (show li)
+      let toReturn = ER_ArrayAccess li
+      tellingThenReturning loc toReturn
+    -----------------------------
+    (SYT.ScopeRange scopeRange,SYT.SLoop _ _ _ maybe_loopSummary loopPatterns) -> do
+      let loc = globalLoc ++ ".visitSymExpr.SLoop"
+          logContents = [
+             ("scopeRange",show scopeRange)
+            ,("maybe_loopSummary",show maybe_loopSummary)
+            ,("loopPatterns",show loopPatterns)
+            ]
+      constructLog loc "SLoop" logContents
+      let loopSummary = fromJust maybe_loopSummary
+      incrementLogEnumeration
+      invariantTemplates <- incrementLogDepth *>
+        inferLoopInvariantTemplates loopSummary loopPatterns
+          <* decrementLogDepth
+      let toReturn = ER_LoopSummary scopeRange invariantTemplates loopSummary
+      tellingThenReturning loc toReturn
+    -----------------------------
     _ ->
       let loc = globalLoc ++ ".visitSymExpr"
       in throwError $ createError_sy "TODO" loc key value
@@ -175,7 +200,7 @@ visitSymExpr_SIte tu@(key,value@(SYT.SIte cond ifBody maybeElseBody)) = do
     tellNextLog $ Log.IfInnerJMLState loc (show if_error_er)
       (show $ method ifJMLState) (map (\(Requires one two) -> (show one,map show two)) $ jmlStack ifJMLState) (show $ logHeader ifJMLState)
       (show $ formalParms ifJMLState) (show $ localVars ifJMLState) (show $ globalVars ifJMLState)
-      (ppBehaviors $ behaviors $ method ifJMLState)
+      (ppBehaviors [b | MethodSpecification b <- jmlSpecifications $ method ifJMLState])
         
     return (ifRequires,ifJMLState,if_ers)
   -- process else
@@ -207,9 +232,9 @@ visitSymExpr_SIte tu@(key,value@(SYT.SIte cond ifBody maybeElseBody)) = do
         decrementLogDepth
             
         tellNextLog $ Log.ElseInnerJMLState loc (show else_error_er)
-          (show $ method ifJMLState) (map (\(Requires one two) -> (show one,map show two)) $ jmlStack ifJMLState) (show $ logHeader ifJMLState)
-          (show $ formalParms ifJMLState) (show $ localVars ifJMLState) (show $ globalVars ifJMLState)
-          (ppBehaviors $ behaviors $ method ifJMLState)
+          (show $ method elseJMLState) (map (\(Requires one two) -> (show one,map show two)) $ jmlStack elseJMLState) (show $ logHeader elseJMLState)
+          (show $ formalParms elseJMLState) (show $ localVars elseJMLState) (show $ globalVars elseJMLState)
+          (ppBehaviors [b | MethodSpecification b <- jmlSpecifications $ method elseJMLState])
         return $ Just (elseRequires,elseJMLState,else_ers)
   return $ ER_IfThenElse
     (case key of
@@ -254,7 +279,7 @@ runSE sys sy =
       initialJMLState = JMLState {
         method = Method {
           name = SY.getFunName sy,
-          behaviors = []
+          jmlSpecifications = []
         },
         jmlStack = [Requires (Nothing,Nothing) []],
         logHeader = Log.Header 1 [0],

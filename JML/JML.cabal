@@ -28,7 +28,8 @@ library
       CFG.CFG
       CFG.Internal
       CFG.Types
-      JML.Internal
+      JML.Internal.Internal
+      JML.Internal.LoopInvariants
       JML.Logs.Console
       JML.Logs.Log
       JML.Logs.PrettyPrint
@@ -41,8 +42,11 @@ library
       Parser.ParseStmt
       Parser.Print
       Parser.Types
-      SymbolicExecution.Internal.Calculator
       SymbolicExecution.Internal.Internal
+      SymbolicExecution.Internal.LoopPattern
+      SymbolicExecution.Internal.LoopSummary
+      SymbolicExecution.Internal.Math.Calculator
+      SymbolicExecution.Internal.Math.Isolator
       SymbolicExecution.Logs.Console
       SymbolicExecution.Logs.Log
       SymbolicExecution.Logs.Markdown
@@ -91,6 +95,7 @@ test-suite JML-test
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
+      Internal.LoopInvariants
       TargetState
       Paths_JML
   autogen-modules:
@@ -114,6 +119,9 @@ test-suite SymbolicExecution-test
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
+      Internal.LoopPattern
+      Internal.LoopSummary
+      Internal.Math.Isolator
       TargetState
       Paths_JML
   autogen-modules:

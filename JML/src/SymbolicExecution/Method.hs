@@ -6,8 +6,8 @@ import SymbolicExecution.Types
 import qualified CFG.Types as CFGT
 import qualified CFG.Internal as CFG
 import qualified Data.Map as Map
-import Data.Maybe (mapMaybe)
-import Control.Monad (foldM, zipWithM_)
+import Data.Maybe (mapMaybe, fromJust)
+import Control.Monad (foldM, zipWithM_, liftM)
 import Control.Monad.Reader (ReaderT,runReaderT,ask)
 import Control.Monad.State
 import Control.Monad.Except
@@ -20,7 +20,9 @@ import Text.Printf (printf)
 import Data.Functor (($>))
 import Data.List (foldl',nub,intercalate,find)
 import SymbolicExecution.Internal.Internal
-import SymbolicExecution.Internal.Calculator (whichCalculator2, numericCalculator, booleanCalculator, objAccCalculator, stringCalculator, funCallCalculator)
+import SymbolicExecution.Internal.LoopSummary
+import SymbolicExecution.Internal.LoopPattern
+import SymbolicExecution.Internal.Math.Calculator (whichCalculator2, numericCalculator, booleanCalculator, objAccCalculator, stringCalculator, funCallCalculator)
 
 instance CFGVisitor MethodProcessor where
 --visitNode :: CFGT.Node -> MethodProcessor
@@ -485,7 +487,7 @@ instance CFGVisitor MethodProcessor where
               CFGT.Node theId _ _ -> theId /= forCondNodeId
         -- implement a helper that takes as input `(accLogs,accState)`
         -- call it `visitLoop`
-        visitLoop cfg m_Acc
+        visitLoop ForSyntax cfg m_Acc
           (let CFGT.Node _ (CFGT.BooleanExpression CFGT.For mForCondExpr) _ = forCondNode 
            in mForCondExpr)
           forBody_forStep_path
@@ -542,7 +544,7 @@ instance CFGVisitor MethodProcessor where
               CFGT.Node theId _ _ -> theId /= whileCondNodeId
         -- implement a helper that takes as input `(accLogs,accState)`
         -- call it `visitLoop`
-        visitLoop cfg m_Acc
+        visitLoop WhileSyntax cfg m_Acc
           mExpr
           whileBody_path
           (CFGT.SR (CFGT.id n)
@@ -1018,12 +1020,14 @@ visitExpr expr@AST.BinOpExpr{} = do
       let op1 = cast newUnifiedSymType one
           operator = toSymBinOp $ AST.binOp expr
           op2 = cast newUnifiedSymType two
+          
           calculatorType = whichCalculator2 op1 operator op2
           calculator = case calculatorType of
             "stringCalculator"  -> stringCalculator
             "numericCalculator" -> numericCalculator
             "booleanCalculator" -> booleanCalculator
           calculating = calculator (SBin op1 operator op2)
+          
           toReturn = ER_Expr calculating
       tellNextLog (Log.Return (printf "visitExpr -> BinOpExpr -> %s"
                           calculatorType) (show toReturn)
@@ -1050,13 +1054,59 @@ visitExpr expr@AST.AssignExpr{} = do
              (visitExpr (AST.assEright expr))
         <* decrementLogDepth
 
+  let logContents = [
+          ("expr",show expr)
+        , ("one",show one)
+        , ("two",show two)
+        ]
+  -- if either one or two is ER_ArrayCallExpr,
+  -- then we want to record this in the state „ArrayAccess“
+  do
+     let f :: SymExpr -> Either SymExpr (SymType,String,SymExpr)
+         f callExpr = case callExpr of
+             SArrayIndexAccess arrType arrName indexSymExpr
+               | isConstant indexSymExpr -> Left callExpr
+               | otherwise -> Right (arrType,arrName,indexSymExpr)
+             _ -> error $ constructErrorMsg loc "TODO1" logContents
+     let g er = case er of
+           ER_ArrayCallExpr callExpr _ -> f callExpr
+           _ -> Left $ case getSymExpr er of
+             Just symExpr -> symExpr
+             Nothing -> error $ constructErrorMsg loc "TODO2" [("er",show er)]
+     let newElem :: (Either SymExpr (SymType,String,SymExpr)
+                    ,Maybe (SymType,String,SymExpr)
+                    ,Either SymExpr (SymType,String,SymExpr))
+         newElem = (g one,Nothing,g two)
+     let which = case newElem of
+           (Right _ ,_,Right _) -> "both"
+           (Right _  ,_,Left _)  -> "left"
+           (Left _  ,_,Right _) -> "right"
+           (Left _  ,_,Left _)  -> "none"
+     let logTag = case which of
+           "both"  -> "both sides have array access"
+           "left"  -> "left side has array access"
+           "right" -> "right side has array access"
+           "none"  -> "both sides have no array access"
+     -- telling
+     case newElem of
+       (Left _,Nothing,Left _) -> return ()
+       _ -> do
+         tellNextLog $ Log.ModifyState loc ("ArrayAccess","newElem: " ++ show newElem)
+         modify $ \symState -> SymState {
+           env = Map.alter (\case
+             Just (SymArrayAccess li) -> Just $ SymArrayAccess $ li ++ [newElem]
+             Nothing -> Just $ SymArrayAccess [newElem])
+             ArrayAccess (env symState),
+           logHeader = logHeader symState
+         }
+     constructLog loc logTag [("one",show one),("two",show two),("newElem",show newElem)]
   -- one_val's sole purpose is its type
   -- one_svn is important to find key in the map
   let (one_svn,one_val,(leftOpKeyStr,leftOpValStr)) = case one of
        ER_SymStateMapEntry svn val ->
          let theStr = case svn of
                VarName s -> (s,ppSymExpr_no_symType val)
-               _         -> error $ "TODO1: " ++ show one_svn
+               _         -> error $ "TODO3: " ++ show one_svn
          in (svn,val,theStr)
        ER_ArrayCallExpr s@(SArrayIndexAccess arrType arrName _) val ->
          --call = SArrayIndexAccess "strs" (SymInt 1)
@@ -1064,7 +1114,7 @@ visitExpr expr@AST.AssignExpr{} = do
          (VarName arrName,val,(ppSymExpr_no_symType s,ppSymExpr_no_symType val))
        ER_Expr ex -> error $ printf "%s: (%s,%s,%s)" loc
            (show expr) (show ex) (show $ AST.assEleft expr)
-       _ -> error $ printf "TODO2: %s: %s" loc (show one)
+       _ -> error $ printf "TODO4: %s: %s" loc (show one)
 
   let two_val = case two of
           ER_Expr e2_@(SymArray mType1 mSize1 elms1) -> case one_val of
@@ -1074,7 +1124,7 @@ visitExpr expr@AST.AssignExpr{} = do
                     : map toSymType2 elms1
                     ++ [type2]
               in cast (Array newType) e2_
-            _ -> error $ printf "TODO3: %s ==> e2 ==> %s" loc (show one_val)
+            _ -> error $ printf "TODO5: %s ==> e2 ==> %s" loc (show one_val)
           ER_Expr e2_ -> cast (toSymType2 one_val) e2_
           ER_FunCall funCallStateEnv ->
             case getReturnSymExpr funCallStateEnv of
@@ -1092,7 +1142,7 @@ visitExpr expr@AST.AssignExpr{} = do
             let t = pick_known_symType (toSymType2 arrayCallVal, toSymType2 one_val)
             in cast t arrayCallVal
           ER_VarExprObjAccess _ e2_ -> e2_
-          _ -> error $ printf "TODO4: %s ==> e2 ==> %s" loc (show two)
+          _ -> error $ printf "TODO6: %s ==> e2 ==> %s" loc (show two)
 
   tellNextLog $ Log.Affected loc [show one, show two]
   -- newVal is a transformation of two_val. it's the new value
@@ -1109,14 +1159,17 @@ visitExpr expr@AST.AssignExpr{} = do
                   take int elems ++
                   [cast (toSymType2 one_val) two_val] ++
                   drop (int+1) elems)
-            _ -> error $ "TODO5: visitExpr ==> AssignExpr: " ++ show index
+            _ -> error
+              $ constructErrorMsg "visitExpr ==> AssignExpr" "TODO5"
+                [("index",show index)
+                ,("varNames",show varNames)]
           Just e@(SymVar (Array t) arrName) ->
             let newType = pick_known_symType2 [arrType, toSymType2 e, toSymType2 two_val]
             in return $ cast newType e
           Just e@(SymUnknown _ _) ->
             let newType = pick_known_symType2 [arrType, toSymType2 e, toSymType2 two_val]
             in return $ cast newType e
-          y -> error $ "TODO5: visitExpr ==> AssignExpr: " ++ show y
+          y -> error $ "TODO7: visitExpr ==> AssignExpr: " ++ show y
       (_,SymArray _ _ _) -> -- casting is done during the creation of two_val
         return two_val
       _ -> return $ cast (toSymType2 one_val) two_val
@@ -1174,7 +1227,8 @@ two_newVal = SymArray (Just (Array Int)) (Just 2) [SymNull Int,SymNull Int]
 
 -- VarExpr {varType :: Maybe (Type Types), varObj :: [String], varName :: String}
 visitExpr expr@AST.VarExpr{} = do
-  tellNextLog $ Log.Expression_2_Handle (show expr) "visitExpr -> VarExpr"
+  let loc = "SymbolicExecution.Method.visitExpr ==> VarExpr"
+  tellNextLog $ Log.Expression_2_Handle (show expr) loc
   case AST.varObj expr of
     [] -> do
       let varName_ = AST.varName expr
@@ -1352,8 +1406,8 @@ visitExpr expr = error $ "TODO: visitExpr ==> What this is: " ++ show expr
 
 ------------------------------
 
-visitLoop :: CFGT.CFG -> Maybe CFGT.Node -> Maybe AST.Expression -> [CFGT.Node] -> CFGT.ScopeRange -> SymbolicExecutionMonad ExecutionResult
-visitLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange = do
+visitLoop :: LoopSyntax -> CFGT.CFG -> Maybe CFGT.Node -> Maybe AST.Expression -> [CFGT.Node] -> CFGT.ScopeRange -> SymbolicExecutionMonad ExecutionResult
+visitLoop theLoopSyntax cfg m_Acc mForCondExpr forBody_forStep_path branchRange = do
   let loc = "SymbolicExecution.Method.visitLoop"
   tellNextLog (Log.Location "SymbolicExecution.Method.visitLoop")
   env_Before_Acc <- env <$> get
@@ -1418,10 +1472,10 @@ visitLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange = do
   ----------
   callUnregisteredLoop env_Before_Acc = do
     modify $ \symState -> SymState env_Before_Acc (logHeader symState)
-    visitUnregisteredLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange
+    visitUnregisteredLoop theLoopSyntax cfg m_Acc mForCondExpr forBody_forStep_path branchRange
   ----------
   callRegisteredLoop loc env_Before_Acc = do
-    forLoopVisited <- visitRegisteredLoop 1 env_Before_Acc cfg m_Acc mForCondExpr forBody_forStep_path branchRange
+    forLoopVisited <- visitRegisteredLoop theLoopSyntax 1 env_Before_Acc cfg m_Acc mForCondExpr forBody_forStep_path branchRange
     case forLoopVisited of
       -- for visitation was completed
       _ | isLoopTerminated forLoopVisited -> do
@@ -1465,8 +1519,8 @@ visitLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange = do
 
 ------------------------------
 
-visitRegisteredLoop :: Int -> Map.Map SymStateKey SymExpr -> CFGT.CFG -> Maybe CFGT.Node -> Maybe AST.Expression -> [CFGT.Node] -> CFGT.ScopeRange -> SymbolicExecutionMonad ExecutionResult
-visitRegisteredLoop loopCounter env_Before_Acc cfg m_Acc mForCondExpr forBody_forStep_path branchRange = do
+visitRegisteredLoop :: LoopSyntax -> Int -> Map.Map SymStateKey SymExpr -> CFGT.CFG -> Maybe CFGT.Node -> Maybe AST.Expression -> [CFGT.Node] -> CFGT.ScopeRange -> SymbolicExecutionMonad ExecutionResult
+visitRegisteredLoop theLoopSyntax loopCounter env_Before_Acc cfg m_Acc mForCondExpr forBody_forStep_path branchRange = do
   let loc = "SymbolicExecution.Method.visitRegisteredLoop"
   tellNextLog $ Log.Location loc
   -- whether there's a loop condition
@@ -1533,7 +1587,7 @@ visitRegisteredLoop loopCounter env_Before_Acc cfg m_Acc mForCondExpr forBody_fo
                      -- it's a good idea to log the current state
                      --   before staring the next loop round
                      get >>= tellNextLog . Log.ReportTheState loc . show . env
-                     visitRegisteredLoop
+                     visitRegisteredLoop theLoopSyntax
                        (loopCounter+1) env_Before_Acc cfg m_Acc mForCondExpr forBody_forStep_path branchRange
         else do
           tellNextLog $ Log.ForLoopLimitReached loc (show forLoopLimit)
@@ -1544,7 +1598,7 @@ visitRegisteredLoop loopCounter env_Before_Acc cfg m_Acc mForCondExpr forBody_fo
             tellNextLog $ Log.ModifyState "visitRegisteredLoop" ("Undo SymState to before the loop",show env_Before_Acc)
             modify $ \symState -> SymState env_Before_Acc (logHeader symState)
         
-          visitUnregisteredLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange
+          visitUnregisteredLoop theLoopSyntax cfg m_Acc mForCondExpr forBody_forStep_path branchRange
           -- add entry to SymState to report about the reached limit loop failure
           do
             tellNextLog $ Log.ModifyState "visitRegisteredLoop" ("LoopFailure",show $ SLoopFailure branchRange forLoopLimit)
@@ -1602,26 +1656,6 @@ visitRegisteredLoop loopCounter env_Before_Acc cfg m_Acc mForCondExpr forBody_fo
                     }
                     return ER_Break
                 | otherwise -> visitForBodyNodes loc rest
-{-
-      -- see if a continue statement was just detected
-      do theEnv <- env <$> get
-         case Map.lookup Continue theEnv of
-           -- no continue statement
-           Nothing -> return ER_Void
-           -- yes continue statement
-           Just _ -> do
-             tellNextLog $ Log.ModifyState loc ("delete continue","SymContinue")
-             modify $ \symState -> SymState {
-               env = Map.alter (\case
-                 Just _ -> Nothing
-                 Nothing -> error $ loc ++ " ==> visitForBodyNodes ==> won't happen1")
-                 Continue (env symState),
-               logHeader = logHeader symState
-             }
-             case find CFGT.isForStepNode rest of
-               Just lastNode -> visitForBodyNodes loc [lastNode]
-               Nothing -> return ER_Void
--}
 
 ------------------------------
 
@@ -1661,26 +1695,26 @@ createLoopCondition expr = do
 
 ------------------------------
 
-visitUnregisteredLoop :: CFGT.CFG -> Maybe CFGT.Node -> Maybe AST.Expression -> [CFGT.Node] -> CFGT.ScopeRange -> SymbolicExecutionMonad ExecutionResult
-visitUnregisteredLoop cfg m_Acc mForCondExpr forBody_forStep_path branchRange = do
-    let loc = "SymbolicExecution.Method.visitUnregisteredLoop"
-    tellNextLog $ Log.UnvisitedForLoop "visitUnregisteredLoop" (show mForCondExpr)
-    (_,cfgs) <- ask
-    let path = maybe [] (\acc -> [acc]) m_Acc
-               ++ (flip mapMaybe forBody_forStep_path $ \node -> case CFGT.nodeData node of
-                     CFGT.ForStep _ -> CFG.convert node
-                     _ -> Just node)
-    originalState <- get
-    let (forBodyLogs,forBodySymStateEnv) = let
-          (er,forBodyLogs,forBodySymStateEnv) = runCFG cfgs cfg (Just path)
-            (Just $ SymState (env originalState) (Log.Header 1 [0]))
-          in case er of
-               "" -> (forBodyLogs,forBodySymStateEnv)
-               _  -> error $ printf "%s ==> error in for body runner ==> %s" loc er
-    -- record unregistered logs
-    flip mapM_ forBodyLogs $ \log -> do
-      Log.Header _ baseCounter <- logHeader <$> get
-      tellNextNestedLog baseCounter ["For Loop Body","Unregistered"] log
+visitUnregisteredLoop :: LoopSyntax -> CFGT.CFG -> Maybe CFGT.Node -> Maybe AST.Expression -> [CFGT.Node] -> CFGT.ScopeRange -> SymbolicExecutionMonad ExecutionResult
+visitUnregisteredLoop theLoopSyntax cfg m_Acc mForCondExpr forBody_forStep_path branchRange = do
+  let loc = "SymbolicExecution.Method.visitUnregisteredLoop"
+  tellNextLog $ Log.UnvisitedForLoop "visitUnregisteredLoop" (show mForCondExpr)
+  (_,cfgs) <- ask
+  let path = maybe [] (\acc -> [acc]) m_Acc
+             ++ (flip mapMaybe forBody_forStep_path $ \node -> case CFGT.nodeData node of
+                   CFGT.ForStep _ -> CFG.convert node
+                   _ -> Just node)
+  originalState <- get
+  let (forBodyLogs,forBodySymStateEnv) = let
+        (er,forBodyLogs,forBodySymStateEnv) = runCFG cfgs cfg (Just path)
+          (Just $ SymState (env originalState) (Log.Header 1 [0]))
+        in case er of
+             "" -> (forBodyLogs,forBodySymStateEnv)
+             _  -> error $ printf "%s ==> error in for body runner ==> %s" loc er
+  -- record unregistered logs
+  flip mapM_ forBodyLogs $ \log -> do
+    Log.Header _ baseCounter <- logHeader <$> get
+    tellNextNestedLog baseCounter ["For Loop Body","Unregistered"] log
 {-
 Seien
   1) env originalState
@@ -1708,133 +1742,393 @@ g) check VarNames in 2)
 h) if there are GlobalVars that are mentioned for the first time in 2) and have no VarName
   then create VarName for them in 1) (Siehe dazu "c")
  -}
-        -- GlobalVars from `originalState`
-    let originalGlobalVars = maybe [] (\case
-            SGlobalVars li -> li
-            val -> error $ "visitUnregisteredLoop ==> won't happen 1 ==> " ++ show val)
-            $ Map.lookup GlobalVars (env originalState) 
-        -- VarBindings from `originalState`
-        originalVarBindings = maybe [] (\case
-            SVarBindings m -> Map.keys m
-            val -> error $ "visitUnregisteredLoop ==> won't happen 2 ==> " ++ show val)
-            $ Map.lookup VarBindings (env originalState)
-        -- FormalParms from `originalState`
-        originalFormalParms = maybe [] (\case
-            SFormalParms li -> li
-            val -> error $ "visitUnregisteredLoop ==> won't happen 3 ==> " ++ show val)
-            $ Map.lookup FormalParms (env originalState)
-        -- VarNames from `originalState`
-        originalVarNames = flip Map.filterWithKey (env originalState) $ \k _ ->
-          case k of VarName _ -> True
-                    _         -> False
-        -- in the for condition, GlobalVars may be present.
-        -- this function delivers them if they exist
-        condNode_globalVars :: [String]
-        condNode_globalVars =
-          let from_acc :: Maybe String
-              from_acc = do
-                acc <- m_Acc
-                if CFG.isNewlyDeclaredNode acc
-                  then Just $ CFG.getVarName acc
-                  else Nothing
-              from_cond :: [String]
-              from_cond =
-                flip (maybe []) mForCondExpr $ \forCondExpr -> do
-                  vr <- AST.getVarNames forCondExpr :: [String]
-                  let predicates
-                        | vr == "length" = []
-                        | isGlobalVariable2 vr forBodySymStateEnv = [vr]
-                        | otherwise = []
-                  -- reject every vr that is same as from_acc
-                  case from_acc of
-                    Just acc_varName
-                      | acc_varName == vr -> []
-                      | otherwise -> predicates
-                    Nothing -> predicates
-          in from_cond
-        -- a) GlobalVars from `forBodySymStateEnv`
-        forBodyGlobalVars = nub $ condNode_globalVars ++ (flip (maybe [])
-          (Map.lookup GlobalVars forBodySymStateEnv) $ \case
-             SGlobalVars li -> li
-             val -> error $ "visitUnregisteredLoop ==> won't happen 4 ==> " ++ show val)
-        -- b) VarAssignments from `forBodySymStateEnv` which have
-        --        (GlobalVar,
-        --         any VarBinding from `originalState`,
-        --         any FormalParm from `originalState`)
-        forBody_Some_VarAssignments = flip (maybe [])
-          (Map.lookup VarAssignments forBodySymStateEnv) $ \case
-            SVarAssignments li -> flip filter li $ \(str,coor) ->
-                str `elem` originalGlobalVars ||
-                str `elem` forBodyGlobalVars ||
-                str `elem` originalVarBindings ||
-                str `elem` originalFormalParms
-            val -> error $ "visitUnregisteredLoop ==> won't happen 5 ==> " ++ show val
-        -- c) VarNames in `forBodySymStateEnv` with
-        --        (GlobalVars,
-        --         VarNames mentioned in `originalState`)
-        forBody_Some_VarNames = flip Map.filterWithKey forBodySymStateEnv $ \k _ ->
-            case k of
-              VarName vn
-                | vn `elem` originalGlobalVars ||
-                  vn `elem` forBodyGlobalVars  ||
-                  VarName vn `Map.member` originalVarNames -> True
-              _ -> False
-        -- d) add `forBodyGlobalVars` to `env originalState`
-        map_withGlobalVars = Map.alter (\case
-          Nothing -> Just $ SGlobalVars forBodyGlobalVars
-          Just (SGlobalVars _) -> Just $ SGlobalVars forBodyGlobalVars)
-          GlobalVars (env originalState)
-        -- f) add `forBody_Some_VarAssignments` to `map_withGlobalVars`
-        map_withVarAssignments = Map.alter (\case
-          Nothing -> Just $ SVarAssignments forBody_Some_VarAssignments
-          Just (SVarAssignments _) -> Just $ SVarAssignments forBody_Some_VarAssignments)
-          VarAssignments map_withGlobalVars
-        -- g), h) VarNames in the forbody (see `branchRange`) mentioned in `forBody_Some_VarNames`
-        --    need to be SymUnknown, then add them to `map_withVarAssignments`
-        map_withVarNames = Map.foldlWithKey' (\ma key val -> case key of
-          VarName vn ->
-            let vn_forbody_varAssigns = flip filter forBody_Some_VarAssignments $
-                  \(vn2,(_,node_coor)) ->
-                      vn2 == vn &&
-                      CFGT.varDeclAt node_coor >= CFGT.branchStart branchRange &&
-                      CFGT.varDeclAt node_coor <= CFGT.branchEnd branchRange
-                node_coors = map (snd . snd) vn_forbody_varAssigns
-            in case vn_forbody_varAssigns of
-                 [] -> ma
-                 _ -> Map.alter (\case
-                   ---createSymReason :: (CFGT.Kind,CFGT.ScopeRange) -> CFGT.CFG -> [CFGT.Node_Coor] -> [SymReason]
-                   Nothing -> Just $ SymUnknown (vn,SymVar (toSymType2 val) vn)
-                     $ createSymReason (CFGT.For,branchRange) cfg node_coors
-                   ---
-                   Just (SymUnknown tu reasons) -> Just $ SymUnknown tu
-                     $ reasons ++ createSymReason (CFGT.For,branchRange) cfg node_coors
-                   ---
-                   Just oldVal
-                     -- if the reassignment inside the for body doesn't change the value
-                     -- then there's no point in making it SymUnknown
-                     -- Example (look at `res`):
-                     {-
-                       int res = 0;
-                       for(int i=n; i>0; i--) {
-                         res += i;
-                         res = 0;
-                       }
-                      -}
-                     | oldVal == val -> Just oldVal
-                     | otherwise ->  Just $ SymUnknown (vn,
-                     cast (pick_known_symType (toSymType2 oldVal,toSymType2 val)) oldVal) $ createSymReason (CFGT.For,branchRange) cfg node_coors 
-                   ) (VarName vn) ma
-            ) map_withVarAssignments forBody_Some_VarNames
+      -- GlobalVars from `originalState`
+  let originalGlobalVars = maybe [] (\case
+          SGlobalVars li -> li
+          val -> error $ "visitUnregisteredLoop ==> won't happen 1 ==> " ++ show val)
+          $ Map.lookup GlobalVars (env originalState) 
+      -- VarBindings from `originalState`
+      originalVarBindings = maybe [] (\case
+          SVarBindings m -> Map.keys m
+          val -> error $ "visitUnregisteredLoop ==> won't happen 2 ==> " ++ show val)
+          $ Map.lookup VarBindings (env originalState)
+      -- FormalParms from `originalState`
+      originalFormalParms = maybe [] (\case
+          SFormalParms li -> li
+          val -> error $ "visitUnregisteredLoop ==> won't happen 3 ==> " ++ show val)
+          $ Map.lookup FormalParms (env originalState)
+      -- VarNames from `originalState`
+      originalVarNames = flip Map.filterWithKey (env originalState) $ \k _ ->
+        case k of VarName _ -> True
+                  _         -> False
+      -- in the for condition, GlobalVars may be present.
+      -- this function delivers them if they exist
+      condNode_globalVars :: [String]
+      condNode_globalVars =
+        let from_acc :: Maybe String
+            from_acc = do
+              acc <- m_Acc
+              if CFG.isNewlyDeclaredNode acc
+                then Just $ CFG.getVarName acc
+                else Nothing
+            from_cond :: [String]
+            from_cond =
+              flip (maybe []) mForCondExpr $ \forCondExpr -> do
+                vr <- AST.getVarNames forCondExpr :: [String]
+                let predicates
+                      | vr == "length" = []
+                      | isGlobalVariable2 vr forBodySymStateEnv = [vr]
+                      | otherwise = []
+                -- reject every vr that is same as from_acc
+                case from_acc of
+                  Just acc_varName
+                    | acc_varName == vr -> []
+                    | otherwise -> predicates
+                  Nothing -> predicates
+        in from_cond
+      -- a) GlobalVars from `forBodySymStateEnv`
+      forBodyGlobalVars = nub $ condNode_globalVars ++ (flip (maybe [])
+        (Map.lookup GlobalVars forBodySymStateEnv) $ \case
+           SGlobalVars li -> li
+           val -> error $ "visitUnregisteredLoop ==> won't happen 4 ==> " ++ show val)
+      -- b) VarAssignments from `forBodySymStateEnv` which have
+      --        (GlobalVar,
+      --         any VarBinding from `originalState`,
+      --         any FormalParm from `originalState`)
+      forBody_Some_VarAssignments = flip (maybe [])
+        (Map.lookup VarAssignments forBodySymStateEnv) $ \case
+          SVarAssignments li -> flip filter li $ \(str,coor) ->
+              str `elem` originalGlobalVars ||
+              str `elem` forBodyGlobalVars ||
+              str `elem` originalVarBindings ||
+              str `elem` originalFormalParms
+          val -> error $ "visitUnregisteredLoop ==> won't happen 5 ==> " ++ show val
+      -- c) VarNames in `forBodySymStateEnv` with
+      --        (GlobalVars,
+      --         VarNames mentioned in `originalState`)
+      forBody_Some_VarNames = flip Map.filterWithKey forBodySymStateEnv $ \k _ ->
+          case k of
+            VarName vn
+              | vn `elem` originalGlobalVars ||
+                vn `elem` forBodyGlobalVars  ||
+                VarName vn `Map.member` originalVarNames -> True
+            _ -> False
+      -- d) add `forBodyGlobalVars` to `env originalState`
+      map_withGlobalVars = Map.alter (\case
+        Nothing -> Just $ SGlobalVars forBodyGlobalVars
+        Just (SGlobalVars _) -> Just $ SGlobalVars forBodyGlobalVars)
+        GlobalVars (env originalState)
+      -- f) add `forBody_Some_VarAssignments` to `map_withGlobalVars`
+      map_withVarAssignments = Map.alter (\case
+        Nothing -> Just $ SVarAssignments forBody_Some_VarAssignments
+        Just (SVarAssignments _) -> Just $ SVarAssignments forBody_Some_VarAssignments)
+        VarAssignments map_withGlobalVars
+      -- g), h) VarNames in the forbody (see `branchRange`) mentioned in `forBody_Some_VarNames`
+      --    need to be SymUnknown, then add them to `map_withVarAssignments`
+      map_withVarNames = Map.foldlWithKey' (\ma key val -> case key of
+        VarName vn ->
+          let vn_forbody_varAssigns = flip filter forBody_Some_VarAssignments $
+                \(vn2,(_,node_coor)) ->
+                    vn2 == vn &&
+                    CFGT.varDeclAt node_coor >= CFGT.branchStart branchRange &&
+                    CFGT.varDeclAt node_coor <= CFGT.branchEnd branchRange
+              node_coors = map (snd . snd) vn_forbody_varAssigns
+          in case vn_forbody_varAssigns of
+               [] -> ma
+               _ -> Map.alter (\case
+                 ---createSymReason :: (CFGT.Kind,CFGT.ScopeRange) -> CFGT.CFG -> [CFGT.Node_Coor] -> [SymReason]
+                 Nothing -> Just $ SymUnknown (vn,SymVar (toSymType2 val) vn)
+                   $ createSymReason (CFGT.For,branchRange) cfg node_coors
+                 ---
+                 Just (SymUnknown tu reasons) -> Just $ SymUnknown tu
+                   $ reasons ++ createSymReason (CFGT.For,branchRange) cfg node_coors
+                 ---
+                 Just oldVal
+                   -- if the reassignment inside the for body doesn't change the value
+                   -- then there's no point in making it SymUnknown
+                   -- Example (look at `res`):
+                   {-
+                     int res = 0;
+                     for(int i=n; i>0; i--) {
+                       res += i;
+                       res = 0;
+                     }
+                    -}
+                   | oldVal == val -> Just oldVal
+                   | otherwise ->  Just $ SymUnknown (vn,
+                   cast (pick_known_symType (toSymType2 oldVal,toSymType2 val)) oldVal) $ createSymReason (CFGT.For,branchRange) cfg node_coors 
+                 ) (VarName vn) ma
+          ) map_withVarAssignments forBody_Some_VarNames
 
-    let symExpr = SLoop m_Acc mForCondExpr forBody_forStep_path
-        toReturn = ER_SymStateMapEntry (ScopeRange branchRange) symExpr
-    tellNextLog $ Log.ModifyState "visitUnregisteredLoop" (show branchRange,show symExpr)
-    modify $ \symState -> SymState {
-      env = Map.insert (ScopeRange branchRange) symExpr map_withVarNames,
-      logHeader = logHeader symState
+  loopSummary <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      createLoopSummary theLoopSyntax m_Acc mForCondExpr (branchRange,forBody_forStep_path,map_withVarNames)
+        <* decrementLogDepth
+  loopPatterns <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      inferLoopPatterns loopSummary
+      <* decrementLogDepth
+  let symExpr = SLoop m_Acc mForCondExpr forBody_forStep_path (Just loopSummary) loopPatterns
+      toReturn = ER_SymStateMapEntry (ScopeRange branchRange) symExpr
+  tellNextLog $ Log.ModifyState "visitUnregisteredLoop" (show branchRange,show symExpr)
+  modify $ \symState -> SymState {
+    env = Map.insert (ScopeRange branchRange) symExpr map_withVarNames,
+    logHeader = logHeader symState
+    }
+  tellNextLog (Log.Return "visitUnregisteredLoop" (show toReturn)) $> toReturn
+
+------------------------------
+
+createLoopSummary :: LoopSyntax -> Maybe CFGT.Node -> Maybe AST.Expression -> (CFGT.ScopeRange,[CFGT.Node],Map.Map SymStateKey SymExpr) -> SymbolicExecutionMonad LoopSummary
+createLoopSummary theLoopSyntax m_Acc mForCondExpr (branchRange,forBody_forStep_path,forBody_forStep_path_visited0) = do
+  let loc = "SymbolicExecution.Method.createLoopSummary"
+      logContents = [
+         ("theLoopSyntax",show theLoopSyntax)
+        ,("m_Acc",show m_Acc)
+        ,("mForCondExpr",show mForCondExpr)
+        ,("branchRange",show branchRange)
+        ,("forBody_forStep_path",show forBody_forStep_path)
+        ,("forBody_forStep_path_visited0",show forBody_forStep_path_visited0)
+        ]
+  constructLog loc "createLoopSummary" logContents
+  origState <- get
+  -- visit the loop counter
+  (maybe_forAcc_visited :: Maybe SymExpr,maybe_stateAfterAcc) <- do
+    case m_Acc of
+      Nothing -> return (Nothing,Nothing) 
+      Just acc -> do
+        er <- censor (filter $ const False) (methodProcessorMonad $ visitNode acc)
+        stateAfter <- get
+        put origState
+        case getSymExpr er of
+          Just symExpr -> return (Just symExpr,Just stateAfter)
+          Nothing -> throwError $ constructErrorMsg loc "TODO1" [("er",show er)]
+  -- visit the loop guard
+  (maybe_forCondExpr_visited :: Maybe SymExpr,maybe_stateAfterForCond) <- do
+    case maybe_stateAfterAcc of
+      Nothing -> return ()
+      Just s -> put s
+    case mForCondExpr of
+      Nothing -> return (Nothing,Nothing)
+      Just forCondExpr -> do
+        er <- censor (filter $ const False) (visitExpr forCondExpr)
+        stateAfter <- get
+        put origState
+        case getSymExpr er of
+          Just symExpr -> return (Just symExpr,Just stateAfter)
+          Nothing -> throwError $ constructErrorMsg loc "TODO2" [("er",show er)]
+  -- visit the loop body
+  forBody_forStep_path_visited :: SymState <- do
+    case maybe_stateAfterForCond of
+      Nothing -> return ()
+      Just s -> put s
+    forM_ forBody_forStep_path (
+        censor (filter (const False))
+      . methodProcessorMonad
+      . visitNode)
+    get <* put origState
+  -- all varnames mentioned in the loop body + in the condition + in the accumulator
+  let loopVarNames :: [String] = let
+        acc_body_vars = (CFG.getVarNames2 $ maybe [] (:[]) m_Acc ++ forBody_forStep_path)
+        cond_Vars = maybe [] (AST.getVarNames) mForCondExpr
+        together = filter (/= "length")
+          (acc_body_vars ++ filter (`notElem` acc_body_vars) cond_Vars)
+        in together
+  -- convert the loop guard to SymExpr (no visiting)
+  let maybe_forCondExpr_converted :: Maybe SymExpr
+      maybe_forCondExpr_converted = flip fmap maybe_forCondExpr_visited
+        $ \forCondExpr_visited -> let
+            forCondExpr = fromJust mForCondExpr
+            theType = case forCondExpr_visited of
+              SBin symExpr1 op symExpr2
+                | isBooleanOperator op -> let
+                    theType1 = toSymType2 symExpr1
+                    theType2 = toSymType2 symExpr2 in if
+                      | theType1 == theType2 -> theType1
+                      | theType1 `isInstanceOf` theType2 -> theType1
+                      | theType2 `isInstanceOf` theType1 -> theType2
+                      | otherwise -> error
+                          $ printf "TODO3 in %s ==> %s" loc (show forCondExpr_visited)
+              _ -> toSymType2 forCondExpr_visited
+            in booleanCalculator $ toSymExpr theType forCondExpr
+  -------------------
+  -- loopReadOnlyVars
+  -------------------
+  theLoopReadOnlyVars :: [String] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopReadOnlyVars loopVarNames (branchRange, env forBody_forStep_path_visited)
+      <* decrementLogDepth
+  -------------------
+  -- loopFrameTargets
+  -------------------
+  theLoopFrameTargets :: [String] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopFrameTargets loopVarNames theLoopReadOnlyVars
+      <* decrementLogDepth
+  ----------------
+  -- loopInitFacts
+  ----------------
+  theLoopInitFacts :: [(String,SymExpr)] <- do
+    incrementLogEnumeration
+    incrementLogDepth *> getLoopInitFacts (env origState) theLoopFrameTargets <* decrementLogDepth
+  ------------
+  -- loopGuard
+  ------------
+  (theLoopGuards :: [SymExpr]) <- case (mForCondExpr,maybe_forCondExpr_converted) of
+    (Nothing,Nothing) -> return []
+    (Just forCondExpr,Just (forCondExpr_converted :: SymExpr)) -> do
+      tellNextLog $ Log.LogTag loc "before Loop Guard" (show forCondExpr)
+      tellNextLog $ Log.LogTag loc "Loop Guard" (show forCondExpr_converted)
+      incrementLogEnumeration
+      incrementLogDepth *>
+        getLoopGuard (env origState, env forBody_forStep_path_visited) forCondExpr_converted
+          <* decrementLogDepth
+  ----------------------------
+  -- loopInitialGuardCondition
+  ----------------------------
+  theLoopInitialGuardCondition :: Maybe SymExpr <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopInitialGuardCondition theLoopInitFacts theLoopGuards
+      <* decrementLogDepth
+  --------------------
+  -- loopSkipCondition
+  --------------------
+  theLoopSkipCondition :: Maybe SymExpr <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopSkipCondition theLoopInitialGuardCondition
+      <* decrementLogDepth
+  ---------------------
+  -- loopExitConditions
+  ---------------------
+  theLoopExitConditions :: [SymExpr] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopExitConditions theLoopGuards
+      <* decrementLogDepth
+  ---------------
+  -- loopCounters
+  ---------------
+  theLoopCounters :: [String] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopCounters
+        (branchRange, env origState, env forBody_forStep_path_visited)
+        (theLoopInitFacts, theLoopGuards)
+        <* decrementLogDepth
+  ------------------
+  -- loopAssignments
+  ------------------
+  theLoopAssignments :: [String] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopAssignments (branchRange, env forBody_forStep_path_visited)
+      <* decrementLogDepth
+  -------------------------
+  -- loopFrameTargetsDevelopmentTrajectory
+  -------------------------
+  theLoopFrameTargetsDevelopmentTrajectory :: [(String,SymExprDevelopmentTrajectory)] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopFrameTargetsDevelopmentTrajectory
+        theLoopFrameTargets
+        (forBody_forStep_path,env origState, env forBody_forStep_path_visited)
+      <* decrementLogDepth
+  ---------------------
+  -- loopCountersBounds
+  ---------------------
+  theLoopCountersBounds :: [(SymExpr,String,SymExpr)] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopCountersBounds
+        theLoopInitFacts
+        theLoopCounters
+        theLoopGuards
+        theLoopFrameTargetsDevelopmentTrajectory
+      <* decrementLogDepth
+  --------------------------
+  -- loopBoundStabilityFacts
+  --------------------------
+  theLoopBoundStabilityFacts :: [(SymExpr,SymExprDevelopmentTrajectory)] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopBoundStabilityFacts (
+        forBody_forStep_path,
+        env origState, env forBody_forStep_path_visited) theLoopCountersBounds
+      <* decrementLogDepth
+  -------------------------
+  -- loopDecreasesCandidate
+  -------------------------
+  theLoopDecreasesCandidate :: [SymExpr] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopDecreasesCandidate
+        theLoopFrameTargetsDevelopmentTrajectory
+        theLoopCountersBounds
+        theLoopBoundStabilityFacts
+      <* decrementLogDepth
+  ----------------
+  -- loopExitFacts
+  ----------------
+  theLoopExitFacts :: [LoopExitFact] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopExitFacts
+        theLoopGuards
+        theLoopFrameTargetsDevelopmentTrajectory
+      <* decrementLogDepth
+  --------------
+  -- LoopSummary
+  --------------
+  let loopSummary = LoopSummary {
+        loopSyntax = theLoopSyntax,
+        loopInitFacts = theLoopInitFacts,
+        loopBoundStabilityFacts = theLoopBoundStabilityFacts,
+        loopGuards = theLoopGuards,
+        loopInitialGuardCondition = theLoopInitialGuardCondition,
+        loopSkipCondition = theLoopSkipCondition,
+        loopExitConditions = theLoopExitConditions,
+        loopCounters = theLoopCounters,
+        loopFrameTargetsDevelopmentTrajectory = theLoopFrameTargetsDevelopmentTrajectory,
+        loopAssignments = theLoopAssignments,
+        loopReadOnlyVars = theLoopReadOnlyVars,
+        loopFrameTargets = theLoopFrameTargets,
+        loopDecreasesCandidate = theLoopDecreasesCandidate,
+        loopCountersBounds = theLoopCountersBounds,
+        loopExitFacts = theLoopExitFacts
       }
-    tellNextLog (Log.Return "visitUnregisteredLoop" (show toReturn)) $> toReturn
-
+  -------------------------
+  constructLog loc "summary in the end"
+    $ [("origState",show origState)
+      ,("m_Acc",show m_Acc)
+      ,("mForCondExpr",show mForCondExpr)
+      ,("origState",show origState)
+      ,("maybe_forCondExpr_visited",show maybe_forCondExpr_visited)
+      ,("forBody_forStep_path_visited",show forBody_forStep_path_visited)
+      ,("forBody_forStep_path",show forBody_forStep_path)
+      ,("loopVarNames",show loopVarNames)
+      ,("maybe_forCondExpr_converted",show maybe_forCondExpr_converted)
+      ,("theLoopSyntax",show theLoopSyntax)
+      ,("theLoopInitFacts",show theLoopInitFacts)
+      ,("theLoopBoundStabilityFacts",show theLoopBoundStabilityFacts)
+      ,("theLoopGuards",show theLoopGuards)
+      ,("theLoopInitialGuardCondition",show theLoopInitialGuardCondition)
+      ,("theLoopSkipCondition",show theLoopSkipCondition)
+      ,("theLoopExitConditions",show theLoopExitConditions)
+      ,("theLoopCounters",show theLoopCounters)
+      ,("theLoopFrameTargetsDevelopmentTrajectory",show theLoopFrameTargetsDevelopmentTrajectory)
+      ,("theLoopAssignments",show theLoopAssignments)
+      ,("theLoopReadOnlyVars",show theLoopReadOnlyVars)
+      ,("theLoopFrameTargets",show theLoopFrameTargets)
+      ,("theLoopDecreasesCandidate",show theLoopDecreasesCandidate)
+      ,("theLoopCountersBounds",show theLoopCountersBounds)
+      ,("theLoopExitFacts",show theLoopExitFacts)]
+  (tellNextLog $ Log.Return loc (show loopSummary)) $> loopSummary
 ------------------------------
 
 type Path = [CFGT.Node]

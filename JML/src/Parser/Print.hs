@@ -1,4 +1,4 @@
-{-# Language LambdaCase, NamedFieldPuns #-}
+{-# Language LambdaCase, NamedFieldPuns, MultiWayIf #-}
 module Parser.Print where
 
 import Data.Char
@@ -22,7 +22,10 @@ showExpr = \case
   BinOpExpr {expr1, binOp, expr2} -> let p = prec binOp in
     showLeftArg p expr1 ++ show binOp ++ showRightArg p expr2
   UnOpExpr {unOp, expr} -> show unOp ++ showParenExpr expr
-  NumberLiteral num -> show num
+  NumberLiteral num -> let
+    int = floor num :: Int in if
+    | num == fromIntegral int -> show int
+    | otherwise -> show num
   BoolLiteral bool -> map toLower $ show bool
   CharLiteral char -> show char
   StringLiteral str -> show str
@@ -34,12 +37,27 @@ showExpr = \case
   CondExpr {eiff, ethenn, eelsee} -> showParenExpr eiff
     ++ "?" ++ showParenExpr ethenn
     ++ ":" ++ showParenExpr eelsee
+  AssignExpr (VarExpr _ _ varName1)
+             (BinOpExpr (VarExpr _ _ varName2) op expr2)
+    | varName1 == varName2 && isOne expr2 && op `elem` [Plus,Minus] -> varName1 ++ case op of
+        Plus -> "++"
+        Minus -> "--"
+    | varName1 == varName2 -> varName1 ++ (case op of
+        Plus -> "+="
+        Mult -> "*="
+        Minus -> "-="
+        Div -> "/=") ++ showExpr expr2
   AssignExpr {assEleft, assEright} ->
     showExpr assEleft ++ " = " ++ showExpr assEright
   ExcpExpr {excpName, excpmsg} -> "throw new " ++ showExcp excpName ++ "("
     ++ maybe "" show excpmsg ++ ")"
   ReturnExpr {returnE} -> "return" ++ maybe "" ((" " ++) . showExpr) returnE
-  _ -> error "TODO"
+  expr -> error $ "TODO in Parser.Print.showExpr ==> " ++ show expr
+
+isOne :: Expression -> Bool
+isOne = \case
+  NumberLiteral 1 -> True
+  _ -> False
 
 addParen :: String -> String
 addParen = ("(" ++) . (++ ")")

@@ -3460,15 +3460,17 @@ public void voidFun6(int n) {
 //DONE
 //JavaMethod
 /*
-SymState {
-  env = fromList [
-    (MethodName "manyArrs",SMethodType Void),
-    (VarBindings,SVarBindings (fromList [("numbers",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
-    (VarAssignments,SVarAssignments [("numbers",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}}),("numbers",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}),("numbers",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 5}})]),
-    (VarName "numbers",SymArray (Just (Array Int)) (Just 2) [SymInt 99,SymInt 5]),
-    (Return,SymReturnVoid),
-    (Actions,SActions [SymString "[99, 5]\n"])
-  ], pc = []}
+[
+  (MethodHandle,SMethodHandle Void "manyArrs"),
+  (VarBindings,SVarBindings (fromList [("numbers",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+  (VarAssignments,SVarAssignments [
+    ("numbers",(SymArray (Just Int) (Just (SymInt 2)) [SymNull Int,SymNull Int],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+    ("numbers",(SymArray (Just Int) (Just (SymInt 2)) [SymInt 99,SymNull Int],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+    ("numbers",(SymArray (Just Int) (Just (SymInt 2)) [SymInt 99,SymInt 5],Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
+  (VarName "numbers",SymArray (Just Int) (Just (SymInt 2)) [SymInt 99,SymInt 5]),
+  (Actions,SActions [SymString "[99, 5]\n"]),
+  (Return,SymReturnVoid)
+  ]
 */
 public void manyArrs() {
   int[] numbers = new int[2];
@@ -5797,12 +5799,12 @@ private static void partitionCall6() {
 }
 
 //DONE
-//JavaMethod
 /*
 [
  (MethodHandle,SMethodHandle Void "swap"),
  (FormalParms,SFormalParms ["arr","i","j"]),
- (VarBindings,SVarBindings (fromList [("temp",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
+ (VarBindings,SVarBindings (fromList [
+     ("temp",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
  (VarAssignments,SVarAssignments [
      ("temp",(SArrayIndexAccess (Array Int) "arr" (SymVar Int "i"),Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
      ("arr",(SymVar (Array Int) "arr",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})),
@@ -5810,9 +5812,24 @@ private static void partitionCall6() {
  (VarName "arr",SymVar (Array Int) "arr"),
  (VarName "i",SymVar Int "i"),
  (VarName "j",SymVar Int "j"),
- (VarName "temp",SArrayIndexAccess (Array Int) "arr" (SymVar Int "i"))
+ (VarName "temp",SArrayIndexAccess (Array Int) "arr" (SymVar Int "i")),
+ (ArrayAccess "arr",SymArrayAccess [
+     (SymVar Int "i",Just True),
+     (SymVar Int "i",Just False),
+     (SymVar Int "j",Just True),
+     (SymVar Int "j",Just False)]),
+ (Return,SymReturnVoid)
 ]
 */
+/*@
+  @ public normal_behavior
+  @   requires arr != null;
+  @   requires 0 <= i && i < arr.length;
+  @   requires 0 <= j && j < arr.length;
+  @   assignable arr[i], arr[j];
+  @   ensures arr[i] == \old(arr[j]);
+  @   ensures arr[j] == \old(arr[i]);
+  @*/
 private static void swap(int[] arr, int i, int j) {
   int temp = arr[i];
   arr[i] = arr[j];
@@ -5820,7 +5837,6 @@ private static void swap(int[] arr, int i, int j) {
 }
 
 //DONE
-//JavaMethod
 /*
 [
  (MethodHandle,SMethodHandle Void "swapCall"),
@@ -5831,6 +5847,10 @@ private static void swap(int[] arr, int i, int j) {
  (VarName "arr",SymArray (Just Int) (Just 9) [SymInt 4,SymInt 5,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 1])
 ]
 */
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @*/
 private static void swapCall() {
   int[] arr = new int[] {5,4,6,4,7,8,9,0,1};
   swap(arr,0,1);
@@ -6870,6 +6890,16 @@ public static int sqrtCall2() {
               (Return,SymReturnVoid)
   ]
 */
+/*@ normal_behavior
+  @   requires input.length > 0;
+  @   assignable status;
+  @   ensures status == "non-empty";
+  @ also
+  @ normal_behavior
+  @   requires input.length <= 0;
+  @   assignable status;
+  @   ensures status == "empty";
+  @*/
 public void boo34(String input){
   if (input.length > 0) {
     String msg = "non-empty";
@@ -6891,11 +6921,85 @@ public void boo34(String input){
     (Actions,SActions [SymString "non-empty\n",SymString "empty\n"])
   ]
 */
+/*@
+  @ public normal_behavior
+  @   assignable status;
+  @   ensures status.equals("empty");
+  @*/
 public void boo34Call() {
   boo34("Hello");
   println(status);
   boo34("");
   println(status);
+}
+
+////////////////////////////////////////
+
+/*
+/*
+[
+ (MethodHandle,SMethodHandle Int "idByLoop"),
+ (GlobalVars,SGlobalVars []),
+ (FormalParms,SFormalParms ["n"]),
+ (VarBindings,SVarBindings (fromList [("i",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+ (VarAssignments,SVarAssignments [("i",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),("i",(SymInt 1,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 4}}))]),
+ (VarName "i",SymUnknown ("i",SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 4})],3)]),
+ (VarName "n",SymVar Int "n"),
+ (ScopeRange (SR {branchStart = 2, branchEnd = 4}),
+  SLoop Nothing
+        (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "n"}}))
+        [Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}}), parent = 2}]
+        (Just (LoopSummary {loopSyntax = WhileSyntax, loopReadOnlyVars = ["n"], loopFrameTargets = ["i"], loopInitFacts = [("i",SymInt 0)], loopGuards = [SBin (SymVar Int "i") Lt (SymVar Int "n")], loopInitialGuardCondition = Just (SBin (SymInt 0) Lt (SymVar Int "n")), loopSkipCondition = Just (SBin (SymInt 0) Ge (SymVar Int "n")), loopExitConditions = [SBin (SymVar Int "i") Ge (SymVar Int "n")], loopCounters = ["i"], loopAssignments = ["i"], loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))], loopCountersBounds = [(SymInt 0,"i",SymVar Int "n")], loopBoundStabilityFacts = [(SymVar Int "n",ReadOnly)], loopDecreasesCandidate = [SBin (SymVar Int "n") Sub (SymVar Int "i")], loopExitFacts = [LoopExitFactValue (SBin (SymVar Int "i") Eq (SymVar Int "n"))]}))
+        [(CounterPattern CountingUp,[LoopCounters,LoopFrameTargetsDevelopmentTrajectory,LoopInitFacts,LoopGuards,LoopCountersBounds,LoopAssignments,LoopFrameTargets,LoopDecreasesCandidate]),(BoundPattern StableBound,[LoopCounters,LoopCountersBounds,LoopGuards,LoopBoundStabilityFacts,LoopReadOnlyVars])]),
+ (Return,SymUnknown ("i",SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 4})],3)])
+]
+*/
+/*
+loopSyntax = WhileSyntax
+loopReadOnlyVars = ["n"]
+loopFrameTargets = ["i"]
+loopInitFacts = [("i",SymInt 0)]
+loopGuards = [SBin (SymVar Int "i") Lt (SymVar Int "n")]
+loopInitialGuardCondition = Just (SBin (SymInt 0) Lt (SymVar Int "n"))
+loopSkipCondition = Just (SBin (SymInt 0) Ge (SymVar Int "n"))
+loopExitConditions = [SBin (SymVar Int "i") Ge (SymVar Int "n")]
+loopCounters = ["i"]
+loopAssignments = ["i"]
+loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))]
+loopCountersBounds = [(SymInt 0,"i",SymVar Int "n")]
+loopBoundStabilityFacts = [(SymVar Int "n",ReadOnly)]
+loopDecreasesCandidate = [SBin (SymVar Int "n") Sub (SymVar Int "i")]
+loopExitFacts = [LoopExitFactValue (SBin (SymVar Int "i") Eq (SymVar Int "n"))]
+*/
+/*
+[
+ (CounterPattern CountingUp,
+  [LoopCounters
+  ,LoopFrameTargetsDevelopmentTrajectory
+  ,LoopInitFacts
+  ,LoopGuards
+  ,LoopCountersBounds
+  ,LoopAssignments
+  ,LoopFrameTargets
+  ,LoopDecreasesCandidate
+  ]
+ ),
+ (BoundPattern StableBound,
+  [LoopCounters
+  ,LoopCountersBounds
+  ,LoopGuards
+  ,LoopBoundStabilityFacts
+  ,LoopReadOnlyVars
+  ]
+ )
+]
+*/
+public static int idByLoop(int n) {
+    int i = 0;
+    while (i < n) {
+        i++;
+    }
+    return i;
 }
 
 ////////////////////////////////////////

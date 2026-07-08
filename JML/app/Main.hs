@@ -16,17 +16,17 @@ import qualified SymbolTable.Types as STT (Entry,showEntry)
 
 import qualified CFG.CFG as CFG1 (exec)
 import qualified CFG.Internal as CFG2 (findCFGByName, getPath, getCFGName)
-import qualified CFG.Types as CFGT (CFG(..), showCFG, Node(..))
+import qualified CFG.Types as CFGT (CFG(..), showCFG, Node(..), ScopeRange(..), Kind(..), NodeData(..))
 
 import qualified SymbolicExecution.Types as SYT
 import qualified SymbolicExecution.Method as SYM (runCFG)
 import qualified SymbolicExecution.Logs.PrettyPrint as SY.PP.Log
-import qualified SymbolicExecution.Internal.Calculator as SY.Calculator
-import qualified SymbolicExecution.Internal.Internal as SY.Internal (cast, toSymType2, getFunName)
+import qualified SymbolicExecution.Internal.Math.Calculator as SY.Calculator
+import qualified SymbolicExecution.Internal.Internal as SY.Internal (cast, toSymType2, getFunName, modifyVoidMethod)
 
 import qualified JML.Types as JMLT
-import qualified JML.Internal as JML.Internal
-import qualified JML.PrettyPrint as JML.PP (ppBehaviors)
+import qualified JML.Internal.Internal as JML.Internal
+import qualified JML.PrettyPrint as JML.PP (ppBehaviors, pp_CFG_JML)
 import qualified JML.Logs.Log as JML.Log (Log)
 import qualified JML.Logs.PrettyPrint as JML.PP.Log (ppLogs, LogKind(Console))
 import qualified JML.Method as JML (runSE)
@@ -34,6 +34,18 @@ import qualified JML.Method as JML (runSE)
 import qualified Methods.JavaMethod as JavaMethod
 
 import Text.Printf (printf)
+
+
+-------------------------
+
+import SymbolicExecution.Internal.Math.Isolator (isolate, run_isolate, IsolationFailureReason)
+import qualified SymbolicExecution.Logs.Log as Log (Log, Header(..))
+import Control.Monad.Except
+import Control.Monad.Writer
+import Control.Monad.Reader
+import qualified Control.Monad.State as MonadicState
+
+-------------------------
 
 getAST :: String -> IO AST.Method
 getAST methodName = readFile "test1.java" >>=
@@ -80,9 +92,8 @@ getCFGs = readFile "test1.java" >>= return
   . map CFG1.exec
   . fromRight undefined . parse parseDeclList ""
 
--- print specific given java method SymState to the console
-printSymState1 :: String -> Bool -> IO SYT.SymbolicExecution
-printSymState1 funName withLogs = readFile "test1.java" >>=
+printSymState0 :: String -> String -> Bool -> IO SYT.SymbolicExecution
+printSymState0 fileName funName withLogs = readFile fileName >>=
   (\cfgs -> case CFG2.findCFGByName funName cfgs of
               Just cfg0 ->
                 let (er,logs,s) = SYM.runCFG cfgs cfg0 Nothing Nothing
@@ -104,6 +115,10 @@ printSymState1 funName withLogs = readFile "test1.java" >>=
   . map CFG1.exec
   . fromRight undefined . parse parseDeclList ""
 
+-- print specific given java method SymState to the console
+printSymState1 :: String -> Bool -> IO SYT.SymbolicExecution
+printSymState1 funName withLogs = printSymState0 "test1.java" funName withLogs
+
 -- print specific given method in `JavaMethod.javaMethodInputs` to the console
 printSymState2 :: String -> IO SYT.SymbolicExecution
 printSymState2 funName =
@@ -120,7 +135,7 @@ printSymState2 funName =
                     return s)
   -- (CFGT.CFG,[CFGT.CFG])
   $ (\li ->
-      let li2 = map (\(funName,source) ->
+      let li2 = map (\(funName,_,source) ->
             (funName,CFG1.exec $ fromRight undefined $ parse parseExtDecl "" source)) li
           search = case lookup funName li2 of
                      Nothing -> error
@@ -170,7 +185,7 @@ writeSymStates2 =
   -- ([(Int, (String,CFGT.CFG))], [CFGT.CFG])
   $ (\li -> (li, map (snd . snd) li))
   -- [(Int, (String,AST.CFGT.CFG))]
-  $ map (\(counter,(funName,source)) -> (counter,(funName,CFG1.exec $ fromRight undefined $ parse parseExtDecl "" source)))
+  $ map (\(counter,(funName,_,source)) -> (counter,(funName,CFG1.exec $ fromRight undefined $ parse parseExtDecl "" source)))
   -- [(Int,(String, String))]
   $ zip [1 :: Int ..] JavaMethod.javaMethodInputs
 
@@ -220,15 +235,23 @@ expr = AST.BinOpExpr {
 
 -----------------------------
 
-printJMLMethod :: String -> Bool -> IO JMLT.Method
-printJMLMethod funName withLogs = do
-  unparsed <- readFile "test1.java"
-  let loc = "Main.printJMLMethod"
+printJMLMethod0 :: String -> String -> Bool -> IO JMLT.Method
+printJMLMethod0 fileName funName withLogs = do
+  unparsed <- readFile fileName
+  let loc = "Main.printJMLMethod0"
   let parsed :: [AST.Method]
       parsed = fromRight undefined (parse parseDeclList "" unparsed)
       
       cfgs :: [CFGT.CFG]
       cfgs = map CFG1.exec parsed
+      
+      cfg :: CFGT.CFG
+      cfg = case CFG2.findCFGByName funName cfgs of
+        Just cfg -> cfg
+        Nothing -> error $ printf
+          "Error1: %s\n\
+          \  funName: %s"
+          loc funName
       
       ses :: [SYT.SymbolicExecution]
       ses = flip map cfgs $ \cfg ->
@@ -236,7 +259,7 @@ printJMLMethod funName withLogs = do
         in case er of
              "" -> s
              _  -> error $ printf
-               "Error1: %s\n\
+               "Error2: %s\n\
                \1) funName: %s\n\n\
                \2) %s"
                loc funName er
@@ -260,7 +283,7 @@ printJMLMethod funName withLogs = do
 
   case error_ers of
     Right _ -> do
-      putStrLn $ JML.PP.ppBehaviors (JMLT.behaviors jmlMethod)
+      putStrLn $ JML.PP.pp_CFG_JML cfg (JMLT.jmlSpecifications jmlMethod)
       return jmlMethod
     Left er -> do
       putStrLn $ replicate 50 '='
@@ -271,20 +294,22 @@ printJMLMethod funName withLogs = do
         \%s" loc er
       return jmlMethod
 
+printJMLMethod :: String -> Bool -> IO JMLT.Method
+printJMLMethod funName withLogs = printJMLMethod0 "test1.java" funName withLogs
+
 -----------------------------
 
 symExpr1 :: SYT.SymExpr
-symExpr1 = SYT.SymFun SYT.ToString
-  $ SYT.SBin (SYT.SymInt 1) SYT.Add (SYT.SymVar SYT.Int "n")
+symExpr1 = SYT.SymVar SYT.Int "i"
 
 symExpr2 :: SYT.SymExpr
-symExpr2 = SYT.SymString "!"
+symExpr2 = SYT.SBin (SYT.SymVar SYT.Int "i") SYT.Add (SYT.SymInt 1)
 
 symExpr :: SYT.SymExpr
-symExpr = SYT.SBin symExpr1 SYT.Add symExpr2
+symExpr = SYT.SBin symExpr1 SYT.Gt symExpr2
 
 main :: IO ()
-main = print $ SY.Calculator.booleanCalculator $ SYT.SBin (SYT.SymInt 0) SYT.Lt (SYT.SymInt 0)
+main = print $ SY.Calculator.booleanCalculator symExpr
 
 run :: SYT.SymType
 run = SY.Internal.toSymType2
@@ -292,5 +317,58 @@ run = SY.Internal.toSymType2
 
 printMethod :: String -> IO ()
 printMethod methodName = maybe (putStrLn "Method does not exist!") putStrLn 
-  $ lookup methodName JavaMethod.javaMethodInputs
+  $ lookup3 methodName JavaMethod.javaMethodInputs
 
+lookup3 :: Eq a => a -> [(a,b,c)] -> Maybe c
+lookup3 elm li = let
+  filtering = [c | (a,_,c) <- li, a == elm] in
+  case filtering of
+    [] -> Nothing
+    (x:_) -> Just x
+
+-----------------------------
+
+method :: JMLT.Method
+method = JMLT.Method {
+  JMLT.name = "idByLoop",
+  JMLT.jmlSpecifications = [
+    JMLT.LoopSpecification
+      $ JMLT.LoopInvariants {
+          JMLT.loopScopeRange = CFGT.SR {CFGT.branchStart = 2, CFGT.branchEnd = 4},
+          JMLT.loopClauses = [
+            JMLT.CounterBoundsTemplate (JMLT.JMLInt 0) "i" (JMLT.JMLVar JMLT.Int_Type "n"),
+            JMLT.LoopFrameTemplate ["i"],
+            JMLT.DecreasesTemplate $ JMLT.JMLBin (JMLT.JMLVar JMLT.Int_Type "n") JMLT.Sub (JMLT.JMLVar JMLT.Int_Type "i")
+          ]
+        },
+    JMLT.MethodSpecification
+      $ JMLT.NormalBehavior {
+          JMLT.behaviorScopeRange = Nothing,
+          JMLT.requires = Nothing,
+          JMLT.assignable = [],
+          JMLT.vars = [
+            JMLT.JMLVar JMLT.Int_Type "i"
+              `JMLT.JMLEquals`
+                JMLT.JMLVarUnknown [CFGT.SR {CFGT.branchStart = 2, CFGT.branchEnd = 4}]
+                                   JMLT.Int_Type "i" (JMLT.JMLInt 0)], 
+          JMLT.hasSideEffect = False,
+          JMLT.ensures = [JMLT.JMLResult
+            $ JMLT.JMLVarUnknown [CFGT.SR {CFGT.branchStart = 2, CFGT.branchEnd = 4}]
+                                 JMLT.Int_Type "i" (JMLT.JMLInt 0)]
+        }
+  ]
+}
+
+cfg :: CFGT.CFG
+cfg = CFGT.CFG {
+  CFGT.nodes = [
+    CFGT.Entry (AST.BuiltInType AST.Int) "idByLoop" [AST.VarExpr {AST.varType = Just (AST.BuiltInType AST.Int), AST.varObj = [], AST.varName = "n"}],
+    CFGT.Node {CFGT.id = 1, CFGT.nodeData = CFGT.Statement (AST.AssignStmt {AST.varModifier = [], AST.assign = AST.AssignExpr {AST.assEleft = AST.VarExpr {AST.varType = Just (AST.BuiltInType AST.Int), AST.varObj = [], AST.varName = "i"}, AST.assEright = AST.NumberLiteral 0.0}}), CFGT.parent = 0},
+    CFGT.Node {CFGT.id = 2, CFGT.nodeData = CFGT.BooleanExpression CFGT.While (Just (AST.BinOpExpr {AST.expr1 = AST.VarExpr {AST.varType = Nothing, AST.varObj = [], AST.varName = "i"}, AST.binOp = AST.Less, AST.expr2 = AST.VarExpr {AST.varType = Nothing, AST.varObj = [], AST.varName = "n"}})), CFGT.parent = 0},
+    CFGT.Node {CFGT.id = 3, CFGT.nodeData = CFGT.Statement (AST.AssignStmt {AST.varModifier = [], AST.assign = AST.AssignExpr {AST.assEleft = AST.VarExpr {AST.varType = Nothing, AST.varObj = [], AST.varName = "i"}, AST.assEright = AST.BinOpExpr {AST.expr1 = AST.VarExpr {AST.varType = Nothing, AST.varObj = [], AST.varName = "i"}, AST.binOp = AST.Plus, AST.expr2 = AST.NumberLiteral 1.0}}}), CFGT.parent = 2},
+    CFGT.Node {CFGT.id = 4, CFGT.nodeData = CFGT.Meet CFGT.While, CFGT.parent = 0},
+    CFGT.End {CFGT.id = 5, CFGT.parent = 0, CFGT.mExpr = Just (AST.VarExpr {AST.varType = Nothing, AST.varObj = [], AST.varName = "i"})}
+  ], CFGT.edges = [(0,[1]),(1,[2]),(2,[3,4]),(3,[2]),(4,[5])]
+}
+
+ppMethod = putStrLn $ JML.PP.pp_CFG_JML cfg $ JMLT.jmlSpecifications method

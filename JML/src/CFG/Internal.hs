@@ -3,7 +3,9 @@ module CFG.Internal where
 
 import CFG.Types
 import qualified Parser.Types as AST
-import Data.List (find)
+import Data.List (find, nub, intercalate)
+import Text.Printf (printf)
+import qualified Parser.Print as AST.PP
 
 findCFGByName :: String -> [CFG] -> Maybe CFG
 findCFGByName name = find ((== name) . getCFGName)
@@ -73,6 +75,16 @@ isWhileEndNode = \case
   Node _ (Meet While) _ -> True
   _ -> False
 
+isBooleanExpressionNodeData :: NodeData -> Bool
+isBooleanExpressionNodeData = \case
+  BooleanExpression _ _ -> True
+  _ -> False
+
+isBooleanExpressionWhileNodeData :: NodeData -> Bool
+isBooleanExpressionWhileNodeData = \case
+  BooleanExpression While _ -> True
+  _ -> False
+
 getEndIfNode :: CFG -> Node -> Node
 getEndIfNode cfg node
   | isIfStartNode node = helper cfg node 1
@@ -121,6 +133,9 @@ findNode_via_id cfg nodeId =
 
 findEdge_via_id :: CFG -> NodeID -> Maybe (NodeID,[NodeID])
 findEdge_via_id cfg nodeId = flip find (edges cfg) $ \(n,_) -> n==nodeId
+
+getEdge :: CFG -> NodeID -> Maybe [NodeID]
+getEdge cfg theId = lookup theId (edges cfg)
 
 getEntryNode :: CFG -> Node
 getEntryNode cfg = findNode_via_id cfg 0 
@@ -335,8 +350,10 @@ getVarName = \case
   node -> error $ "TODO:: getVarName ==> " ++ show node
 
 getVarNames :: Node -> [String]
-getVarNames = \case
-  Node _ (Statement stmt) _ -> AST.getVarNames (AST.getStatementExpression stmt)
+getVarNames node = let
+  loc = "CFG.Internal.getVarNames" in
+  case node of
+    Node _ (Statement stmt) _ -> AST.getVarNames (AST.getStatementExpression stmt)
 {-
 Node {
   id = 11,
@@ -345,8 +362,50 @@ Node {
   parent = 3
 }
  -}
-  Node _ (ForStep mStmt) _ -> maybe [] (AST.getVarNames . AST.getStatementExpression) mStmt
-  node -> error $ "TODO:: getVarNames ==> " ++ show node
+    Node _ (ForStep mStmt) _ -> maybe [] (AST.getVarNames . AST.getStatementExpression) mStmt
+    Node _ (BooleanExpression _ mExpr) _ -> maybe [] AST.getVarNames mExpr
+{-
+Node {
+  id = 4,
+  nodeData = ForInitialization (Just (AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "j"}, assEright = NumberLiteral 0.0})),
+  parent = 2
+}
+
+ -}
+    Node _ (ForInitialization mExpr) _ -> maybe [] AST.getVarNames mExpr
+    _ -> error $ constructErrorMsg loc "TODO in getVarNames" [("node",show node)]
+
+getVarNames2 :: [Node] -> [String]
+getVarNames2 nodes = let
+  loc = "CFG.Internal.getVarNames2"
+  in nub $ concatMap getVarNames nodes
+
+------------------
+
+constructLogContents :: [(String,String)] -> String
+constructLogContents contents = intercalate "\n\n  "
+  $ map (\(counter,(key,value)) -> printf "%s %s"
+            (yellow $ printf "%d) %s:" counter key) value)
+  $ zip [1::Int ..] contents
+
+constructLogMsg :: String -> String -> [(String,String)] -> String
+constructLogMsg loc tag contents = printf
+  "%s in %s\n\
+  \  %s"
+  (green tag) (cyan loc) (constructLogContents contents)
+
+constructErrorMsg = constructLogMsg
+
+yellow :: String -> String
+yellow = printf "\ESC[1;33m%s\ESC[m"
+
+cyan :: String -> String
+cyan = printf "\ESC[1;36m%s\ESC[m"
+
+green :: String -> String
+green = printf "\ESC[1;32m%s\ESC[m"
+
+------------------
 
 {-
 data NodeData = Statement AST.Statement
@@ -399,7 +458,7 @@ getBranchEnd bStart cfg = helper (nodes cfg) where
                  Nothing -> error "getBranchEnd ==> won't happen2"
                  Just endId -> endId
         | otherwise -> helper rest
-      n@End{} -> getNodeId n--error "getBranchEnd ==> won't happen3"
+      n@End{} -> getNodeId n
       Node{}
         | CFG.Types.id node == bStart -> case nodeData node of
             BooleanExpression If _ -> getNodeId $ getEndIfNode cfg node
@@ -424,3 +483,39 @@ convert = \case
     ForStep mStmt -> flip fmap mStmt $ \stmt -> Node theId (Statement stmt) parent
     _ -> error $ "TODO1:: convert ==> " ++ show nodeData
   node -> error $ "TODO2:: convert ==> " ++ show node
+
+-----------------------------
+
+ppNode :: Node -> String
+ppNode node = let
+  loc = "CFG.Types.ppNode" in
+  case node of
+  --Entry (AST.Type AST.Types) String [AST.Expression]
+    Entry methodType methodName params -> printf "%s %s (%s)"
+      (AST.PP.showType methodType) methodName (intercalate ", " $ map AST.PP.showExpr params)
+    Node _ nodeData _ -> ppNodeData nodeData
+    End _ _ maybe_expr -> maybe "" (("return " ++) . AST.PP.showExpr) maybe_expr
+    _ -> error $ printf "TODO in %s ==> %s" loc (show node)
+
+{-
+data NodeData = Statement AST.Statement
+              | ForInitialization (Maybe AST.Expression)
+              | BooleanExpression Kind (Maybe AST.Expression)
+              | ForStep (Maybe AST.Statement) 
+              | TryNode | CatchNode (AST.Type AST.Exception) | FinallyNode
+              | Meet Kind
+ -}
+ppNodeData :: NodeData -> String
+ppNodeData nodeData = let
+  loc = "CFG.Types.ppNodeData" in
+  case nodeData of
+    Statement statement -> AST.PP.showStmt statement
+    BooleanExpression kind maybe_expr -> ppKind kind ++ "(" ++ maybe "" AST.PP.showExpr maybe_expr ++ ")"
+    Meet _ -> ""
+    _ -> error $ printf "TODO in %s ==> %s" loc (show nodeData)
+
+ppKind :: Kind -> String
+ppKind = \case
+  If -> "if"
+  While -> "while"
+  For -> "for"

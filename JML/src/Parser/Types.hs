@@ -157,15 +157,20 @@ getVarName expr = case expr of
   _ -> error $ "getVarName ==> won't happen: " ++ show expr
 
 getVarNames :: Expression -> [String]
-getVarNames = \case
-  -- BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
-  expr@BinOpExpr{} -> getVarNames (expr1 expr) ++ getVarNames (expr2 expr)
-  expr@VarExpr{} -> varObj expr ++ [varName expr]
-  expr@AssignExpr{} -> getVarNames (assEleft expr) ++ getVarNames (assEright expr)
-  expr@ArrayCallExpr{} -> getVarNames (arrName expr)
-  NumberLiteral _ -> []
-  BoolLiteral _ -> []
-  expr -> error $ "Parser.Types.getVarNames ==> TODO: " ++ show expr
+getVarNames expr = let
+  loc = "Parser.Types.getVarNames" in
+  case expr of
+    -- BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
+    BinOpExpr{} -> getVarNames (expr1 expr) ++ getVarNames (expr2 expr)
+    VarExpr{} -> varObj expr ++ [varName expr]
+    AssignExpr{} -> getVarNames (assEleft expr) ++ getVarNames (assEright expr)
+    -- ArrayCallExpr {arrName :: Expression, index :: Maybe Expression}
+    ArrayCallExpr{} -> getVarNames (arrName expr) ++ maybe [] getVarNames (index expr)
+    NumberLiteral _ -> []
+    StringLiteral _ -> []
+    BoolLiteral _ -> []
+    FunCallExpr _ funArgs -> concatMap getVarNames funArgs
+    _ -> error $ printf "TODO in %s ==> %s" loc (show expr)
 
 isVarExpr :: Expression -> Bool
 isVarExpr = \case
@@ -189,6 +194,16 @@ getLeftVarAssignExpr :: Expression -> Expression
 getLeftVarAssignExpr = \case
   expr@AssignExpr{} -> assEleft expr
   expr -> error $ "getLeftVarAssignExpr ==> won't happen ==> " ++ show expr
+
+isVarAssigned :: String -> Expression -> Bool
+isVarAssigned varName0 expr = let
+  loc = "Parser.Types.isVarAssigned" in
+  case expr of
+    AssignExpr{} -> case assEleft expr of
+      VarExpr _ _ vn -> vn == varName0
+      ArrayCallExpr{} -> False
+      ex -> error $ printf "TODO in %s ==> %s" loc (show ex)
+    _ -> False
 
 -- pretty print Expcerrion without its type (such as in VarExpr)
 ppExpr_no_type :: Expression -> String

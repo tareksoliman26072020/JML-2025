@@ -1836,4 +1836,3 @@ maintaining res == (\sum int k; 0 <= k && k < i; a[k] * b[k]);
 ```
 
 This tests equal-length preconditions and compound array expressions.
-

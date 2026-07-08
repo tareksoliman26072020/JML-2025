@@ -24,7 +24,8 @@ isHorizontalLine = \case
 
 --https://symbl.cc/en/collections/arrow-symbols/
 data LogTag =
-           FunHandle String String String
+           LogTag String String String
+         | FunHandle String String String
          | Expression_2_Handle String String
          | MethodStart String String
          | MethodEnd String
@@ -86,6 +87,9 @@ data LogTag =
 -- to best relate to `Log`
 ppLogTag :: LogTag -> String
 ppLogTag = \case
+    LogTag loc tag contents -> printf
+      "%s in %s\n\
+      \%s" tag loc contents
     FunHandle loc name t    -> printf "(%s): %s: %s %s" loc "Fun infos" (show t) name
     MethodEnd loc           -> printf "(%s): %s" loc "Method End"
     Void loc                -> printf "(%s): %s" loc "Void"

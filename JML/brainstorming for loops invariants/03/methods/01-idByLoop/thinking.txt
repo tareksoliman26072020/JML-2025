@@ -1,0 +1,561 @@
+loopKind                  = WhileCountingUp
+loopInitFacts             = [ "i == 0" ]
+loopGuard                 = "i < n"
+loopCounters              = [ ("i", "i") ]
+loopCounterBounds         = [ ("i", "0", "n") ]
+loopCounterDirection      = [ ("i", Increasing) ]
+loopCounterStride         = [ ("i", "1") ]
+loopBoundStabilityFacts   = [ "n is read-only during the loop" ]
+loopAssignments           = [ "i" ]
+loopReadOnlyVars          = [ "n" ]
+loopFrameTargets          = [ "i" ]
+loopDecreasesCandidate    = Just "n - i"
+loopAccumulators          = []
+loopArrayAccesses         = []
+loopEarlyExits            = []
+loopHelperCalls           = []
+
+WhileCountingUp, because:
+1)
+loopInitFacts = [ "i == 0" ]
+This says the loop starts at a known lower bound.
+
+2) The guard compares i with a stable upper bound
+loopGuard = "i < n"
+loopBoundStabilityFacts = [ "n is read-only during the loop" ]
+loopReadOnlyVars = [ "n" ]
+
+This says the loop continues while i is below n, and n itself is not being changed by the loop.
+For idByLoop, n is stable, so n - i is meaningful as a termination measure.
+
+3) i is THE ONLY loop counter (THE STRIDE IS 1)
+This distinguishes WhileCountingUp from: WhileTwoFrontier, WhileBinarySearch
+
+4) i has bounds 0 <= i <= n
+
+5) i increases by EXACTLY 1
+This distinguishes WhileCountingUp from: WhileStrided
+
+6) The only assigned variable is i
+loopAssignments = [ "i" ]
+loopFrameTargets = [ "i" ]
+
+there is no (loopAssignments = [ "i", "s" ]), and no (loopFieldAssignments = [ "x" ]),
+this means it does not look like a local accumulator loop,
+and it is not a field accumulator loop.
+And there are no array writes, so it is not an array mutation loop.
+
+7) There are no accumulators, therefore it's not a "WhileAccumulator"
+
+isWhileCountingUp :: LoopSummary Expr -> Bool
+isWhileCountingUp s =
+{- 1-}     isWhileSyntax s
+{- 2-}  && hasSingleCounter s
+{- 3-}  && counterInitializedToLowerBound s
+{- 4-}  && counterComparedToStableUpperBoundInGuard s
+{- 5-}  && counterDirectionIs Increasing s
+{- 6-}  && counterStrideIsOne s
+{- 7-}  && loopDecreasesCandidate s == Just (upperBound - counter)
+{- 8-}  && noArrayAccesses s
+{- 9-}  && noAccumulators s
+{-10-}  && noEarlyExits s
+{-11-}  && noHelperCalls s
+
+isWhileCountingUp idByLoopSummary =
+{- 1-}     True  -- while syntax
+{- 2-}  && True  -- i is the single counter
+{- 3-}  && True  -- i == 0
+{- 4-}  && True  -- guard i < n
+{- 5-}  && True  -- n is stable
+{- 6-}  && True  -- i increases
+{- 7-}  && True  -- stride 1
+{- 8-}  && True  -- decreases n - i
+{- 9-}  && True  -- no array access
+{-10-}  && True  -- no accumulator
+{-11-}  && True  -- no early exit
+{-12-}  && True  -- no helper call
+
+
+-------------------
+
+LoopPattern:
+
+loopSyntax =
+  WhileSyntax
+
+loopPatterns =
+  [ CounterPattern CountingUp
+  , BoundPattern StableBound
+  ]
+
+-------------------
+
+PatternHit
+  { hitPattern = CounterPat CountingUp
+  , hitEvidence =
+      CounterEvidence
+        { evCounterName = "i"
+        , evLowerBound  = Just "0"
+        , evUpperBound  = Just "n"
+        , evDirection   = Increasing
+        , evStride      = Just "1"
+        , evVariant     = Just "n - i"
+        }
+  }
+
+-------------------
+
+guard: i < n
+counter: i
+upper bound: n
+n is read-only / stable
+
+PatternHit
+  { hitPattern = BoundPat StableBound
+  , hitEvidence =
+      BoundEvidence
+        { evBoundCounter    = "i"
+        , evBoundExpression = "n"
+        , evBoundGuard      = "i < n"
+        , evStabilityFacts  = ["n is read-only during the loop"]
+        }
+  }
+
+-------------------
+
+[ ( CounterPat CountingUp
+  , [ LoopInitFacts
+    , LoopGuards
+    , LoopCounters
+    , LoopCountersBounds
+    , LoopCountersDevelopmentTrajectory
+    , LoopAssignments
+    , LoopDecreasesCandidate
+    ]
+  )
+
+, ( BoundPat StableBound
+  , [ LoopGuards
+    , LoopCounters
+    , LoopCountersBounds
+    , LoopBoundStabilityFacts
+    , LoopReadOnlyVars
+    , LoopDecreasesCandidate
+    ]
+  )
+]
+
+-------------------
+
+UPDATE
+
+-------------------
+
+inferLoopPatterns :: LoopSummary -> [(LoopPattern, [LoopSummaryTag])]
+inferLoopPatterns summary =
+  mergePatternTags $
+       inferCounterPatterns summary
+    ++ inferBoundPatterns summary
+
+-------------
+-- CounterPat
+-------------
+
+inferCounterPatterns :: LoopSummary -> [(LoopPattern, [LoopSummaryTag])]
+inferCounterPatterns summary =
+  concatMap (inferCounterPattern summary) (loopCounters summary)
+
+inferCounterPattern :: LoopSummary -> String -> [(LoopPattern, [LoopSummaryTag])]
+inferCounterPattern summary counterName =
+  case lookup counterName (loopCountersDevelopmentTrajectory summary) of
+
+    Just (Increasing step)
+      | isOne step ->
+          [ ( CounterPat CountingUp
+            , counterPatternTags summary counterName
+            )
+          ]
+
+      | otherwise ->
+          [ ( CounterPat StridedCounting
+            , counterPatternTags summary counterName
+            )
+          ]
+
+    Just (Decreasing step)
+      | isOne step ->
+          [ ( CounterPat CountingDown
+            , counterPatternTags summary counterName
+            )
+          ]
+
+      | otherwise ->
+          [ ( CounterPat StridedCounting
+            , counterPatternTags summary counterName
+            )
+          ]
+
+    Just (Mixed _) ->
+      [ ( CounterPat ConditionalCounterMovement
+        , [ LoopCounters
+          , LoopCountersDevelopmentTrajectory
+          ]
+        )
+      ]
+
+    Just ReadOnly ->
+      []
+
+    Nothing ->
+      []
+
+--------------------
+
+-- Tags for CounterPat CountingUp
+counterPatternTags :: LoopSummary -> String -> [LoopSummaryTag]
+counterPatternTags summary counterName =
+  concat
+    [ [LoopCounters]
+    , [LoopCountersDevelopmentTrajectory]
+
+    , if hasInitFactFor counterName summary
+        then [LoopInitFacts]
+        else []
+
+    , if hasGuardMentioning counterName summary
+        then [LoopGuards]
+        else []
+
+    , if hasCounterBoundsFor counterName summary
+        then [LoopCountersBounds]
+        else []
+
+    , if counterName `elem` loopAssignments summary
+        then [LoopAssignments]
+        else []
+
+    , if hasDecreasesMentioning counterName summary
+        then [LoopDecreasesCandidate]
+        else []
+    ]
+
+--For idByLoop, this produces:
+{-
+[ LoopCounters
+, LoopCountersDevelopmentTrajectory
+, LoopInitFacts
+, LoopGuards
+, LoopCountersBounds
+, LoopAssignments
+, LoopDecreasesCandidate
+]
+ -}
+
+-------------
+-- CounterPat
+-------------
+
+inferBoundPatterns :: LoopSummary -> [(LoopPattern, [LoopSummaryTag])]
+inferBoundPatterns summary =
+     inferStableBoundPatterns summary
+  ++ inferMovingBoundPatterns summary
+  ++ inferGuardlessBoundPatterns summary
+
+-- Stable bound
+inferStableBoundPatterns :: LoopSummary -> [(LoopPattern, [LoopSummaryTag])]
+inferStableBoundPatterns summary =
+  concatMap checkBound (loopCountersBounds summary)
+  where
+    checkBound :: (SymExpr, String, SymExpr)
+               -> [(LoopPattern, [LoopSummaryTag])]
+    checkBound (_lower, counterName, upperBound)
+      | counterName `elem` loopCounters summary
+        && any (guardIsCounterLtBound counterName upperBound) (loopGuards summary)
+        && isReadOnlyBound upperBound summary
+        =
+          [ ( BoundPat StableBound
+            , stableBoundTags summary counterName upperBound
+            )
+          ]
+
+      | otherwise =
+          []
+
+-- Tags for BoundPat StableBound
+stableBoundTags :: LoopSummary -> String -> SymExpr -> [LoopSummaryTag]
+stableBoundTags summary counterName upperBound =
+  concat
+    [ [LoopCounters]
+    , [LoopCountersBounds]
+    , [LoopGuards]
+
+    , if isReadOnlyBoundViaStabilityFacts upperBound summary
+        then [LoopBoundStabilityFacts]
+        else []
+
+    , if isReadOnlyBoundViaReadOnlyVars upperBound summary
+        then [LoopReadOnlyVars]
+        else []
+
+    , if hasDecreasesOfBoundMinusCounter upperBound counterName summary
+        then [LoopDecreasesCandidate]
+        else []
+    ]
+
+-- For idByLoop, this produces:
+{-
+[ LoopCounters
+, LoopCountersBounds
+, LoopGuards
+, LoopBoundStabilityFacts
+, LoopReadOnlyVars
+, LoopDecreasesCandidate
+]
+ -}
+
+----------------------
+-- Helpers
+----------------------
+isOne :: SymExpr -> Bool
+isOne (SymInt 1) = True
+isOne _          = False
+
+symVarName :: SymExpr -> Maybe String
+symVarName (SymVar _ name) = Just name
+symVarName _               = Nothing
+
+mentionsVar :: String -> SymExpr -> Bool
+mentionsVar target expr =
+  case expr of
+    SymVar _ name ->
+      name == target
+
+    SymInt _ ->
+      False
+
+    SBin left _op right ->
+      mentionsVar target left || mentionsVar target right
+
+    -- Add your other SymExpr constructors here.
+    _ ->
+      False
+
+-- Initialization helper
+hasInitFactFor :: String -> LoopSummary -> Bool
+hasInitFactFor counterName summary =
+  any (\(name, _expr) -> name == counterName)
+      (loopInitFacts summary)
+
+-- For idByLoop:
+hasInitFactFor "i" summary == True
+
+-- because:
+loopInitFacts = [("i", SymInt 0)]
+
+-- Guard Helper:
+hasGuardMentioning :: String -> LoopSummary -> Bool
+hasGuardMentioning counterName summary =
+  any (mentionsVar counterName) (loopGuards summary)
+
+-- For idByLoop:
+hasGuardMentioning "i" summary == True
+
+-- because:
+loopGuards =
+  [SBin (SymVar Int "i") Lt (SymVar Int "n")]
+
+-- Counter-bound helper
+hasCounterBoundsFor :: String -> LoopSummary -> Bool
+hasCounterBoundsFor counterName summary =
+  any (\(_lower, name, _upper) -> name == counterName)
+      (loopCountersBounds summary)
+
+-- For idByLoop:
+hasCounterBoundsFor "i" summary == True
+
+-- because:
+loopCountersBounds =
+  [(SymInt 0, "i", SymVar Int "n")]
+
+-- Decreases helper
+hasDecreasesMentioning :: String -> LoopSummary -> Bool
+hasDecreasesMentioning counterName summary =
+  any (mentionsVar counterName) (loopDecreasesCandidate summary)
+
+-- for idByLoop
+hasDecreasesMentioning "i" summary == True
+
+-- because:
+loopDecreasesCandidate =
+  [SBin (SymVar Int "n") Sub (SymVar Int "i")]
+
+-- Stable-bound helpers
+
+-- Guard shape: `counter < upperBound`
+
+```haskell
+guardIsCounterLtBound :: String -> SymExpr -> SymExpr -> Bool
+guardIsCounterLtBound counterName upperBound guard =
+  case guard of
+    SBin left Lt right ->
+      symVarName left == Just counterName && right == upperBound
+
+    _ ->
+      False
+```
+
+-- For `idByLoop`:
+
+```haskell
+guardIsCounterLtBound "i" (SymVar Int "n")
+  (SBin (SymVar Int "i") Lt (SymVar Int "n"))
+==
+True
+```
+
+-- You can later extend this to handle:
+
+```haskell
+i <= n
+i < a.length
+0 <= i && i < n
+```
+
+---
+
+-- Bound is read-only
+
+```haskell
+isReadOnlyBound :: SymExpr -> LoopSummary -> Bool
+isReadOnlyBound bound summary =
+     isReadOnlyBoundViaStabilityFacts bound summary
+  || isReadOnlyBoundViaReadOnlyVars bound summary
+```
+
+```haskell
+isReadOnlyBoundViaStabilityFacts :: SymExpr -> LoopSummary -> Bool
+isReadOnlyBoundViaStabilityFacts bound summary =
+  any (\(expr, trajectory) -> expr == bound && trajectory == ReadOnly)
+      (loopBoundStabilityFacts summary)
+```
+
+```haskell
+isReadOnlyBoundViaReadOnlyVars :: SymExpr -> LoopSummary -> Bool
+isReadOnlyBoundViaReadOnlyVars bound summary =
+  case symVarName bound of
+    Just name -> name `elem` loopReadOnlyVars summary
+    Nothing   -> False
+```
+
+-- For `idByLoop`, both are true:
+
+```haskell
+isReadOnlyBoundViaStabilityFacts (SymVar Int "n") summary == True
+isReadOnlyBoundViaReadOnlyVars   (SymVar Int "n") summary == True
+```
+
+---
+
+-- Decreases shape: `upperBound - counter`
+
+```haskell
+hasDecreasesOfBoundMinusCounter :: SymExpr -> String -> LoopSummary -> Bool
+hasDecreasesOfBoundMinusCounter upperBound counterName summary =
+  any (isBoundMinusCounter upperBound counterName)
+      (loopDecreasesCandidate summary)
+```
+
+```haskell
+isBoundMinusCounter :: SymExpr -> String -> SymExpr -> Bool
+isBoundMinusCounter upperBound counterName expr =
+  case expr of
+    SBin left Sub right ->
+      left == upperBound && symVarName right == Just counterName
+
+    _ ->
+      False
+```
+
+-- For `idByLoop`:
+
+```haskell
+isBoundMinusCounter
+  (SymVar Int "n")
+  "i"
+  (SBin (SymVar Int "n") Sub (SymVar Int "i"))
+==
+True
+```
+
+---
+
+-- Full `idByLoop` result
+
+With the summary you gave, this implementation returns:
+
+```haskell
+[ ( CounterPat CountingUp
+  , [ LoopInitFacts
+    , LoopGuards
+    , LoopCounters
+    , LoopCountersBounds
+    , LoopCountersDevelopmentTrajectory
+    , LoopAssignments
+    , LoopDecreasesCandidate
+    ]
+  )
+
+, ( BoundPat StableBound
+  , [ LoopGuards
+    , LoopCounters
+    , LoopCountersBounds
+    , LoopBoundStabilityFacts
+    , LoopReadOnlyVars
+    , LoopDecreasesCandidate
+    ]
+  )
+]
+```
+
+-- That is the correct replacement for the old result:
+
+```haskell
+isWhileCountingUp idByLoopSummary == True
+```
+
+-- The old single result:
+
+```haskell
+WhileCountingUp
+```
+
+-- has now been decomposed into:
+
+```haskell
+CounterPat CountingUp
+BoundPat StableBound
+```
+
+-- with explicit provenance:
+
+```haskell
+CounterPat CountingUp
+  <- loopInitFacts
+  <- loopGuards
+  <- loopCounters
+  <- loopCountersBounds
+  <- loopCountersDevelopmentTrajectory
+  <- loopAssignments
+  <- loopDecreasesCandidate
+
+-- BoundPat StableBound
+  <- loopGuards
+  <- loopCounters
+  <- loopCountersBounds
+  <- loopBoundStabilityFacts
+  <- loopReadOnlyVars
+  <- loopDecreasesCandidate
+```
+
+-- This structure is better for your future expansion, because later methods can add more patterns without replacing the existing ones.
+

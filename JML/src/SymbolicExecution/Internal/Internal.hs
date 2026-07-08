@@ -3,6 +3,7 @@ module SymbolicExecution.Internal.Internal where
 
 import SymbolicExecution.Types
 import qualified SymbolicExecution.Logs.Log as Log
+import qualified SymbolicExecution.Logs.PrettyPrint as Log.PP
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Except
@@ -21,6 +22,15 @@ import Data.Functor (($>))
 ------------------------------
 ------------------------------
 ------------------------------
+
+yellow :: String -> String
+yellow = printf "\ESC[1;33m%s\ESC[m"
+
+cyan :: String -> String
+cyan = printf "\ESC[1;36m%s\ESC[m"
+
+green :: String -> String
+green = printf "\ESC[1;32m%s\ESC[m"
 
 toSymBinOp :: AST.BinOp -> SymBinOp
 toSymBinOp = \case
@@ -217,6 +227,31 @@ isSymVar = \case
   SymVar _ _ -> True
   _ -> False
 
+isConstant :: SymExpr -> Bool
+isConstant = \case
+  SymVar _ _ -> False
+  SymNum _ -> True
+  SymInt _ -> True
+  SymDouble _ -> True
+  SymFloat _ -> True
+  SBool _ -> True
+  SymString _ -> True
+  SBin symExpr1 _ symExpr2 -> all isConstant [symExpr1,symExpr2]
+  SNot symExpr -> isConstant symExpr
+  SIte2 ifSymExpr thenSymExpr elseSymExpr -> all isConstant [ifSymExpr,thenSymExpr,elseSymExpr]
+  SymNull _ -> True
+  _ -> False
+
+isSObjAcc :: SymExpr -> Bool
+isSObjAcc symExpr = let
+  loc = "SymbolicExecution.Internal.Internal.isObjAcc" in
+  case symExpr of
+    SObjAcc _ -> True
+    _ -> False
+
+
+
+
 -- `isSymVar2` returns True
 -- 1) if the SymExpr is SymVar
 -- 2) and if the given SymType matches the SymType of that SymVar
@@ -268,6 +303,7 @@ isVar = \case
   SymVar _ _ -> True
   SymString _ -> False
   SymUnknown _ _ -> True
+  SObjAcc _ -> True
   SymFun _ symExpr -> isVar symExpr
   SArrayIndexAccess _ _ _ -> False
   expr -> error $ "TODO: isVar: " ++ show expr
@@ -282,6 +318,9 @@ getSymUnknownReasons :: SymExpr -> [SymReason]
 getSymUnknownReasons = \case
   SymUnknown _ reasons -> reasons
   symExpr -> error $ "getSymUnknownReasons ==> won't happen ==> " ++ show symExpr
+
+getScopeRangesFromSymReason :: SymReason -> [CFGT.ScopeRange]
+getScopeRangesFromSymReason (li,_) = [scopeRange | (_,scopeRange) <- li]
 
 -- get SymType via AST.Type
 toSymType1 :: AST.Type AST.Types -> SymType
@@ -358,6 +397,27 @@ pick_known_symType2 = \case
   [t] -> t
   (t1 : t2 : rest) -> pick_known_symType2 $ pick_known_symType (t1,t2) : rest
 
+toSymExpr :: SymType -> AST.Expression -> SymExpr
+toSymExpr theType expr = let
+  loc = "SymbolicExecution.Internal.Internal.toSymExpr" in case expr of
+  AST.NumberLiteral num -> SymNum num
+  AST.BoolLiteral bool -> SBool bool
+  AST.StringLiteral str -> SymString str
+  AST.BinOpExpr expr1 binOp expr2 -> let
+    symExpr1 = toSymExpr theType expr1
+    symBinOp = toSymBinOp binOp
+    symExpr2 = toSymExpr theType expr2
+    in SBin symExpr1 symBinOp symExpr2
+  AST.VarExpr maybeVarType varObjs vn
+    | null varObjs -> let
+        theType0 = maybe theType toSymType1 maybeVarType
+        in if
+          | theType `isInstanceOf` theType0 -> SymVar theType vn
+          | otherwise -> error $ printf "TODO1 in %s ==> %s" loc (show expr)
+    | otherwise -> SObjAcc $ varObjs ++ [vn]
+  --  | otherwise -> error $ printf "TODO2 in %s ==> %s" loc (show expr)
+  _ -> error $ printf "TODO3 in %s ==> %s" loc (show expr)
+
 getReturnSymExpr :: SymStateEnv -> Maybe SymExpr
 getReturnSymExpr = Map.lookup Return
 
@@ -382,7 +442,17 @@ getSymExpr = \case
   ER_ArrayCallExpr _ symExpr -> Just symExpr
   ER_PredefinedFunCall symExpr -> Just symExpr
   ER_VarExprObjAccess _ symExpr -> Just symExpr
-  er -> error $ "getSymExpr ~~> TODO: " ++ show er
+  er -> error $ "SymbolicExecution.Internal.Internal.getSymExpr ~~> TODO: " ++ show er
+
+-- if the input is SymVar, then the return is SymVar
+-- else, inner SymExprs are returned
+getInnerSymVars :: SymExpr -> [SymExpr]
+getInnerSymVars symExpr = let
+  loc = "SymbolicExecution.Internal.getInnerSymVars" in
+  case symExpr of
+    SymVar _ _ -> [symExpr]
+    SBin expr1 _ expr2 -> [expr1,expr2]
+    _ -> error $ constructErrorMsg loc "TODO" [("symExpr",show symExpr)]
 
 tellNextLog :: Log.LogTag -> SymbolicExecutionMonad String
 tellNextLog logTag
@@ -444,6 +514,26 @@ decrementLogDepth = do
   }
   --tell [Log.Log "?" $ Log.DecrementLogDepth depth (depth-1)]
   
+constructLog :: String -> String -> [(String,String)] -> SymbolicExecutionMonad String
+constructLog loc tag contents = tellNextLog
+  $ Log.LogTag (cyan loc) (green tag)
+  $ ("  " ++)
+  $ constructLogContents contents
+
+constructLogContents :: [(String,String)] -> String
+constructLogContents contents = intercalate "\n\n  "
+  $ map (\(counter,(key,value)) -> printf "%s %s"
+            (yellow $ printf "%d) %s:" counter key) value)
+  $ zip [1::Int ..] contents
+
+constructLogMsg :: String -> String -> [(String,String)] -> String
+constructLogMsg loc tag contents = printf
+  "%s in %s\n\
+  \  %s"
+  (green tag) (cyan loc) (constructLogContents contents)
+
+constructErrorMsg = constructLogMsg
+
 hasContinue :: SymStateEnv -> Bool
 hasContinue = Map.member Continue
 
@@ -519,26 +609,35 @@ er: ER_SymStateMapEntry (VarName "y") (SymVar UnknownNumSymType "y")
 ------------------------------
 
 getVarName :: SymExpr -> String
-getVarName = \case
-  SymVar _ varName -> varName
-  e@(SBin expr1 _ expr2) ->
-    let n1 = if isVar expr1 then Just $ getVarName expr1 else Nothing
-        n2 = if isVar expr2 then Just $ getVarName expr2 else Nothing
-    in case (n1,n2) of
-         (Nothing,Nothing) -> error $ "won't happen1: getVarName: " ++ show e
-         (Just n,Nothing) -> n
-         (Nothing,Just n) -> n
-         (Just x,Just y) -> error $ "TODO: getVarName: " ++ show e
-  symExpr -> error $ "won't happen2: getVarName: " ++ show symExpr
+getVarName symExpr = let
+  loc = "SymbolicExecution.Internal.Internal.getVarName" in
+  case symExpr of
+    SymVar _ varName -> varName
+    SBin expr1 _ expr2 ->
+      let n1 = if isVar expr1 then Just $ getVarName expr1 else Nothing
+          n2 = if isVar expr2 then Just $ getVarName expr2 else Nothing
+      in case (n1,n2) of
+           (Nothing,Nothing) -> error
+             $ constructErrorMsg loc "won't happen1" [("symExpr",show symExpr)]
+           (Just n,Nothing) -> n
+           (Nothing,Just n) -> n
+           (Just x,Just y) -> error
+             $ constructErrorMsg loc "TODO" [("symExpr",show symExpr)]
+    _ -> error $ constructErrorMsg loc "won't happen2" [("symExpr",show symExpr)]
 
 get_SItes :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
 get_SItes m = flip Map.filterWithKey m $ \_ -> \case
   SIte _ _ _ -> True
   _ -> False
 
+get_scopeRanges :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
+get_scopeRanges m = flip Map.filterWithKey m $ \case
+  ScopeRange _ -> const True
+  _ -> const False
+
 get_SLoops :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
 get_SLoops m = flip Map.filterWithKey m $ \_ -> \case
-  SLoop _ _ _ -> True
+  SLoop _ _ _ _ _ -> True
   _ -> False
   
 findVarName :: String -> Map.Map SymStateKey SymExpr -> Maybe SymExpr
@@ -652,7 +751,8 @@ cast symType symExpr = case (symType,symExpr) of
     | toSymType2 symExpr `isInstanceOf` symType -> symExpr
     | symType `isInstanceOf` toSymType2 symExpr -> error
         $ printf "TODO3 ~~> make type %s ~~> cast (%s) (%s)" (show symType) (show symType) (show symExpr)
-    | otherwise -> error $ printf "TODO4 ~~> cast (%s) (%s)" (show symType) (show symExpr)
+    | otherwise -> symExpr
+ -- | otherwise -> error $ printf "TODO4 ~~> cast (%s) (%s)" (show symType) (show symExpr)
 
 -- this function checks the relatability of two SymTypes to each other
 -- Int and String are not related (therefore you can't cast one to the other)
@@ -701,7 +801,7 @@ cast2 vn newType tu@(symStateKey,symExpr) = case symStateKey of
          SMethodHandle _ _ -> symExpr
          SFormalParms _ -> symExpr
          SBin _ op _
-           | vn `existsIn` tu -> cast newType symExpr
+           | vn `existsInWithKey` tu -> cast newType symExpr
            | otherwise -> symExpr
          SVarAssignments li -> SVarAssignments $ flip map li $ \(vn2,(expr,coor)) ->
            (vn2,(cast2 vn newType (VarName vn2,expr),coor))
@@ -721,8 +821,9 @@ cast2 vn newType tu@(symStateKey,symExpr) = case symStateKey of
            $ flip map li $ Map.mapWithKey $ \k v -> if
              | k==vn     -> cast newType v
              | otherwise -> v
-         SLoop _ _ _ -> symExpr
+         SLoop _ _ _ _ _ -> symExpr
          SymReturnVoid -> symExpr
+         SymArrayAccess _ -> symExpr
          _ -> error $ printf
            "SymbolicExecution.Internal.cast2 ==> TODO ==>\n\n\
            \1) %s\n\n\
@@ -769,7 +870,6 @@ lookupPartialSymExprs vn tu@(symStateKey,symExpr) = case symStateKey of
       ----------
       SVarAssignments li -> flip concatMap li $ \(vn2,(symExpr,_)) ->
         lookupPartialSymExprs vn (VarName vn2,symExpr)
-        --(lookupPartialSymExprs vn . (,) symStateKey)
       ----------
       SymUnknown (_,ex) _ -> lookupPartialSymExprs vn (symStateKey,ex)
       ----------
@@ -801,38 +901,58 @@ lookupPartialSymExprs vn tu@(symStateKey,symExpr) = case symStateKey of
       SymArray _ _ elems -> flip concatMap elems
         $ lookupPartialSymExprs vn . (,) symStateKey
       ----------
+    --(ScopeRange (SR {branchStart = 6, branchEnd = 2}),
+    -- SArrayIndexAccess (Array Int) "arr" (SymVar UnknownGlobalVarSymType "i"))
+      SArrayIndexAccess _ arrName indexSymExpr -> let
+        x = lookupPartialSymExprs vn (symStateKey,indexSymExpr) in if
+        | arrName == vn -> [symExpr] ++ x
+        | otherwise -> x
+      ----------
+      SymContinue -> []
+      SymBreak -> []
+      SException _ _ _ -> []
+      SymArrayAccess _ -> []
       _ -> error
         $ printf "SymbolicExecution.Internal.lookupPartialSymExprs ==> TODO ==> (%s ,, %s)" vn (show tu)
 
 -- it tells whether a VarName exists in a SymExpr
 -- This function was originally written to test `inferGlobalVarType`
-existsIn :: String -> (SymStateKey,SymExpr) -> Bool
-existsIn vn tu@(symStateKey,symExpr) = (case symStateKey of
+-- it's also being used in `Math.Isolator.isolate`
+existsInWithKey :: String -> (SymStateKey,SymExpr) -> Bool
+existsInWithKey vn tu@(symStateKey,symExpr) = (case symStateKey of
   VarName vn0 -> vn0 == vn
-  _ -> False) || case symExpr of
-    SIte ifCond ifSymStateEnv maybeElseSymStateEnv ->
-      vn `existsIn` (symStateKey,ifCond)
-      || any ((vn `existsIn`) . (,) symStateKey) ifSymStateEnv
-      || case (fmap (any ((vn `existsIn`) . (,) symStateKey)) maybeElseSymStateEnv) of
-           Nothing -> False
-           Just False -> False
-           Just True -> True
-    SymVar _ vn2 -> vn == vn2
-    SymNum _ -> False
-    SymInt _ -> False
-    SymString _ -> False
-    SGlobalVars _ -> False
-    SMethodHandle _ _ -> False
-    SFormalParms _ -> False
-    SBin symExpr1 _ symExpr2 -> any ((vn `existsIn`) . (,) symStateKey) [symExpr1,symExpr2]
-    SVarAssignments _ -> False
-    SymUnknown (_,expr) _ -> existsIn vn (symStateKey,expr)
-    SymFun _ expr -> existsIn vn (symStateKey,expr)
-    SArrayIndexAccess _ _ _ -> False
-    SObjAcc _ -> False
-    SymNull _ -> False
-    _ -> error
-      $ printf "SymbolicExecution.Internal.existsIn ==> TODO ==> (%s ,, %s)" vn (show tu)
+  _ -> False) || existsIn vn symExpr
+
+-- is being used
+--   1) in `existsInWithKey`
+--   2) and in `getLoopCountersBounds` in the module `SymbolicExecution.Internal.LoopSummary`
+--      to check the existence of the loop counter in an expression.
+existsIn :: String -> SymExpr -> Bool
+existsIn vn symExpr = case symExpr of
+  SIte ifCond ifSymStateEnv maybeElseSymStateEnv ->
+    vn `existsIn` ifCond
+    || any (vn `existsIn`) ifSymStateEnv
+    || case (fmap (any (vn `existsIn`)) maybeElseSymStateEnv) of
+         Nothing -> False
+         Just False -> False
+         Just True -> True
+  SymVar _ vn2 -> vn == vn2
+  SymNum _ -> False
+  SymInt _ -> False
+  SymString _ -> False
+  SGlobalVars _ -> False
+  SMethodHandle _ _ -> False
+  SFormalParms _ -> False
+  SBin symExpr1 _ symExpr2 -> any (vn `existsIn`) [symExpr1,symExpr2]
+  SVarAssignments _ -> False
+  SymUnknown (_,expr) _ -> existsIn vn expr
+  SymFun _ expr -> existsIn vn expr
+  SArrayIndexAccess _ _ _ -> False
+  SObjAcc _ -> False
+  SymNull _ -> False
+  SNot expr -> vn `existsIn` expr
+  _ -> error
+    $ printf "SymbolicExecution.Internal.existsIn ==> TODO ==> (%s ,, %s)" vn (show symExpr)
 
 isUnknownGlobalVarSymType :: SymType -> Bool
 isUnknownGlobalVarSymType = \case
@@ -884,7 +1004,25 @@ negate symExpr = case symExpr of
 --SArrayIndexAccess (Array Int) "arr" (SymInt 0)
   SArrayIndexAccess (Array t) _ _ ->
     SBin (cast t $ SymNum (-1)) Mul symExpr
-  _ -> error $ "TODO: negate ~~> " ++ show symExpr
+  SymUnknown (x,expr) reasons -> SymUnknown (x,negate expr) reasons
+  SymVar t _ -> let
+    minusOne = cast t $ SymNum 1
+    in SBin minusOne Mul symExpr
+--SBin (SymVar Int "i") Lt (SymVar Int "n")
+  SBin expr1 op expr2
+    | isBooleanOperator op -> case op of
+        Eq  -> SBin expr1 Neq expr2
+        Neq -> SBin expr1 Eq  expr2
+        Lt  -> SBin expr1 Ge expr2
+        Le  -> SBin expr1 Gt expr2
+        Gt  -> SBin expr1 Le expr2
+        Ge  -> SBin expr1 Lt expr2
+        And -> SBin (negate expr1) Or  (negate expr2)
+        Or  -> SBin (negate expr1) And (negate expr2)
+    | isArithmeticOperator op -> let
+        theType = toSymType2 symExpr
+        in SBin (cast theType $ SymNum (-1)) Mul symExpr
+  _ -> error $ "TODO: SymbolicExecution.Internal.Internal.negate ~~> " ++ show symExpr
 
 negateOp :: SymBinOp -> SymBinOp
 negateOp = \case
@@ -993,7 +1131,7 @@ getVarNames3 symExpr = case symExpr of
   SBin symExpr1 _ symExpr2 ->
     getVarNames3 symExpr1 ++ getVarNames3 symExpr2
   SNot symExpr -> getVarNames3 symExpr
-  SArrayIndexAccess s1 s2 s3 -> [s2]
+  SArrayIndexAccess _ s2 s3 -> [s2] ++ getVarNames3 s3
   SymArray onw two three -> []
   SymUnknown _ _ -> []
   SymNull _ -> []
@@ -1124,9 +1262,39 @@ getScopedGlobalVarsSymExprs (symStateKey,symExpr) = do
         $ concat [symExprs | (vn2,symExprs) <- varNames_with_exprs1, vn2 == vn] ++
           [expr | (vn2,expr) <- varNames_with_exprs2, vn2 == vn]
   return varNameSymExprs
+
 ------------------------------
 ------------------------------
 ------------------------------
+
+runMonad :: SymbolicExecutionMonad a -> (String,Either String a)
+runMonad runner = let
+  initialSymState = SymState
+    { env = Map.empty
+    , logHeader = Log.Header
+        { Log.logScopeDepth = 1
+        , Log.logCounter = []
+        }
+    }
+
+--run_e :: ReaderT (Config,[CFGT.CFG]) (WriterT [Log.Log] (State SymState)) (Either String a)
+  run_e = runExceptT runner
+
+--run_r :: WriterT [Log.Log] (State SymState) (Either String a)
+  run_r = runReaderT run_e (defaultConfig,[])
+
+--run_w :: State SymState ((Either String a),[Log.Log])
+  run_w = runWriterT run_r
+
+--run_s :: ((Either String a,[Log.Log]),SymState)
+  run_s@((er,logs),s) = runState run_w initialSymState
+
+  in (,) (Log.PP.ppLogs Log.PP.Console logs) er
+
+------------------------------
+------------------------------
+------------------------------
+
 {- type SymReason = ([(ScopeKind,ScopeRange)],Int)
 input:
 kind: For
@@ -1224,3 +1392,116 @@ getFunName :: SymStateEnv -> String
 getFunName se = case Map.lookup MethodHandle se of
   Just (SMethodHandle _ funName) -> funName
   Nothing -> error "SymbolicExecution.Internal.Internal.getFunName.getFunName ==> won't happen"
+
+getFactAbout :: [LoopExitFact] -> String -> Maybe LoopExitFact
+getFactAbout loopExitFacts vn = flip find loopExitFacts $ \loopExitFact -> case loopExitFact of
+  LoopExitFactRange vn2 _ _ -> vn == vn2
+  LoopExitFactValue vn2 _   -> vn == vn2
+
+-------------------
+-------------------
+-------------------
+
+isLoopCounter :: String -> LoopSummary -> Bool
+isLoopCounter counterName loopSummary = let
+  loc = "SymbolicExecution.Internal.isLoopCounter"
+  in counterName `elem` loopCounters loopSummary
+
+isLoopCounterIncreasing :: String -> LoopSummary -> Bool
+isLoopCounterIncreasing counterName loopSummary = let
+  loc = "SymbolicExecution.Internal.isLoopCounterIncreasing" in
+  case lookup counterName (loopFrameTargetsDevelopmentTrajectory loopSummary) of
+    Just (Increasing _) -> True
+    _ -> False
+
+isLoopCounterDecreasing :: String -> LoopSummary -> Bool
+isLoopCounterDecreasing counterName loopSummary = let
+  loc = "SymbolicExecution.Internal.isLoopCounterDecreasing" in
+  case lookup counterName (loopFrameTargetsDevelopmentTrajectory loopSummary) of
+    Just (Decreasing _) -> True
+    _ -> False
+
+isReadOnlyBoundViaStabilityFacts :: SymExpr -> LoopSummary -> Bool
+isReadOnlyBoundViaStabilityFacts bound summary =
+  any (\(expr, trajectory) -> expr == bound && trajectory == ReadOnly)
+      (loopBoundStabilityFacts summary)
+
+isReadOnlyBoundViaReadOnlyVars :: SymExpr -> LoopSummary -> Bool
+isReadOnlyBoundViaReadOnlyVars bound summary =
+  getVarName bound `elem` loopReadOnlyVars summary
+
+initFactsHasCounter :: String -> LoopSummary -> Bool
+initFactsHasCounter counterName summary =
+  any (\(name, _) -> name == counterName)
+      (loopInitFacts summary)
+
+loopGuardHasCounter :: String -> LoopSummary -> Bool
+loopGuardHasCounter counterName summary =
+  any (counterName `existsIn`) (loopGuards summary)
+
+loopCounterBoundsHasCounter :: String -> LoopSummary -> Bool
+loopCounterBoundsHasCounter counterName summary =
+  any (\(_,name,_) -> name == counterName)
+      (loopCountersBounds summary)
+
+loopDecreasesCandidatesHasCounter :: String -> LoopSummary -> Bool
+loopDecreasesCandidatesHasCounter counterName summary =
+  any (counterName `existsIn`) (loopDecreasesCandidate summary)
+
+isOne :: SymExpr -> Bool
+isOne symExpr = let
+  loc = "SymbolicExecution.Internal.LoopPattern.isOne" in
+  case symExpr of
+    SymInt 1 -> True
+    SymInt _ -> False
+    _ -> error $ constructErrorMsg loc "TODO" [("symExpr",show symExpr)]
+
+isLoopCountersTag :: LoopSummaryTag -> Bool
+isLoopCountersTag = \case
+  LoopCounters -> True
+  _ -> False
+
+isLoopFrameTargetsDevelopmentTrajectoryTag :: LoopSummaryTag -> Bool
+isLoopFrameTargetsDevelopmentTrajectoryTag = \case
+  LoopFrameTargetsDevelopmentTrajectory -> True
+  _ -> False
+
+isLoopCountersBoundsTag :: LoopSummaryTag -> Bool
+isLoopCountersBoundsTag = \case
+  LoopCountersBounds -> True
+  _ -> False
+
+isLoopGuardsTag :: LoopSummaryTag -> Bool
+isLoopGuardsTag = \case
+  LoopGuards -> True
+  _ -> False
+
+isLoopBoundStabilityFactsTag :: LoopSummaryTag -> Bool
+isLoopBoundStabilityFactsTag = \case
+  LoopBoundStabilityFacts -> True
+  _ -> False
+
+isLoopReadOnlyVarsTag :: LoopSummaryTag -> Bool
+isLoopReadOnlyVarsTag = \case
+  LoopReadOnlyVars -> True
+  _ -> False
+
+isLoopFrameTargetsTag :: LoopSummaryTag -> Bool
+isLoopFrameTargetsTag = \case
+  LoopFrameTargets -> True
+  _ -> False
+
+isLoopDecreasesCandidateTag :: LoopSummaryTag -> Bool
+isLoopDecreasesCandidateTag = \case
+  LoopDecreasesCandidate -> True
+  _ -> False
+
+isCounterPattern :: LoopPattern -> Bool
+isCounterPattern = \case
+  CounterPattern _ -> True
+  _ -> False
+
+isBoundPattern :: LoopPattern -> Bool
+isBoundPattern = \case
+  BoundPattern _ -> True
+  _ -> False

@@ -142,11 +142,6 @@ ppLogTag = \case
     "method" method
     "jmlStack"
     (callReportTheState jmlStack)
-    {-(concatMap (\ch -> if
-       ch == '\n' then "\n  "
-       else [ch])
-     $ dropWhile (/= '\n')
-     $ ppLogTag $ ReportTheStack "" "" jmlStack)-}
     "logHeader" logHeader
     "formals" formals
     "locals" locals

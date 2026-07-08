@@ -1,5 +1,9 @@
-{-# Language LambdaCase #-}
-module SymbolicExecution.Internal.Calculator (numericCalculator, booleanCalculator, objAccCalculator, stringCalculator, funCallCalculator, whichCalculator, whichCalculator2) where
+{-# Language LambdaCase, MultiWayIf #-}
+-- a calculator == linear solver == linear normalizer (linear normalization)
+module SymbolicExecution.Internal.Math.Calculator (
+  numericCalculator, booleanCalculator, objAccCalculator, stringCalculator, funCallCalculator,
+  calculator, whichCalculator, whichCalculator2, substitute, symExprCompare, isSymExprGreaterThan, symExprNextStep
+) where
 
 import SymbolicExecution.Types
 import Data.Maybe
@@ -27,7 +31,7 @@ numericCalculator = \case
 booleanCalculator :: SymExpr -> SymExpr
 booleanCalculator = \case
   SBin e1 op e2 ->
-    let calculating = booleanCalculator2 op (e1,e2)
+    let calculating = booleanCalculator2 op (calculator e1,calculator e2)
     in case calculating of
          SBin e1_ op_ e2_
            | calculating == SBin e1 op e2 -> SBin e1 op e2
@@ -997,3 +1001,82 @@ whichCalculator2 op1 operator op2 =
        True | isString -> "stringCalculator"
             | otherwise -> "numericCalculator"
        False -> "booleanCalculator"
+
+calculator :: SymExpr -> SymExpr
+calculator expr = case expr of
+  SBin op1 op op2 -> whichCalculator op1 op op2 $ expr
+  SNot symExpr -> SNot $ calculator symExpr
+  _ -> expr
+{-  _ -> error $ printf
+    "TODO in SymbolicExecution.Internal.Math.Calculator ==> %s" (show expr)-}
+
+----------
+
+-- is being used in `SymbolicExecution.Internal.LoopSummary.getLoopInitialGuardCondition`
+substitute :: [(String,SymExpr)] -> SymExpr -> SymExpr
+substitute input symExpr = let
+  loc = "SymbolicExecution.Internal.Math.Calculator.substitute"
+  logContents = [("input",show input),("symExpr",show symExpr)] in
+  calculator $ case symExpr of
+    SymVar _ vn -> case lookup vn input of
+      Just val -> val
+      Nothing -> symExpr
+    SymInt _ -> symExpr
+    SymNum _ -> symExpr
+    SymDouble _ -> symExpr
+    SymFloat _ -> symExpr
+    SBin expr1 op expr2 -> let
+      newExpr1 = substitute input expr1
+      newExpr2 = substitute input expr2
+      in SBin newExpr1 op newExpr2
+    SObjAcc [arrName,"length"] -> case lookup arrName input of
+      Just expr -> error $ constructErrorMsg loc "TODO1" $ logContents ++ [("expr",show expr)]
+      Nothing -> symExpr
+    _ -> error $ constructErrorMsg loc "TODO2" logContents
+
+----------
+
+symExprCompare :: SymExpr -> SymExpr -> Ordering
+symExprCompare expr1 expr2 = let
+  loc = "SymbolicExecution.Internal.Math.Calculator.symExprCompare"
+  logContents = [("expr1",show expr1),("expr2",show expr2)] in
+  case (expr1,expr2) of
+    (SymInt int1,SymInt int2) -> compare int1 int2
+    _ | all (isTypeNumeric . toSymType2) [expr1,expr2] ->
+          case numericCalculator $ SBin expr1 Sub expr2 of
+            SymNum num    -> compare num 0
+            SymInt num    -> compare num 0
+            SymDouble num -> compare num 0
+            SymFloat num  -> compare num 0
+      | otherwise -> error $ constructErrorMsg loc "TODO1" logContents
+
+isSymExprGreaterThan :: SymExpr -> SymExpr -> Bool
+isSymExprGreaterThan expr1 expr2 = expr1 `symExprCompare` expr2 == GT
+
+-----------
+
+symExprNextStep :: String -> SymExpr -> SymExprDevelopmentTrajectory -> Maybe LoopExitFact
+symExprNextStep vn guard trajectory = let
+  loc = "SymbolicExecution.Internal.Math.symExprNextStep"
+  logContents = [
+     ("vn",vn)
+    ,("guard",show guard)
+    ,("trajectory",show trajectory)] in
+  case (trajectory,guard) of
+    (Increasing step,SBin expr1@(SymVar _ vn2) op expr2) -> let
+      step_type = toSymType2 step in if
+      | vn == vn2 && isTypeNumeric step_type -> case op of
+        Lt -> let
+          left = SBin expr1 Eq expr2
+          right = numericCalculator $ SBin guard Add $ SBin step Sub (cast step_type $ SymNum 1)
+          in if | isOne step -> Just $ LoopExitFactValue vn left
+                | otherwise  -> Just $ LoopExitFactRange vn left right
+        Le -> let
+          left = SBin guard Add (cast step_type $ SymNum 1)
+          right = numericCalculator $ SBin guard Add step
+          in if | isOne step -> Just $ LoopExitFactValue vn left
+                | otherwise  -> Just $ LoopExitFactRange vn left right
+        _ -> error $ constructErrorMsg loc "TODO1" logContents
+        
+      | otherwise -> error $ constructErrorMsg loc "TODO2" logContents
+    _ -> error $ constructErrorMsg loc "TODO3" logContents

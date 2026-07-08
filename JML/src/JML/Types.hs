@@ -7,22 +7,29 @@ import Control.Monad.Except
 import Control.Monad.Writer
 
 import qualified SymbolicExecution.Types as SYT (
-  SymbolicExecution,SymbolicExecutionValue)
+  SymbolicExecution,SymbolicExecutionValue,SymType,
+  LoopSummary,LoopPattern,LoopSummaryTag,LoopExitFact)
 import qualified CFG.Types as CFGT (Node_Coor, ScopeRange)
 import qualified JML.Logs.Log as Log (Log, Header)
 
-data Op = Add | Sub | Mul | Div | Gt | Ge | Lt | Le | Eq | Neq | Mod | And | Or
+data Op = Add | Sub | Mul | Div | Gt | Ge | Lt | Le | Eq | Neq | Mod
+        | And | NonFlattableAnd -- And, NonFlattableAnd are technically the same.
+                                -- the difference can be seen in
+                                --   JML.PrettyPrint.unflattenPreConditions
+        | Or
         deriving (Show,Eq)
 
 data JMLType = String_Type | Int_Type | Num_Type | Double_Type | Bool_Type | Unknown_Type
              | Array_Type JMLType
              deriving (Show,Eq)
 
-data Expr = JMLVar JMLType String | JMLVarUnknown JMLType String Expr
+data Expr = JMLVar JMLType String | JMLVarUnknown [CFGT.ScopeRange] JMLType String Expr
           | JMLInt Int | JMLDouble Double | JMLNum Float | JMLBool Bool
           | JMLString String | JMLNull JMLType
           | JMLBin Expr Op Expr | JMLNot Expr | JMLOld Expr
-          | Expr `JMLEquals` Expr | JMLResult Expr | JMLActions [Expr]
+          | Expr `JMLEquals` Expr | Expr `JMLNotEquals` Expr | Expr `JMLImplies` Expr
+          | Expr `JMLInRange` (Expr,Expr)
+          | JMLResult Expr | JMLActions [Expr]
           | JMLException JMLType String String
           | JMLObjAcc [String] | JMLArrayIndexAccess JMLType String Expr
           | JMLArray (Maybe JMLType) (Maybe Expr) [Expr]
@@ -30,11 +37,12 @@ data Expr = JMLVar JMLType String | JMLVarUnknown JMLType String Expr
           | JMLVoid {- this is made to be coupled with `JMLResult` -}
           deriving (Show,Eq)
 
+
 data DefinedFun = ToString | Print | Println | UserDefined String deriving (Show,Eq)
 
 data Behavior =
     NormalBehavior {
-      scopeRange :: Maybe CFGT.ScopeRange,
+      behaviorScopeRange :: Maybe CFGT.ScopeRange,
       requires :: Maybe Expr,
       assignable :: [String],
       vars :: [Expr],
@@ -42,7 +50,7 @@ data Behavior =
       ensures :: [Expr]
     }
   | ExceptionalBehavior {
-      scopeRange :: Maybe CFGT.ScopeRange,
+      behaviorScopeRange :: Maybe CFGT.ScopeRange,
       requires :: Maybe Expr,
       signals :: String,
       assignable :: [String],
@@ -50,6 +58,22 @@ data Behavior =
       hasSideEffect :: Bool,
       ensures :: [Expr]
     }
+  deriving (Show,Eq)
+
+data LoopInvariantTemplate
+  = CounterBoundsTemplate Expr String Expr
+  | LoopFrameTemplate [String]
+  | DecreasesTemplate Expr
+  deriving (Show, Eq)
+
+data LoopInvariants = LoopInvariants {
+  loopScopeRange :: CFGT.ScopeRange,
+  loopClauses :: [LoopInvariantTemplate]
+} deriving (Show,Eq)
+
+data JMLSpecification =
+    MethodSpecification Behavior
+  | LoopSpecification LoopInvariants
   deriving (Show,Eq)
 
 data Clause = Requires (Maybe CFGT.ScopeRange,Maybe Expr) [ClauseValue]
@@ -61,12 +85,15 @@ data ClauseValue =
   | Signals String Expr
   | Assignable [String]
   | VarAssignment (JMLType,String,Expr)
+  | VarInRange (JMLType,String,(Expr,Expr))
+  | Implication Expr ClauseValue
   | HasSideEffect
   deriving (Show,Eq)
 
+
 data Method = Method {
-  name      :: String,
-  behaviors :: [Behavior]
+  name              :: String,
+  jmlSpecifications :: [JMLSpecification]
 } deriving (Show,Eq)
 
 data JMLState = JMLState {
@@ -106,4 +133,10 @@ data ExecutionResult =
   | ER_IfThenElse (Maybe String,CFGT.ScopeRange)
            (Expr,JMLState,[ExecutionResult]) (Maybe (Expr,JMLState,[ExecutionResult]))
   | ER_LoopConditions CFGT.ScopeRange [Map.Map String SYT.SymbolicExecutionValue]
+  | ER_ArrayAccess [(
+       Either SYT.SymbolicExecutionValue (SYT.SymType,String,SYT.SymbolicExecutionValue)
+      ,Maybe (SYT.SymType,String,SYT.SymbolicExecutionValue)
+      ,Either SYT.SymbolicExecutionValue (SYT.SymType,String,SYT.SymbolicExecutionValue)
+      )]
+  | ER_LoopSummary CFGT.ScopeRange [LoopInvariantTemplate] SYT.LoopSummary
   deriving (Show,Eq)

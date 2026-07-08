@@ -1,7 +1,9 @@
 module TargetState (target) where
 
 import CFG.Types (ScopeRange(..))
-import JML.Types (Method(..), Behavior(..), Expr(..), Op(..), JMLType(..), DefinedFun(..))
+import JML.Types (
+  Method(..), Behavior(..), Expr(..), Op(..), JMLType(..), DefinedFun(..),
+  LoopInvariantTemplate(..), JMLSpecification(..), LoopInvariants(..))
 
 target :: String -> Method
 target name = case lookup name allTargets of
@@ -104,13 +106,13 @@ allTargets = [
   ("sumUntilNegative", sumUntilNegative), ("sumUntilNegativeCall1", sumUntilNegativeCall1),
                                           ("sumUntilNegativeCall2", sumUntilNegativeCall2),
   ("processArray1", processArray1), ("processArray1Call", processArray1Call),-}
-  ("isEmpty", isEmpty), ("callIsEmpty", callIsEmpty), ("callIsNotEmpty", callIsNotEmpty),{-
+  ("isEmpty", isEmpty), ("callIsEmpty", callIsEmpty), ("callIsNotEmpty", callIsNotEmpty){-,
   ("fillArray", fillArray), ("fillArrayCall", fillArrayCall),
   ("sqrt", sqrt), ("sqrtCall1", sqrtCall1),
-                  ("sqrtCall2", sqrtCall2),
-  ("boo34", boo34), ("boo34Call", boo34Call),
-  ("getMax", getMax), ("getMaxCall", getMaxCall),
-  ("swap",swap), ("swapCall",swapCall),
+                  ("sqrtCall2", sqrtCall2)-},
+  ("boo34", boo34), ("boo34Call", boo34Call),{-
+  ("getMax", getMax), ("getMaxCall", getMaxCall),-}
+  ("swap",swap), ("swapCall",swapCall),{-
   ("partition", partition), ("partitionCall1", partitionCall1),
                             ("partitionCall2", partitionCall2),
                             ("partitionCall3", partitionCall3),
@@ -131,7 +133,7 @@ allTargets = [
   ("replicate", replicate), ("replicateCall", replicateCall),
   ("sum3", sum3), ("sum3Call1", sum3Call1),
                   ("sum3Call2", sum3Call2),-}
-  ("arrayBoolean", arrayBoolean), ("arrayBooleanCall", arrayBooleanCall){-,
+  ("arrayBoolean", arrayBoolean), ("arrayBooleanCall", arrayBooleanCall),{-
 ----------
   ("tail", tail), ("tailCall1", tailCall1),
                   ("tailCall2", tailCall2),
@@ -142,6 +144,7 @@ allTargets = [
   ("quickSort", quickSort), ("quickSortCall1", quickSortCall1)
                           , ("quickSortCall2", quickSortCall2)
                           , ("quickSortCall3", quickSortCall3)-}
+  ("idByLoop", idByLoop)
   ]
 
 -----------------------------
@@ -151,9 +154,9 @@ allTargets = [
 boo21 :: Method
 boo21 = Method {
   name = "boo21",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -170,9 +173,9 @@ boo21 = Method {
 boo21_2 :: Method
 boo21_2 = Method {
   name = "boo21_2",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -189,9 +192,9 @@ boo21_2 = Method {
 boo22 :: Method
 boo22 = Method {
   name = "boo22",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -208,9 +211,9 @@ boo22 = Method {
 boo22_2 :: Method
 boo22_2 = Method {
   name = "boo22_2",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 5],
@@ -227,9 +230,9 @@ boo22_2 = Method {
 boo23_3 :: Method
 boo23_3 = Method {
   name = "boo23_3",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 8],
@@ -246,9 +249,9 @@ boo23_3 = Method {
 boo23_3_1 :: Method
 boo23_3_1 = Method {
   name = "boo23_3_1",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -265,9 +268,9 @@ boo23_3_1 = Method {
 boo23_4 :: Method
 boo23_4 = Method {
   name = "boo23_4",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -284,9 +287,9 @@ boo23_4 = Method {
 boo23_9 :: Method
 boo23_9 = Method {
   name = "boo23_9",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 8],
@@ -303,9 +306,9 @@ boo23_9 = Method {
 boo33_3 :: Method
 boo33_3 = Method {
   name = "boo33_3",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Double_Type "x" `JMLEquals` JMLDouble 1.1],
@@ -322,9 +325,9 @@ boo33_3 = Method {
 boo33_4 :: Method
 boo33_4 = Method {
   name = "boo33_4",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Double_Type "x" `JMLEquals` JMLDouble 1.1],
@@ -341,9 +344,9 @@ boo33_4 = Method {
 boo33_5 :: Method
 boo33_5 = Method {
   name = "boo33_5",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = ["z"],
       vars = [JMLVar Double_Type "x" `JMLEquals` JMLDouble 1.1
@@ -362,9 +365,9 @@ boo33_5 = Method {
 boo33_6 :: Method
 boo33_6 = Method {
   name = "boo33_6",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = ["z"],
       vars = [
@@ -387,9 +390,9 @@ boo33_6 = Method {
 boo33_7 :: Method
 boo33_7 = Method {
   name = "boo33_7",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Double_Type "x" `JMLEquals` JMLVar Double_Type "c"],
@@ -406,9 +409,9 @@ boo33_7 = Method {
 boo21_i :: Method
 boo21_i = Method {
   name = "boo21_i",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -425,9 +428,9 @@ boo21_i = Method {
 boo21_2_i :: Method
 boo21_2_i = Method {
   name = "boo21_2_i",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Int_Type "i" `JMLEquals` JMLInt 5],
@@ -444,9 +447,9 @@ boo21_2_i = Method {
 boo33_5_2 :: Method
 boo33_5_2 = Method {
   name = "boo33_5_2",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = ["z"],
       vars = [JMLVar Double_Type "x" `JMLEquals` JMLDouble 1.1,
@@ -467,9 +470,9 @@ boo33_5_2 = Method {
 boo33_5_3 :: Method
 boo33_5_3 = Method {
   name = "boo33_5_3",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = ["z"],
       vars = [
@@ -492,9 +495,9 @@ boo33_5_3 = Method {
 boo33_5_4 :: Method
 boo33_5_4 = Method {
   name = "boo33_5_4",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = ["z"],
       vars = [
@@ -518,9 +521,9 @@ boo33_5_4 = Method {
 boo21_3_i :: Method
 boo21_3_i = Method {
   name = "boo21_3_i",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [
@@ -540,9 +543,9 @@ boo21_3_i = Method {
 boo21_3_i_1 :: Method
 boo21_3_i_1 = Method {
   name = "boo21_3_i_1",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [
@@ -566,9 +569,9 @@ boo21_3_i_1 = Method {
 boo21_3_i_2 :: Method
 boo21_3_i_2 = Method {
   name = "boo21_3_i_2",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [
@@ -593,9 +596,9 @@ boo21_3_i_2 = Method {
 boo21_3_i_3 :: Method
 boo21_3_i_3 = Method {
   name = "boo21_3_i_3",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [
@@ -620,9 +623,9 @@ boo21_3_i_3 = Method {
 boo21_3_i_4 :: Method
 boo21_3_i_4 = Method {
   name = "boo21_3_i_4",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = ["x"],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLBin (JMLOld (JMLVar Int_Type "x")) Add (JMLBin (JMLBin (JMLInt 2) Mul (JMLVar Int_Type "i")) Add (JMLInt 2))],
@@ -652,9 +655,9 @@ boo21_3_i_4 = Method {
 boo21_3_i_5 :: Method
 boo21_3_i_5 = Method {
   name = "boo21_3_i_5",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = ["x"],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLBin (JMLOld (JMLVar Int_Type "x")) Add (JMLBin (JMLInt 2) Sub (JMLVar Int_Type "i"))],
@@ -682,9 +685,9 @@ boo21_3_i_5 = Method {
 boo21_3_i_6 :: Method
 boo21_3_i_6 = Method {
   name = "boo21_3_i_6",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = ["x"],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLBin (JMLOld (JMLVar Int_Type "x")) Add (JMLBin (JMLInt 2) Add (JMLVar Int_Type "i"))],
@@ -710,9 +713,9 @@ boo21_3_i_6 = Method {
 boo21_3_i_7 :: Method
 boo21_3_i_7 = Method {
   name = "boo21_3_i_7",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = ["x"],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLBin (JMLOld (JMLVar Int_Type "x")) Add (JMLInt 2)],
@@ -735,9 +738,9 @@ boo21_3_i_7 = Method {
 boo21_3_i_8 :: Method
 boo21_3_i_8 = Method {
   name = "boo21_3_i_8",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = ["x"],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLBin (JMLOld (JMLVar Int_Type "x")) Add (JMLBin (JMLInt 2) Add (JMLBin (JMLInt 4) Mul (JMLVar Int_Type "i")))],
@@ -765,9 +768,9 @@ boo21_3_i_8 = Method {
 boo21_3_i_9 :: Method
 boo21_3_i_9 = Method {
   name = "boo21_3_i_9",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Int_Type "i" `JMLEquals` JMLBin (JMLInt 2) Mul (JMLOld (JMLVar Int_Type "i"))],
@@ -788,9 +791,9 @@ boo21_3_i_9 = Method {
 boo22_i :: Method
 boo22_i = Method {
   name = "boo22_i",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -809,9 +812,9 @@ boo22_i = Method {
 boo22_i_2 :: Method
 boo22_i_2 = Method {
   name = "boo22_i_2",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -830,9 +833,9 @@ boo22_i_2 = Method {
 boo22_i_3 :: Method
 boo22_i_3 = Method {
   name = "boo22_i_3",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -851,9 +854,9 @@ boo22_i_3 = Method {
 boo22_i_4 :: Method
 boo22_i_4 = Method {
   name = "boo22_i_4",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -874,9 +877,9 @@ boo22_i_4 = Method {
 boo22_i_5 :: Method
 boo22_i_5 = Method {
   name = "boo22_i_5",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -895,9 +898,9 @@ boo22_i_5 = Method {
 boo22_i_5_call :: Method
 boo22_i_5_call = Method {
   name = "boo22_i_5_call",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = ["j"],
       vars = [JMLVar Int_Type "j" `JMLEquals` JMLInt 9],
@@ -917,9 +920,9 @@ boo22_i_5_call = Method {
 boo22_2_i :: Method
 boo22_2_i = Method {
   name = "boo22_2_i",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLBin (JMLVar Int_Type "i") Mul (JMLInt 2)],
@@ -937,9 +940,9 @@ boo22_2_i = Method {
 boo22_2_i_2 :: Method
 boo22_2_i_2 = Method {
   name = "boo22_2_i_2",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [
@@ -960,9 +963,9 @@ boo22_2_i_2 = Method {
 boo23_3_i :: Method
 boo23_3_i = Method {
   name = "boo23_3_i",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLBin (JMLInt 3) Add (JMLBin (JMLInt 2) Mul (JMLVar Int_Type "i"))],
@@ -979,9 +982,9 @@ boo23_3_i = Method {
 boo23_3_i_2 :: Method
 boo23_3_i_2 = Method {
   name = "boo23_3_i_2",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [
@@ -1001,9 +1004,9 @@ boo23_3_i_2 = Method {
 boo23_4_i :: Method
 boo23_4_i = Method {
   name = "boo23_4_i",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -1020,9 +1023,9 @@ boo23_4_i = Method {
 boo23_4_i_2 :: Method
 boo23_4_i_2 = Method {
   name = "boo23_4_i_2",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -1039,9 +1042,9 @@ boo23_4_i_2 = Method {
 boo23_4_i_3 :: Method
 boo23_4_i_3 = Method {
   name = "boo23_4_i_3",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -1058,9 +1061,9 @@ boo23_4_i_3 = Method {
 boo23_4_i_4 :: Method
 boo23_4_i_4 = Method {
   name = "boo23_4_i_4",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -1083,9 +1086,9 @@ boo23_4_i_4 = Method {
 boo23_4_i_4_1 :: Method
 boo23_4_i_4_1 = Method {
   name = "boo23_4_i_4_1",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -1102,9 +1105,9 @@ boo23_4_i_4_1 = Method {
 boo23_4_i_5 :: Method
 boo23_4_i_5 = Method {
   name = "boo23_4_i_5",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -1125,9 +1128,9 @@ boo23_4_i_5 = Method {
 boo23_5_i :: Method
 boo23_5_i = Method {
   name = "boo23_5_i",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -1144,9 +1147,9 @@ boo23_5_i = Method {
 boo23_6_i :: Method
 boo23_6_i = Method {
   name = "boo23_6_i",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -1163,9 +1166,9 @@ boo23_6_i = Method {
 boo23_7_i :: Method
 boo23_7_i = Method {
   name = "boo23_7_i",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -1184,9 +1187,9 @@ boo23_7_i = Method {
 boo23_8_i :: Method
 boo23_8_i = Method {
   name = "boo23_8_i",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -1207,9 +1210,9 @@ boo23_8_i = Method {
 boo23_9_i :: Method
 boo23_9_i = Method {
   name = "boo23_9_i",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 5],
@@ -1226,9 +1229,9 @@ boo23_9_i = Method {
 boo23_9_i_2 :: Method
 boo23_9_i_2 = Method {
   name = "boo23_9_i_2",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLBin (JMLInt 5) Sub (JMLVar Int_Type "i")],
@@ -1247,9 +1250,9 @@ boo23_9_i_2 = Method {
 boo23_10_i :: Method
 boo23_10_i = Method {
   name = "boo23_10_i",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLBin (JMLInt 8) Add (JMLVar Int_Type "i")],
@@ -1268,9 +1271,9 @@ boo23_10_i = Method {
 boo23_10_i_2 :: Method
 boo23_10_i_2 = Method {
   name = "boo23_10_i_2",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLBin (JMLInt 8) Add (JMLVar Int_Type "i")],
@@ -1289,9 +1292,9 @@ boo23_10_i_2 = Method {
 boo23_11_i :: Method
 boo23_11_i = Method {
   name = "boo23_11_i",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 9],
@@ -1310,9 +1313,9 @@ boo23_11_i = Method {
 boo23_12_i :: Method
 boo23_12_i = Method {
   name = "boo23_12_i",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLBin (JMLInt 3) Add (JMLVar Int_Type "i")],
@@ -1331,9 +1334,9 @@ boo23_12_i = Method {
 boo33_3_i :: Method
 boo33_3_i = Method {
   name = "boo33_3_i",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Double_Type "x" `JMLEquals` JMLBin (JMLDouble 1.1) Add (JMLVar Double_Type "i")],
@@ -1352,9 +1355,9 @@ boo33_3_i = Method {
 boo33_4_i :: Method
 boo33_4_i = Method {
   name = "boo33_4_i",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Double_Type "x" `JMLEquals` JMLBin (JMLBin (JMLDouble 1.1) Add (JMLVar Double_Type "i")) Add (JMLVar Double_Type "j")],
@@ -1375,9 +1378,9 @@ boo33_4_i = Method {
 boo33_4_i_call :: Method
 boo33_4_i_call = Method {
   name = "boo33_4_i_call",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Double_Type "x" `JMLEquals` JMLDouble 18.5],
@@ -1396,9 +1399,9 @@ boo33_4_i_call = Method {
 boo24 :: Method
 boo24 = Method {
   name = "boo24",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 9],
@@ -1415,9 +1418,9 @@ boo24 = Method {
 boo24_2 :: Method
 boo24_2 = Method {
   name = "boo24_2",
-  behaviors = [
-    ExceptionalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ ExceptionalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       signals = "Exception",
       assignable = [],
@@ -1435,9 +1438,9 @@ boo24_2 = Method {
 exceptionFun :: Method
 exceptionFun = Method {
   name = "exceptionFun",
-  behaviors = [
-    ExceptionalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ ExceptionalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       signals = "Exception",
       assignable = [],
@@ -1455,9 +1458,9 @@ exceptionFun = Method {
 boo25 :: Method
 boo25 = Method {
   name = "boo25",
-  behaviors = [
-    ExceptionalBehavior {
-      scopeRange = Just (SR {branchStart = 1, branchEnd = 5}),
+  jmlSpecifications = [
+     MethodSpecification $ ExceptionalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 5}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Gt (JMLInt 10)),
       signals = "Exception",
       assignable = [],
@@ -1465,8 +1468,8 @@ boo25 = Method {
       hasSideEffect = True,
       ensures = []
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 1, branchEnd = 5}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 5}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Le (JMLInt 10)),
       assignable = [],
       vars = [],
@@ -1484,9 +1487,9 @@ boo25 = Method {
 boo26_2 :: Method
 boo26_2 = Method {
   name = "boo26_2",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -1503,17 +1506,17 @@ boo26_2 = Method {
 boo27 :: Method
 boo27 = Method {
   name = "boo27",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 1, branchEnd = 5}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 5}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Ge (JMLInt 0)),
       assignable = [],
       vars = [],
       hasSideEffect = False,
       ensures = [JMLResult (JMLVar Int_Type "i")]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 1, branchEnd = 5}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 5}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Lt (JMLInt 0)),
       assignable = [],
       vars = [JMLVar Int_Type "res" `JMLEquals` JMLBin (JMLInt (-1)) Mul (JMLVar Int_Type "i")],
@@ -1530,9 +1533,9 @@ boo27 = Method {
 boo27_2 :: Method
 boo27_2 = Method {
   name = "boo27_2",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -1549,17 +1552,17 @@ boo27_2 = Method {
 boo28 :: Method
 boo28 = Method {
   name = "boo28",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 5}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 5}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Ge (JMLInt 0)),
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 2],
       hasSideEffect = False,
       ensures = [JMLResult (JMLVar Int_Type "i")]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 5}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 5}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Lt (JMLInt 0)),
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 1],
@@ -1576,9 +1579,9 @@ boo28 = Method {
 boo282 :: Method
 boo282 = Method {
   name = "boo282",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 2],
@@ -1595,9 +1598,9 @@ boo282 = Method {
 boo283 :: Method
 boo283 = Method {
   name = "boo283",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 1],
@@ -1614,9 +1617,9 @@ boo283 = Method {
 boo28_p :: Method
 boo28_p = Method {
   name = "boo28_p",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -1633,9 +1636,9 @@ boo28_p = Method {
 boo28_m :: Method
 boo28_m = Method {
   name = "boo28_m",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -1652,17 +1655,17 @@ boo28_m = Method {
 boo28_2 :: Method
 boo28_2 = Method {
   name = "boo28_2",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 6}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 6}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Ge (JMLInt 0)),
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 2,JMLVar Int_Type "y" `JMLEquals` JMLInt 0],
       hasSideEffect = False,
       ensures = [JMLResult (JMLVar Int_Type "i")]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 6}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 6}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Lt (JMLInt 0)),
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 1],
@@ -1679,9 +1682,9 @@ boo28_2 = Method {
 boo28_2_1 :: Method
 boo28_2_1 = Method {
   name = "boo28_2_1",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 2],
@@ -1698,17 +1701,17 @@ boo28_2_1 = Method {
 boo28_4 :: Method
 boo28_4 = Method {
   name = "boo28_4",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 6}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 6}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Ge (JMLInt 0)),
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 1,JMLVar Int_Type "y" `JMLEquals` JMLInt 0],
       hasSideEffect = False,
       ensures = [JMLResult (JMLVar Int_Type "i")]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 6}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 6}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Lt (JMLInt 0)),
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 2],
@@ -1725,9 +1728,9 @@ boo28_4 = Method {
 boo28_4_1 :: Method
 boo28_4_1 = Method {
   name = "boo28_4_1",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 1],
@@ -1744,9 +1747,9 @@ boo28_4_1 = Method {
 boo28_4_2 :: Method
 boo28_4_2 = Method {
   name = "boo28_4_2",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 2],
@@ -1763,9 +1766,9 @@ boo28_4_2 = Method {
 boo28_4_p :: Method
 boo28_4_p = Method {
   name = "boo28_4_p",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -1782,9 +1785,9 @@ boo28_4_p = Method {
 boo28_4_m :: Method
 boo28_4_m = Method {
   name = "boo28_4_m",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -1801,17 +1804,17 @@ boo28_4_m = Method {
 boo28_5 :: Method
 boo28_5 = Method {
   name = "boo28_5",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 7}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 7}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Ge (JMLInt 0)),
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 1,JMLVar Int_Type "y" `JMLEquals` JMLInt 1],
       hasSideEffect = False,
       ensures = [JMLResult $ JMLBin (JMLVar Int_Type "i") Add (JMLInt 1)]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 7}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 7}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Lt (JMLInt 0)),
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 2],
@@ -1828,9 +1831,9 @@ boo28_5 = Method {
 boo28_6 :: Method
 boo28_6 = Method {
   name = "boo28_6",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 7}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 7}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Ge (JMLInt 0)),
       assignable = [],
       vars = [
@@ -1840,8 +1843,8 @@ boo28_6 = Method {
       hasSideEffect = False,
       ensures = [JMLResult $ JMLBin (JMLVar Int_Type "i") Add (JMLInt 1)]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 7}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 7}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Lt (JMLInt 0)),
       assignable = [],
       vars = [
@@ -1861,9 +1864,9 @@ boo28_6 = Method {
 boo28_6_2 :: Method
 boo28_6_2 = Method {
   name = "boo28_6_2",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 1],
@@ -1880,9 +1883,9 @@ boo28_6_2 = Method {
 boo28_6_3 :: Method
 boo28_6_3 = Method {
   name = "boo28_6_3",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [
@@ -1901,9 +1904,9 @@ boo28_6_3 = Method {
 boo28_6_4 :: Method
 boo28_6_4 = Method {
   name = "boo28_6_4",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [
@@ -1922,9 +1925,9 @@ boo28_6_4 = Method {
 boo28_6_5 :: Method
 boo28_6_5 = Method {
   name = "boo28_6_5",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 2],
@@ -1941,9 +1944,9 @@ boo28_6_5 = Method {
 boo28_6_6 :: Method
 boo28_6_6 = Method {
   name = "boo28_6_6",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 7}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 7}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Ge (JMLInt 0)),
       assignable = [],
       vars = [
@@ -1952,8 +1955,8 @@ boo28_6_6 = Method {
       hasSideEffect = False,
       ensures = [JMLResult $ JMLBin (JMLVar Int_Type "i") Add (JMLInt 1)]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 7}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 7}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Lt (JMLInt 0)),
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 2],
@@ -1970,17 +1973,17 @@ boo28_6_6 = Method {
 boo28_6_6_2 :: Method
 boo28_6_6_2 = Method {
   name = "boo28_6_6_2",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 5}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 5}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Ge (JMLInt 0)),
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 0],
       hasSideEffect = False,
       ensures = [JMLResult $ JMLBin (JMLVar Int_Type "i") Add (JMLInt 0)]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 5}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 5}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Lt (JMLInt 0)),
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLInt 2],
@@ -1997,9 +2000,9 @@ boo28_6_6_2 = Method {
 boo28_6_6_3 :: Method
 boo28_6_6_3 = Method {
   name = "boo28_6_6_3",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 7}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 7}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Ge (JMLInt 0)),
       assignable = ["y"],
       vars = [
@@ -2012,8 +2015,8 @@ boo28_6_6_3 = Method {
         JMLVar Bool_Type "y" `JMLEquals` JMLBool True
       ]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 7}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 7}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Lt (JMLInt 0)),
       assignable = ["y"],
       vars = [
@@ -2036,9 +2039,9 @@ boo28_6_6_3 = Method {
 boo28_6_6_4 :: Method
 boo28_6_6_4 = Method {
   name = "boo28_6_6_4",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 8}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 8}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Ge (JMLInt 0)),
       assignable = [],
       vars = [
@@ -2048,8 +2051,8 @@ boo28_6_6_4 = Method {
       hasSideEffect = False,
       ensures = [JMLResult $ JMLBin (JMLVar Int_Type "i") Add (JMLInt 1)]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 8}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 8}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Lt (JMLInt 0)),
       assignable = [],
       vars = [
@@ -2069,9 +2072,9 @@ boo28_6_6_4 = Method {
 boo28_6_7 :: Method
 boo28_6_7 = Method {
   name = "boo28_6_7",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 7}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 7}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Ge (JMLInt 0)),
       assignable = [],
       vars = [
@@ -2081,8 +2084,8 @@ boo28_6_7 = Method {
       hasSideEffect = False,
       ensures = [JMLResult $ JMLBin (JMLVar Int_Type "i") Add (JMLInt 1)]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 7}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 7}),
       requires = Just (JMLBin (JMLVar Int_Type "i") Lt (JMLInt 0)),
       assignable = [],
       vars = [
@@ -2101,9 +2104,9 @@ boo28_6_7 = Method {
 boo28_6_8 :: Method
 boo28_6_8 = Method {
   name = "boo28_6_8",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 5, branchEnd = 7}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 5, branchEnd = 7}),
       requires = Just
         $ JMLBin (JMLBin (JMLBin (JMLVar Int_Type "i") Mod (JMLInt 2))
                          Eq
@@ -2117,8 +2120,8 @@ boo28_6_8 = Method {
       hasSideEffect = False,
       ensures = [JMLResult $ JMLBin (JMLInt 1) Mul (JMLInt 3)]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 5, branchEnd = 7}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 5, branchEnd = 7}),
       requires = Just
         $ JMLBin (JMLBin (JMLBin (JMLVar Int_Type "i") Mod (JMLInt 2))
                          Neq
@@ -2132,8 +2135,8 @@ boo28_6_8 = Method {
       hasSideEffect = False,
       ensures = [JMLResult $ JMLBin (JMLInt 0) Mul (JMLInt 3)]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 5, branchEnd = 7}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 5, branchEnd = 7}),
       requires = Just $ JMLBin
           (JMLBin (JMLBin (JMLVar Int_Type "i") Mod (JMLInt 2))
                   Eq
@@ -2147,8 +2150,8 @@ boo28_6_8 = Method {
       hasSideEffect = False,
       ensures = [JMLResult (JMLInt 1)]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 5, branchEnd = 7}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 5, branchEnd = 7}),
       requires = Just
         $ JMLBin (JMLBin (JMLBin (JMLVar Int_Type "i") Mod (JMLInt 2))
                          Neq
@@ -2172,9 +2175,9 @@ boo28_6_8 = Method {
 boo28_6_8_call :: Method
 boo28_6_8_call = Method {
   name = "boo28_6_8_call",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -2191,9 +2194,9 @@ boo28_6_8_call = Method {
 boo28_6_p :: Method
 boo28_6_p = Method {
   name = "boo28_6_p",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -2210,9 +2213,9 @@ boo28_6_p = Method {
 boo29 :: Method
 boo29 = Method {
   name = "boo29",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -2229,9 +2232,9 @@ boo29 = Method {
 boo30 :: Method
 boo30 = Method {
   name = "boo30",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 6, branchEnd = 11}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 6, branchEnd = 11}),
       requires = Just (JMLBin (JMLVar Int_Type "z") Ge (JMLInt 0)),
       assignable = ["t1","y","y1","y2"],
       vars = [
@@ -2251,8 +2254,8 @@ boo30 = Method {
         JMLVar Num_Type "y2" `JMLEquals` JMLNum 0.0
       ]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 6, branchEnd = 11}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 6, branchEnd = 11}),
       requires = Just (JMLBin (JMLVar Int_Type "z") Lt (JMLInt 0)),
       assignable = ["t2","y","y1","y2"],
       vars = [
@@ -2282,9 +2285,9 @@ boo30 = Method {
 boo31 :: Method
 boo31 = Method {
   name = "boo31",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = ["z"],
       vars = [
@@ -2307,9 +2310,9 @@ boo31 = Method {
 boo31_2 :: Method
 boo31_2 = Method {
   name = "boo31_2",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = ["t1","y","y1","y2","z"],
       vars = [
@@ -2340,9 +2343,9 @@ boo31_2 = Method {
 boo31_3 :: Method
 boo31_3 = Method {
   name = "boo31_3",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = ["t2","y","y1","y2","z"],
       vars = [
@@ -2373,9 +2376,9 @@ boo31_3 = Method {
 boo32 :: Method
 boo32 = Method {
   name = "boo32",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [
@@ -2396,9 +2399,9 @@ boo32 = Method {
 boo32Call :: Method
 boo32Call = Method {
   name = "boo32Call",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = ["y1","y2","y3"],
       vars = [
@@ -2424,9 +2427,9 @@ boo32Call = Method {
 elemAt :: Method
 elemAt = Method {
   name = "elemAt",
-  behaviors = [
-    ExceptionalBehavior {
-      scopeRange = Just (SR {branchStart = 1, branchEnd = 3}),
+  jmlSpecifications = [
+     MethodSpecification $ ExceptionalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 3}),
       requires = Just
         $ JMLBin (JMLBin (JMLVar (Array_Type Int_Type) "arr")
                          Neq
@@ -2441,8 +2444,8 @@ elemAt = Method {
       hasSideEffect = False,
       ensures = []
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 1, branchEnd = 3}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 3}),
       requires = Just
         $ JMLBin (JMLBin (JMLVar (Array_Type Int_Type) "arr")
                          Neq
@@ -2466,9 +2469,9 @@ elemAt = Method {
 elemAtCall :: Method
 elemAtCall = Method {
   name = "elemAtCall",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -2485,9 +2488,9 @@ elemAtCall = Method {
 elemAt2 :: Method
 elemAt2 = Method {
   name = "elemAt2",
-  behaviors = [
-    ExceptionalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 4}),
+  jmlSpecifications = [
+     MethodSpecification $ ExceptionalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 4}),
       requires = Just (JMLBin (JMLInt 5) Le (JMLVar Int_Type "pos")),
       signals = "Exception",
       assignable = [],
@@ -2497,8 +2500,8 @@ elemAt2 = Method {
       hasSideEffect = False,
       ensures = []
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 4}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 4}),
       requires = Just (JMLBin (JMLInt 5) Gt (JMLVar Int_Type "pos")),
       assignable = [],
       vars = [
@@ -2517,9 +2520,9 @@ elemAt2 = Method {
 elemAt2Call :: Method
 elemAt2Call = Method {
   name = "elemAt2Call",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -2536,9 +2539,9 @@ elemAt2Call = Method {
 elemAt2Call2 :: Method
 elemAt2Call2 = Method {
   name = "elemAt2Call2",
-  behaviors = [
-    ExceptionalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ ExceptionalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       signals = "Exception",
       assignable = [],
@@ -2556,9 +2559,9 @@ elemAt2Call2 = Method {
 elemAt3 :: Method
 elemAt3 = Method {
   name = "elemAt3",
-  behaviors = [
-    ExceptionalBehavior {
-      scopeRange = Just (SR {branchStart = 1, branchEnd = 8}),
+  jmlSpecifications = [
+     MethodSpecification $ ExceptionalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 8}),
       requires = Just (JMLBin (JMLVar Int_Type "pos") Lt (JMLInt 0)),
       signals = "Exception",
       assignable = [],
@@ -2566,8 +2569,8 @@ elemAt3 = Method {
       hasSideEffect = False,
       ensures = []
     },
-    ExceptionalBehavior {
-      scopeRange = Just (SR {branchStart = 1, branchEnd = 8}),
+     MethodSpecification $ ExceptionalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 8}),
       requires = Just
           $ JMLBin (JMLBin (JMLInt 5) Le (JMLVar Int_Type "pos"))
                    And
@@ -2578,8 +2581,8 @@ elemAt3 = Method {
       hasSideEffect = False,
       ensures = []
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 1, branchEnd = 8}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 8}),
       requires = Just
           $ JMLBin (JMLBin (JMLInt 5) Gt (JMLVar Int_Type "pos"))
                    And
@@ -2599,9 +2602,9 @@ elemAt3 = Method {
 elemAt4 :: Method
 elemAt4 = Method {
   name = "elemAt4",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar (Array_Type Int_Type) "arr" `JMLEquals` JMLArray (Just Int_Type) (Just (JMLInt 5)) [JMLInt 6,JMLInt 5,JMLInt 4,JMLInt 7,JMLInt 8]],
@@ -2618,9 +2621,9 @@ elemAt4 = Method {
 strFun :: Method
 strFun = Method {
   name = "strFun",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [
@@ -2640,9 +2643,9 @@ strFun = Method {
 voidFun1 :: Method
 voidFun1 = Method {
   name = "voidFun1",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -2659,9 +2662,9 @@ voidFun1 = Method {
 voidFun2 :: Method
 voidFun2 = Method {
   name = "voidFun2",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -2678,9 +2681,9 @@ voidFun2 = Method {
 voidFun3 :: Method
 voidFun3 = Method {
   name = "voidFun3",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 6, branchEnd = 9}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 6, branchEnd = 9}),
       requires = Just (JMLBin (JMLBin (JMLInt 1) Add (JMLVar Int_Type "n")) Eq (JMLInt 1)), 
       assignable = ["y2","z"],
       vars = [
@@ -2696,8 +2699,8 @@ voidFun3 = Method {
         JMLVar String_Type "z" `JMLEquals` JMLBin (JMLBin (SymFun ToString (JMLBin (JMLInt 1) Add (JMLVar Int_Type "n"))) Add (JMLString " ")) Add (JMLString "is one")
       ]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 6, branchEnd = 9}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 6, branchEnd = 9}),
       requires = Just (JMLBin (JMLBin (JMLInt 1) Add (JMLVar Int_Type "n")) Neq (JMLInt 1)), 
       assignable = ["y2","z"],
       vars = [
@@ -2723,9 +2726,9 @@ voidFun3 = Method {
 voidFun3Call :: Method
 voidFun3Call = Method {
   name = "voidFun3Call",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = ["y2","z"],
       vars = [
@@ -2749,9 +2752,9 @@ voidFun3Call = Method {
 voidFun4 :: Method
 voidFun4 = Method {
   name = "voidFun4",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [
@@ -2772,9 +2775,9 @@ voidFun4 = Method {
 voidFun5 :: Method
 voidFun5 = Method {
   name = "voidFun5",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -2791,9 +2794,9 @@ voidFun5 = Method {
 voidFun6 :: Method
 voidFun6 = Method {
   name = "voidFun6",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Int_Type "x" `JMLEquals` JMLBin (JMLVar Int_Type "n") Add (JMLInt 1)], 
@@ -2810,9 +2813,9 @@ voidFun6 = Method {
 manyArrs :: Method
 manyArrs = Method {
   name = "manyArrs",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar (Array_Type Int_Type) "numbers" `JMLEquals` JMLArray (Just Int_Type) (Just (JMLInt 2)) [JMLInt 99,JMLInt 5]],
@@ -2829,9 +2832,9 @@ manyArrs = Method {
 manyArrs2 :: Method
 manyArrs2 = Method {
   name = "manyArrs2",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [
@@ -2874,9 +2877,9 @@ manyArrs2 = Method {
 manyArrs3 :: Method
 manyArrs3 = Method {
   name = "manyArrs3",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar (Array_Type Int_Type) "numbers" `JMLEquals` JMLArray (Just Int_Type) (Just (JMLInt 2)) [JMLInt 99,JMLInt 5]],
@@ -2893,9 +2896,9 @@ manyArrs3 = Method {
 manyArrs4 :: Method
 manyArrs4 = Method {
   name = "manyArrs4",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar (Array_Type Int_Type) "numbers" `JMLEquals` JMLArray (Just Int_Type) (Just (JMLInt 2)) [JMLInt 99,JMLNull Int_Type]],
@@ -2912,9 +2915,9 @@ manyArrs4 = Method {
 manyArrs5 :: Method
 manyArrs5 = Method {
   name = "manyArrs5",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [
@@ -2941,9 +2944,9 @@ manyArrs5 = Method {
 manyArrs6 :: Method
 manyArrs6 = Method {
   name = "manyArrs6",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [
@@ -2989,9 +2992,9 @@ manyArrs7 = Map.fromList [
 manyArrs7Call1 :: Method
 manyArrs7Call1 = Method {
   name = "manyArrs7Call1",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -3008,9 +3011,9 @@ manyArrs7Call1 = Method {
 manyArrs7Call2 :: Method
 manyArrs7Call2 = Method {
   name = "manyArrs7Call2",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [
@@ -3036,9 +3039,9 @@ manyArrs7Call2 = Method {
 ifFun :: Method
 ifFun = Method {
   name = "ifFun",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 4, branchEnd = 7}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 4, branchEnd = 7}),
       requires = Just (JMLBin (JMLVar Int_Type "n") Ge (JMLInt 0)),
       assignable = [],
       vars = [
@@ -3049,8 +3052,8 @@ ifFun = Method {
       hasSideEffect = False,
       ensures = [JMLResult $ JMLBin (JMLVar Int_Type "n") Add (JMLInt 1)]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 4, branchEnd = 7}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 4, branchEnd = 7}),
       requires = Just (JMLBin (JMLVar Int_Type "n") Lt (JMLInt 0)),
       assignable = [],
       vars = [
@@ -3071,9 +3074,9 @@ ifFun = Method {
 ifFunCall :: Method
 ifFunCall = Method {
   name = "ifFunCall",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -3090,9 +3093,9 @@ ifFunCall = Method {
 ifFun2 :: Method
 ifFun2 = Method {
   name = "ifFun2",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 4, branchEnd = 7}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 4, branchEnd = 7}),
       requires = Just (JMLBin (JMLVar Int_Type "n") Ge (JMLInt 0)),
       assignable = [],
       vars = [
@@ -3103,8 +3106,8 @@ ifFun2 = Method {
       hasSideEffect = False,
       ensures = [JMLResult $ JMLBin (JMLBin (JMLVar Int_Type "y") Add (JMLVar Int_Type "n")) Add (JMLInt 1)]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 4, branchEnd = 7}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 4, branchEnd = 7}),
       requires = Just (JMLBin (JMLVar Int_Type "n") Lt (JMLInt 0)),
       assignable = [],
       vars = [
@@ -3125,9 +3128,9 @@ ifFun2 = Method {
 ifFun2Call :: Method
 ifFun2Call = Method {
   name = "ifFun2Call",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -3144,9 +3147,9 @@ ifFun2Call = Method {
 ifFun2Call2 :: Method
 ifFun2Call2 = Method {
   name = "ifFun2Call2",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -3163,9 +3166,9 @@ ifFun2Call2 = Method {
 ifFun3 :: Method
 ifFun3 = Method {
   name = "ifFun3",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 4, branchEnd = 7}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 4, branchEnd = 7}),
       requires = Just (JMLBin (JMLVar Num_Type "y") Ge (JMLNum 0.0)),
       assignable = [],
       vars = [
@@ -3176,8 +3179,8 @@ ifFun3 = Method {
       hasSideEffect = False,
       ensures = [JMLResult $ JMLBin (JMLVar Int_Type "n") Add (JMLInt 1)]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 4, branchEnd = 7}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 4, branchEnd = 7}),
       requires = Just (JMLBin (JMLVar Num_Type "y") Lt (JMLNum 0.0)),
       assignable = [],
       vars = [
@@ -3198,9 +3201,9 @@ ifFun3 = Method {
 ifFun4 :: Method
 ifFun4 = Method {
   name = "ifFun4",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 1, branchEnd = 3}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 3}),
       requires = Just (JMLBin (JMLOld (JMLVar Int_Type "y")) Ge (JMLInt 0)),
       assignable = ["y"],
       vars = [
@@ -3212,8 +3215,8 @@ ifFun4 = Method {
         JMLVar Int_Type "y" `JMLEquals` JMLBin (JMLOld (JMLVar Int_Type "y")) Add (JMLVar Int_Type "n")
       ]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 1, branchEnd = 3}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 3}),
       requires = Just (JMLBin (JMLOld (JMLVar Int_Type "y")) Lt (JMLInt 0)),
       assignable = [],
       vars = [
@@ -3234,9 +3237,9 @@ ifFun4 = Method {
 ifFun4Call :: Method
 ifFun4Call = Method {
   name = "ifFun4Call",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = ["y","z"],
       vars = [
@@ -3260,9 +3263,9 @@ ifFun4Call = Method {
 ifFun5 :: Method
 ifFun5 = Method {
   name = "ifFun5",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 4}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 4}),
       requires = Just (JMLBin (JMLVar Int_Type "n") Ge (JMLInt 0)),
       assignable = ["y"],
       vars = [JMLVar Int_Type "y" `JMLEquals` JMLBin (JMLInt 2) Mul (JMLVar Int_Type "n")],
@@ -3272,8 +3275,8 @@ ifFun5 = Method {
         JMLVar Int_Type "y" `JMLEquals` JMLBin (JMLInt 2) Mul (JMLVar Int_Type "n")
       ]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 4}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 4}),
       requires = Just (JMLBin (JMLVar Int_Type "n") Lt (JMLInt 0)),
       assignable = ["y"],
       vars = [JMLVar Int_Type "y" `JMLEquals` JMLVar Int_Type "n"],
@@ -3293,9 +3296,9 @@ ifFun5 = Method {
 ifFun5Call1 :: Method
 ifFun5Call1 = Method {
   name = "ifFun5Call1",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = ["y"],
       vars = [JMLVar Int_Type "y" `JMLEquals` JMLInt 20
@@ -3316,9 +3319,9 @@ ifFun5Call1 = Method {
 ifFun5Call2 :: Method
 ifFun5Call2 = Method {
   name = "ifFun5Call2",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = ["y"],
       vars = [JMLVar Int_Type "y" `JMLEquals` JMLInt (-10)],
@@ -3338,9 +3341,9 @@ ifFun5Call2 = Method {
 ifFun6 :: Method
 ifFun6 = Method {
   name = "ifFun6",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 1, branchEnd = 4}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 4}),
       requires = Just (JMLBin (JMLOld (JMLVar Num_Type "y")) Ge (JMLNum 0.0)),
       assignable = ["s","m","y"],
       vars = [
@@ -3356,8 +3359,8 @@ ifFun6 = Method {
         JMLVar Num_Type "y" `JMLEquals` JMLBin (JMLNum (-1.0)) Mul (JMLOld (JMLVar Num_Type "y"))
       ]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 1, branchEnd = 4}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 4}),
       requires = Just (JMLBin (JMLOld (JMLVar Num_Type "y")) Lt (JMLNum 0.0)),
       assignable = ["s"],
       vars = [
@@ -3381,9 +3384,9 @@ ifFun6 = Method {
 ifFun6Call :: Method
 ifFun6Call = Method {
   name = "ifFun6Call",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = ["c","m","s","y"],
       vars = [
@@ -3411,9 +3414,9 @@ ifFun6Call = Method {
 ifFun6Call2 :: Method
 ifFun6Call2 = Method {
   name = "ifFun6Call2",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = ["c","m","s","y"],
       vars = [
@@ -3441,9 +3444,9 @@ ifFun6Call2 = Method {
 ifFun7 :: Method
 ifFun7 = Method {
   name = "ifFun7",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 1, branchEnd = 4}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 4}),
       requires = Just (JMLBin (JMLBin (JMLVar Int_Type "n") Mod (JMLInt 2)) Eq (JMLInt 0)), 
       assignable = ["s","v"],
       vars = [
@@ -3458,8 +3461,8 @@ ifFun7 = Method {
         JMLVar String_Type "v" `JMLEquals` JMLString "hi"
       ]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 1, branchEnd = 4}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 4}),
       requires = Just (JMLBin (JMLBin (JMLVar Int_Type "n") Mod (JMLInt 2)) Neq (JMLInt 0)),
       assignable = ["s","w"],
       vars = [
@@ -3484,9 +3487,9 @@ ifFun7 = Method {
 ifFun7Call :: Method
 ifFun7Call = Method {
   name = "ifFun7Call",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = ["s","v"],
       vars = [
@@ -3510,9 +3513,9 @@ ifFun7Call = Method {
 ifFun7Call2 :: Method
 ifFun7Call2 = Method {
   name = "ifFun7Call2",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = ["s","v","w"],
       vars = [JMLVar String_Type "s" `JMLEquals` JMLString "something",JMLVar String_Type "v" `JMLEquals` JMLString "hi",JMLVar String_Type "w" `JMLEquals` JMLString "bye"
@@ -3535,9 +3538,9 @@ ifFun7Call2 = Method {
 ifFun7Call3 :: Method
 ifFun7Call3 = Method {
   name = "ifFun7Call3",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 1, branchEnd = 4}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 4}),
       requires = Just (JMLBin (JMLBin (JMLVar Int_Type "t") Mod (JMLInt 2)) Eq (JMLInt 0)),
       assignable = ["s","v"],
       vars = [
@@ -3553,8 +3556,8 @@ ifFun7Call3 = Method {
         JMLVar String_Type "v" `JMLEquals` JMLString "hi"
       ]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 1, branchEnd = 4}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 4}),
       requires = Just (JMLBin (JMLBin (JMLVar Int_Type "t") Mod (JMLInt 2)) Neq (JMLInt 0)),
       assignable = ["s","w"],
       vars = [
@@ -3580,9 +3583,9 @@ ifFun7Call3 = Method {
 ifFun8 :: Method
 ifFun8 = Method {
   name = "ifFun8",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 1, branchEnd = 6}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 6}),
       requires = Just (JMLBin (JMLBin (JMLVar Int_Type "n") Mod (JMLInt 2)) Eq (JMLInt 0)), 
       assignable = ["v"],
       vars = [
@@ -3594,8 +3597,8 @@ ifFun8 = Method {
         JMLResult JMLVoid,JMLVar String_Type "v" `JMLEquals` JMLString "hi"
       ]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 1, branchEnd = 6}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 6}),
       requires = Just (JMLBin (JMLBin (JMLVar Int_Type "n") Mod (JMLInt 2)) Neq (JMLInt 0)),
       assignable = ["w"],
       vars = [
@@ -3618,9 +3621,9 @@ ifFun8 = Method {
 ifFun8Call :: Method
 ifFun8Call = Method {
   name = "ifFun8Call",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = ["v","w"],
       vars = [
@@ -3644,9 +3647,9 @@ ifFun8Call = Method {
 ifFun9 :: Method
 ifFun9 = Method {
   name = "ifFun9",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 1, branchEnd = 6}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 6}),
       requires = Just (JMLBin (JMLBin (JMLVar Int_Type "n") Mod (JMLInt 2)) Eq (JMLInt 0)),
       assignable = ["v"],
       vars = [
@@ -3660,8 +3663,8 @@ ifFun9 = Method {
         JMLVar String_Type "v" `JMLEquals` JMLString "hi zu"
       ]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 1, branchEnd = 6}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 6}),
       requires = Just (JMLBin (JMLBin (JMLVar Int_Type "n") Mod (JMLInt 2)) Neq (JMLInt 0)),
       assignable = ["w"],
       vars = [
@@ -3684,9 +3687,9 @@ ifFun9 = Method {
 ifFun10 :: Method
 ifFun10 = Method {
   name = "ifFun10",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 6}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 6}),
       requires = Just (JMLBin (JMLOld (JMLVar String_Type "v")) Eq (JMLString "bye")),
       assignable = ["t","v"],
       vars = [
@@ -3701,8 +3704,8 @@ ifFun10 = Method {
         JMLVar String_Type "v" `JMLEquals` JMLString "zuzu"
       ]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 6}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 6}),
       requires = Just (JMLBin (JMLOld (JMLVar String_Type "v")) Neq (JMLString "bye")),
       assignable = ["t"],
       vars = [
@@ -3726,9 +3729,9 @@ ifFun10 = Method {
 ifFun11 :: Method
 ifFun11 = Method {
   name = "ifFun11",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Int_Type "res" `JMLEquals` JMLInt 0],
@@ -3745,17 +3748,17 @@ ifFun11 = Method {
 ifFun12 :: Method
 ifFun12 = Method {
   name = "ifFun12",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 4}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 4}),
       requires = Just (JMLBin (JMLVar Int_Type "n") Ge (JMLInt 0)),
       assignable = [],
       vars = [JMLVar Int_Type "res" `JMLEquals` JMLInt 1],
       hasSideEffect = False,
       ensures = [JMLResult (JMLInt 1)]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 2, branchEnd = 4}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 4}),
       requires = Just (JMLBin (JMLVar Int_Type "n") Lt (JMLInt 0)),
       assignable = [],
       vars = [JMLVar Int_Type "res" `JMLEquals` JMLInt 0],
@@ -3772,9 +3775,9 @@ ifFun12 = Method {
 ifFun13 :: Method
 ifFun13 = Method {
   name = "ifFun13",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 1, branchEnd = 4}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 4}),
       requires = Just (JMLBin (JMLBin (JMLVar Num_Type "t") Mod (JMLNum 2.0)) Eq (JMLNum 0.0)),
       assignable = ["s","v"],
       vars = [
@@ -3789,8 +3792,8 @@ ifFun13 = Method {
         JMLVar String_Type "v" `JMLEquals` JMLString "hi"
       ]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 1, branchEnd = 4}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 4}),
       requires = Just (JMLBin (JMLBin (JMLVar Num_Type "t") Mod (JMLNum 2.0)) Neq (JMLNum 0.0)),
       assignable = ["s","w"],
       vars = [
@@ -3815,9 +3818,9 @@ ifFun13 = Method {
 ifFun13Call :: Method
 ifFun13Call = Method {
   name = "ifFun13Call",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 1, branchEnd = 4}),
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 4}),
       requires = Just (JMLBin (JMLBin (JMLVar Num_Type "t") Mod (JMLNum 2.0)) Eq (JMLNum 0.0)),
       assignable = ["s","v"],
       vars = [
@@ -3832,8 +3835,8 @@ ifFun13Call = Method {
         JMLVar String_Type "v" `JMLEquals` JMLString "hi"
       ]
     },
-    NormalBehavior {
-      scopeRange = Just (SR {branchStart = 1, branchEnd = 4}),
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 4}),
       requires = Just (JMLBin (JMLBin (JMLVar Num_Type "t") Mod (JMLNum 2.0)) Neq (JMLNum 0.0)),
       assignable = ["s","w"],
       vars = [
@@ -3858,9 +3861,9 @@ ifFun13Call = Method {
 succFun :: Method
 succFun = Method {
   name = "succFun",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [
@@ -3879,9 +3882,9 @@ succFun = Method {
 succFunCall :: Method
 succFunCall = Method {
   name = "succFunCall",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [JMLVar Int_Type "n" `JMLEquals` JMLInt 2],
@@ -3898,9 +3901,9 @@ succFunCall = Method {
 callSuccFun :: Method
 callSuccFun = Method {
   name = "callSuccFun",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -3917,9 +3920,9 @@ callSuccFun = Method {
 callCallSuccFun :: Method
 callCallSuccFun = Method {
   name = "callCallSuccFun",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -4467,9 +4470,9 @@ processArray1Call = Map.fromList [
 isEmpty :: Method
 isEmpty = Method {
   name = "isEmpty",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Just (JMLBin (JMLVar (Array_Type Int_Type) "arr") Neq (JMLNull (Array_Type Int_Type))),
       assignable = [],
       vars = [],
@@ -4486,9 +4489,9 @@ isEmpty = Method {
 callIsEmpty :: Method
 callIsEmpty = Method {
   name = "callIsEmpty",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -4505,9 +4508,9 @@ callIsEmpty = Method {
 callIsNotEmpty :: Method
 callIsNotEmpty = Method {
   name = "callIsNotEmpty",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -4598,69 +4601,72 @@ sqrtCall2 = Map.fromList [
     (VarName "x",SException SYT.Int "Exception" "not found"),
     (Return,SException SYT.Int "Exception" "not found")
   ]
-
+-}
 -----------------------------
 -----------------------------
 -----------------------------
 
-boo34 :: SymStateEnv
-boo34 = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Void "boo34"),
-    (GlobalVars,SGlobalVars ["status"]),
-    (FormalParms,SFormalParms ["input"]),
-    (VarAssignments,SVarAssignments [
-        ("status",(SymString "non-empty",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 6}})),
-        ("status",(SymString "empty",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 1, branchEnd = 6}}))]),
-    (VarName "input",SymVar SYT.String "input"),
-    (VarName "status",SymUnknown (SymVar SYT.String "status") [
-        ([(If,SR {branchStart = 1, branchEnd = 6})],3),
-        ([(If,SR {branchStart = 1, branchEnd = 6})],5)]),
-    (ScopeRange (SR {branchStart = 1, branchEnd = 6}),
-     SIte (SBin (SObjAcc ["input","length"]) SYT.Gt (SymInt 0))
-          (Map.fromList [
-              (MethodHandle,SMethodHandle SYT.Void "boo34"),
-              (GlobalVars,SGlobalVars ["status"]),
-              (FormalParms,SFormalParms ["input"]),
-              (VarBindings,SVarBindings (Map.fromList [
-                  ("msg",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 6}})])),
-              (VarAssignments,SVarAssignments [
-                  ("msg",(SymString "non-empty",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 6}})),
-                  ("status",(SymString "non-empty",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 6}}))]),
-              (VarName "input",SymVar SYT.String "input"),
-              (VarName "msg",SymString "non-empty"),
-              (VarName "status",SymString "non-empty")]) 
-          (Just (Map.fromList [
-              (MethodHandle,SMethodHandle SYT.Void "boo34"),
-              (GlobalVars,SGlobalVars ["status"]),
-              (FormalParms,SFormalParms ["input"]),
-              (VarBindings,SVarBindings (Map.fromList [
-                  ("msg",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 1, branchEnd = 6}})])),
-              (VarAssignments,SVarAssignments [
-                  ("msg",(SymString "empty",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 1, branchEnd = 6}})),
-                  ("status",(SymString "empty",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 1, branchEnd = 6}}))]),
-              (VarName "input",SymVar SYT.String "input"),
-              (VarName "msg",SymString "empty"),
-              (VarName "status",SymString "empty")]))),
-              (Return,SymReturnVoid)
+boo34 :: Method
+boo34 = Method {
+  name = "boo34",
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 6}),
+      requires = Just (JMLBin (JMLObjAcc ["input","length"]) Gt (JMLInt 0)),
+      assignable = ["status"],
+      vars = [
+        JMLVar String_Type "status" `JMLEquals` JMLString "non-empty",
+        JMLVar String_Type "msg" `JMLEquals` JMLString "non-empty"
+      ],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult JMLVoid,
+        JMLVar String_Type "status" `JMLEquals` JMLString "non-empty"
+      ]
+    },
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 6}),
+      requires = Just (JMLBin (JMLObjAcc ["input","length"]) Le (JMLInt 0)),
+      assignable = ["status"],
+      vars = [
+        JMLVar String_Type "status" `JMLEquals` JMLString "empty",
+        JMLVar String_Type "msg" `JMLEquals` JMLString "empty"
+      ],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult JMLVoid,JMLVar String_Type "status" `JMLEquals` JMLString "empty"
+      ]
+    }
   ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
 
-boo34Call :: SymStateEnv
-boo34Call = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Void "boo34Call"),
-    (GlobalVars,SGlobalVars ["status"]),
-    (VarName "status",SymString "empty"),
-    (Return,SymReturnVoid),
-    (Actions,SActions [SymString "non-empty\n",SymString "empty\n"])
+boo34Call :: Method
+boo34Call = Method {
+  name = "boo34Call",
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
+      requires = Nothing,
+      assignable = ["status"],
+      vars = [JMLVar String_Type "status" `JMLEquals` JMLString "empty"
+      ],
+      hasSideEffect = True,
+      ensures = [
+        JMLResult JMLVoid,
+        JMLVar String_Type "status" `JMLEquals` JMLString "empty"
+      ]
+    }
   ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
-
+{-
 getMax :: SymStateEnv
 getMax = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "getMax"),
@@ -4709,46 +4715,66 @@ getMaxCall = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "getMaxCall"),
     (Return,SymInt 9)
   ]
-
+-}
 -----------------------------
 -----------------------------
 -----------------------------
 
-swap :: SymStateEnv
-swap = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Void "swap"),
-    (FormalParms,SFormalParms ["arr","i","j"]),
-    (VarBindings,SVarBindings (Map.fromList [("temp",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
-    (VarAssignments,SVarAssignments [
-        ("temp",(SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymVar SYT.Int "i"),Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
-        ("arr",(SymVar (SYT.Array SYT.Int) "arr",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})),
-        ("arr",(SymVar (SYT.Array SYT.Int) "arr",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
-    (VarName "arr",SymVar (SYT.Array SYT.Int) "arr"),
-    (VarName "i",SymVar SYT.Int "i"),
-    (VarName "j",SymVar SYT.Int "j"),
-    (VarName "temp",SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymVar SYT.Int "i")),
-    (Return,SymReturnVoid)
+swap :: Method
+swap = Method {
+  name = "swap",
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
+      requires = Just $
+        JMLBin (JMLBin (JMLVar (Array_Type Int_Type) "arr") Neq (JMLNull (Array_Type Int_Type))) 
+               And
+               (JMLBin (JMLBin (JMLBin (JMLInt 0) Le (JMLVar Int_Type "i"))
+                               NonFlattableAnd
+                               (JMLBin (JMLVar Int_Type "i") Lt (JMLObjAcc ["arr","length"])))
+                       And
+                       (JMLBin (JMLBin (JMLInt 0) Le (JMLVar Int_Type "j"))
+                               NonFlattableAnd
+                               (JMLBin (JMLVar Int_Type "j") Lt (JMLObjAcc ["arr","length"])))),
+      assignable = ["arr[i]","arr[j]"],
+      vars = [JMLVar Int_Type "temp" `JMLEquals` JMLArrayIndexAccess (Array_Type Int_Type) "arr" (JMLVar Int_Type "i")],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult JMLVoid,
+        JMLArrayIndexAccess (Array_Type Int_Type) "arr" (JMLVar Int_Type "i") `JMLEquals` JMLOld (JMLArrayIndexAccess (Array_Type Int_Type) "arr" (JMLVar Int_Type "j")),
+        JMLArrayIndexAccess (Array_Type Int_Type) "arr" (JMLVar Int_Type "j") `JMLEquals` JMLOld (JMLArrayIndexAccess (Array_Type Int_Type) "arr" (JMLVar Int_Type "i"))
+      ]
+    }
   ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
 
-swapCall :: SymStateEnv
-swapCall = Map.fromList [
-    (MethodHandle,SMethodHandle SYT.Void "swapCall"),
-    (VarBindings,SVarBindings (Map.fromList [
-        ("arr",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}})])),
-    (VarAssignments,SVarAssignments [
-        ("arr",(SymArray (Just SYT.Int) (Just $ SymInt 9) [SymInt 5,SymInt 4,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 1],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 3}}))]),
-    (VarName "arr",SymArray (Just SYT.Int) (Just $ SymInt 9) [SymInt 4,SymInt 5,SymInt 6,SymInt 4,SymInt 7,SymInt 8,SymInt 9,SymInt 0,SymInt 1]),
-    (Return,SymReturnVoid)
+swapCall :: Method
+swapCall = Method {
+  name = "swapCall",
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
+      requires = Nothing,
+      assignable = [],
+      vars = [
+        JMLVar (Array_Type Int_Type) "arr"
+          `JMLEquals`
+            JMLArray (Just Int_Type) (Just (JMLInt 9)) [JMLInt 4,JMLInt 5,JMLInt 6,JMLInt 4,JMLInt 7,JMLInt 8,JMLInt 9,JMLInt 0,JMLInt 1]
+      ],
+      hasSideEffect = False,
+      ensures = [JMLResult JMLVoid]
+    }
   ]
+}
 
 -----------------------------
 -----------------------------
 -----------------------------
-
+{-
 partition :: SymStateEnv
 partition = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "partition"),
@@ -5303,9 +5329,9 @@ sum3Call2 = Map.fromList [
 arrayBoolean :: Method
 arrayBoolean = Method {
   name = "arrayBoolean",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -5328,9 +5354,9 @@ arrayBoolean = Method {
 arrayBooleanCall :: Method
 arrayBooleanCall = Method {
   name = "arrayBooleanCall",
-  behaviors = [
-    NormalBehavior {
-      scopeRange = Nothing,
+  jmlSpecifications = [
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
       requires = Nothing,
       assignable = [],
       vars = [],
@@ -5581,3 +5607,63 @@ quickSortCall3 = Map.fromList [
     (Return,SymArray (Just SYT.Int) (Just (SymInt 5)) [SymInt 1,SymInt 2,SymInt 3,SymInt 4,SymInt 5])
   ]
  -}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+{-
+Method {
+  name = "idByLoop",
+  jmlSpecifications = [
+    LoopSpecification $ LoopInvariants {
+      loopScopeRange = SR {branchStart = 2, branchEnd = 4},
+      loopClauses = [
+        CounterBoundsTemplate (JMLInt 0) "i" (JMLVar Int_Type "n"),
+        LoopFrameTemplate ["i"],
+        DecreasesTemplate $ JMLBin (JMLVar Int_Type "n") Sub (JMLVar Int_Type "i")
+      ]
+    },
+    MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
+      requires = Nothing,
+      assignable = [],
+      vars = [
+        JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n") `JMLImplies` JMLBin (JMLVar Int_Type "i") Eq (JMLVar Int_Type "n"),
+        JMLBin (JMLInt 0) Ge (JMLVar Int_Type "n") `JMLImplies` JMLInt 0
+      ],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult $ JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n") `JMLImplies` JMLBin (JMLVar Int_Type "i") Eq (JMLVar Int_Type "n"),
+        JMLResult $ JMLBin (JMLInt 0) Ge (JMLVar Int_Type "n") `JMLImplies` JMLInt 0
+      ]
+    }
+  ]
+}
+ -}
+idByLoop :: Method
+idByLoop = Method {
+  name = "idByLoop",
+  jmlSpecifications = [
+    LoopSpecification $ LoopInvariants
+      (SR {branchStart = 2, branchEnd = 4})
+      [CounterBoundsTemplate (JMLInt 0) "i" (JMLVar Int_Type "n"),
+       LoopFrameTemplate ["i"],
+       DecreasesTemplate (JMLBin (JMLVar Int_Type "n") Sub (JMLVar Int_Type "i"))
+      ],
+     MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
+      requires = Nothing,
+      assignable = [],
+      vars = [
+        JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n") `JMLImplies` JMLBin (JMLVar Int_Type "i") Eq (JMLVar Int_Type "n"),
+        JMLBin (JMLInt 0) Ge (JMLVar Int_Type "n") `JMLImplies` JMLInt 0
+      ],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult $ JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n") `JMLImplies` JMLBin (JMLVar Int_Type "i") Eq (JMLVar Int_Type "n"),
+        JMLResult $ JMLBin (JMLInt 0) Ge (JMLVar Int_Type "n") `JMLImplies` JMLInt 0
+      ]
+    }
+  ]
+}

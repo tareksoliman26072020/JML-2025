@@ -26,7 +26,7 @@ newtype MethodProcessor = MethodProcessor {
 
 data SymStateKey = MethodHandle
                  | GlobalVars | FormalParms | VarBindings | VarAssignments
-                 | VarName String
+                 | VarName String | ArrayAccess
                  | ScopeRange CFGT.ScopeRange | InheritedScopeRange String CFGT.ScopeRange
                  | LoopFailure
                  | LoopConditions CFGT.ScopeRange | Continue | Break
@@ -154,16 +154,24 @@ data SymExpr =
   | SBin    SymExpr SymBinOp SymExpr  -- ^ binary operation
   | SNot    SymExpr               -- ^ logical negation
   | SIte    SymExpr SymStateEnv (Maybe SymStateEnv)   -- ^ if-then-else (cond, then, else)
+  | SIte2   SymExpr SymExpr SymExpr
 
-  | SLoop   (Maybe CFGT.Node) (Maybe AST.Expression) [CFGT.Node] -- Loop acc, Loop condition, and loop body. the loop step is the last node in the body
+  | SLoop   (Maybe CFGT.Node) (Maybe AST.Expression) [CFGT.Node]  -- Loop acc, Loop condition, and loop body. the loop step is the last node in the body
+            (Maybe LoopSummary) [(LoopPattern, [LoopSummaryTag])] -- loop summary, loop patterns.
   | SLoopConditions [Map.Map String SymExpr]
   | SLoopFailure CFGT.ScopeRange Int
 
   | SymNull SymType               -- ^ value of an unassigned variable
   | SymVar SymType String
+  | SymArrayAccess [(Either SymExpr (SymType,String,SymExpr)
+                    ,Maybe (SymType,String,SymExpr)
+                    ,Either SymExpr (SymType,String,SymExpr))]
+                                  -- ^ False = Left Operand, True = Right Operand
+                                  --   Nothing = neither
+  | SymArrayElem SymExpr SymExpr  -- ^ will only be used in SVarAssignments
   | SymFun DefinedFun SymExpr
   | SVarBindings (Map.Map String CFGT.Node_Coor)
-  | SVarAssignments [(String,(SymExpr,CFGT.Node_Coor))] 
+  | SVarAssignments [(String,(SymExpr,CFGT.Node_Coor))]
   | SException SymType String String
   | SActions [SymExpr]
   | SArrayIndexAccess SymType String SymExpr
@@ -180,7 +188,7 @@ type SymReason = ([(CFGT.Kind,CFGT.ScopeRange)],Int)
 
 data SymType = Int | Double | Float | Bool | Void | Array SymType | String 
              | UnknownGlobalVarSymType
-             | UnknownNumSymType deriving (Show,Eq)
+             | UnknownNumSymType deriving (Show,Eq,Ord)
 
 instance MonadFail (Either String) where
   fail = Left
@@ -196,3 +204,141 @@ toDefinedFun = \case
   "print"    -> Print
   "println"  -> Println
   str        -> UserDefined str
+
+----------------------
+----------------------
+----------------------
+
+data LoopSummary = LoopSummary {
+    loopSyntax :: LoopSyntax
+  -- Variables read but not assigned in the loop.
+  , loopReadOnlyVars :: [String]
+  -- The locations that the loop is allowed to modify
+  , loopFrameTargets :: [String]
+  -- Facts known immediately before the loop starts.
+  , loopInitFacts :: [(String,SymExpr)]
+  -- purpose:
+  --   1) Preservation: symbolic execution assumes `invariant && guard`
+  --   2) Exit reasoning: after the loop, you know `invariant && !guard`.
+  , loopGuards :: [SymExpr]
+  -- The initial loop guard which should be met so that the loop gets iterated
+  , loopInitialGuardCondition :: Maybe SymExpr
+  , loopSkipCondition :: Maybe SymExpr
+  , loopExitConditions :: [SymExpr]
+  -- The variables that function as loop counters or induction variables.
+  -- A loopCounter is a variable whose value represents loop progress.
+  -- Usually it is an induction variable:
+  --   1) initialized before the loop,
+  --   2) tested in or related to the guard,
+  --   3) updated predictably in the loop,
+  --   4) and used to define bounds, processed ranges, or termination.
+  , loopCounters :: [String]
+  -- Local variables assigned inside the loop
+  , loopAssignments :: [String]
+  -- Records whether a effected vars increases, decreases, moves conditionally, or does not really change, and how much the var changes per iteration.
+  , loopFrameTargetsDevelopmentTrajectory :: [(String,SymExprDevelopmentTrajectory)]
+  -- Lower and upper bounds for each counter.
+  , loopCountersBounds :: [(SymExpr,String,SymExpr)]
+  -- how the loop bound changes during the loop
+  , loopBoundStabilityFacts :: [(SymExpr,SymExprDevelopmentTrajectory)]
+  -- Candidate termination variant
+  , loopDecreasesCandidate :: [SymExpr]
+  -- inferring how the loopFrameTargets end up looking like when the loop is exited
+  , loopExitFacts :: [LoopExitFact]
+} deriving (Show,Eq)
+
+data LoopExitFact =
+    LoopExitFactRange String SymExpr SymExpr
+  | LoopExitFactValue String SymExpr
+  deriving (Show,Eq)
+
+data SymExprDevelopmentTrajectory =
+    Increasing SymExpr
+  | Decreasing SymExpr
+  | Mixed SymExpr -- SIte2
+  | NewInScope SymExpr
+  | Complicated SymExpr SymExpr
+  | NonNumeric SymExpr SymExpr
+  | ReadOnly
+  deriving (Show,Eq)
+
+data BoundPosition = LeftBound | RightBound deriving Show
+
+data LoopSyntax
+  = WhileSyntax
+  | ForSyntax
+  deriving (Show,Eq)
+
+data LoopPattern
+  = CounterPattern CounterPattern
+  | BoundPattern BoundPattern
+  | TraversalPattern TraversalPattern
+  | MutationPattern MutationPattern
+  | AccumulatorPattern AccumulatorPattern
+  | SearchPattern SearchPattern
+  | ControlFlowPattern ControlFlowPattern
+  | HelperCallPattern
+  | TwoFrontierPattern
+  | UnknownPattern
+  deriving (Eq, Show)
+
+data CounterPattern
+  = CountingUp
+  | CountingDown
+  | StridedCounting
+  | ConditionalCounterMovement
+  deriving (Eq, Show)
+
+data BoundPattern
+  = StableBound
+  | MovingBound
+  | GuardlessWithInternalExit
+  deriving (Eq, Show)
+
+data TraversalPattern
+  = ArrayScan
+  | PrefixProperty
+  | SourceUnchanged
+  deriving (Eq, Show)
+
+data MutationPattern
+  = ArrayFill
+  | ArrayCopy
+  | InPlaceTransform
+  | ConditionalArrayRewrite
+  | SymmetricSwap
+  deriving (Eq, Show)
+
+data AccumulatorPattern
+  = AdditiveAccumulator
+  | ArithmeticSeriesAccumulator
+  | MaxAccumulator
+  | FieldLinearAccumulator
+  deriving (Eq, Show)
+
+data SearchPattern
+  = LinearSearch
+  | FirstIndexSearch
+  | BooleanPredicateScan
+  | BinarySearch
+  deriving (Eq, Show)
+
+data ControlFlowPattern
+  = EarlyReturn
+  | BreakExit
+  | ContinuePath
+  | ThrowExit
+  deriving (Eq, Show)
+
+data LoopSummaryTag =
+   LoopInitFacts
+ | LoopGuards
+ | LoopCounters
+ | LoopCountersBounds
+ | LoopFrameTargetsDevelopmentTrajectory
+ | LoopBoundStabilityFacts
+ | LoopAssignments
+ | LoopReadOnlyVars
+ | LoopFrameTargets
+ | LoopDecreasesCandidate
+ deriving (Show,Eq)
