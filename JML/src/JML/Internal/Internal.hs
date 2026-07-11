@@ -297,7 +297,10 @@ convertImplication :: ClauseValue -> Expr
 convertImplication val = let
   loc = "JML.Internal.Internal.convertImplication" in
   case val of
-    Implication cond (VarAssignment (_,_,implicationVal)) -> cond `JMLImplies` implicationVal
+    Implication cond (VarAssignment (_,vn,implicationVal)) -> let
+      left = JMLVar (toJMLType2 implicationVal) vn
+      right = cond `JMLImplies` implicationVal
+      in left `JMLEquals` right
     _ -> error $ constructErrorMsg loc "TODO" [("val",show val)]
 
 -- Bin (Var "i") Gt (Int 10)
@@ -387,15 +390,18 @@ hasJMLVarUnknown0 expr = let
     JMLArrayIndexAccess _ _ expr -> hasJMLVarUnknown0 expr
     _ -> error $ printf "TODO in %s ==> %s" loc (show expr)
 
-substitute_JMLVarUnknown :: CFGT.ScopeRange -> Expr -> Expr -> Expr
-substitute_JMLVarUnknown sr old_expr new_expr = let
+substitute_JMLVarUnknown :: (CFGT.ScopeRange,String) -> Expr -> Expr -> Expr
+substitute_JMLVarUnknown (sr,vn) old_expr new_expr = let
   loc = "JML.Internal.Internal.substitute_JMLVarUnknown"
   logContents = [("old_expr",show old_expr),("new_expr",show new_expr)] in
   case old_expr of
     JMLVarUnknown scopeRanges _ _ _
-      | sr `elem` scopeRanges -> new_expr
+      | sr `elem` scopeRanges -> case new_expr of
+          JMLBin (JMLVar _ vn2) Eq new_expr2
+            | vn == vn2 -> new_expr2
+            | otherwise -> error $ constructErrorMsg loc "TODO1" logContents
       | otherwise -> old_expr
-    _ -> error $ constructErrorMsg loc "TODO" logContents
+    _ -> error $ constructErrorMsg loc "TODO2" logContents
 
 -- is JMLVar concrete?
 isJMLVarConcrete :: Expr -> Bool
@@ -524,11 +530,11 @@ processJMLVarUnknown_via_loopExitFacts scopeRange
     loc = "JML.Internal.Internal.processJMLVarUnknown_via_loopExitFacts.studyFact"
     logContents = [("fact",show fact),("old_expr",show old_expr)] in
     case fact of
-      SYT.LoopExitFactValue _ new_expr -> [
-        substitute_JMLVarUnknown scopeRange old_expr
+      SYT.LoopExitFactValue vn new_expr -> [
+        substitute_JMLVarUnknown (scopeRange,vn) old_expr
         $ symExprToExpr2 new_expr]
-      SYT.LoopExitFactRange _ expr1 expr2 -> map
-        (substitute_JMLVarUnknown scopeRange old_expr . symExprToExpr2)
+      SYT.LoopExitFactRange vn expr1 expr2 -> map
+        (substitute_JMLVarUnknown (scopeRange,vn) old_expr . symExprToExpr2)
         [expr1,expr2]
   ----------
   get_fact :: String -> Maybe SYT.LoopExitFact
@@ -537,10 +543,15 @@ processJMLVarUnknown_via_loopExitFacts scopeRange
   fun4 :: ClauseValue -> JMLMonad [ClauseValue]
   fun4 clauseValue@(VarAssignment (t,vn,expr)) = do
     let loc = "JML.Internal.Internal.processJMLVarUnknown_via_loopExitFacts.fun4"
+        logContents = [("clauseValue",show clauseValue)]
+    constructLog loc "processJMLVarUnknown_via_loopExitFacts.fun4" logContents
     case get_fact vn of
-      Nothing -> return [clauseValue]
+      Nothing -> let
+        toReturn = [clauseValue]
+        in (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
       Just fact -> do
-        constructLog loc "fact found" [("clauseValue",show clauseValue),("fact",show fact)]
+        constructLog loc "fact found" $ logContents ++ [
+          ("fact",show fact),("expr",show expr)]
         incrementLogDepth
         res <- case studyFact fact expr of
           ---
@@ -578,7 +589,7 @@ processJMLVarUnknown_via_loopExitFacts scopeRange
                     ("newVal2",show newVal2)]
                   return [newVal1,newVal2]
         decrementLogDepth
-        return res
+        (tellNextLog $ Log.Return loc (show res)) $> res
 
 emptyNormalBehavior :: Behavior
 emptyNormalBehavior = NormalBehavior {
@@ -1054,15 +1065,18 @@ addBehavior sy er = do
         jmlState <- get
         symExec <- getSymbolicExecution
         let expr = symExprToExpr jmlState symExpr
+        constructLog loc "inferring JMLResult" [("expr",show expr)]
         let jmlResults = case expr of
               -- an unknown value may be known with help of implications
               -- so far, implications are the child of `ER_LoopSummary`
               JMLVarUnknown _ _ vn1 _ -> let
                 implications = concat [implications
                   | Requires (Nothing,Nothing) vals <- jmlStack jmlState
-                  , let implications = [JMLResult $ convertImplication val
+                  , let implications = [JMLResult converting
                           | val@(Implication _ (VarAssignment (_,vn2,_))) <- vals
                           , vn1 == vn2
+                          , let converting = case convertImplication val of
+                                  JMLVar _ _ `JMLEquals` expr -> expr
                           ]
                   ] in
                 case implications of

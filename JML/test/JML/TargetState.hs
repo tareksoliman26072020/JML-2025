@@ -5612,8 +5612,8 @@ quickSortCall3 = Map.fromList [
 -----------------------------
 -----------------------------
 
-{-
-Method {
+idByLoop :: Method
+idByLoop = Method {
   name = "idByLoop",
   jmlSpecifications = [
     LoopSpecification $ LoopInvariants {
@@ -5621,7 +5621,7 @@ Method {
       loopClauses = [
         CounterBoundsTemplate (JMLInt 0) "i" (JMLVar Int_Type "n"),
         LoopFrameTemplate ["i"],
-        DecreasesTemplate $ JMLBin (JMLVar Int_Type "n") Sub (JMLVar Int_Type "i")
+        DecreasesTemplate (JMLBin (JMLVar Int_Type "n") Sub (JMLVar Int_Type "i"))
       ]
     },
     MethodSpecification $ NormalBehavior {
@@ -5629,41 +5629,19 @@ Method {
       requires = Nothing,
       assignable = [],
       vars = [
-        JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n") `JMLImplies` JMLBin (JMLVar Int_Type "i") Eq (JMLVar Int_Type "n"),
-        JMLBin (JMLInt 0) Ge (JMLVar Int_Type "n") `JMLImplies` JMLInt 0
+        JMLVar Int_Type "i"
+          `JMLEquals`
+            (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n") `JMLImplies` JMLVar Int_Type "n"),
+        JMLVar Int_Type "i"
+          `JMLEquals`
+            (JMLBin (JMLInt 0) Ge (JMLVar Int_Type "n") `JMLImplies` JMLInt 0)
       ],
       hasSideEffect = False,
       ensures = [
-        JMLResult $ JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n") `JMLImplies` JMLBin (JMLVar Int_Type "i") Eq (JMLVar Int_Type "n"),
+        JMLResult $ JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n") `JMLImplies` JMLVar Int_Type "n",
         JMLResult $ JMLBin (JMLInt 0) Ge (JMLVar Int_Type "n") `JMLImplies` JMLInt 0
       ]
     }
   ]
 }
- -}
-idByLoop :: Method
-idByLoop = Method {
-  name = "idByLoop",
-  jmlSpecifications = [
-    LoopSpecification $ LoopInvariants
-      (SR {branchStart = 2, branchEnd = 4})
-      [CounterBoundsTemplate (JMLInt 0) "i" (JMLVar Int_Type "n"),
-       LoopFrameTemplate ["i"],
-       DecreasesTemplate (JMLBin (JMLVar Int_Type "n") Sub (JMLVar Int_Type "i"))
-      ],
-     MethodSpecification $ NormalBehavior {
-      behaviorScopeRange = Nothing,
-      requires = Nothing,
-      assignable = [],
-      vars = [
-        JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n") `JMLImplies` JMLBin (JMLVar Int_Type "i") Eq (JMLVar Int_Type "n"),
-        JMLBin (JMLInt 0) Ge (JMLVar Int_Type "n") `JMLImplies` JMLInt 0
-      ],
-      hasSideEffect = False,
-      ensures = [
-        JMLResult $ JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n") `JMLImplies` JMLBin (JMLVar Int_Type "i") Eq (JMLVar Int_Type "n"),
-        JMLResult $ JMLBin (JMLInt 0) Ge (JMLVar Int_Type "n") `JMLImplies` JMLInt 0
-      ]
-    }
-  ]
-}
+

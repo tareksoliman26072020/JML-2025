@@ -58,13 +58,42 @@ loopExitFacts = [LoopExitFactValue (SBin (SymVar Int "i") Eq (SymVar Int "n"))]
 */
 //////////////////////////////
 
-//@ maintaining 0 <= i && i <= n;
-//@ loop_assigns i;
-//@ decreases n - i;
-public static int idByLoop(int n) {
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == (0 < n ==> n);
+  @   ensures \result == (0 >= n ==> 0);
+  @*/
+int idByLoop (int n) {
+  int i = 0;
+  //@ maintaining 0 <= i && i <= n;
+  //@ loop_assigns i;
+  //@ decreases n - i;
+  while(i<n) {
+    i++;
+  }
+  return i;
+}
+
+//////////////////////////////
+
+//TODO
+/*@ normal_behavior
+  @   assignable \nothing;
+  @   ensures 0 <= \result;
+  @   ensures \result == (0 < n ==> n + 2);
+  @   ensures \result == (0 >= n ==> 0);
+  @*/
+public static int idByLoopStride3(int n) {
     int i = 0;
+    //@ maintaining 0 <= i && i <= n + 2;
+    //@ loop_assigns i;
+    //@ decreases n - i;
     while (i < n) {
-        i++;
+        i += 3;
     }
+
     return i;
 }
+
+//////////////////////////////

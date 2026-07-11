@@ -7004,6 +7004,19 @@ public static int idByLoop(int n) {
 
 ////////////////////////////////////////
 
+//TODO
+public static int idByLoopStride3(int n) {
+    int i = 0;
+
+    while (i < n) {
+        i += 3;
+    }
+
+    return i;
+}
+
+////////////////////////////////////////
+
 /*
 public static int rest(int a, int b) {
   while(a > 0) {

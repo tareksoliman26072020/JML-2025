@@ -310,7 +310,7 @@ getLoopBoundStabilityFacts (forBody_forStep_path,orig_env,new_env) loopCounterBo
   let toReturn :: [(SymExpr,SymExprDevelopmentTrajectory)]
       toReturn = concat [res
         | expr <- exprs_2_study
-        , if | or $ map (\f -> f expr) [isSymVar,isSObjAcc] -> True
+        , if | any (\f -> f expr) [isSymVar,isSObjAcc] -> True
              | otherwise -> error $ constructErrorMsg loc "TODO1"
                  $ logContents
                  ++ [("exprs_2_study",show exprs_2_study),("expr",show expr)]
@@ -698,9 +698,7 @@ getLoopExitFacts loopGuards loopFrameTargetsDevelopmentTrajectory = do
         , let vns = getVarNames3 loopGuard
         , let finding = [tu | tu@(vn,_) <- loopFrameTargetsDevelopmentTrajectory, vn `elem` vns]
         , let res = case finding of
-                [(vn,trajectory)] -> let
-                  isolate_vn = studyLoopGuard
-                  in (vn,loopGuard,trajectory)
+                [(vn,trajectory)] -> (vn,loopGuard,trajectory)
                 -- if there is an entry in loopFrameTargetsDevelopmentTrajectory
                 -- which matches with multiple loop guards, then:
                 _ -> error $ constructErrorMsg loc "TODO1" $ logContents ++ [
