@@ -1,3 +1,5 @@
+The symbolic loop analysis models Java integral arithmetic as unbounded mathematical integer arithmetic and does not generate overflow obligations.
+
 # Loop-invariant missions report for `to-be-tested-3.java`
 
 This report repeats Missions 1–5 for `to-be-tested-3.java`.

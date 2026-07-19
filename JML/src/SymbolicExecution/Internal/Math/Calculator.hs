@@ -2,7 +2,7 @@
 -- a calculator == linear solver == linear normalizer (linear normalization)
 module SymbolicExecution.Internal.Math.Calculator (
   numericCalculator, booleanCalculator, objAccCalculator, stringCalculator, funCallCalculator,
-  calculator, whichCalculator, whichCalculator2, substitute, symExprCompare, isSymExprGreaterThan, symExprNextStep
+  calculator, whichCalculator, whichCalculator2, substitute, symExprCompare, isSymExprGreaterThan
 ) where
 
 import SymbolicExecution.Types
@@ -1055,28 +1055,3 @@ isSymExprGreaterThan expr1 expr2 = expr1 `symExprCompare` expr2 == GT
 
 -----------
 
-symExprNextStep :: String -> SymExpr -> SymExprDevelopmentTrajectory -> Maybe LoopExitFact
-symExprNextStep vn guard trajectory = let
-  loc = "SymbolicExecution.Internal.Math.symExprNextStep"
-  logContents = [
-     ("vn",vn)
-    ,("guard",show guard)
-    ,("trajectory",show trajectory)] in
-  case (trajectory,guard) of
-    (Increasing step,SBin expr1@(SymVar _ vn2) op expr2) -> let
-      step_type = toSymType2 step in if
-      | vn == vn2 && isTypeNumeric step_type -> case op of
-        Lt -> let
-          left = SBin expr1 Eq expr2
-          right = numericCalculator $ SBin guard Add $ SBin step Sub (cast step_type $ SymNum 1)
-          in if | isOne step -> Just $ LoopExitFactValue vn left
-                | otherwise  -> Just $ LoopExitFactRange vn left right
-        Le -> let
-          left = SBin guard Add (cast step_type $ SymNum 1)
-          right = numericCalculator $ SBin guard Add step
-          in if | isOne step -> Just $ LoopExitFactValue vn left
-                | otherwise  -> Just $ LoopExitFactRange vn left right
-        _ -> error $ constructErrorMsg loc "TODO1" logContents
-        
-      | otherwise -> error $ constructErrorMsg loc "TODO2" logContents
-    _ -> error $ constructErrorMsg loc "TODO3" logContents

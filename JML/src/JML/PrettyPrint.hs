@@ -123,6 +123,8 @@ ppExpr expr = case expr of
   JMLNull _ -> "null"
 --JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n") `JMLImplies` JMLVar Int_Type "i"
   expr1 `JMLImplies` expr2 -> printf "(%s ==> %s)" (ppExpr expr1) (ppExpr expr2)
+  JMLRange vn from to -> printf
+    "%s <= %s <= %s" (ppExpr from) vn (ppExpr to)
   _ -> error $ "JML.PrettyPrint.ppExpr ==> TODO2: " ++ show expr
 
 ppOp :: Op -> String
@@ -156,6 +158,10 @@ ppLoopInvariantTemplate template = let
       "maintaining %s <= %s && %s <= %s"
       (ppExpr fromExpr) counterName
       counterName (ppExpr toExpr)
+  --StridedCounterTemplate
+    StridedCounterTemplate counter stride residue -> printf
+      "maintaining %s %% %s == %s"
+      counter (ppExpr stride) (ppExpr residue)
   --LoopFrameTemplate [String]
     LoopFrameTemplate vars -> "loop_assigns " ++ (intercalate ", " vars)
   --DecreasesTemplate Expr

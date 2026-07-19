@@ -144,7 +144,8 @@ allTargets = [
   ("quickSort", quickSort), ("quickSortCall1", quickSortCall1)
                           , ("quickSortCall2", quickSortCall2)
                           , ("quickSortCall3", quickSortCall3)-}
-  ("idByLoop", idByLoop)
+  ("idByLoop", idByLoop),
+  ("idByLoopStride3", idByLoopStride3)
   ]
 
 -----------------------------
@@ -5645,3 +5646,48 @@ idByLoop = Method {
   ]
 }
 
+-----------------------------
+-----------------------------
+-----------------------------
+
+idByLoopStride3 :: Method
+idByLoopStride3 = Method {
+  name = "idByLoopStride3",
+  jmlSpecifications = [
+    LoopSpecification $ LoopInvariants {
+      loopScopeRange = SR {branchStart = 2, branchEnd = 4},
+      loopClauses = [
+        CounterBoundsTemplate (JMLInt 0) "i" (JMLBin (JMLVar Int_Type "n") Add (JMLInt 2)),
+        StridedCounterTemplate "i" (JMLInt 3) (JMLInt 0),
+        LoopFrameTemplate ["i"],
+        DecreasesTemplate $ JMLBin (JMLBin (JMLVar Int_Type "n") Add (JMLInt 2)) Sub (JMLVar Int_Type "i")
+      ]
+    },
+    MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
+      requires = Nothing,
+      assignable = [],
+      vars = [
+        JMLVar Int_Type "i"
+          `JMLEquals`
+            (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n")
+               `JMLImplies`
+                 JMLRange "i" (JMLVar Int_Type "n") (JMLBin (JMLVar Int_Type "n") Add (JMLInt 2))),
+        JMLVar Int_Type "i"
+          `JMLEquals`
+            (JMLBin (JMLInt 0) Ge (JMLVar Int_Type "n") `JMLImplies` JMLInt 0)
+      ],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult $
+          JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n")
+            `JMLImplies`
+              JMLRange "i" (JMLVar Int_Type "n") (JMLBin (JMLVar Int_Type "n") Add (JMLInt 2)),
+        JMLResult $
+          JMLBin (JMLInt 0) Ge (JMLVar Int_Type "n")
+            `JMLImplies`
+              JMLInt 0
+      ]
+    }
+  ]
+}

@@ -372,3 +372,11 @@ cfg = CFGT.CFG {
 }
 
 ppMethod = putStrLn $ JML.PP.pp_CFG_JML cfg $ JMLT.jmlSpecifications method
+
+----------
+
+f = run_isolate
+  $ isolate "i" 
+  $ SYT.SBin (SYT.SBin (SYT.SymVar SYT.Int "i") SYT.Lt (SYT.SymVar SYT.Int "n"))
+             SYT.Add
+             (SYT.SymInt 2)

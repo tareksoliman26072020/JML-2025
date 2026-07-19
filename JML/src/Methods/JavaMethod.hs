@@ -172,7 +172,8 @@ javaMethodInputs = [
                            , ("quickSortCall2",2,quickSortCall2)
                            , ("quickSortCall3",2,quickSortCall3),
 ----------
-  ("idByLoop",3,idByLoop)
+  ("idByLoop",3,idByLoop),
+  ("idByLoopStride3",3,idByLoopStride3)
   ]
 
 boo21 = "public int boo21(){\n\
@@ -2055,3 +2056,11 @@ idByLoop = "public static int idByLoop(int n) {\n\
            \  }\n\
            \  return i;\n\
            \}"
+
+idByLoopStride3 = "int idByLoopStride3 (int n) {\n\
+                  \  int i = 0;\n\
+                  \  while(i<n) {\n\
+                  \    i+=3;\n\
+                  \  }\n\
+                  \  return i;\n\
+                  \}"

@@ -341,4 +341,8 @@ data LoopSummaryTag =
  | LoopReadOnlyVars
  | LoopFrameTargets
  | LoopDecreasesCandidate
+ | LoopInitialGuardCondition
+ | LoopSkipCondition
+ | LoopExitConditions
+ | LoopExitFacts
  deriving (Show,Eq)

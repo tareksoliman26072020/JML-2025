@@ -24,5 +24,5 @@ idByLoop = [LoopSummary {
   loopCountersBounds = [(SymInt 0,"i",SymVar Int "n")],
   loopBoundStabilityFacts = [(SymVar Int "n",ReadOnly)],
   loopDecreasesCandidate = [SBin (SymVar Int "n") Sub (SymVar Int "i")],
-  loopExitFacts = [LoopExitFactValue "i" (SBin (SymVar Int "i") Eq (SymVar Int "n"))]
+  loopExitFacts = [LoopExitFactValue "i" (SymVar Int "n")]
 }]

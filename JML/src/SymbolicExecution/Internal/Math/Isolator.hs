@@ -752,9 +752,9 @@ makeMostLeft varName (expr1,op,expr2) = do
   whichSide0 <- whichSide varName (expr1,expr2)
   decrementLogDepth
   toReturn <- case whichSide0 of
-    LeftSide -> return $ SBin expr1 op expr2 
+    LeftSide -> return $ SBin expr1 op expr2
     RightSide -> do
-      let moving = buildSumTerm expr2 (op,Add) expr1--SBin expr2 op expr1
+      let moving = buildSumTerm expr2 (op,Add) expr1
       constructLog innerLoc "moving right to left"
         $ logContentsList
         ++ [("result",show moving)]

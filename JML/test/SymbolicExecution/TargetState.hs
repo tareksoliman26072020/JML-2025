@@ -169,7 +169,8 @@ allTargets = [
                           , ("quickSortCall2", quickSortCall2)
                           , ("quickSortCall3", quickSortCall3),
 ----------
-  ("idByLoop", idByLoop)
+  ("idByLoop", idByLoop),
+  ("idByLoopStride3", idByLoopStride3)
   ]
 
 -----------------------------
@@ -4951,7 +4952,7 @@ idByLoop = Map.fromList [
                loopCountersBounds = [(SymInt 0,"i",SymVar SYT.Int "n")],
                loopBoundStabilityFacts = [(SymVar SYT.Int "n",ReadOnly)],
                loopDecreasesCandidate = [SBin (SymVar SYT.Int "n") SYT.Sub (SymVar SYT.Int "i")],
-               loopExitFacts = [LoopExitFactValue "i" (SBin (SymVar SYT.Int "i") SYT.Eq (SymVar SYT.Int "n"))]}))
+               loopExitFacts = [LoopExitFactValue "i" (SymVar SYT.Int "n")]}))
            [(CounterPattern CountingUp,
             [LoopCounters
             ,LoopFrameTargetsDevelopmentTrajectory
@@ -4972,3 +4973,28 @@ idByLoop = Map.fromList [
     (Return,SymUnknown ("i",SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 4})],3)])
   ]
 
+-----------------------------
+-----------------------------
+-----------------------------
+
+idByLoopStride3 :: SymStateEnv
+idByLoopStride3 = Map.fromList [
+  (MethodHandle,SMethodHandle SYT.Int "idByLoopStride3"),
+  (GlobalVars,SGlobalVars []),
+  (FormalParms,SFormalParms ["n"]),
+  (VarBindings,SVarBindings (Map.fromList [
+    ("i",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})])),
+  (VarAssignments,SVarAssignments [
+    ("i",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),
+    ("i",(SymInt 3,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 4}}))]),
+  (VarName "i",SymUnknown ("i",SymInt 0) [
+    ([(For,SR {branchStart = 2, branchEnd = 4})],3)]),
+  (VarName "n",SymVar SYT.Int "n"),
+  (ScopeRange (SR {branchStart = 2, branchEnd = 4}),
+   SLoop Nothing
+         (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Less, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "n"}}))
+         [Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Plus, expr2 = NumberLiteral 3.0}}}), parent = 2}]
+         (Just (LoopSummary {loopSyntax = WhileSyntax, loopReadOnlyVars = ["n"], loopFrameTargets = ["i"], loopInitFacts = [("i",SymInt 0)], loopGuards = [SBin (SymVar SYT.Int "i") SYT.Lt (SymVar SYT.Int "n")], loopInitialGuardCondition = Just (SBin (SymInt 0) SYT.Lt (SymVar SYT.Int "n")), loopSkipCondition = Just (SBin (SymInt 0) SYT.Ge (SymVar SYT.Int "n")), loopExitConditions = [SBin (SymVar SYT.Int "i") SYT.Ge (SymVar SYT.Int "n")], loopCounters = ["i"], loopAssignments = ["i"], loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 3))], loopCountersBounds = [(SymInt 0,"i",SBin (SymVar SYT.Int "n") SYT.Add (SymInt 2))], loopBoundStabilityFacts = [(SymVar SYT.Int "n",ReadOnly),(SBin (SymVar SYT.Int "n") SYT.Add (SymInt 2),ReadOnly)], loopDecreasesCandidate = [SBin (SBin (SymVar SYT.Int "n") SYT.Add (SymInt 2)) SYT.Sub (SymVar SYT.Int "i")], loopExitFacts = [LoopExitFactRange "i" (SymVar SYT.Int "n") (SBin (SymVar SYT.Int "n") SYT.Add (SymInt 2))]}))
+         [(CounterPattern StridedCounting,[LoopCounters,LoopFrameTargetsDevelopmentTrajectory,LoopInitFacts,LoopGuards,LoopCountersBounds,LoopAssignments,LoopFrameTargets,LoopDecreasesCandidate]),(BoundPattern StableBound,[LoopCounters,LoopCountersBounds,LoopGuards,LoopBoundStabilityFacts,LoopReadOnlyVars])]),
+  (Return,SymUnknown ("i",SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 4})],3)])
+  ]

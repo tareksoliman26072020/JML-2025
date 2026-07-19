@@ -249,9 +249,6 @@ isSObjAcc symExpr = let
     SObjAcc _ -> True
     _ -> False
 
-
-
-
 -- `isSymVar2` returns True
 -- 1) if the SymExpr is SymVar
 -- 2) and if the given SymType matches the SymType of that SymVar
@@ -284,6 +281,7 @@ hasSymVar = \case
   SymString _ -> False
   SArrayIndexAccess _ _ symExpr -> hasSymVar symExpr
   SymUnknown (_,symExpr) _ -> hasSymVar symExpr
+  SObjAcc _ -> False
   symExpr -> error $ "SymbolicExecution.Internal.hasSymVar: " ++ show symExpr
 
 isSymFun :: SymExpr -> Bool
@@ -1423,8 +1421,9 @@ isLoopCounterDecreasing counterName loopSummary = let
 
 isReadOnlyBoundViaStabilityFacts :: SymExpr -> LoopSummary -> Bool
 isReadOnlyBoundViaStabilityFacts bound summary =
-  any (\(expr, trajectory) -> expr == bound && trajectory == ReadOnly)
-      (loopBoundStabilityFacts summary)
+  any (\tu -> p1 tu)
+      (loopBoundStabilityFacts summary) where
+  p1 (expr,trajectory) = expr == bound && trajectory == ReadOnly
 
 isReadOnlyBoundViaReadOnlyVars :: SymExpr -> LoopSummary -> Bool
 isReadOnlyBoundViaReadOnlyVars bound summary =
@@ -1450,7 +1449,7 @@ loopDecreasesCandidatesHasCounter counterName summary =
 
 isOne :: SymExpr -> Bool
 isOne symExpr = let
-  loc = "SymbolicExecution.Internal.LoopPattern.isOne" in
+  loc = "SymbolicExecution.Internal.isOne" in
   case symExpr of
     SymInt 1 -> True
     SymInt _ -> False
@@ -1496,6 +1495,11 @@ isLoopDecreasesCandidateTag = \case
   LoopDecreasesCandidate -> True
   _ -> False
 
+isLoopInitFactsTag :: LoopSummaryTag -> Bool
+isLoopInitFactsTag = \case
+  LoopInitFacts -> True
+  _ -> False
+
 isCounterPattern :: LoopPattern -> Bool
 isCounterPattern = \case
   CounterPattern _ -> True
@@ -1505,3 +1509,12 @@ isBoundPattern :: LoopPattern -> Bool
 isBoundPattern = \case
   BoundPattern _ -> True
   _ -> False
+
+filterLoopPatterns ::
+  (LoopPattern -> Bool) -> (LoopSummaryTag -> Bool) ->
+  [(LoopPattern,[LoopSummaryTag])] -> [(LoopPattern,[LoopSummaryTag])]
+filterLoopPatterns loopPatternPredicate templateTagPredicate loopPatternsInfos = [(loopPattern,relevantTags)
+      | (loopPattern,tags) <- loopPatternsInfos
+      , loopPatternPredicate loopPattern
+      , let relevantTags = filter templateTagPredicate tags
+      ]

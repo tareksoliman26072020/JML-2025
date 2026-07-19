@@ -301,6 +301,10 @@ convertImplication val = let
       left = JMLVar (toJMLType2 implicationVal) vn
       right = cond `JMLImplies` implicationVal
       in left `JMLEquals` right
+    Implication cond (VarInRange (_,vn,(from,to))) -> let
+      left = JMLVar (toJMLType2 from) vn
+      right = cond `JMLImplies` JMLRange vn from to
+      in left `JMLEquals` right
     _ -> error $ constructErrorMsg loc "TODO" [("val",show val)]
 
 -- Bin (Var "i") Gt (Int 10)
@@ -393,14 +397,15 @@ hasJMLVarUnknown0 expr = let
 substitute_JMLVarUnknown :: (CFGT.ScopeRange,String) -> Expr -> Expr -> Expr
 substitute_JMLVarUnknown (sr,vn) old_expr new_expr = let
   loc = "JML.Internal.Internal.substitute_JMLVarUnknown"
-  logContents = [("old_expr",show old_expr),("new_expr",show new_expr)] in
+  logContents = [
+    ("old_expr",show old_expr),
+    ("new_expr",show new_expr),
+    ("sr",show sr),
+    ("vn",vn)] in
   case old_expr of
     JMLVarUnknown scopeRanges _ _ _
-      | sr `elem` scopeRanges -> case new_expr of
-          JMLBin (JMLVar _ vn2) Eq new_expr2
-            | vn == vn2 -> new_expr2
-            | otherwise -> error $ constructErrorMsg loc "TODO1" logContents
-      | otherwise -> old_expr
+      | sr `elem` scopeRanges -> new_expr
+      | otherwise -> error $ constructErrorMsg loc "TODO1" logContents
     _ -> error $ constructErrorMsg loc "TODO2" logContents
 
 -- is JMLVar concrete?
@@ -487,7 +492,12 @@ processJMLVarUnknown_via_loopExitFacts :: CFGT.ScopeRange ->
 processJMLVarUnknown_via_loopExitFacts scopeRange
   loopInitFacts loopInitialGuardCondition loopSkipCondition loopExitFacts = do
   let loc = "JML.Internal.Internal.processJMLVarUnknown_via_loopExitFacts"
-      logContents = [("loopExitFacts",show loopExitFacts)]
+      logContents = [
+        ("scopeRange",show scopeRange),
+        ("loopInitFacts",show loopInitFacts),
+        ("loopInitialGuardCondition",show loopInitialGuardCondition),
+        ("loopSkipCondition",show loopSkipCondition),
+        ("loopExitFacts",show loopExitFacts)]
   constructLog loc "processJMLVarUnknown_via_loopExitFacts" logContents
   clauses <- jmlStack <$> get
   newClauses <- forM clauses $ \(Requires tu vals) -> do
@@ -503,7 +513,7 @@ processJMLVarUnknown_via_loopExitFacts scopeRange
         Nothing -> return [clauseValue]
         Just fact -> err loc expr fact 3
       Assignable _ -> return [clauseValue]
-      VarAssignment _ -> fun4 clauseValue
+      VarAssignment _ -> processVarAssignment clauseValue
       HasSideEffect -> return [clauseValue]
     return $ Requires tu (concat newVals)
   tellingReportTheStack loc "<new clauses>" newClauses
@@ -540,11 +550,11 @@ processJMLVarUnknown_via_loopExitFacts scopeRange
   get_fact :: String -> Maybe SYT.LoopExitFact
   get_fact = SY.Internal.getFactAbout loopExitFacts
   ----------
-  fun4 :: ClauseValue -> JMLMonad [ClauseValue]
-  fun4 clauseValue@(VarAssignment (t,vn,expr)) = do
-    let loc = "JML.Internal.Internal.processJMLVarUnknown_via_loopExitFacts.fun4"
+  processVarAssignment :: ClauseValue -> JMLMonad [ClauseValue]
+  processVarAssignment clauseValue@(VarAssignment (t,vn,expr)) = do
+    let loc = "JML.Internal.Internal.processJMLVarUnknown_via_loopExitFacts.processVarAssignment"
         logContents = [("clauseValue",show clauseValue)]
-    constructLog loc "processJMLVarUnknown_via_loopExitFacts.fun4" logContents
+    constructLog loc "processVarAssignment" logContents
     case get_fact vn of
       Nothing -> let
         toReturn = [clauseValue]
@@ -1072,12 +1082,19 @@ addBehavior sy er = do
               JMLVarUnknown _ _ vn1 _ -> let
                 implications = concat [implications
                   | Requires (Nothing,Nothing) vals <- jmlStack jmlState
-                  , let implications = [JMLResult converting
-                          | val@(Implication _ (VarAssignment (_,vn2,_))) <- vals
-                          , vn1 == vn2
-                          , let converting = case convertImplication val of
-                                  JMLVar _ _ `JMLEquals` expr -> expr
-                          ]
+                  , let implications = flip mapMaybe vals $ \val -> case val of
+                          Implication _ (VarAssignment (_,vn2,_))
+                            | vn1 == vn2 -> case convertImplication val of
+                                JMLVar _ _ `JMLEquals` expr -> Just $ JMLResult expr
+                            | otherwise -> Nothing
+                          {-
+Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
+            (VarInRange (Int_Type,"i",(JMLVar Int_Type "n",JMLBin (JMLVar Int_Type "n") Add (JMLInt 2))))
+                           -}
+                          Implication _ (VarInRange (_,vn2,(from,to)))
+                            | vn1 == vn2 -> case convertImplication val of
+                                JMLVar _ _ `JMLEquals` expr -> Just $ JMLResult expr
+                            | otherwise -> Nothing
                   ] in
                 case implications of
                   [] -> [JMLResult expr]
@@ -1709,6 +1726,23 @@ isCounterBoundsTemplateTag :: SYT.LoopSummaryTag -> Bool
 isCounterBoundsTemplateTag loopSummaryTag = let
   loc = "JML.Internal.Internal.isCounterBoundsTemplateTag"
   in SY.Internal.isLoopCountersBoundsTag loopSummaryTag
+
+------------------------------------
+-- Helpers for StridedCounterTemplate
+------------------------------------
+
+isStridedCounterTemplatePattern :: SYT.LoopPattern -> Bool
+isStridedCounterTemplatePattern loopPattern = case loopPattern of
+  SYT.CounterPattern SYT.StridedCounting -> True
+  _ -> False
+
+isStridedCounterTemplateTag :: SYT.LoopSummaryTag -> Bool
+isStridedCounterTemplateTag loopSummaryTag = let
+  loc = "JML.Internal.Internal.isStridedCounterTemplateTag"
+  in any (\p -> p loopSummaryTag) [
+       SY.Internal.isLoopFrameTargetsTag,
+       SY.Internal.isLoopInitFactsTag,
+       SY.Internal.isLoopFrameTargetsDevelopmentTrajectoryTag]
 
 --------------------------------
 -- Helpers for LoopFrameTemplate

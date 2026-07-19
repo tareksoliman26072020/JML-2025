@@ -28,7 +28,7 @@ data Expr = JMLVar JMLType String | JMLVarUnknown [CFGT.ScopeRange] JMLType Stri
           | JMLString String | JMLNull JMLType
           | JMLBin Expr Op Expr | JMLNot Expr | JMLOld Expr
           | Expr `JMLEquals` Expr | Expr `JMLNotEquals` Expr | Expr `JMLImplies` Expr
-          | Expr `JMLInRange` (Expr,Expr)
+          | JMLRange String Expr Expr
           | JMLResult Expr | JMLActions [Expr]
           | JMLException JMLType String String
           | JMLObjAcc [String] | JMLArrayIndexAccess JMLType String Expr
@@ -62,6 +62,10 @@ data Behavior =
 
 data LoopInvariantTemplate
   = CounterBoundsTemplate Expr String Expr
+  | StridedCounterTemplate
+      String  -- counter
+      Expr    -- stride
+      Expr    -- residue
   | LoopFrameTemplate [String]
   | DecreasesTemplate Expr
   deriving (Show, Eq)

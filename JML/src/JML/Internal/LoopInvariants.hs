@@ -2,6 +2,7 @@
 module JML.Internal.LoopInvariants where
 
 import Control.Monad.State (get)
+import Control.Monad.Except (throwError)
 import Text.Printf (printf)
 import Data.List
 import Data.Functor (($>))
@@ -13,14 +14,8 @@ import qualified JML.Logs.Log as Log
 
 import qualified CFG.Types as CFGT (ScopeRange)
 
-import qualified SymbolicExecution.Types as SYT (
-  SymbolicExecution, SymbolicExecutionKey, SymStateKey(VarName), SymbolicExecutionValue, 
-  SymExpr(..), SymBinOp(..),
-  LoopSummary(..), LoopPattern(..), LoopSummaryTag(..),
-  CounterPattern(..))
-import qualified SymbolicExecution.Internal.Internal as SY.Internal (
-  getFunName, toSymType2, getVarNameSymType,
-  isLoopCountersTag)
+import qualified SymbolicExecution.Types as SYT
+import qualified SymbolicExecution.Internal.Internal as SY.Internal
 
 globalLoc = "JML.Internal.LoopInvariants"
 
@@ -35,50 +30,51 @@ inferLoopInvariantTemplates loopSummary allLoopPatternsInfos = do
   -- theCounterBoundsTemplates
   ----------------------------
   theCounterBoundsTemplates <- let
-    relevantLoopPatternsInfos = [(loopPattern,relevantTags)
-      | (loopPattern,tags) <- allLoopPatternsInfos
-      , isCounterBoundsTemplatePattern loopPattern
-      , let relevantTags = filter isCounterBoundsTemplateTag tags
-      ] in do
+    relevantLoopPatternsInfos = SY.Internal.filterLoopPatterns
+      isCounterBoundsTemplatePattern isCounterBoundsTemplateTag allLoopPatternsInfos
+    in do
     incrementLogEnumeration
     incrementLogDepth *>
       inferCounterBoundsTemplates loopSummary relevantLoopPatternsInfos
         <* decrementLogDepth
+  -----------------------------
+  -- theStridedCounterTemplates
+  -----------------------------
+  theStridedCounterTemplates <- let
+    relevantLoopPatternsInfos = SY.Internal.filterLoopPatterns
+      isStridedCounterTemplatePattern isStridedCounterTemplateTag allLoopPatternsInfos
+    in do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      inferStridedCounterTemplates loopSummary relevantLoopPatternsInfos
+        <* decrementLogDepth
   ------------------------
   -- theLoopFrameTemplates
   ------------------------
-  theLoopFrameTemplates <- let
-    relevantLoopPatternsInfos = [(loopPattern,relevantTags)
-      | (loopPattern,tags) <- allLoopPatternsInfos
-      , isLoopFrameTemplatePattern loopPattern
-      , let relevantTags = filter isLoopFrameTemplateTag tags
-      ] in do
+  theLoopFrameTemplates <- do
     incrementLogEnumeration
     incrementLogDepth *>
-      inferLoopFrameTemplates loopSummary relevantLoopPatternsInfos
+      inferLoopFrameTemplates loopSummary
         <* decrementLogDepth
   ------------------------
   -- theDecreasesTemplates
   ------------------------
-  theDecreasesTemplates <- let
-    relevantLoopPatternsInfos = [(loopPattern,relevantTags)
-      | (loopPattern,tags) <- allLoopPatternsInfos
-      , isDecreasesTemplatePattern loopPattern
-      , let relevantTags = filter isDecreasesTemplateTag tags
-      ] in do
+  theDecreasesTemplates <- do
     incrementLogEnumeration
     incrementLogDepth *>
-      inferDecreasesTemplates loopSummary relevantLoopPatternsInfos
+      inferDecreasesTemplates loopSummary
         <* decrementLogDepth
   -----------
   -- toReturn
   -----------
   let toReturn =
         theCounterBoundsTemplates ++
+        theStridedCounterTemplates ++
         theLoopFrameTemplates ++
         theDecreasesTemplates
   constructLog loc "Summary" $ logContents ++
     [("theCounterBoundsTemplates",show theCounterBoundsTemplates)
+    ,("theStridedCounterTemplates",show theStridedCounterTemplates)
     ,("theLoopFrameTemplates",show theLoopFrameTemplates)
     ,("theDecreasesTemplates",show theDecreasesTemplates)]
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
@@ -116,39 +112,52 @@ inferCounterBoundsTemplates loopSummary loopPatternsInfos = do
           ++ [("checkPatterns",show checkPatterns)]
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
 
--- CounterPattern ==> LoopFrameTargets ==> LoopFrameTemplate
-inferLoopFrameTemplates :: SYT.LoopSummary -> [(SYT.LoopPattern,[SYT.LoopSummaryTag])] -> JMLMonad [LoopInvariantTemplate]
-inferLoopFrameTemplates loopSummary loopPatternsInfos = do
-  let loc = globalLoc ++ ".inferLoopFrameTemplates"
+-- CounterPattern StridedCounting ==> [LoopFrameTargets, LoopInitFacts, LoopFrameTargetsDevelopmentTrajectory]
+inferStridedCounterTemplates :: SYT.LoopSummary -> [(SYT.LoopPattern,[SYT.LoopSummaryTag])] -> JMLMonad [LoopInvariantTemplate]
+inferStridedCounterTemplates loopSummary loopPatternsInfos = do
+  let loc = globalLoc ++ ".inferStridedCounterTemplates"
       logContents = [("loopPatternsInfos",show loopPatternsInfos)]
-  constructLog loc "inferLoopFrameTemplates" logContents
-  let checkPatterns = [tu
-        | tu@(SYT.CounterPattern _,[SYT.LoopFrameTargets]) <- loopPatternsInfos
+  constructLog loc "inferStridedCounterTemplates" logContents
+  let relevantVarTrajectories :: [(String,SYT.SymExprDevelopmentTrajectory)]
+      relevantVarTrajectories = flip filter (SYT.loopFrameTargetsDevelopmentTrajectory loopSummary)
+        $ \(_,trajectory) -> case trajectory of
+          SYT.Increasing step -> not (SY.Internal.isOne step)
+          SYT.Decreasing step -> not (SY.Internal.isOne step)
+          _ -> False
+      relevantLoopInitFacts :: [(String,SYT.SymbolicExecutionValue)]
+      relevantLoopInitFacts = flip filter (SYT.loopInitFacts loopSummary)
+        $ \(vn,_) -> maybe False (const True) (lookup vn relevantVarTrajectories)
+      toReturn = [ StridedCounterTemplate vn1 stride (symExprToExpr2 initVal)
+        | (vn1,trajectory) <- relevantVarTrajectories
+        , (vn2,initVal) <- relevantLoopInitFacts
+        , vn1 == vn2
+        , let stride = symExprToExpr2 $ case trajectory of
+                SYT.Increasing step -> step
+                SYT.Decreasing step -> step
         ]
-  let toReturn = case checkPatterns of
-        [] -> []
-        [_] -> [LoopFrameTemplate $ SYT.loopFrameTargets loopSummary]
-        _ -> error $ constructErrorMsg loc "won't happen" $ logContents
-          ++ [("checkPatterns",show checkPatterns)]
+  constructLog loc "Summary" [
+    ("relevantVarTrajectories",show relevantVarTrajectories),
+    ("relevantLoopInitFacts",show relevantLoopInitFacts),
+    ("toReturn",show toReturn)]
+  (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
+
+-- CounterPattern ==> LoopFrameTargets ==> LoopFrameTemplate
+inferLoopFrameTemplates :: SYT.LoopSummary -> JMLMonad [LoopInvariantTemplate]
+inferLoopFrameTemplates loopSummary = do
+  let loc = globalLoc ++ ".inferLoopFrameTemplates"
+  constructLog loc "inferLoopFrameTemplates" []
+  let toReturn = [LoopFrameTemplate $ SYT.loopFrameTargets loopSummary]
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
 
 -- CounterPattern ==> LoopDecreasesCandidate ==> DecreasesTemplate
-inferDecreasesTemplates :: SYT.LoopSummary -> [(SYT.LoopPattern,[SYT.LoopSummaryTag])] -> JMLMonad [LoopInvariantTemplate]
-inferDecreasesTemplates loopSummary loopPatternsInfos = do
+inferDecreasesTemplates :: SYT.LoopSummary -> JMLMonad [LoopInvariantTemplate]
+inferDecreasesTemplates loopSummary = do
   let loc = globalLoc ++ ".inferDecreasesTemplates"
-      logContents = [("loopSummary",show loopSummary),("loopPatternsInfos",show loopPatternsInfos)]
-  constructLog loc "inferDecreasesTemplates" logContents
-  let checkPatterns = [tu
-        | tu@(SYT.CounterPattern _,[SYT.LoopDecreasesCandidate]) <- loopPatternsInfos
-        ]
-  let toReturn = case checkPatterns of
-        [] -> []
-        [_] -> [res
+  constructLog loc "inferDecreasesTemplates" []
+  let toReturn = [res
           | candidate <- SYT.loopDecreasesCandidate loopSummary
           , let res = DecreasesTemplate $ symExprToExpr2 candidate
           ]
-        _ -> error $ constructErrorMsg loc "won't happen" $ logContents
-          ++ [("checkPatterns",show checkPatterns)]
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
 
 -----------

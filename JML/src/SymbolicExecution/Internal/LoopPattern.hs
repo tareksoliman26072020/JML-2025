@@ -16,21 +16,21 @@ import Data.List
 import Control.Monad (foldM)
 
 inferLoopPatterns :: LoopSummary -> SymbolicExecutionMonad [(LoopPattern,[LoopSummaryTag])]
-inferLoopPatterns summary = do
+inferLoopPatterns loopSummary = do
   let loc = "SymbolicExecution.Internal.LoopPattern.inferLoopPatterns"
-  constructLog loc "inferLoopPatterns" [("summary",show summary)]
+  constructLog loc "inferLoopPatterns" [("loopSummary",show loopSummary)]
   -- counterPatterns
   counterPatterns <- do
     incrementLogEnumeration
     incrementLogDepth *>
-      inferCounterPatterns summary
+      inferCounterPatterns loopSummary
       <* decrementLogDepth
   constructLog loc "Counter Patterns" [("CounterPatterns",show counterPatterns)]
   -- boundPatterns
   boundPatterns <- do
     incrementLogEnumeration
     incrementLogDepth *>
-      inferBoundPatterns summary
+      inferBoundPatterns loopSummary
       <* decrementLogDepth
   constructLog loc "Bound Patterns" [("BoundPatterns",show boundPatterns)]
   --
@@ -39,31 +39,30 @@ inferLoopPatterns summary = do
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
 
 inferCounterPatterns :: LoopSummary -> SymbolicExecutionMonad [(LoopPattern,[LoopSummaryTag])]
-inferCounterPatterns summary = do
+inferCounterPatterns loopSummary = do
   let loc = "SymbolicExecution.Internal.LoopPattern.inferCounterPatterns"
-      theLoopCounters = loopCounters summary
+      theLoopCounters = loopCounters loopSummary
       logContents = [("loopCounters",show theLoopCounters)]
   tellNextLog $ Log.Location loc
   toReturn <- foldM f [] theLoopCounters
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
-  --concatMap (inferCounterPattern summary) theLoopCounters
   where
   f :: [(LoopPattern,[LoopSummaryTag])] -> String -> SymbolicExecutionMonad [(LoopPattern,[LoopSummaryTag])]
   f acc aLoopCounter = do
     incrementLogEnumeration
     incrementLogDepth
-    maybe_counterPattern <- inferCounterPattern summary aLoopCounter
+    maybe_counterPattern <- inferCounterPattern loopSummary aLoopCounter
     decrementLogDepth
     return $ acc ++ case maybe_counterPattern of
       Just counterPattern -> [counterPattern]
       Nothing -> []
 
 inferCounterPattern :: LoopSummary -> String -> SymbolicExecutionMonad (Maybe (LoopPattern,[LoopSummaryTag]))
-inferCounterPattern summary counterName = do
+inferCounterPattern loopSummary counterName = do
   let loc = "SymbolicExecution.Internal.LoopPattern.inferCounterPattern"
-  let counterTags = counterPatternTags summary counterName
+  let counterTags = counterPatternTags loopSummary counterName
   constructLog loc "inferCounterPattern" [("counterName",counterName),("counterTags",show counterTags)]
-  let toReturn = case lookup counterName (loopFrameTargetsDevelopmentTrajectory summary) of
+  let toReturn = case lookup counterName (loopFrameTargetsDevelopmentTrajectory loopSummary) of
         Just (Increasing step)
           | isOne step -> Just (CounterPattern CountingUp, counterTags)
           | otherwise -> Just (CounterPattern StridedCounting, counterTags)
@@ -82,26 +81,26 @@ inferCounterPattern summary counterName = do
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
 
 inferBoundPatterns :: LoopSummary -> SymbolicExecutionMonad [(LoopPattern,[LoopSummaryTag])]
-inferBoundPatterns summary = do
+inferBoundPatterns loopSummary = do
   let loc = "SymbolicExecution.Internal.LoopPattern.inferBoundPatterns"
   tellNextLog $ Log.Location loc
   -- stableBoundPatterns
   stableBoundPatterns <- do
     incrementLogEnumeration
     incrementLogDepth *>
-      inferStableBoundPatterns summary
+      inferStableBoundPatterns loopSummary
       <* decrementLogDepth
   -- movingBoundPatterns
   movingBoundPatterns <- do
     incrementLogEnumeration
     incrementLogDepth *>
-      inferMovingBoundPatterns summary
+      inferMovingBoundPatterns loopSummary
       <* decrementLogDepth
   -- guardlessBoundPatterns
   guardlessBoundPatterns <- do
     incrementLogEnumeration
     incrementLogDepth *>
-      inferGuardlessBoundPatterns summary
+      inferGuardlessBoundPatterns loopSummary
       <* decrementLogDepth
   let toReturn = stableBoundPatterns ++ movingBoundPatterns ++ guardlessBoundPatterns
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
@@ -113,24 +112,25 @@ inferBoundPatterns summary = do
 -- if bound is stable, and counter „heads“ towards it,
 -- then record the BoundPattern `StableBound`
 inferStableBoundPatterns :: LoopSummary -> SymbolicExecutionMonad [(LoopPattern,[LoopSummaryTag])]
-inferStableBoundPatterns summary = do
+inferStableBoundPatterns loopSummary = do
   let loc = "SymbolicEecution.Internal.LoopPattern.inferStableBoundPatterns"
-      theLoopCountersBounds = loopCountersBounds summary
+      theLoopCountersBounds = loopCountersBounds loopSummary
   constructLog loc "inferStableBoundPatterns"
-    $ [("summary",show summary),("loopCountersBounds",show theLoopCountersBounds)]
+    $ [("loopSummary",show loopSummary)
+      ,("loopCountersBounds",show theLoopCountersBounds)]
   let toReturn = concatMap checkBound theLoopCountersBounds
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
   where
     checkBound :: (SymExpr, String, SymExpr)
                -> [(LoopPattern, [LoopSummaryTag])]
     checkBound (_, counterName, upperBound)
-      | isLoopCounterIncreasing counterName summary
-        && isReadOnlyBoundViaStabilityFacts upperBound summary
-        = [(BoundPattern StableBound, stableBoundTags summary upperBound)]
+      | isLoopCounterIncreasing counterName loopSummary
+        && isReadOnlyBoundViaStabilityFacts upperBound loopSummary
+        = [(BoundPattern StableBound, stableBoundTags loopSummary upperBound)]
     checkBound (lowerBound, counterName, _)
-      | isLoopCounterDecreasing counterName summary
-        && isReadOnlyBoundViaStabilityFacts lowerBound summary
-        = [(BoundPattern StableBound, stableBoundTags summary lowerBound)]
+      | isLoopCounterDecreasing counterName loopSummary
+        && isReadOnlyBoundViaStabilityFacts lowerBound loopSummary
+        = [(BoundPattern StableBound, stableBoundTags loopSummary lowerBound)]
     checkBound _ = []
 
 inferMovingBoundPatterns :: LoopSummary -> SymbolicExecutionMonad [(LoopPattern,[LoopSummaryTag])]
@@ -167,48 +167,55 @@ mergePatternTags = foldl' f [] where
 
 -- tags are needed to recognize the pattern, some are needed to instantiate the template, and some are mainly useful for validation/debugging/provenance.
 counterPatternTags :: LoopSummary -> String -> [LoopSummaryTag]
-counterPatternTags summary counterName =
+counterPatternTags loopSummary counterName =
   concat
     [ [LoopCounters]
     , [LoopFrameTargetsDevelopmentTrajectory]
 
-    , if initFactsHasCounter counterName summary
+    , if initFactsHasCounter counterName loopSummary
         then [LoopInitFacts]
         else []
 
-    , if loopGuardHasCounter counterName summary
+    , if loopGuardHasCounter counterName loopSummary
         then [LoopGuards]
         else []
 
-    , if loopCounterBoundsHasCounter counterName summary
+    , if loopCounterBoundsHasCounter counterName loopSummary
         then [LoopCountersBounds]
         else []
 
-    , if counterName `elem` loopAssignments summary
+    , if counterName `elem` loopAssignments loopSummary
         then [LoopAssignments]
         else []
 
-    , if counterName `elem` loopFrameTargets summary
+    , if counterName `elem` loopFrameTargets loopSummary
         then [LoopFrameTargets]
         else []
     
-    , if loopDecreasesCandidatesHasCounter counterName summary
+    , if loopDecreasesCandidatesHasCounter counterName loopSummary
         then [LoopDecreasesCandidate]
         else []
+    , -- When `CounterPattern StridedCounting`,
+      -- then `LoopFrameTargets`, `LoopInitFacts` are relevant and needed
+      case lookup counterName (loopFrameTargetsDevelopmentTrajectory loopSummary) of
+        Just (Increasing step)
+          | isOne step -> []
+          | otherwise -> [LoopFrameTargets,LoopInitFacts]
+        Nothing -> []
     ]
 
 stableBoundTags :: LoopSummary -> SymExpr -> [LoopSummaryTag]
-stableBoundTags summary bound =
+stableBoundTags loopSummary bound =
   concat
     [ [LoopCounters]
     , [LoopCountersBounds]
     , [LoopGuards]
 
-    , if isReadOnlyBoundViaStabilityFacts bound summary
+    , if isReadOnlyBoundViaStabilityFacts bound loopSummary
         then [LoopBoundStabilityFacts]
         else []
 
-    , if isReadOnlyBoundViaReadOnlyVars bound summary
+    , if isReadOnlyBoundViaReadOnlyVars bound loopSummary
         then [LoopReadOnlyVars]
         else []
 
