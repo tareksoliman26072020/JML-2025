@@ -29,7 +29,7 @@ cfgs = map thrd getCFGs
 
 getSymbolicExecutions :: [(String,Int,SYT.SymbolicExecution)]
 getSymbolicExecutions = flip map getCFGs $ \(methodName,groupNumber,cfg) -> let
-    (_,_,symbolicExecution) = runCFG cfgs cfg Nothing Nothing
+    (_,_,_,symbolicExecution) = runCFG cfgs cfg Nothing Nothing
     in (methodName,groupNumber,symbolicExecution)
 
 getSLoops :: [(String,Int,[SYT.SymbolicExecutionValue])]

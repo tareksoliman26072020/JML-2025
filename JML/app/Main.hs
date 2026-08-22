@@ -22,7 +22,7 @@ import qualified SymbolicExecution.Types as SYT
 import qualified SymbolicExecution.Method as SYM (runCFG)
 import qualified SymbolicExecution.Logs.PrettyPrint as SY.PP.Log
 import qualified SymbolicExecution.Internal.Math.Calculator as SY.Calculator
-import qualified SymbolicExecution.Internal.Internal as SY.Internal (cast, toSymType2, getFunName, modifyVoidMethod)
+import qualified SymbolicExecution.Internal.Internal as SY.Internal (cast, toSymType2, getFunName, modifyVoidMethod, getVarNames3)
 
 import qualified JML.Types as JMLT
 import qualified JML.Internal.Internal as JML.Internal
@@ -96,7 +96,7 @@ printSymState0 :: String -> String -> Bool -> IO SYT.SymbolicExecution
 printSymState0 fileName funName withLogs = readFile fileName >>=
   (\cfgs -> case CFG2.findCFGByName funName cfgs of
               Just cfg0 ->
-                let (er,logs,s) = SYM.runCFG cfgs cfg0 Nothing Nothing
+                let (er,logs,_,s) = SYM.runCFG cfgs cfg0 Nothing Nothing
                 in case er of
                      "" -> do if withLogs
                                 then putStrLn $ (SY.PP.Log.ppLogs SY.PP.Log.Console logs)
@@ -123,7 +123,7 @@ printSymState1 funName withLogs = printSymState0 "test1.java" funName withLogs
 printSymState2 :: String -> IO SYT.SymbolicExecution
 printSymState2 funName =
   (\(cfg,cfgs) ->
-      let (er,logs,s) = SYM.runCFG cfgs cfg Nothing Nothing
+      let (er,logs,_,s) = SYM.runCFG cfgs cfg Nothing Nothing
       in case er of
            "" -> do putStrLn $ (SY.PP.Log.ppLogs SY.PP.Log.Console logs)
                     return s
@@ -149,7 +149,7 @@ writeSymStates1 fileName = readFile fileName >>=
   (\cfgs ->
       let size = length cfgs
       in mapM_ (\(counter,cfg) ->
-           let (er,logs,s) = SYM.runCFG cfgs cfg Nothing Nothing
+           let (er,logs,_,s) = SYM.runCFG cfgs cfg Nothing Nothing
                funName = CFG2.getCFGName cfg
            in do putStrLn $ printf "%d/%d ==> %s" counter size funName
                  let writingFun = writeFile
@@ -171,7 +171,7 @@ writeSymStates2 =
   (\(li,cfgs) ->
       let size = length cfgs
       in mapM_ (\(counter,(funName,cfg)) ->
-           let (er,logs,s) = SYM.runCFG cfgs cfg Nothing Nothing
+           let (er,logs,_,s) = SYM.runCFG cfgs cfg Nothing Nothing
            in do putStrLn $ printf "%d/%d ==> %s" counter size funName
                  let writingFun = writeFile
                        (printf "logs/%s.md" funName)
@@ -194,7 +194,7 @@ writeSymState :: String -> IO SYT.SymbolicExecution
 writeSymState funName = readFile "test1.java" >>=
   (\cfgs -> case CFG2.findCFGByName funName cfgs of
               Just cfg0 -> do
-                let (er,logs,s) = SYM.runCFG cfgs cfg0 Nothing Nothing
+                let (er,logs,_,s) = SYM.runCFG cfgs cfg0 Nothing Nothing
                     writingFun = writeFile
                        (printf "logs/%s.md" funName)
                        (case er of
@@ -255,7 +255,7 @@ printJMLMethod0 fileName funName withLogs = do
       
       ses :: [SYT.SymbolicExecution]
       ses = flip map cfgs $ \cfg ->
-        let (er,logs,s) = SYM.runCFG cfgs cfg Nothing Nothing
+        let (er,logs,_,s) = SYM.runCFG cfgs cfg Nothing Nothing
         in case er of
              "" -> s
              _  -> error $ printf
@@ -300,10 +300,10 @@ printJMLMethod funName withLogs = printJMLMethod0 "test1.java" funName withLogs
 -----------------------------
 
 symExpr1 :: SYT.SymExpr
-symExpr1 = SYT.SymVar SYT.Int "i"
+symExpr1 = SYT.SymVar SYT.Int "i" []
 
 symExpr2 :: SYT.SymExpr
-symExpr2 = SYT.SBin (SYT.SymVar SYT.Int "i") SYT.Add (SYT.SymInt 1)
+symExpr2 = SYT.SBin (SYT.SymVar SYT.Int "i" []) SYT.Add (SYT.SymInt 1)
 
 symExpr :: SYT.SymExpr
 symExpr = SYT.SBin symExpr1 SYT.Gt symExpr2
@@ -377,6 +377,6 @@ ppMethod = putStrLn $ JML.PP.pp_CFG_JML cfg $ JMLT.jmlSpecifications method
 
 f = run_isolate
   $ isolate "i" 
-  $ SYT.SBin (SYT.SBin (SYT.SymVar SYT.Int "i") SYT.Lt (SYT.SymVar SYT.Int "n"))
+  $ SYT.SBin (SYT.SBin (SYT.SymVar SYT.Int "i" []) SYT.Lt (SYT.SymVar SYT.Int "n" []))
              SYT.Add
              (SYT.SymInt 2)

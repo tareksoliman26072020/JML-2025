@@ -36,7 +36,7 @@ javaMethodTests groupNumber = testGroup (printf "Methods (%d)" groupNumber)
   $ do
       (name, groupNum, cfg) <- getCFGs
       if | groupNum == groupNumber -> let
-             (_,logs,s) = runCFG cfgs cfg Nothing Nothing
+             (_,logs,_,s) = runCFG cfgs cfg Nothing Nothing
              s2 = case groupNumber of
                2 -> normalizeSLoop s
                _ -> s
@@ -74,7 +74,7 @@ loopSummaryTests = let
     let cfg = case find (\(funName_,_,cfg_) -> funName == funName_) getCFGs of
           Nothing -> error $ printf "<%s>: missing cfg for method %s" loc funName
           Just (_,_,cfg_) -> cfg_
-        (_,logs,s) = runCFG cfgs cfg Nothing Nothing
+        (_,logs,_,s) = runCFG cfgs cfg Nothing Nothing
         sloops :: [SymExpr]
         sloops = Map.elems $ flip Map.filterWithKey s $ \case
           ScopeRange _ -> \case

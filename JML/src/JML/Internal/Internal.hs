@@ -23,6 +23,7 @@ import qualified CFG.Types as CFGT (ScopeRange, ScopeRange(SR))
 
 import qualified SymbolicExecution.Types as SYT
 import qualified SymbolicExecution.Internal.Internal as SY.Internal
+import qualified SymbolicExecution.Internal.Math.Calculator as SY.Internal.Calculator
 
 yellow :: String -> String
 yellow = printf "\ESC[1;33m%s\ESC[m"
@@ -159,7 +160,7 @@ symExprToExpr jmlState symExpr =
   in case symExpr of
        SYT.SymDouble num -> JMLDouble num
        SYT.SymInt num -> JMLInt (fromIntegral num)
-       SYT.SymVar t vn
+       SYT.SymVar t vn _
          | isReassigned vn jmlState -> JMLOld $ JMLVar (toJMLType t) vn
          | otherwise -> JMLVar (toJMLType t) vn
        SYT.SymNum num -> JMLNum num
@@ -194,7 +195,7 @@ symExprToExpr2 symExpr =
   in case symExpr of
        SYT.SymDouble num -> JMLDouble num
        SYT.SymInt num -> JMLInt (fromIntegral num)
-       SYT.SymVar t vn -> JMLVar (toJMLType t) vn
+       SYT.SymVar t vn _ -> JMLVar (toJMLType t) vn
        SYT.SymNum num -> JMLNum num
        SYT.SBin symExpr1 op symExpr2 ->
          JMLBin (symExprToExpr2 symExpr1)
@@ -485,17 +486,21 @@ mutateDefaultClause newPrecondition = do
 
 processJMLVarUnknown_via_loopExitFacts :: CFGT.ScopeRange ->
   [(String,SYT.SymbolicExecutionValue)] ->
-  Maybe SYT.SymbolicExecutionValue ->
+  (Maybe SYT.SymbolicExecutionValue,[SYT.SymbolicExecutionValue]) ->
   Maybe SYT.SymbolicExecutionValue ->
   [SYT.LoopExitFact]
   -> JMLMonad ()
 processJMLVarUnknown_via_loopExitFacts scopeRange
-  loopInitFacts loopInitialGuardCondition loopSkipCondition loopExitFacts = do
+  loopInitFacts
+  (loopEnteringCondition,loopExitingConditions)
+  loopSkipCondition
+  loopExitFacts = do
   let loc = "JML.Internal.Internal.processJMLVarUnknown_via_loopExitFacts"
       logContents = [
         ("scopeRange",show scopeRange),
         ("loopInitFacts",show loopInitFacts),
-        ("loopInitialGuardCondition",show loopInitialGuardCondition),
+        ("loopEnteringCondition",show loopEnteringCondition),
+        ("loopExitingConditions",show loopExitingConditions),
         ("loopSkipCondition",show loopSkipCondition),
         ("loopExitFacts",show loopExitFacts)]
   constructLog loc "processJMLVarUnknown_via_loopExitFacts" logContents
@@ -513,7 +518,13 @@ processJMLVarUnknown_via_loopExitFacts scopeRange
         Nothing -> return [clauseValue]
         Just fact -> err loc expr fact 3
       Assignable _ -> return [clauseValue]
-      VarAssignment _ -> processVarAssignment clauseValue
+      VarAssignment _ -> do
+        newClauseValue <- processVarAssignment clauseValue
+        constructLog loc "Summary" [
+          ("old clause value",show clauseValue),
+          ("new clause value",show newClauseValue)
+          ]
+        return newClauseValue
       HasSideEffect -> return [clauseValue]
     return $ Requires tu (concat newVals)
   tellingReportTheStack loc "<new clauses>" newClauses
@@ -552,21 +563,75 @@ processJMLVarUnknown_via_loopExitFacts scopeRange
   ----------
   processVarAssignment :: ClauseValue -> JMLMonad [ClauseValue]
   processVarAssignment clauseValue@(VarAssignment (t,vn,expr)) = do
-    let loc = "JML.Internal.Internal.processJMLVarUnknown_via_loopExitFacts.processVarAssignment"
-        logContents = [("clauseValue",show clauseValue)]
+    let loc = "JML.Internal.Internal\
+              \.processJMLVarUnknown_via_loopExitFacts.processVarAssignment"
+        logContents = [
+          ("clauseValue",show clauseValue),
+          ("loopEnteringCondition",show loopEnteringCondition),
+          ("loopExitingConditions",show loopExitingConditions)
+          ]
     constructLog loc "processVarAssignment" logContents
     case get_fact vn of
       Nothing -> let
         toReturn = [clauseValue]
         in (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
       Just fact -> do
+        let loopExitingConditions_negated :: [SYT.SymbolicExecutionValue]
+            loopExitingConditions_negated = map SY.Internal.negate loopExitingConditions
+            combining :: SYT.SymBinOp -> [SYT.SymbolicExecutionValue] -> SYT.SymbolicExecutionValue
+            combining op (x:xs) = foldl' (\l r -> SYT.SBin l op r) x xs
+            fact_studied = studyFact fact expr
         constructLog loc "fact found" $ logContents ++ [
-          ("fact",show fact),("expr",show expr)]
+          ("fact",show fact),("expr",show expr),
+          ("fact_studied",show fact_studied),
+          ("loopExitingConditions_negated",show loopExitingConditions_negated)]
         incrementLogDepth
-        res <- case studyFact fact expr of
+        res <- case fact_studied of
           ---
           [new_expr] -> let
-            newVal1 = case loopInitialGuardCondition of
+            newVal1 = case loopExitingConditions_negated of
+              [] -> err loc expr fact 1
+              conds -> Implication
+                (symExprToExpr2 $ combining SYT.And
+                                $ map (SY.Internal.Calculator.substitute loopInitFacts) conds)
+                (VarAssignment (t,vn,new_expr))
+            newVal2 = case loopExitingConditions of
+              [] -> err loc expr fact 2
+              conds -> case lookup vn loopInitFacts of
+                Just init_expr -> Implication
+                  (symExprToExpr2 $ combining SYT.Or
+                                  $ map (SY.Internal.Calculator.substitute loopInitFacts) conds)
+                  (VarAssignment (t,vn,symExprToExpr2 init_expr))
+                Nothing -> err loc expr fact 3
+            in do constructLog loc "fact creates new value" [
+                    ("new_expr",show new_expr),
+                    ("newVal1",show newVal1),
+                    ("newVal2",show newVal2)]
+                  return [newVal1,newVal2]
+          ---
+          [from_expr,to_expr] -> let
+            newVal1 = case loopExitingConditions_negated of
+              [] -> err loc expr fact 4
+              conds -> Implication
+                (symExprToExpr2 $ combining SYT.And
+                                $ map (SY.Internal.Calculator.substitute loopInitFacts) conds)
+                (VarInRange (t,vn,(from_expr,to_expr)))
+            newVal2 = case loopExitingConditions of
+              [] -> err loc expr fact 5
+              conds -> case lookup vn loopInitFacts of
+                Just init_expr -> Implication
+                  (symExprToExpr2 $ combining SYT.Or
+                                  $ map (SY.Internal.Calculator.substitute loopInitFacts) conds)
+                  (VarAssignment (t,vn,symExprToExpr2 init_expr))
+            in do constructLog loc "fact creates range" [
+                    ("from_expr",show from_expr),
+                    ("to_expr",show to_expr),
+                    ("newVal1",show newVal1),
+                    ("newVal2",show newVal2)]
+                  return [newVal1,newVal2]
+          {-
+          [new_expr] -> let
+            newVal1 = case loopEnteringCondition of
               Nothing -> err loc expr fact 1
               Just cond -> Implication (symExprToExpr2 cond) $
                 VarAssignment (t,vn,new_expr)
@@ -583,7 +648,7 @@ processJMLVarUnknown_via_loopExitFacts scopeRange
                   return [newVal1,newVal2]
           ---
           [from_expr,to_expr] -> let
-            newVal1 = case loopInitialGuardCondition of
+            newVal1 = case loopEnteringCondition of
               Nothing -> err loc expr fact 4
               Just cond -> Implication (symExprToExpr2 cond) $
                 VarInRange (t,vn,(from_expr,to_expr))
@@ -598,6 +663,7 @@ processJMLVarUnknown_via_loopExitFacts scopeRange
                     ("newVal1",show newVal1),
                     ("newVal2",show newVal2)]
                   return [newVal1,newVal2]
+        -}
         decrementLogDepth
         (tellNextLog $ Log.Return loc (show res)) $> res
 
@@ -804,7 +870,7 @@ addBehavior sy er = do
               (Just first) rest
       let arrAssignable :: ClauseValue
           arrAssignable = Assignable
-            [res | (Right (_,arrName,SYT.SymVar _ indexName),_,_) <- li
+            [res | (Right (_,arrName,SYT.SymVar _ indexName _),_,_) <- li
                  , let res = printf "%s[%s]" arrName indexName]
       {-
       li: [(Left (SymVar Int "temp"),Nothing,Right (Array Int,"arr",SymVar Int "i")),
@@ -1054,7 +1120,7 @@ addBehavior sy er = do
          incrementLogDepth *>
            processJMLVarUnknown_via_loopExitFacts scopeRange
              (SYT.loopInitFacts loopSummary)
-             (SYT.loopInitialGuardCondition loopSummary)
+             (SYT.loopEnteringCondition loopSummary,SYT.loopExitingConditions loopSummary)
              (SYT.loopSkipCondition loopSummary)
              (SYT.loopExitFacts loopSummary)
              <* decrementLogDepth
@@ -1733,7 +1799,7 @@ isCounterBoundsTemplateTag loopSummaryTag = let
 
 isStridedCounterTemplatePattern :: SYT.LoopPattern -> Bool
 isStridedCounterTemplatePattern loopPattern = case loopPattern of
-  SYT.CounterPattern SYT.StridedCounting -> True
+  SYT.CounterPattern (SYT.StridedCounting _) -> True
   _ -> False
 
 isStridedCounterTemplateTag :: SYT.LoopSummaryTag -> Bool

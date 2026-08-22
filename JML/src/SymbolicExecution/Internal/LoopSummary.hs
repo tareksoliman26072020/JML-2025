@@ -18,8 +18,8 @@ import Text.Printf (printf)
 import Data.Functor (($>))
 import qualified CFG.Types as CFGT
 import qualified Parser.Types as AST
-import Data.List ((\\), find)
-import Data.Maybe (catMaybes)
+import Data.List ((\\), find, nub)
+import Data.Maybe (catMaybes, fromJust)
 
 globalLoc = "SymbolicExecution.Internal.LoopSummary"
 
@@ -28,26 +28,48 @@ globalLoc = "SymbolicExecution.Internal.LoopSummary"
 --------------------
 
 -- finding `LoopInitFacts` in `LoopSummary`
-getLoopInitFacts :: SymStateEnv -> [String] -> SymbolicExecutionMonad [(String,SymExpr)]
-getLoopInitFacts origEnv loopFrameTargets = do
+getLoopInitFacts :: SymStateEnv -> (SymStateEnv,[ExecutionResult]) -> [String] -> CFGT.ScopeRange -> SymbolicExecutionMonad [(String,SymExpr)]
+getLoopInitFacts origEnv (newEnv,newEnv_ers) loopFrameTargets branchRange = do
   let loc = globalLoc ++ ".getLoopInitFacts"
-      logContents = [("origEnv",show origEnv)
-                    ,("loopFrameTargets",show loopFrameTargets)]
+      logContents = [
+        ("origEnv",show origEnv),
+        ("newEnv",show newEnv),
+        ("newEnv_ers",show newEnv_ers),
+        ("loopFrameTargets",show loopFrameTargets)]
   constructLog loc "getLoopInitFacts" logContents
-  let theVarNames = flip Map.filterWithKey (getVarNames origEnv) $ \(VarName vn) -> \case
-        -- filter out uninitialized variables
-        SymVar _ vn2 ->
-          vn2 `elem` loopFrameTargets || vn /= vn2
-        _ -> True
-  let toReturn = Map.toList
-        $ Map.mapKeys (\(VarName vn) -> vn) theVarNames
+  let theVarNames = let
+        collecting = flip Map.filterWithKey (getVarNames origEnv) $ \(VarName vn) -> \case
+          -- filter out uninitialized variables
+          SymVar _ vn2 _ ->
+            vn2 `elem` loopFrameTargets || vn /= vn2
+          _ -> True
+        in Map.toList
+           $ Map.mapKeys (\(VarName vn) -> vn) collecting
+  let forLoopCountersInitFacts :: [(String,SymExpr)]
+      forLoopCountersInitFacts = case Map.lookup VarAssignments origEnv of
+        Just (SVarAssignments li) -> [(vn,initVal)
+            | (vn,(SymVar _ _ varInfos,_)) <- li
+            , let relevant_varInfo = [initVal
+                    | ForAccumulator br initVal <- varInfos
+                    , br == branchRange
+                    ]
+            , case relevant_varInfo of
+                [initVal] -> True
+                [] -> False
+                _ -> error $ constructErrorMsg loc "won't happen1" [("relevant_varInfo",show relevant_varInfo)]
+            , let initVal = case relevant_varInfo of
+                    [x] -> x
+                    _ -> error $ constructErrorMsg loc "won't happen2" [("relevant_varInfo",show relevant_varInfo)]
+            ]
+        Nothing -> []
+  let toReturn = theVarNames ++ forLoopCountersInitFacts
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
 
 --------------------
 --------------------
 --------------------
 
-getLoopGuard :: (SymStateEnv, SymStateEnv) -> SymExpr -> SymbolicExecutionMonad [SymExpr]
+getLoopGuard :: (SymStateEnv, SymStateEnv) -> SymExpr -> SymbolicExecutionMonad SymExpr
 getLoopGuard (origEnv,newEnv) loopCondition = do
   let loc = globalLoc ++ ".getLoopGuard"
       logContents = [
@@ -56,47 +78,133 @@ getLoopGuard (origEnv,newEnv) loopCondition = do
         ,("loopCondition",show loopCondition)
         ]
   constructLog loc "getLoopGuard" logContents
-  tellNextLog (Log.Return loc (show [loopCondition])) $> [loopCondition]
+  tellNextLog (Log.Return loc (show loopCondition)) $> loopCondition
 
 --------------------
 --------------------
 --------------------
 
-getLoopExitConditions :: [SymExpr] -> SymbolicExecutionMonad [SymExpr]
-getLoopExitConditions loopGuards = do
-  let loc = globalLoc ++ ".getLoopExitConditions"
-      logContents = [("loopGuards",show loopGuards)]
-  constructLog loc "getLoopExitConditions" logContents
-  let toReturn = map negate loopGuards
-  tellNextLog (Log.Return loc (show toReturn)) $> toReturn
+getLoopExitingConditions :: Maybe SymExpr -> (SymStateEnv,[ExecutionResult]) -> SymbolicExecutionMonad [SymExpr]
+getLoopExitingConditions loopGuard (breaksEnv,breaks_ers) = do
+  let loc = globalLoc ++ ".getLoopExitingConditions"
+      logContents = [
+        ("loopGuard",show loopGuard),
+        ("breaksEnv",show breaksEnv),
+        ("breaks_ers",show breaks_ers)]
+  constructLog loc "getLoopExitingConditions" logContents
+      -- whether there's a break statement
+  let unconditionalBreaks = case Map.lookup Break breaksEnv of
+        Just SymBreak -> [SBool True]
+        Nothing -> []
+        _ -> error $ constructErrorMsg loc "won't happen" logContents
+      breaksConditions :: [SymExpr]
+      breaksConditions = Map.foldMapWithKey studyBreakSymExpr breaksEnv
+      pickLoopGuards = case loopGuard of
+        Just (SBool True) -> []
+        Just guard -> [negate guard]
+        Nothing -> []
+      summary = [
+        ("unconditionalBreaks",show unconditionalBreaks),
+        ("breaksConditions",show breaksConditions)]
+  constructLog loc "summary" summary
+  let toReturn = pickLoopGuards ++ unconditionalBreaks ++ breaksConditions
+  --throwError $ constructErrorMsg loc "W" $
+  --  logContents ++ [("toReturn",show toReturn)]
+  tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
+  -- if a `SymExpr` provides a break statement,
+  -- then extract the path condition which makes it occur
+  studyBreakSymExpr :: SymStateKey -> SymExpr -> [SymExpr]
+  studyBreakSymExpr k v = let
+    loc = globalLoc ++ ".getLoopExitingConditions.studyBreakSymExpr" in
+    case (k,v) of
+      (Break,SymBreak) -> [SBool True]
+      (ScopeRange sr,SIte _ ifEnv maybe_elseEnv) -> let
+        ifCond = case [ifCond
+          | ER_IfExpr sr2 (ifCond,_) _ _ <- breaks_ers
+          , sr == sr2
+          ] of
+          [cond] -> cond
+          _ -> error $ constructErrorMsg loc "won't happen" [
+            ("k",show k),
+            ("v",show v)
+            ]
+        if_rec = addCond ifCond (Map.foldMapWithKey studyBreakSymExpr ifEnv)
+        else_rec = addCond (negate ifCond) (maybe [] (Map.foldMapWithKey studyBreakSymExpr) maybe_elseEnv)
+        in if_rec ++ else_rec
+      (MethodHandle,_) -> []
+      (GlobalVars,_) -> []
+      (FormalParms,_) -> []
+      (VarBindings,_) -> []
+      (VarAssignments,_) -> []
+      (VarName _,_) -> []
+      _ -> error $ constructErrorMsg loc "TODO" [("k",show k),("v",show v)]
+  addCond :: SymExpr -> [SymExpr] -> [SymExpr]
+  addCond cond li = [res
+    | symExpr <- li
+    , let res = case symExpr of
+            SBool True -> cond
+            _ -> symExpr
+    ]
+
+--------------------
+--------------------
+--------------------
+
+getLoopExitViaBreakConditions :: [ExecutionResult] -> SymbolicExecutionMonad [SymExpr]
+getLoopExitViaBreakConditions forBody_forStep_ers = do
+  let loc = globalLoc ++ ".getLoopExitViaBreakConditions"
+  let logContents = [
+        ("forBody_forStep_ers",show forBody_forStep_ers)]
+  constructLog loc "getLoopExitViaBreakConditions" logContents
+  -- the conditions which lead to a break statement
+  let breakConds = concat [ifCond ++ elseCond
+        | ER_IfExpr _ (cond,_) if_ers else_ers <- forBody_forStep_ers
+        , let ifCond = if ER_Break `elem` if_ers
+                then [cond]
+                else []
+        , let elseCond = if ER_Break `elem` else_ers
+                then [negate cond]
+                else []
+        ]
+  tellNextLog (Log.Return loc (show breakConds)) $> breakConds
 
 --------------------
 --------------------
 --------------------
 
 getLoopCounters :: (CFGT.ScopeRange, SymStateEnv, SymStateEnv)
-                -> ([(String,SymExpr)], [SymExpr])
+                -> (Maybe SymExpr, [SymExpr])
+                -> ([(String,SymExpr)], [String])
                 -> SymbolicExecutionMonad [String]
-getLoopCounters (branchRange,origEnv,newEnv) (theLoopInitFacts,theLoopGuards) = do
+getLoopCounters (branchRange,origEnv,newEnv)
+                (loopGuard,loopExitingConditions)
+                (loopInitFacts,loopFrameTargets) = do
   let loc = globalLoc ++ ".getLoopCounters"
       logContents = [
          ("branchRange",show branchRange)
         ,("origEnv",show origEnv)
         ,("newEnv",show newEnv)
-        ,("theLoopInitFacts",show theLoopInitFacts)
-        ,("theLoopGuards",show theLoopGuards)
+        ,("loopInitFacts",show loopInitFacts)
+        ,("loopGuard",show loopGuard)
+        ,("loopExitingConditions",show loopExitingConditions)
+        ,("loopFrameTargets",show loopFrameTargets)
         ]
   constructLog loc "getLoopCounters" logContents
-  let loopGuard_vars = case theLoopGuards of
-        [theLoopGuard] -> getVarNames3 theLoopGuard
-        [] -> []
-        _ -> error $ constructErrorMsg loc "TODO" logContents
+  let conds_vns :: [String]
+      conds_vns = [vn
+        | vn <- nub $ concatMap getVarNames3
+                    $ (maybe [] ((:[]) . id) loopGuard) ++ loopExitingConditions
+        , vn `elem` loopFrameTargets
+        ]
+  let toReturn = conds_vns
+  
+  {-let loopGuard_vars = maybe [] getVarNames3 loopGuard
+
   toReturn <- case Map.lookup VarAssignments newEnv of
     Nothing -> return []
     Just (SVarAssignments li) -> let
       -- VarAssignments provides informations about variables which are re-assigned in the loop
       -- and I care about those who were caught in the branch range of the loop
-      -- 
       relevantVars :: [String]
       relevantVars = [vn
         | (vn,(symExpr,CFGT.Node_Coor _ (CFGT.SR begin end))) <- li
@@ -104,7 +212,10 @@ getLoopCounters (branchRange,origEnv,newEnv) (theLoopInitFacts,theLoopGuards) = 
         , end == CFGT.branchEnd branchRange
         , vn `elem` loopGuard_vars
         ]
-      in return relevantVars
+      in return relevantVars-}
+  {-throwError $ constructErrorMsg loc "Summary" $ logContents ++ [
+    ("loopGuard_vars",show loopGuard_vars),
+    ("toReturn",show toReturn)]-}
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn
 
 --------------------
@@ -128,12 +239,44 @@ getLoopFrameTargetsDevelopmentTrajectory loopFrameTargets (forBody_forStep_path,
             compare2 = Map.lookup (VarName vn) new_env
         constructLog loc "comparing" [("vn",vn),("compare1",show compare1),("compare2",show compare2)]
         incrementLogDepth
-        loopFrameTargetRes <- case (compare1,compare2) of
+        loopFrameTargetRes <- study vn (compare1,compare2)
+        decrementLogDepth
+        return loopFrameTargetRes
+  (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn where
+  study :: String -> (Maybe SymExpr,Maybe SymExpr) -> SymbolicExecutionMonad (String,SymExprDevelopmentTrajectory)
+  study vn (maybe_oldVal,maybe_newVal) = let
+    loc = "SymbolicExecution.Internal.LoopSummary\
+          \.getLoopFrameTargetsDevelopmentTrajectory.study" in
+    case (maybe_oldVal,maybe_newVal) of
           (Nothing,Nothing) -> throwError $ constructErrorMsg loc "TODO1" []
           (Nothing,Just x) -> do
-            constructLog loc (printf "%s was Nothing, and became something" vn) [("x",show x)]
-            return (vn,NewInScope x)
-          (x,Nothing) -> throwError $ constructErrorMsg loc "TODO3" [("x",show x)]
+            let f = do
+                  constructLog loc (printf "%s was Nothing, and became something" vn)
+                    [("x",show x)]
+                  return (vn,NewInScope x)
+            -- it's possible that `vn` is a counter in a for loop
+            -- in this case, the wished `oldVal` is in `SVarAssignments`
+            case Map.lookup VarAssignments new_env of
+              Just (SVarAssignments li) -> let
+                -- filtering out any mention of SymVars which has VarInfos
+                -- to avoid misinterpretations and conflicts
+                li2 = [tu
+                  | tu@(_,(symExpr,_)) <- li
+                  , case symExpr of
+                      SymVar _ _ varInfos -> case varInfos of
+                        [] -> True
+                        _ -> False
+                      _ -> True
+                  ]
+                in case lookup vn li2 of
+                     Just (oldVal2,_) -> do
+                       constructLog loc "for-loop counter detected" [
+                         ("vn",vn),
+                         ("initial counter value",show oldVal2)]
+                       incrementLogDepth *> study vn (Just oldVal2,maybe_newVal) <* decrementLogDepth
+                     Nothing -> f
+              Nothing -> f
+          (x,Nothing) -> throwError $ constructErrorMsg loc "TODO2" [("x",show x)]
           (Just symExpr1,Just symExpr2)
             | symExpr1 == symExpr2 ->
                 constructLog loc (printf "variable %s does not change" vn) [] $>
@@ -161,6 +304,16 @@ getLoopFrameTargetsDevelopmentTrajectory loopFrameTargets (forBody_forStep_path,
                     | num == 0 -> ReadOnly
                     | num > 0 -> Decreasing calculating
                     | num < 0 -> Increasing $ SymFloat (abs num)
+                  {-_ -> error $ constructErrorMsg loc "TODO3" [
+                    ("vn",vn),
+                    ("symExpr1",show symExpr1),
+                    ("symExpr2",show symExpr2),
+                    ("calculating",show calculating),
+                    ("loopFrameTargets",show loopFrameTargets),
+                    ("maybe_oldVal",show maybe_oldVal),
+                    ("maybe_newVal",show maybe_newVal),
+                    ("orig_env",show orig_env),
+                    ("new_env",show new_env)]-}
                   _ -> Complicated symExpr1 symExpr2
                 res = (vn,mathematical_induction)
                 in constructLog loc (printf "Induction of <%s>" vn)
@@ -171,9 +324,6 @@ getLoopFrameTargetsDevelopmentTrajectory loopFrameTargets (forBody_forStep_path,
             | otherwise -> constructLog loc "not numbers" [
                 ("symExpr1",show symExpr1),
                 ("symExpr2",show symExpr2)] $> (vn,NonNumeric symExpr1 symExpr2)
-        decrementLogDepth
-        return loopFrameTargetRes
-  (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
 
 --------------------
 --------------------
@@ -187,30 +337,51 @@ getLoopFrameTargetsDevelopmentTrajectory loopFrameTargets (forBody_forStep_path,
 3) loopCountersDevelopmentTrajectory: [("i",Increasing (SymInt 1))]
  -}
 -- [(SymInt 0,"i",SymVar Int "n")]
-getLoopCountersBounds :: [(String,SymExpr)] -> [String] -> [SymExpr] -> [(String,SymExprDevelopmentTrajectory)] -> SymbolicExecutionMonad [(SymExpr,String,SymExpr)]
+getLoopCountersBounds :: [(String,SymExpr)] -> [String] -> (Maybe SymExpr,[SymExpr]) -> [(String,SymExprDevelopmentTrajectory)] -> [String] -> SymbolicExecutionMonad [(SymExpr,String,SymExpr)]
 getLoopCountersBounds
-  loopInitFacts loopCounters loopGuards loopFrameTargetsDevelopmentTrajectory = do
+  loopInitFacts loopCounters (loopGuard,loopExitingConditions)
+  loopFrameTargetsDevelopmentTrajectory loopReadOnlyVars = do
   let loc = "SymbolicExecution.Internal.LoopSummary.getLoopCountersBounds"
       logContents = [
          ("loopInitFacts",show loopInitFacts)
-        ,("loopGuards",show loopGuards)
+        ,("loopGuard",show loopGuard)
+        ,("loopExitingConditions",show loopExitingConditions)
         ,("loopCounters",show loopCounters)
         ,("loopFrameTargetsDevelopmentTrajectory",show loopFrameTargetsDevelopmentTrajectory)
+        ,("loopReadOnlyVars",show loopReadOnlyVars)
         ]
   constructLog loc "getLoopCountersBounds" logContents
+  let f counterName = [negate condition
+        | condition <- loopExitingConditions
+        , counterName `existsIn` condition
+        ]
   let toReturn :: [(SymExpr,String,SymExpr)]
       toReturn = [(newInitVal,counterName,newLastVal)
         | counterName <- loopCounters
-        , guard <- loopGuards
+--        , maybe False (counterName `existsIn`) loopGuard
         , let initVal = case lookup counterName loopInitFacts of
                 Just x -> x
                 Nothing -> error $ constructErrorMsg loc "won't happen1" $ logContents ++ [("counterName",counterName)]
         , let trajectory = case lookup counterName loopFrameTargetsDevelopmentTrajectory of
                 Just x -> x
                 Nothing -> error $ constructErrorMsg loc "won't happen2" $ logContents ++ [("counterName",counterName)]
-        , counterName `existsIn` guard
+        , let boundsWithCounter :: [SymExpr]
+              boundsWithCounter = case loopGuard of
+                Just lg
+                  | counterName `existsIn` lg -> [lg]
+                  | otherwise -> f counterName
+                Nothing -> f counterName
         , let bound :: (SymBinOp,SymExpr)
-              bound@(comparison,lastVal) = studyBound counterName guard
+              bound@(comparison,lastVal) = case boundsWithCounter of
+                [b] -> studyBound counterName b
+                _   -> error $ constructErrorMsg loc "won't happen3" $ logContents ++ [
+                  ("counterName",counterName),
+                  ("boundsWithCounter",show boundsWithCounter)]
+        -- I decided to filter out some trajectories
+        , case trajectory of
+            Increasing _ -> True
+            Decreasing _ -> True
+            _ -> False
         , let (newInitVal,newLastVal) = studyLoopFrameTargetsDevelopmentTrajectory trajectory (initVal,comparison,lastVal)
         ]
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
@@ -241,7 +412,7 @@ getLoopCountersBounds
           SBin expr1 op expr2 ->
             case expr1 of
               ----------
-              SymVar _ vn
+              SymVar _ vn _
                 | vn == counterName -> (op,expr2)
               ----------
               _  -> error $ constructErrorMsg loc
@@ -265,15 +436,14 @@ getLoopCountersBounds
     loc = "SymbolicExecution.Internal.LoopSummary\
           \.getLoopCountersBounds.studyLoopFrameTargetsDevelopmentTrajectory"
     logContents = [
+   --  ("loopGuard",show loopGuard)
+   -- ,("loopExitingConditions",show loopExitingConditions)
        ("trajectory",show trajectory)
       ,("comparison",show comparison)
       ,("initVal",show initVal)
-      ,("lastVal",show lastVal)] in
+      ,("lastVal",show lastVal)
+      ,("loopReadOnlyVars",show loopReadOnlyVars)] in
     case (trajectory,comparison) of
-      {-(Increasing _,Lt) -> (initVal,lastVal)
-      (Increasing _,Le) -> (initVal,lastVal)
-      (Decreasing _,Gt) -> (lastVal,initVal)
-      (Decreasing _,Ge) -> (lastVal,initVal)-}
       (Increasing num,Lt) -> (,) initVal $ numericCalculator
          $ SBin lastVal
                 Add
@@ -292,14 +462,16 @@ getLoopCountersBounds
 --------------------
 --------------------
 
-getLoopBoundStabilityFacts :: ([CFGT.Node],SymStateEnv,SymStateEnv) -> [(SymExpr, String, SymExpr)] -> SymbolicExecutionMonad [(SymExpr, SymExprDevelopmentTrajectory)]
-getLoopBoundStabilityFacts (forBody_forStep_path,orig_env,new_env) loopCounterBounds = do
+getLoopBoundStabilityFacts :: ([CFGT.Node],SymStateEnv,SymStateEnv) -> [(SymExpr, String, SymExpr)] -> [String] -> SymbolicExecutionMonad [(SymExpr, SymExprDevelopmentTrajectory)]
+getLoopBoundStabilityFacts
+  (forBody_forStep_path,orig_env,new_env) loopCounterBounds loopFrameTargets = do
   let loc = "SymbolicExecution.Internal.LoopSummary.getLoopBoundStabilityFacts"
       logContents = [
           ("forBody_forStep_path",show forBody_forStep_path)
          ,("orig_env",show orig_env)
          ,("new_env",show new_env)
-         ,("loopCounterBounds",show loopCounterBounds)]
+         ,("loopCounterBounds",show loopCounterBounds)
+         ,("loopFrameTargets",show loopFrameTargets)]
   constructLog loc "getLoopBoundStabilityFacts" logContents
   let exprs_2_study :: [SymExpr]
       exprs_2_study = concat [exprs
@@ -313,19 +485,6 @@ getLoopBoundStabilityFacts (forBody_forStep_path,orig_env,new_env) loopCounterBo
     let studied = study expr
     constructLog loc "done studying" [("studied",show studied)] $> studied)
   decrementLogDepth
-      {-
-      toReturn = concat [res
-        | expr <- exprs_2_study
-        , if | any (\f -> f expr) [hasSymVar,isSObjAcc] -> True
-             | otherwise -> error $ constructErrorMsg loc "TODO1"
-                 $ logContents
-                 ++ [("exprs_2_study",show exprs_2_study),("expr",show expr)]
-        , let res :: [(SymExpr,SymExprDevelopmentTrajectory)]
-              res = case expr of
-                SymVar _ vn -> [(expr,studyVarDevelopment vn)]
-                SObjAcc [arrName,"length"] -> [(expr,studyArrSizeDevelopment arrName)]]
-              --SBin (SymVar Int "n") Add (SymInt 2)
-                SBin expr1 _ expr2 -> nub $ -}
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
   where
   ----------
@@ -335,7 +494,9 @@ getLoopBoundStabilityFacts (forBody_forStep_path,orig_env,new_env) loopCounterBo
     logContents = [("expr",show expr)] in
     case expr of
       SymInt _ -> []
-      SymVar _ vn -> [(expr,studyVarDevelopment vn)]
+      SymVar _ vn _ -> case studyVarDevelopment vn of--[(expr,studyVarDevelopment vn)]
+        Just trajectory -> [(expr,trajectory)]
+        Nothing -> []
       SObjAcc [arrName,"length"] -> [(expr,studyArrSizeDevelopment arrName)]
       SBin expr1 _ expr2 -> let
         rec1 = study expr1
@@ -346,32 +507,37 @@ getLoopBoundStabilityFacts (forBody_forStep_path,orig_env,new_env) loopCounterBo
         | otherwise -> res0
       _ -> error $ constructErrorMsg loc "TODO" logContents
   ----------
-  studyVarDevelopment :: String -> SymExprDevelopmentTrajectory
+  studyVarDevelopment :: String -> Maybe SymExprDevelopmentTrajectory
   studyVarDevelopment vn = let
     loc = "SymbolicExecution.Internal.LoopSummary.getLoopBoundStabilityFacts.studyVarDevelopment"
     logContents :: (Int,Maybe SymExpr) -> [(String,String)]
     logContents (0,_) = [("vn",vn)]
     logContents (1,one) = [("vn",vn),("maybe symExpr1",show one)]
     logContents (2,two) = [("vn",vn),("maybe symExpr2",show two)] in
-    case (Map.lookup (VarName vn) orig_env,Map.lookup (VarName vn)  new_env) of
-      (Just symExpr1,Just symExpr2)
-        | symExpr1 == symExpr2 -> ReadOnly
-        | isTypeNumeric (toSymType2 symExpr1) -> if
-            | symExpr1 `isSymExprGreaterThan` symExpr2 -> let
-                res = numericCalculator $ SBin symExpr1 Sub symExpr2
-                in Decreasing res
-            | otherwise -> let
-                res = numericCalculator $ SBin symExpr2 Sub symExpr1
-                in Increasing res
-        | otherwise -> error $ constructErrorMsg loc "TODO1"
-            [("symExpr1",show symExpr1)
-            ,("symExpr2",show symExpr2)]
-      (Nothing,Nothing) -> error $ constructErrorMsg loc "won't happen1"
-        $ logContents (0,undefined)
-      (one,Nothing) -> error $ constructErrorMsg loc "won't happen2"
-        $ logContents (1,one)
-      (Nothing,two) -> error $ constructErrorMsg loc "TODO2"
-        $ logContents (2,two)
+    if | vn `notElem` loopFrameTargets -> Just ReadOnly
+       | otherwise -> case (Map.lookup (VarName vn) orig_env,Map.lookup (VarName vn) new_env) of
+           (Just symExpr1,Just symExpr2)
+             | symExpr1 == symExpr2 -> Just ReadOnly
+             | isTypeNumeric (toSymType2 symExpr1) -> if
+                 | symExpr1 `isSymExprGreaterThan` symExpr2 -> let
+                     res = numericCalculator $ SBin symExpr1 Sub symExpr2
+                     in Just $ Decreasing res
+                 | otherwise -> let
+                     res = numericCalculator $ SBin symExpr2 Sub symExpr1
+                     in Just $ Increasing res
+             | otherwise -> error $ constructErrorMsg loc "TODO1"
+                 [("symExpr1",show symExpr1)
+                 ,("symExpr2",show symExpr2)]
+           (Nothing,Nothing) -> error $ constructErrorMsg loc "won't happen1"
+             $ logContents (0,undefined)
+           (one,Nothing) -> error $ constructErrorMsg loc "won't happen2"
+             $ logContents (1,one)
+           (Nothing,two) -> error $ constructErrorMsg loc "TODO2"
+             $ [
+               ("forBody_forStep_path",show forBody_forStep_path)
+              ,("orig_env",show orig_env)
+              ,("new_env",show new_env)
+              ,("loopCounterBounds",show loopCounterBounds)] ++ logContents (2,two)
   ----------
   studyArrSizeDevelopment :: String -> SymExprDevelopmentTrajectory
   studyArrSizeDevelopment arrName = let
@@ -436,8 +602,8 @@ getLoopAssignments (branchRange,new_env) = do
 --------------------
 --------------------
 
-getLoopReadOnlyVars :: [String] -> (CFGT.ScopeRange, SymStateEnv) -> SymbolicExecutionMonad [String]
-getLoopReadOnlyVars loopVarNames (branchRange,new_env) = do
+getLoopReadOnlyVars :: [String] -> (CFGT.ScopeRange, SymStateEnv, SymStateEnv) -> SymbolicExecutionMonad [String]
+getLoopReadOnlyVars loopVarNames (branchRange,origEnv,new_env) = do
   let loc = "SymbolicExecution.Internal.LoopSummary.getLoopReadOnlyVars"
       logContents = [
              ("loopVarNames",show loopVarNames)
@@ -445,16 +611,19 @@ getLoopReadOnlyVars loopVarNames (branchRange,new_env) = do
             ,("new_env",show new_env)
             ]
   constructLog loc "getLoopReadOnlyVars" logContents
-  let allAssigns = Map.lookup VarAssignments new_env
+  let newAssignsEnv :: SymStateEnv
+      newAssignsEnv = flip Map.filterWithKey new_env $ \case
+        k@(VarName vn) -> case Map.lookup k origEnv of
+          Just old_expr -> \case
+            new_expr -> old_expr /= new_expr
+          Nothing -> const True
+        _ -> const False
       assigns :: [String]
-      assigns = case allAssigns of
-        Just (SVarAssignments li) -> flip concatMap li
-          $ \(vn,(_,CFGT.Node_Coor _ (CFGT.SR begin end))) -> if
-              | begin == CFGT.branchStart branchRange &&
-                end == CFGT.branchEnd branchRange -> [vn]
-              | otherwise -> []
-        Nothing -> []
+      assigns = [vn | (VarName vn) <- Map.keys newAssignsEnv]
       toReturn = filter (`notElem` assigns) loopVarNames
+  constructLog loc "Summary" [
+    ("origEnv",show origEnv),
+    ("assigns",show assigns)]
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
 
 --------------------
@@ -464,7 +633,9 @@ getLoopReadOnlyVars loopVarNames (branchRange,new_env) = do
 getLoopFrameTargets :: [String] -> [String] -> SymbolicExecutionMonad [String]
 getLoopFrameTargets loopVarNames loopReadOnlyVars = do
   let loc = "SymbolicExecution.Internal.LoopSummary.getLoopFrameTargets"
-      logContents = [("loopReadOnlyVars",show loopReadOnlyVars)]
+      logContents = [
+        ("loopVarNames",show loopVarNames),
+        ("loopReadOnlyVars",show loopReadOnlyVars)]
   constructLog loc "getLoopFrameTargets" logContents
   let toReturn = loopVarNames \\ loopReadOnlyVars
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
@@ -595,6 +766,12 @@ getLoopDecreasesCandidate
               in (pos,bound,newTrajectory)
             (Nothing,Just trajectory2) -> error $ constructErrorMsg innerLoc "TODO1" logContents2
             (Nothing,Nothing) -> error $ constructErrorMsg innerLoc "TODO2" logContents2
+        _ -> error $ constructErrorMsg innerLoc "TODO3" $ [
+          ("bound",show bound),
+          ("loopFrameTargetsDevelopmentTrajectory",show loopFrameTargetsDevelopmentTrajectory),
+          ("loopCountersBounds",show loopCountersBounds),
+          ("loopBoundStabilityFacts",show lookBoundStabilityFacts)
+          ]
   compareTrajectories :: SymExprDevelopmentTrajectory -> SymExprDevelopmentTrajectory
     -> SymExprDevelopmentTrajectory
   compareTrajectories trajectory1 trajectory2 = let
@@ -649,22 +826,22 @@ getLoopDecreasesCandidate
     case boundPosition of
       RightBound -> case (boundTrajectory,counterTrajectory) of
    {-1-}(ReadOnly, Increasing developmentSpeed) -> let
-          counterSymExpr = SymVar (toSymType2 developmentSpeed) counterName
+          counterSymExpr = SymVar (toSymType2 developmentSpeed) counterName []
           in Just $ SBin boundSymExpr Sub counterSymExpr
    {-2-}(ReadOnly, Decreasing _) -> Nothing
    -- bound Increasing, counter Increasing (only if trajectory of counter bigger than trajectory of bound)
         (Increasing boundDevelopmentSpeed, Increasing counterDevelopmentSpeed)
    {-3-}  | counterDevelopmentSpeed `isSymExprGreaterThan` boundDevelopmentSpeed -> let
-              counterSymExpr = SymVar (toSymType2 counterDevelopmentSpeed) counterName
+              counterSymExpr = SymVar (toSymType2 counterDevelopmentSpeed) counterName []
               in Just $ SBin boundSymExpr Sub counterSymExpr
           | otherwise -> Nothing
    {-4-}(Increasing _, Decreasing _) -> Nothing
    {-5-}(Decreasing _, Increasing developmentSpeed) -> let
-          counterSymExpr = SymVar (toSymType2 developmentSpeed) counterName
+          counterSymExpr = SymVar (toSymType2 developmentSpeed) counterName []
           in Just $ SBin boundSymExpr Sub counterSymExpr
         (Decreasing boundDevelopmentSpeed, Decreasing counterDevelopmentSpeed)
    {-6-}  | boundDevelopmentSpeed `isSymExprGreaterThan` counterDevelopmentSpeed -> let
-              counterSymExpr = SymVar (toSymType2 counterDevelopmentSpeed) counterName
+              counterSymExpr = SymVar (toSymType2 counterDevelopmentSpeed) counterName []
               in Just $ SBin boundSymExpr Sub counterSymExpr
           | otherwise -> Nothing
          {- | otherwise -> error $ constructErrorMsg innerLoc "TODO" $ logContents
@@ -676,20 +853,20 @@ getLoopDecreasesCandidate
 
       LeftBound -> case (boundTrajectory,counterTrajectory) of
    {-1-}(ReadOnly, Decreasing developmentSpeed) -> let
-          counterSymExpr = SymVar (toSymType2 developmentSpeed) counterName in
+          counterSymExpr = SymVar (toSymType2 developmentSpeed) counterName [] in
           Just $ SBin counterSymExpr Sub boundSymExpr
    {-2-}(ReadOnly, Increasing _) -> Nothing
    {-3-}(Increasing _, Decreasing developmentSpeed) -> let
-          counterSymExpr = SymVar (toSymType2 developmentSpeed) counterName in
+          counterSymExpr = SymVar (toSymType2 developmentSpeed) counterName [] in
           Just $ SBin counterSymExpr Sub boundSymExpr
    {-4-}(Increasing boundDevelopmentSpeed, Increasing counterDevelopmentSpeed)
           | boundDevelopmentSpeed `isSymExprGreaterThan` counterDevelopmentSpeed -> let
-              counterSymExpr = SymVar (toSymType2 counterDevelopmentSpeed) counterName
+              counterSymExpr = SymVar (toSymType2 counterDevelopmentSpeed) counterName []
               in Just $ SBin counterSymExpr Sub boundSymExpr
           | otherwise -> Nothing
    {-5-}(Decreasing boundDevelopmentSpeed, Decreasing counterDevelopmentSpeed)
           | counterDevelopmentSpeed `isSymExprGreaterThan` boundDevelopmentSpeed -> let
-              counterSymExpr = SymVar (toSymType2 counterDevelopmentSpeed) counterName
+              counterSymExpr = SymVar (toSymType2 counterDevelopmentSpeed) counterName []
               in Just $ SBin counterSymExpr Sub boundSymExpr
           | otherwise -> Nothing
    {-6-}(Decreasing _, Increasing _) -> Nothing
@@ -701,20 +878,15 @@ getLoopDecreasesCandidate
 --------------------
 --------------------
 
-getLoopInitialGuardCondition :: [(String,SymExpr)] -> [SymExpr] -> SymbolicExecutionMonad (Maybe SymExpr)
-getLoopInitialGuardCondition loopInitFacts loopGuards = do
-  let loc = globalLoc ++ ".getLoopInitialGuardCondition"
+getLoopEnteringCondition :: [(String,SymExpr)] -> Maybe SymExpr -> SymbolicExecutionMonad (Maybe SymExpr)
+getLoopEnteringCondition loopInitFacts loopGuard = do
+  let loc = globalLoc ++ ".getLoopEnteringCondition"
       logContents = [
          ("loopInitFacts",show loopInitFacts)
-        ,("loopGuards",show loopGuards)]
-  constructLog loc "getLoopInitialGuardCondition" logContents
-  let maybe_loopGuard :: Maybe SymExpr
-      maybe_loopGuard = case loopGuards of
-        [expr] -> Just expr
-        [] -> Nothing
-        _ -> error $ constructErrorMsg loc "TODO1" logContents
-      loopGuard_vns :: [String]
-      loopGuard_vns = maybe [] getVarNames3 maybe_loopGuard
+        ,("loopGuard",show loopGuard)]
+  constructLog loc "getLoopEnteringCondition" logContents
+  let loopGuard_vns :: [String]
+      loopGuard_vns = maybe [] getVarNames3 loopGuard
       relevant_loopGuard_vns :: [String]
       relevant_loopGuard_vns = [vn
         | vn <- loopGuard_vns
@@ -727,13 +899,14 @@ getLoopInitialGuardCondition loopInitFacts loopGuards = do
         , vn `elem` relevant_loopGuard_vns
         ]
   constructLog loc "summary" [
-     ("maybe_loopGuard",show maybe_loopGuard)
-    ,("loopGuard_vns",show loopGuard_vns)
+     ("loopGuard_vns",show loopGuard_vns)
     ,("relevant_loopGuard_vns",show relevant_loopGuard_vns)
     ,("relevant_loopInitFacts",show relevant_loopInitFacts)]
   let toReturn = case relevant_loopInitFacts of
-        [] -> Nothing
-        _  -> substitute relevant_loopInitFacts <$> maybe_loopGuard
+        [] -> case loopGuard of
+          Just (SBool _) -> loopGuard
+          _ -> Nothing
+        _ -> substitute relevant_loopInitFacts <$> (loopGuard :: Maybe SymExpr)
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
 
 --------------------
@@ -741,57 +914,49 @@ getLoopInitialGuardCondition loopInitFacts loopGuards = do
 --------------------
 
 getLoopSkipCondition :: Maybe SymExpr -> SymbolicExecutionMonad (Maybe SymExpr)
-getLoopSkipCondition loopInitialGuardCondition = do
+getLoopSkipCondition loopEnteringCondition = do
   let loc = globalLoc ++ ".getLoopSkipCondition"
-      logContents = [("loopInitialGuardCondition",show loopInitialGuardCondition)]
+      logContents = [("loopEnteringCondition",show loopEnteringCondition)]
   constructLog loc "getLoopSkipCondition" logContents
-  let toReturn = negate <$> loopInitialGuardCondition
+  let toReturn = negate <$> loopEnteringCondition
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
 
 --------------------
 --------------------
 --------------------
 
-getLoopExitFacts :: [SymExpr] -> [(String,SymExprDevelopmentTrajectory)] -> SymbolicExecutionMonad [LoopExitFact]
-getLoopExitFacts loopGuards loopFrameTargetsDevelopmentTrajectory = do
+getLoopExitFacts :: (Maybe SymExpr,[SymExpr]) -> [(String,SymExprDevelopmentTrajectory)] -> SymbolicExecutionMonad [LoopExitFact]
+getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTrajectory = do
   let loc = globalLoc ++ ".getLoopExitFacts"
       logContents = [
-         ("loopGuards",show loopGuards)
+         ("loopGuard",show loopGuard)
+        ,("loopExitingConditions",show loopExitingConditions)
         ,("loopFrameTargetsDevelopmentTrajectory",show loopFrameTargetsDevelopmentTrajectory)
         ]
   constructLog loc "getLoopExitFacts" logContents
-  let combining :: [(String,SymExpr,SymExprDevelopmentTrajectory)]
-      combining = [res
-        | loopGuard <- loopGuards
-        , let vns = getVarNames3 loopGuard
-        , let finding = [tu | tu@(vn,_) <- loopFrameTargetsDevelopmentTrajectory, vn `elem` vns]
-        , let res = case finding of
-                [(vn,trajectory)] -> (vn,loopGuard,trajectory)
-                -- if there is an entry in loopFrameTargetsDevelopmentTrajectory
-                -- which matches with multiple loop guards, then:
-                _ -> error $ constructErrorMsg loc "TODO1" $ logContents ++ [
-                  ("loopGuard",show loopGuard),
-                  ("vns",show vns),
-                  ("finding",show finding)]
-        ]
-  constructLog loc "summary" [("combining",show combining)]
-  let toReturn = [res
-        | (vn,loopGuard,trajectory) <- combining
-        , let maybe_Res = symExprNextStep vn (isolate_vr vn loopGuard) trajectory
-        , let res = case maybe_Res of
-                Nothing -> error $ constructErrorMsg loc "TODO2" $ logContents ++
+  let toReturn :: [LoopExitFact]
+      toReturn = let
+        exitConds_vns = concatMap getVarNames3 loopExitingConditions
+        vns = maybe exitConds_vns (\lg -> getVarNames3 lg ++ exitConds_vns) loopGuard
+        guards = map negate loopExitingConditions
+        finding = [tu | tu@(vn,_) <- loopFrameTargetsDevelopmentTrajectory, vn `elem` vns]
+        in flip concatMap guards $ \guard -> case finding of
+            [(vn,trajectory)] -> let
+              maybe_Res = symExprNextStep vn (isolate_vr vn guard) trajectory
+              in case maybe_Res of
+                Nothing -> error $ constructErrorMsg loc "TODO1" $ logContents ++
                   [("vn",vn)
-                  ,("loopGuard",show loopGuard)
+                  ,("guard",show guard)
                   ,("trajectory",show trajectory)]
-                Just loopExitFact -> loopExitFact
-        ]
+                Just loopExitFact -> [loopExitFact]
+            _ -> error $ constructErrorMsg loc "TODO1" $ logContents ++ [("finding",show finding)]
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn where
-  -- isolate `vr` in `loopGuard`
+  -- isolate `vr` in `guard`
   isolate_vr :: String -> SymExpr -> SymExpr
-  isolate_vr vn loopGuard = let
+  isolate_vr vn guard = let
     loc = globalLoc ++ ".getLoopExitFacts.isolate_vr"
-    logContents = [("vn",vn),("loopGuard",show loopGuard)] in
-    case snd $ run_isolate $ isolate vn loopGuard of
+    logContents = [("vn",vn),("guard",show guard)] in
+    case snd $ run_isolate $ isolate vn guard of
       Left err -> error $ constructErrorMsg loc "TODO1"
         $ logContents ++ [("error",err)]
       ----------
@@ -811,14 +976,13 @@ getLoopExitFacts loopGuards loopFrameTargetsDevelopmentTrajectory = do
       ,("guard",show guard)
       ,("trajectory",show trajectory)] in
     case (trajectory,guard) of
-      (Increasing step,SBin expr1@(SymVar _ vn2) op expr2) -> let
+      (Increasing step,SBin expr1@(SymVar _ vn2 _) op expr2) -> let
         step_type = toSymType2 step in if
         | vn == vn2 && isTypeNumeric step_type -> case op of
           Lt -> let
             left = expr2
             expr_r = SBin expr2 Add (SBin step Sub (cast step_type $ SymNum 1))
             right = numericCalculator expr_r
---          in error $ constructErrorMsg loc "ME" [("expr_r",show expr_r),("right",show right)]
             in if | isOne step -> Just $ LoopExitFactValue vn left
                   | otherwise  -> Just $ LoopExitFactRange vn left right
           Le -> let
@@ -829,4 +993,18 @@ getLoopExitFacts loopGuards loopFrameTargetsDevelopmentTrajectory = do
           _ -> error $ constructErrorMsg loc "TODO1" logContents
     
         | otherwise -> error $ constructErrorMsg loc "TODO2" logContents
-      _ -> error $ constructErrorMsg loc "TODO3" logContents
+      (Decreasing step,SBin expr1@(SymVar _ vn2 _) op expr2) -> let
+        step_type = toSymType2 step in if
+        | vn == vn2 && isTypeNumeric step_type -> case op of
+          Gt -> let
+            right = expr2
+            left = numericCalculator $ SBin expr2 Sub step
+            in if | isOne step -> Just $ LoopExitFactValue vn right
+                  | otherwise  -> Just $ LoopExitFactRange vn left right
+          Ge -> let
+            right = SBin expr2 Sub (cast step_type $ SymNum 1)
+            left = SBin right Sub step
+            in if | isOne step -> Just $ LoopExitFactValue vn right
+                  | otherwise  -> Just $ LoopExitFactRange vn left right
+          _ -> error $ constructErrorMsg loc "TODO3" logContents
+      _ -> error $ constructErrorMsg loc "TODO4" logContents

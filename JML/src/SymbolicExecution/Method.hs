@@ -1,13 +1,14 @@
 {-# Language LambdaCase, MultiWayIf, ScopedTypeVariables #-}
 module SymbolicExecution.Method where
 
+import Prelude hiding (negate)
 import qualified SymbolicExecution.Logs.Log as Log
 import SymbolicExecution.Types
 import qualified CFG.Types as CFGT
 import qualified CFG.Internal as CFG
 import qualified Data.Map as Map
 import Data.Maybe (mapMaybe, fromJust)
-import Control.Monad (foldM, zipWithM_, liftM)
+import Control.Monad (foldM, zipWithM_, liftM, forM)
 import Control.Monad.Reader (ReaderT,runReaderT,ask)
 import Control.Monad.State
 import Control.Monad.Except
@@ -47,11 +48,11 @@ instance CFGVisitor MethodProcessor where
                    incrementLogEnumeration
                    argVisited <- incrementLogDepth *> visitExpr arg
                    case argVisited of
-                     ER_SymStateMapEntry (VarName name) val@(SymVar _ _) -> do
+                     ER_SymStateMapEntry (VarName name) val@(SymVar _ _ _) -> do
                        alreadyExist <- env <$> get >>= return . Map.lookup (VarName name)
                        case alreadyExist of
                          Nothing -> throwError $ "TODO: " ++ loc
-                         Just (SymVar _ _) -> do
+                         Just (SymVar _ _ _) -> do
                            tellNextLog $ Log.ModifyState (loc ++ " ==> arg") (name,show val)
                            modify $ \symState -> SymState {
                                env = recordFormalParm name $ Map.insert (VarName name) val (env symState),
@@ -203,252 +204,270 @@ instance CFGVisitor MethodProcessor where
           return $ case re of
             ER_Expr expr2 -> expr2
             _ -> error $ printf "%s ==> %s" loc (show re)
+        let expr_before_substitution :: SymExpr
+            expr_before_substitution = let
+              theType = case expr2 of
+                SBin symExpr1 op symExpr2
+                  | isBooleanOperator op -> let
+                      theType1 = toSymType2 symExpr1
+                      theType2 = toSymType2 symExpr2 in if
+                        | theType1 == theType2 -> theType1
+                        | theType1 `isInstanceOf` theType2 -> theType1
+                        | theType2 `isInstanceOf` theType1 -> theType2
+                        | otherwise -> error
+                            $ constructErrorMsg loc "TODO1" [
+                                ("expr",show expr),
+                                ("expr2",show expr2),
+                                ("theType1",show theType1),
+                                ("theType2",show theType2)
+                              ]
+                _ -> Bool
+              in booleanCalculator $ toSymExpr theType expr
         (state,stateEnv) <- (,) <$> get <*> (env <$> get) 
         let mainActions = getActions stateEnv
         let mainVarAssignments = getVarAssignments stateEnv
         let mainVarNames = getVarNames stateEnv
 
         toReturn <- case expr2 of
-              SBool b -> do
-                case branches_paths of
-                  [ifB] | b -> do
-                    let (logs,condSymStateEnv) = let
-                          (er,logs,condSymStateEnv) = runCFG cfgs cfg (Just ifB)
-                            (Just $ SymState stateEnv (Log.Header 1 [0]))
-                          in case er of
-                               "" -> (logs,condSymStateEnv)
-                               _  -> error $ printf "%s ==> if condition is true: %s" loc er
-                    do
-                      incrementLogEnumeration
-                      flip mapM_ logs $ \log -> do
-                        Log.Header _ baseCounter <- logHeader <$> get
-                        tellNextNestedLog baseCounter ["if statement"] log
-                    -- remove vars declared in that scope
-                    -- use vars bindings to do so
-                    let sEnv = removeDeletedVars stateEnv condSymStateEnv
-                    let newCondSymStateEnv =
-                          let addActions = Map.alter (\case
-                                Nothing -> Just $ SActions mainActions
-                                Just (SActions li) -> Just
-                                  $ SActions $ mainActions ++ li) Actions sEnv
-                              deleteVarAssignments = Map.alter (\case
-                                Nothing -> Nothing
-                                Just (SVarAssignments li) -> Just $ SVarAssignments
-                                  $ flip filter li
-                                    $ \(name,_) ->
-                                        isGlobalVariable2 name addActions ||
-                                        maybe False (const True)
-                                         (lookup name mainVarAssignments)
-                                ) VarAssignments addActions
-                          in deleteVarAssignments
-
-                    env <$> get >>= \theEnv -> tellNextLog
-                      $ Log.ModifyState
-                          (printf "%s ==> overwriting if" loc)
-                          (printf "old state: %s\n\n\
-                                  \condSymStateEnv: %s\n\n\
-                                  \new state: %s" (show theEnv) (show condSymStateEnv) (show newCondSymStateEnv),
-                           printf "new state: %s" (show newCondSymStateEnv))
-                    modify $ \symState -> SymState {
-                        env = newCondSymStateEnv,
-                        logHeader = logHeader symState
-                      }
-                    ER_State <$> get
-                  [ifB] | not b -> do
-                    tellNextLog $ Log.NoElseBranch loc
-                    return ER_Void
-                  [ifB,elseB] -> do
-                    let choiceStr = if b then "if" else "else"
-                        (logs,condSymStateEnv) = let
-                          (er,logs,condSymStateEnv) = runCFG cfgs cfg (Just $ if b then ifB else elseB)
-                            (Just $ SymState (env state) (Log.Header 1 [0]))
-                          in case er of
-                               "" -> (logs,condSymStateEnv)
-                               _  -> error $ printf "%s ==> %s branch ==> %s" loc choiceStr er
-                    do
-                      tellNextLog (Log.HorizontalLine $ printf "In %s branch" choiceStr)
-                      incrementLogEnumeration
-                      flip mapM_ logs $ \log -> do
-                        Log.Header _ baseCounter <- logHeader <$> get
-                        tellNextNestedLog baseCounter [printf "%s statement" choiceStr] log
-                    -- remove vars declared in that scope
-                    -- use vars bindings to do so
-                    let sEnv = removeDeletedVars stateEnv condSymStateEnv
-                    let newCondSymStateEnv =
-                          let addActions = Map.alter (\case
-                                Nothing -> Just $ SActions mainActions
-                                Just (SActions li) -> Just
-                                    $ SActions $ mainActions ++ li) Actions sEnv
-                              deleteVarAssignments = Map.alter (\case
-                                Nothing -> Nothing
-                                Just (SVarAssignments li) -> Just $ SVarAssignments
-                                  $ flip filter li
-                                    $ \(name,_) ->
-                                        isGlobalVariable2 name addActions ||
-                                        maybe False (const True)
-                                         (lookup name mainVarAssignments)
-                                ) VarAssignments addActions
-                          in deleteVarAssignments
-                    tellNextLog $ Log.ModifyState (printf "%s ==> overwriting %s" loc (if b then "if" else "else")) ("<new state>",show newCondSymStateEnv)
-                    modify $ \symState -> SymState {
-                      env = newCondSymStateEnv,
-                      logHeader = logHeader symState
-                    }
-                    ER_State <$> get
-              SBin _ _ _ -> do
-                let (ifLogs,ifSymState0Env) = let
-                      ifInitState = SymState (env state) (Log.Header 1 [0])
-                      (er,ifLogs,ifSymState0Env) = case branches_paths of
-                        -- `branches_paths` is empty when the if body has no statements
-                        -- in this case there's nothing to be done
-                        [] -> ("",[],env ifInitState)
-                        _ -> runCFG cfgs cfg (Just $ branches_paths !! 0)
-                          (Just ifInitState)
+          SBool b -> do
+            case branches_paths of
+              [ifB] | b -> do
+                let (logs,condSymStateEnv) = let
+                      (er,logs,_,condSymStateEnv) = runCFG cfgs cfg (Just ifB)
+                        (Just $ SymState stateEnv (Log.Header 1 [0]))
                       in case er of
-                           "" -> (ifLogs,ifSymState0Env)
-                           _  -> error $ printf "%s ==> unevaluated if condition ==> if ==> %s" loc er
-
-                tellNextLog (Log.HorizontalLine "if branch")
-                
-                -- tell the logs of the if body 
+                           "" -> (logs,condSymStateEnv)
+                           _  -> error $ printf "%s ==> if condition is true: %s" loc er
                 do
                   incrementLogEnumeration
-                  flip mapM_ ifLogs $ \log -> do
+                  flip mapM_ logs $ \log -> do
                     Log.Header _ baseCounter <- logHeader <$> get
                     tellNextNestedLog baseCounter ["if statement"] log
-                
-                (ifCond,ifSymStateEnv,mElseSymStateEnv) <- case branches_paths of
-                  -- if `branches_paths` is empty then there is no if or else body 
-                  []  -> return (expr2,ifSymState0Env,Nothing)
-                  -- if `branches_paths` has one elem then there is no else body
-                  [_] -> return (expr2,ifSymState0Env,Nothing)
-                  [_,pElse] -> do
-                    let (elseLogs,elseSymStateEnv) = let
-                          (er,elseLogs,elseSymStateEnv) = runCFG cfgs cfg (Just pElse)
-                            (Just $ SymState (env state) (Log.Header 1 [0]))
-                          in case er of
-                               "" -> (elseLogs,elseSymStateEnv)
-                               _  -> error $ printf "%s ==> unevaluated if condition ==> else ==> %s" loc er
-                    
-                    tellNextLog (Log.HorizontalLine "else branch")
+                -- remove vars declared in that scope
+                -- use vars bindings to do so
+                let sEnv = removeDeletedVars stateEnv condSymStateEnv
+                let newCondSymStateEnv =
+                      let addActions = Map.alter (\case
+                            Nothing -> Just $ SActions mainActions
+                            Just (SActions li) -> Just
+                              $ SActions $ mainActions ++ li) Actions sEnv
+                          deleteVarAssignments = Map.alter (\case
+                            Nothing -> Nothing
+                            Just (SVarAssignments li) -> Just $ SVarAssignments
+                              $ flip filter li
+                                $ \(name,_) ->
+                                    isGlobalVariable2 name addActions ||
+                                    maybe False (const True)
+                                     (lookup name mainVarAssignments)
+                            ) VarAssignments addActions
+                      in deleteVarAssignments
 
-                    flip mapM_ elseLogs $ \log -> do
-                      Log.Header _ baseCounter <- logHeader <$> get
-                      tellNextNestedLog baseCounter ["else statement"] log
-
-                    return (expr2,ifSymState0Env,Just elseSymStateEnv)
-                -- symExpr is the SIte with the two conditional states
-                let symExpr = SIte ifCond ifSymStateEnv mElseSymStateEnv
-                let condBranchRange = CFGT.SR {
-                      CFGT.branchStart = CFGT.id n,
-                      CFGT.branchEnd = CFG.getBranchEnd (CFGT.id n) cfg
-                    }
-                -- condVarAssignments gives me
-                -- 1) the VarAssignments in the if/else branch,
-                --    which were originally defined outside of them
-                -- 2) the VarAssignments of global variables
-                let condVarAssignments sEnv = flip filter (getVarAssignments sEnv) $
-                      \(name,_) ->
-                        Map.member (VarName name) mainVarNames ||
-                        (isGlobalVariable2 name sEnv)
-                      
-                    newMainVarAssignments = nub $
-                        condVarAssignments ifSymStateEnv ++
-                        maybe [] condVarAssignments mElseSymStateEnv
-                    newMainGlobalVars = nub $
-                        filter (\vn -> isGlobalVariable2 vn stateEnv)
-                               (getVarNames2 (ScopeRange condBranchRange,ifCond))
-                        ++ getGlobalVars ifSymStateEnv
-                        ++ maybe [] getGlobalVars mElseSymStateEnv
-                tellNextLog $ Log.ModifyState (printf "%s ==> recording symbolic branching" loc) (printf "if node num: %d" (CFGT.id n),show symExpr)
-                modify $ \symState ->
-                      -- `ma1` has the new conditional branchs (addNode)
-                      --  and has the new VarAssignments from the conditional branches
-                  let ma1 =
-                        let addNode = Map.insert
-                              (ScopeRange condBranchRange)
-                              symExpr (env symState)
-                            addVarAssignments = Map.insert
-                              VarAssignments (SVarAssignments newMainVarAssignments) addNode
-                            addGlobalVars = Map.insert
-                              GlobalVars (SGlobalVars newMainGlobalVars) addVarAssignments
-                        in addGlobalVars
-                      -- if there's a VarName that was assigned between `condBranchRange`
-                      -- then make it unknown
-                      unknownVarAssigns = flip filter (getVarAssignments ma1) $ \case
-                        (_,(_,CFGT.Node_Coor _ frameCoor)) ->
-                          CFGT.branchStart frameCoor == CFGT.branchStart condBranchRange
-                      -- will be used in ma2
-                      -- gets SymType of `varAssName`,
-                      -- which is the one of the vars mentioned in `unknownVarAssigns`
-                      getUnknownVarSymType_in_if_template varAssName =
-                        let seeking = asum $ map (getVarNameSymType varAssName)
-                              $ ifSymStateEnv : maybe [] (: []) mElseSymStateEnv
-                        in case seeking of
-                             Nothing -> error $ printf "%s ==> won't happen2" loc
-                             Just t -> t
-                      -- will be used in ma2
-                      -- creates new reason, based in this if scope 
-                      newReason_template :: [CFGT.Node_Coor] -> [SymReason]
-                      newReason_template coors = createSymReason
-                          (CFGT.If,
-                           CFGT.SR (CFGT.id n)
-                                   (CFG.getNodeId $ CFG.getEndIfNode cfg n)) cfg coors
-                      -- ma2 traverses each (varAssName,coors) mentioned in `unknownVarAssigns`
-                      -- and uses them to Map.alter every mention of the varName in ma1
-                      -- This will yield new SymUnknown as SymExpr to each varAssName
-                      -- `getUnknownVarSymType_in_if_template` and `newReason_template`
-                      -- will be used inside
-                      ma2 = foldl' (\ma (varAssName,(_,coor)) ->
-                        Map.alter (\case
-                          Nothing -> Just $ SymUnknown (
-                            varAssName,
-                            SymVar (getUnknownVarSymType_in_if_template varAssName) varAssName)
-                              $ newReason_template [coor]
-                          Just (SymUnknown (_,v) oldReasons) -> Just $
-                            SymUnknown
-                              (varAssName,
-                               cast (getUnknownVarSymType_in_if_template varAssName) v)
-                            $ oldReasons ++ newReason_template [coor]
-                          Just val -> Just $ SymUnknown (
-                            varAssName,
-                            cast (pick_known_symType (
-                              toSymType2 val,
-                              (getUnknownVarSymType_in_if_template varAssName))) val)
-                            $ newReason_template [coor]) (VarName varAssName) ma)
-                            ma1 unknownVarAssigns
-                  
-                  in SymState {
-                    env = ma2,
+                env <$> get >>= \theEnv -> tellNextLog
+                  $ Log.ModifyState
+                      (printf "%s ==> overwriting if" loc)
+                      (printf "old state: %s\n\n\
+                              \condSymStateEnv: %s\n\n\
+                              \new state: %s" (show theEnv) (show condSymStateEnv) (show newCondSymStateEnv),
+                       printf "new state: %s" (show newCondSymStateEnv))
+                modify $ \symState -> SymState {
+                    env = newCondSymStateEnv,
                     logHeader = logHeader symState
                   }
-                -- the branching for the if and else
-                -- may provide more concrete informations about
-                -- global VarNames in the main branch
-                --
-                -- Extract types of global VarNames from the if and else branches
-                -- and use them to cast the global VarNames in the main branch
-                -- symExpr@(SIte ifCond ifSymStateEnv mElseSymStateEnv)
-                -- varNameSymExprs :: [(String,[SymExpr])]
-                varNameSymExprs <- getScopedGlobalVarsSymExprs (ScopeRange condBranchRange,symExpr)
-                -- `varNameSymExprs` provides all needed info for the most concrete type
-                -- of all global variables available at this point
-                -- record it:
+                ER_State <$> get
+              [ifB] | not b -> do
+                tellNextLog $ Log.NoElseBranch loc
+                return ER_Void
+              [ifB,elseB] -> do
+                let choiceStr = if b then "if" else "else"
+                    (logs,condSymStateEnv) = let
+                      (er,logs,_,condSymStateEnv) = runCFG cfgs cfg (Just $ if b then ifB else elseB)
+                        (Just $ SymState (env state) (Log.Header 1 [0]))
+                      in case er of
+                           "" -> (logs,condSymStateEnv)
+                           _  -> error $ printf "%s ==> %s branch ==> %s" loc choiceStr er
+                do
+                  tellNextLog (Log.HorizontalLine $ printf "In %s branch" choiceStr)
+                  incrementLogEnumeration
+                  flip mapM_ logs $ \log -> do
+                    Log.Header _ baseCounter <- logHeader <$> get
+                    tellNextNestedLog baseCounter [printf "%s statement" choiceStr] log
+                -- remove vars declared in that scope
+                -- use vars bindings to do so
+                let sEnv = removeDeletedVars stateEnv condSymStateEnv
+                let newCondSymStateEnv =
+                      let addActions = Map.alter (\case
+                            Nothing -> Just $ SActions mainActions
+                            Just (SActions li) -> Just
+                                $ SActions $ mainActions ++ li) Actions sEnv
+                          deleteVarAssignments = Map.alter (\case
+                            Nothing -> Nothing
+                            Just (SVarAssignments li) -> Just $ SVarAssignments
+                              $ flip filter li
+                                $ \(name,_) ->
+                                    isGlobalVariable2 name addActions ||
+                                    maybe False (const True)
+                                     (lookup name mainVarAssignments)
+                            ) VarAssignments addActions
+                      in deleteVarAssignments
+                tellNextLog $ Log.ModifyState (printf "%s ==> overwriting %s" loc (if b then "if" else "else")) ("<new state>",show newCondSymStateEnv)
                 modify $ \symState -> SymState {
-                  env = flip Map.mapWithKey (env symState) $ \k v -> case k of
-                    VarName vn -> case lookup vn varNameSymExprs of
-                      Nothing -> v
-                      Just symExprs ->
-                        let symExprs_ = flip filter symExprs $ \symExpr ->
-                              toSymType2 symExpr `isInstanceOf` toSymType2 v
-                            newType = pick_known_symType2
-                              $ map toSymType2 (v : symExprs_)
-                        in cast newType v
-                    _ -> v,
+                  env = newCondSymStateEnv,
                   logHeader = logHeader symState
                 }
-                return $ ER_Expr symExpr
-              _ -> throwError $ printf "TODO: %s: %s" loc (show expr2)
+                ER_State <$> get
+          SBin _ _ _ -> do
+            let (ifLogs,if_ers,ifSymState0Env) = let
+                  ifInitState = SymState (env state) (Log.Header 1 [0])
+                  (er,ifLogs,if_ers,ifSymState0Env) = case branches_paths of
+                    -- `branches_paths` is empty when the if body has no statements
+                    -- in this case there's nothing to be done
+                    [] -> ("",[],[],env ifInitState)
+                    _ -> runCFG cfgs cfg (Just $ branches_paths !! 0)
+                      (Just ifInitState)
+                  in case er of
+                       "" -> (ifLogs,if_ers,ifSymState0Env)
+                       _  -> error $ printf "%s ==> unevaluated if condition ==> if ==> %s" loc er
+
+            tellNextLog (Log.HorizontalLine "if branch")
+                
+            -- tell the logs of the if body 
+            do
+              incrementLogEnumeration
+              flip mapM_ ifLogs $ \log -> do
+                Log.Header _ baseCounter <- logHeader <$> get
+                tellNextNestedLog baseCounter ["if statement"] log
+                
+            (ifCond,ifSymStateEnv,else_ers,mElseSymStateEnv) <- case branches_paths of
+              -- if `branches_paths` is empty then there is no if or else body 
+              []  -> return (expr2,ifSymState0Env,[],Nothing)
+              -- if `branches_paths` has one elem then there is no else body
+              [_] -> return (expr2,ifSymState0Env,[],Nothing)
+              [_,pElse] -> do
+                let (elseLogs,else_ers,elseSymStateEnv) = let
+                      (er,elseLogs,else_ers,elseSymStateEnv) = runCFG cfgs cfg (Just pElse)
+                        (Just $ SymState (env state) (Log.Header 1 [0]))
+                      in case er of
+                           "" -> (elseLogs,else_ers,elseSymStateEnv)
+                           _  -> error $ printf "%s ==> unevaluated if condition ==> else ==> %s" loc er
+                    
+                tellNextLog (Log.HorizontalLine "else branch")
+
+                flip mapM_ elseLogs $ \log -> do
+                  Log.Header _ baseCounter <- logHeader <$> get
+                  tellNextNestedLog baseCounter ["else statement"] log
+                return (expr2,ifSymState0Env,else_ers,Just elseSymStateEnv)
+            -- symExpr is the SIte with the two conditional states
+            let symExpr = SIte ifCond ifSymStateEnv mElseSymStateEnv
+            let condBranchRange = CFGT.SR {
+                  CFGT.branchStart = CFGT.id n,
+                  CFGT.branchEnd = CFG.getBranchEnd (CFGT.id n) cfg
+                }
+            -- condVarAssignments gives me
+            -- 1) the VarAssignments in the if/else branch,
+            --    which were originally defined outside of them
+            -- 2) the VarAssignments of global variables
+            let condVarAssignments sEnv = flip filter (getVarAssignments sEnv) $
+                  \(name,_) ->
+                    Map.member (VarName name) mainVarNames ||
+                    (isGlobalVariable2 name sEnv)
+                      
+                newMainVarAssignments = nub $
+                    condVarAssignments ifSymStateEnv ++
+                    maybe [] condVarAssignments mElseSymStateEnv
+                newMainGlobalVars = nub $
+                    filter (\vn -> isGlobalVariable2 vn stateEnv)
+                           (getVarNames2 (ScopeRange condBranchRange,ifCond))
+                    ++ getGlobalVars ifSymStateEnv
+                    ++ maybe [] getGlobalVars mElseSymStateEnv
+            tellNextLog $ Log.ModifyState (printf "%s ==> recording symbolic branching" loc) (printf "if node num: %d" (CFGT.id n),show symExpr)
+            modify $ \symState ->
+                  -- `ma1` has the new conditional branchs (addNode)
+                  --  and has the new VarAssignments from the conditional branches
+              let ma1 =
+                    let addNode = Map.insert
+                          (ScopeRange condBranchRange)
+                          symExpr (env symState)
+                        addVarAssignments = Map.insert
+                          VarAssignments (SVarAssignments newMainVarAssignments) addNode
+                        addGlobalVars = Map.insert
+                          GlobalVars (SGlobalVars newMainGlobalVars) addVarAssignments
+                    in addGlobalVars
+                  -- if there's a VarName that was assigned between `condBranchRange`
+                  -- then make it unknown
+                  unknownVarAssigns = flip filter (getVarAssignments ma1) $ \case
+                    (_,(_,CFGT.Node_Coor _ frameCoor)) ->
+                      CFGT.branchStart frameCoor == CFGT.branchStart condBranchRange
+                  -- will be used in ma2
+                  -- gets SymType of `varAssName`,
+                  -- which is the one of the vars mentioned in `unknownVarAssigns`
+                  getUnknownVarSymType_in_if_template varAssName =
+                    let seeking = asum $ map (getVarNameSymType varAssName)
+                          $ ifSymStateEnv : maybe [] (: []) mElseSymStateEnv
+                    in case seeking of
+                         Nothing -> error $ printf "%s ==> won't happen2" loc
+                         Just t -> t
+                  -- will be used in ma2
+                  -- creates new reason, based in this if scope 
+                  newReason_template :: [CFGT.Node_Coor] -> [SymReason]
+                  newReason_template coors = createSymReason
+                      (CFGT.If,
+                       CFGT.SR (CFGT.id n)
+                               (CFG.getNodeId $ CFG.getEndIfNode cfg n)) cfg coors
+                  -- ma2 traverses each (varAssName,coors) mentioned in `unknownVarAssigns`
+                  -- and uses them to Map.alter every mention of the varName in ma1
+                  -- This will yield new SymUnknown as SymExpr to each varAssName
+                  -- `getUnknownVarSymType_in_if_template` and `newReason_template`
+                  -- will be used inside
+                  ma2 = foldl' (\ma (varAssName,(_,coor)) ->
+                    Map.alter (\case
+                      Nothing -> Just $ SymUnknown (
+                        varAssName,
+                        SymVar (getUnknownVarSymType_in_if_template varAssName) varAssName [])
+                          $ newReason_template [coor]
+                      Just (SymUnknown (_,v) oldReasons) -> Just $
+                        SymUnknown
+                          (varAssName,
+                           cast (getUnknownVarSymType_in_if_template varAssName) v)
+                        $ oldReasons ++ newReason_template [coor]
+                      Just val -> Just $ SymUnknown (
+                        varAssName,
+                        cast (pick_known_symType (
+                          toSymType2 val,
+                          (getUnknownVarSymType_in_if_template varAssName))) val)
+                        $ newReason_template [coor]) (VarName varAssName) ma)
+                        ma1 unknownVarAssigns
+                 
+              in SymState {
+                env = ma2,
+                logHeader = logHeader symState
+              }
+            -- the branching for the if and else
+            -- may provide more concrete informations about
+            -- global VarNames in the main branch
+            --
+            -- Extract types of global VarNames from the if and else branches
+            -- and use them to cast the global VarNames in the main branch
+            -- symExpr@(SIte ifCond ifSymStateEnv mElseSymStateEnv)
+            -- varNameSymExprs :: [(String,[SymExpr])]
+            varNameSymExprs <- getScopedGlobalVarsSymExprs (ScopeRange condBranchRange,symExpr)
+            -- `varNameSymExprs` provides all needed info for the most concrete type
+            -- of all global variables available at this point
+            -- record it:
+            modify $ \symState -> SymState {
+              env = flip Map.mapWithKey (env symState) $ \k v -> case k of
+                VarName vn -> case lookup vn varNameSymExprs of
+                  Nothing -> v
+                  Just symExprs ->
+                    let symExprs_ = flip filter symExprs $ \symExpr ->
+                          toSymType2 symExpr `isInstanceOf` toSymType2 v
+                        newType = pick_known_symType2
+                          $ map toSymType2 (v : symExprs_)
+                    in cast newType v
+                _ -> v,
+              logHeader = logHeader symState
+            }
+            return $ ER_IfExpr condBranchRange (expr_before_substitution,symExpr) if_ers else_ers
+          _ -> throwError $ printf "TODO: %s: %s" loc (show expr2)
         tellNextLog (Log.Return loc (show toReturn)) $> toReturn
       ----------------------------------------
       ----------------------------------------
@@ -799,7 +818,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                   _ -> \case
                     -- `SymVar` occurs when the global variable was not assigned
                     -- in the method of `ma0`
-                    SymVar _ _ -> False
+                    SymVar _ _ _ -> False
                     _ -> True
                 globalVars = flip map (Map.keys theMap) $ \(VarName vn) -> vn
             return (globalVars,theMap)
@@ -810,7 +829,7 @@ visitExpr (expr@AST.FunCallExpr{}) = do
                 $ Map.insert GlobalVars (SGlobalVars globalVars)
                 Map.empty
           let (funCallLogs2,funCallSymState2Env) = let
-                (er,funCallLogs2,funCallSymState2Env) = runCFG cfgs cfg0 Nothing
+                (er,funCallLogs2,_,funCallSymState2Env) = runCFG cfgs cfg0 Nothing
                   $ Just $ SymState funCallMap0 (Log.Header 1 [0])
                 in case er of
                      "" -> (funCallLogs2,funCallSymState2Env)
@@ -1118,7 +1137,7 @@ visitExpr expr@AST.AssignExpr{} = do
 
   let two_val = case two of
           ER_Expr e2_@(SymArray mType1 mSize1 elms1) -> case one_val of
-            SymVar (Array type2) _ ->
+            SymVar (Array type2) _ _ ->
               let newType = pick_known_symType2
                     $ maybe UnknownGlobalVarSymType id mType1
                     : map toSymType2 elms1
@@ -1163,7 +1182,7 @@ visitExpr expr@AST.AssignExpr{} = do
               $ constructErrorMsg "visitExpr ==> AssignExpr" "TODO5"
                 [("index",show index)
                 ,("varNames",show varNames)]
-          Just e@(SymVar (Array t) arrName) ->
+          Just e@(SymVar (Array t) arrName _) ->
             let newType = pick_known_symType2 [arrType, toSymType2 e, toSymType2 two_val]
             in return $ cast newType e
           Just e@(SymUnknown _ _) ->
@@ -1242,7 +1261,7 @@ visitExpr expr@AST.VarExpr{} = do
               tellNextLog (Log.Return "visitExpr -> VarExpr -> Updating" (show toReturn)) $> toReturn
             Nothing -> do
               tellNextLog $ Log.GlobalVar varName_ "visitExpr -> VarExpr"
-              let symExpr = SymVar UnknownGlobalVarSymType varName_
+              let symExpr = SymVar UnknownGlobalVarSymType varName_ []
                   toReturn = ER_SymStateMapEntry (VarName varName_) symExpr
               tellNextLog $ Log.ModifyState "visitExpr -> VarExpr" (varName_,show symExpr)
               modify $ \symState -> SymState {
@@ -1263,7 +1282,7 @@ visitExpr expr@AST.VarExpr{} = do
               return $ ER_ActualParameterDetected varName_ expr
             Nothing -> do
               tellNextLog $ Log.NewVariable (show t) varName_ "visitExpr -> VarExpr"
-              let sExpr = SymVar(toSymType1 t) varName_
+              let sExpr = SymVar(toSymType1 t) varName_ []
               tellNextLog $ Log.ModifyState "visitExpr -> VarExpr" (varName_,show sExpr)
               modify $ \symState ->
                 SymState {
@@ -1414,17 +1433,20 @@ visitLoop theLoopSyntax cfg m_Acc mForCondExpr forBody_forStep_path branchRange 
   let prependLogs :: String -> [Log.Log] -> [Log.Log]
       prependLogs newLogTagStr = map (\(Log.Log innerCounterStr logTag) ->
         Log.Log innerCounterStr $ Log.Nested newLogTagStr logTag)
-  (hasAcc,env_With_Acc) <- do
+  (hasAcc,maybe_acc_er,env_With_Acc) <- do
     case m_Acc of
-      Nothing -> ((,) False . env) <$> get
+      Nothing -> do
+        theEnv <- env <$> get
+        return (False,Nothing,theEnv)
       Just acc -> do
         tellNextLog (Log.HorizontalLine "For Accumulator")
-        incrementLogDepth *>
+        acc_er <- incrementLogDepth *>
           censor (prependLogs "For Accumulator") (methodProcessorMonad $ visitNode acc)
-                           <* decrementLogDepth
-        ((,) True . env) <$> get
-  (hasCond,forCondExpr_visited) <- case mForCondExpr of
-    Nothing -> return (False,SBool True)
+            <* decrementLogDepth
+        theEnv <- env <$> get
+        return (True,Just acc_er,theEnv)
+  (hasCond,maybe_forCondExpr_visited,forCondExpr_visited_expr) <- case mForCondExpr of
+    Nothing -> return (False,Nothing,SBool True)
     Just forCondExpr -> do
        tellNextLog (Log.HorizontalLine "For Cond")
        if hasAcc
@@ -1433,49 +1455,140 @@ visitLoop theLoopSyntax cfg m_Acc mForCondExpr forBody_forStep_path branchRange 
        re <- incrementLogDepth *>
          censor (prependLogs "For Loop Condition") (visitExpr forCondExpr)
                           <* decrementLogDepth
-       return $ (,) True $ case re of
+       return $ (,,) True (Just re) $ case re of
          ER_Expr forCondExpr_visited -> forCondExpr_visited
          _ -> error $ printf "won't happen1: %s ==> %s" loc (show re)
 
   -- here gets decided whether to call `visitUnregisteredLoop` or `visitRegisteredLoop`
   do -- `forBody_forStep_visited`, alongside `forCondExpr_visited`, helps deciding whether
      --   to call `visitUnregisteredLoop` or `visitRegisteredLoop`
-     forBody_forStep_visited <- do
-       s <- get
-       ers <- mapM (censor (filter $ const False) . methodProcessorMonad . visitNode) forBody_forStep_path
-       put s
-       return ers
-     
-     let anyHasSymVar = [vn |
-           ER_SymStateMapEntry (VarName vn) expr <- forBody_forStep_visited
-           , hasSymVar expr || hasSymUnknown expr]
-
-     case forCondExpr_visited of
-       -- visit for loop body
-       SBool True -> do
-         theEnv <- env <$> get
-         if | null anyHasSymVar -> callRegisteredLoop loc env_Before_Acc
-            | otherwise -> callUnregisteredLoop env_Before_Acc
-       SBool True -> callRegisteredLoop loc env_Before_Acc
-       -- for loop condition was not met
-       SBool False -> do
+     (loopState,forBody_forStep_visited) <- case forCondExpr_visited_expr of
+       -- if the loop condition is not fulfilled,
+       -- the  there's no point in „visiting“ the loop body
+       SBool False -> get >>= \s -> return (s,[])
+       _ -> do
+         s <- get
+         constructLog loc "forBody_forStep_path" [
+           ("forBody_forStep_path",show forBody_forStep_path),
+           ("s",show s)]
+         ers <- mapM (censor (filter $ const False) . methodProcessorMonad . visitNode) forBody_forStep_path
+         s2 <- get
+         put s
+         return (s2,ers)
+     de <- do
+       incrementLogEnumeration
+       incrementLogDepth *>
+         studyLoop (env loopState,forBody_forStep_visited) forCondExpr_visited_expr
+           <* decrementLogDepth
+     {-throwError $ constructErrorMsg loc "MEOW" [
+       ("loopState",show loopState),
+       ("forCondExpr_visited_expr",show forCondExpr_visited_expr),
+       ("forBody_forStep_visited",show forBody_forStep_visited),
+       ("de",show de)]-}
+     let summary = [
+           ("mForCondExpr",show mForCondExpr),
+           ("maybe_forCondExpr_visited",show maybe_forCondExpr_visited),
+           ("forCondExpr_visited_expr",show forCondExpr_visited_expr),
+           ("forBody_forStep_path",show forBody_forStep_path),
+           ("forBody_forStep_visited",show forBody_forStep_visited),
+           ("de",show de)]
+     case de of
+       1 -> callRegisteredLoop (loc ++ ".callRegisteredLoop")
+              env_Before_Acc
+              (forCondExpr_visited_expr :: SymExpr,
+               loopState :: SymState,
+               forBody_forStep_visited :: [ExecutionResult])
+       2 -> callUnregisteredLoop (loc ++ ".callUnregisteredLoop")
+              maybe_acc_er env_Before_Acc
+              (forCondExpr_visited_expr :: SymExpr,
+               loopState :: SymState,
+               forBody_forStep_visited :: [ExecutionResult])
+       3 -> do
          tellNextLog $ Log.ForLoopDone "visitRegisteredLoop"
          modify $ \symState -> SymState env_Before_Acc (logHeader symState)
          return ER_ForLoopDone
-       _ -> callUnregisteredLoop env_Before_Acc
   where
+  ----------
+  -- 1 ==> callRegisteredLoop
+  -- 2 ==> callUnregisteredLoop
+  -- 3 ==> ER_ForLoopDone
+  studyLoop :: (SymStateEnv,[ExecutionResult]) -> SymExpr -> SymbolicExecutionMonad Int
+  studyLoop (loopEnv,forBody_forStep_visited) forCondExpr_visited_expr = do
+    let loc = "SymbolicExecution.Method.visitLoop.studyLoop"
+        logContents = [
+          ("loopEnv",show loopEnv),
+          ("forBody_forStep_visited",show forBody_forStep_visited),
+          ("forCondExpr_visited_expr",show forCondExpr_visited_expr)]
+    constructLog loc "studyLoop" logContents
+    let if_conds = flip map (get_ER_IfExprs forBody_forStep_visited)
+          $ \(ER_IfExpr _ (_,(SIte cond _ _)) _ _) -> cond
+        if_else_ers = flip concatMap (get_ER_IfExprs forBody_forStep_visited)
+          $ \(ER_IfExpr _ _ if_ers else_ers) -> if_ers ++ else_ers
+        anyHasSymVar = [vn
+          | ER_SymStateMapEntry (VarName vn) expr <- forBody_forStep_visited ++ if_else_ers   
+          , hasSymVar expr || hasSymUnknown expr
+          ]
+        toReturn = foldr (\r acc -> case acc of
+          2 -> acc
+          _ -> case r of
+            SBool True
+              | null anyHasSymVar -> 1
+              | otherwise -> 2
+            SBool False -> 3
+            _ -> 2) 0 $ forCondExpr_visited_expr : if_conds
+        summary = [
+          ("if_else_ers",show if_else_ers),
+          ("if_conds",show if_conds),
+          ("forCondExpr_visited_expr",show forCondExpr_visited_expr),
+          ("anyHasSymVar",show anyHasSymVar),
+          ("toReturn",show toReturn)]
+    constructLog loc "Summary" summary
+    (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
+  ----------
   isLoopTerminated = \case
     ER_ForLoopDoneViaReturnStmt -> True
     ER_ForLoopDoneViaBreakStmt -> True
     ER_ForLoopDone -> True
     _ -> False
   ----------
-  callUnregisteredLoop env_Before_Acc = do
+  callUnregisteredLoop loc maybe_acc_er env_Before_Acc
+    (forCondExpr_visited_expr :: SymExpr,
+     loopState :: SymState,
+     forBody_forStep_ers :: [ExecutionResult]) = do
     modify $ \symState -> SymState env_Before_Acc (logHeader symState)
-    visitUnregisteredLoop theLoopSyntax cfg m_Acc mForCondExpr forBody_forStep_path branchRange
+    -- add a varAssignment about the counter of the for loop
+    case theLoopSyntax of
+      ForSyntax -> case maybe_acc_er of
+        Just (ER_SymStateMapEntry (VarName vn) symExpr) -> let
+          forAccNodeCoor = CFGT.Node_Coor (CFGT.branchStart branchRange) branchRange
+          symExpr2 = SymVar (toSymType2 symExpr) vn [ForAccumulator branchRange symExpr]
+          varAssignment :: (String,(SymExpr,CFGT.Node_Coor))
+          varAssignment = (vn,(symExpr2,forAccNodeCoor))
+          in modify $ \symState -> SymState {
+               env = Map.alter (\case
+                 Just (SVarAssignments li) -> Just $ SVarAssignments $ li ++ [varAssignment]
+                 Nothing -> Just $ SVarAssignments [varAssignment]
+                 ) VarAssignments (env symState),
+               logHeader = logHeader symState
+             }
+        Just er -> throwError $ constructErrorMsg loc "TODO" [("er",show er)]
+        -- there is no counter
+        Nothing -> return ()
+      _ -> return ()
+    
+    visitUnregisteredLoop theLoopSyntax cfg m_Acc
+      (mForCondExpr,forCondExpr_visited_expr)
+      (forBody_forStep_path,loopState,forBody_forStep_ers)
+      branchRange
   ----------
-  callRegisteredLoop loc env_Before_Acc = do
-    forLoopVisited <- visitRegisteredLoop theLoopSyntax 1 env_Before_Acc cfg m_Acc mForCondExpr forBody_forStep_path branchRange
+  callRegisteredLoop loc env_Before_Acc
+    (forCondExpr_visited_expr :: SymExpr,
+     loopState :: SymState,
+     forBody_forStep_ers :: [ExecutionResult]) = do
+    forLoopVisited <- visitRegisteredLoop theLoopSyntax 1 env_Before_Acc cfg m_Acc
+      (mForCondExpr,forCondExpr_visited_expr)
+      (forBody_forStep_path,loopState,forBody_forStep_ers)
+      branchRange
     case forLoopVisited of
       -- for visitation was completed
       _ | isLoopTerminated forLoopVisited -> do
@@ -1519,8 +1632,14 @@ visitLoop theLoopSyntax cfg m_Acc mForCondExpr forBody_forStep_path branchRange 
 
 ------------------------------
 
-visitRegisteredLoop :: LoopSyntax -> Int -> Map.Map SymStateKey SymExpr -> CFGT.CFG -> Maybe CFGT.Node -> Maybe AST.Expression -> [CFGT.Node] -> CFGT.ScopeRange -> SymbolicExecutionMonad ExecutionResult
-visitRegisteredLoop theLoopSyntax loopCounter env_Before_Acc cfg m_Acc mForCondExpr forBody_forStep_path branchRange = do
+visitRegisteredLoop :: LoopSyntax -> Int -> Map.Map SymStateKey SymExpr -> CFGT.CFG -> Maybe CFGT.Node
+  -> (Maybe AST.Expression,SymExpr)
+  -> ([CFGT.Node],SymState,[ExecutionResult])
+  -> CFGT.ScopeRange -> SymbolicExecutionMonad ExecutionResult
+visitRegisteredLoop theLoopSyntax loopCounter env_Before_Acc cfg m_Acc
+  (mForCondExpr,forCondExpr_visited_expr)
+  (forBody_forStep_path,loopState,forBody_forStep_ers)
+  branchRange = do
   let loc = "SymbolicExecution.Method.visitRegisteredLoop"
   tellNextLog $ Log.Location loc
   -- whether there's a loop condition
@@ -1588,7 +1707,10 @@ visitRegisteredLoop theLoopSyntax loopCounter env_Before_Acc cfg m_Acc mForCondE
                      --   before staring the next loop round
                      get >>= tellNextLog . Log.ReportTheState loc . show . env
                      visitRegisteredLoop theLoopSyntax
-                       (loopCounter+1) env_Before_Acc cfg m_Acc mForCondExpr forBody_forStep_path branchRange
+                       (loopCounter+1) env_Before_Acc cfg m_Acc
+                       (mForCondExpr,forCondExpr_visited_expr)
+                       (forBody_forStep_path,loopState,forBody_forStep_ers)
+                       branchRange
         else do
           tellNextLog $ Log.ForLoopLimitReached loc (show forLoopLimit)
           theEnv <- env <$> get
@@ -1598,7 +1720,10 @@ visitRegisteredLoop theLoopSyntax loopCounter env_Before_Acc cfg m_Acc mForCondE
             tellNextLog $ Log.ModifyState "visitRegisteredLoop" ("Undo SymState to before the loop",show env_Before_Acc)
             modify $ \symState -> SymState env_Before_Acc (logHeader symState)
         
-          visitUnregisteredLoop theLoopSyntax cfg m_Acc mForCondExpr forBody_forStep_path branchRange
+          visitUnregisteredLoop theLoopSyntax cfg m_Acc
+            (mForCondExpr,forCondExpr_visited_expr)
+            (forBody_forStep_path,loopState,forBody_forStep_ers)
+            branchRange
           -- add entry to SymState to report about the reached limit loop failure
           do
             tellNextLog $ Log.ModifyState "visitRegisteredLoop" ("LoopFailure",show $ SLoopFailure branchRange forLoopLimit)
@@ -1695,8 +1820,14 @@ createLoopCondition expr = do
 
 ------------------------------
 
-visitUnregisteredLoop :: LoopSyntax -> CFGT.CFG -> Maybe CFGT.Node -> Maybe AST.Expression -> [CFGT.Node] -> CFGT.ScopeRange -> SymbolicExecutionMonad ExecutionResult
-visitUnregisteredLoop theLoopSyntax cfg m_Acc mForCondExpr forBody_forStep_path branchRange = do
+visitUnregisteredLoop :: LoopSyntax -> CFGT.CFG -> Maybe CFGT.Node
+  -> (Maybe AST.Expression,SymExpr)
+  -> ([CFGT.Node],SymState,[ExecutionResult])
+  -> CFGT.ScopeRange -> SymbolicExecutionMonad ExecutionResult
+visitUnregisteredLoop theLoopSyntax cfg m_Acc
+  (mForCondExpr,forCondExpr_visited_expr)
+  (forBody_forStep_path,loopState,forBody_forStep_ers)
+  branchRange = do
   let loc = "SymbolicExecution.Method.visitUnregisteredLoop"
   tellNextLog $ Log.UnvisitedForLoop "visitUnregisteredLoop" (show mForCondExpr)
   (_,cfgs) <- ask
@@ -1706,7 +1837,7 @@ visitUnregisteredLoop theLoopSyntax cfg m_Acc mForCondExpr forBody_forStep_path 
                    _ -> Just node)
   originalState <- get
   let (forBodyLogs,forBodySymStateEnv) = let
-        (er,forBodyLogs,forBodySymStateEnv) = runCFG cfgs cfg (Just path)
+        (er,forBodyLogs,_,forBodySymStateEnv) = runCFG cfgs cfg (Just path)
           (Just $ SymState (env originalState) (Log.Header 1 [0]))
         in case er of
              "" -> (forBodyLogs,forBodySymStateEnv)
@@ -1819,10 +1950,15 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
         Just (SGlobalVars _) -> Just $ SGlobalVars forBodyGlobalVars)
         GlobalVars (env originalState)
       -- f) add `forBody_Some_VarAssignments` to `map_withGlobalVars`
+      -- also, if `theLoopSyntax == ForSyntax`
+      --     , and `m_Acc` is a Just,
+      --     , then add it too
       map_withVarAssignments = Map.alter (\case
-        Nothing -> Just $ SVarAssignments forBody_Some_VarAssignments
-        Just (SVarAssignments _) -> Just $ SVarAssignments forBody_Some_VarAssignments)
-        VarAssignments map_withGlobalVars
+             Nothing -> Just $ SVarAssignments
+               $ forBody_Some_VarAssignments
+             Just (SVarAssignments _) -> Just $ SVarAssignments
+               $ forBody_Some_VarAssignments)
+             VarAssignments map_withGlobalVars
       -- g), h) VarNames in the forbody (see `branchRange`) mentioned in `forBody_Some_VarNames`
       --    need to be SymUnknown, then add them to `map_withVarAssignments`
       map_withVarNames = Map.foldlWithKey' (\ma key val -> case key of
@@ -1837,7 +1973,7 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
                [] -> ma
                _ -> Map.alter (\case
                  ---createSymReason :: (CFGT.Kind,CFGT.ScopeRange) -> CFGT.CFG -> [CFGT.Node_Coor] -> [SymReason]
-                 Nothing -> Just $ SymUnknown (vn,SymVar (toSymType2 val) vn)
+                 Nothing -> Just $ SymUnknown (vn,SymVar (toSymType2 val) vn [])
                    $ createSymReason (CFGT.For,branchRange) cfg node_coors
                  ---
                  Just (SymUnknown tu reasons) -> Just $ SymUnknown tu
@@ -1863,7 +1999,10 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
   loopSummary <- do
     incrementLogEnumeration
     incrementLogDepth *>
-      createLoopSummary theLoopSyntax m_Acc mForCondExpr (branchRange,forBody_forStep_path,map_withVarNames)
+      createLoopSummary theLoopSyntax m_Acc
+        (mForCondExpr,forCondExpr_visited_expr)
+        ((forBody_forStep_path,map_withVarNames),(loopState,forBody_forStep_ers))
+        branchRange
         <* decrementLogDepth
   loopPatterns <- do
     incrementLogEnumeration
@@ -1881,16 +2020,28 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
 
 ------------------------------
 
-createLoopSummary :: LoopSyntax -> Maybe CFGT.Node -> Maybe AST.Expression -> (CFGT.ScopeRange,[CFGT.Node],Map.Map SymStateKey SymExpr) -> SymbolicExecutionMonad LoopSummary
-createLoopSummary theLoopSyntax m_Acc mForCondExpr (branchRange,forBody_forStep_path,forBody_forStep_path_visited0) = do
+createLoopSummary :: LoopSyntax -> Maybe CFGT.Node
+  -> (Maybe AST.Expression,SymExpr)
+  -> (([CFGT.Node],Map.Map SymStateKey SymExpr),(SymState,[ExecutionResult]))
+  -> CFGT.ScopeRange
+  -> SymbolicExecutionMonad LoopSummary
+createLoopSummary theLoopSyntax m_Acc
+  (mForCondExpr,forCondExpr_visited_expr)
+  ((forBody_forStep_path,forBody_forStep_path_visited0),(loopState,forBody_forStep_ers))
+  branchRange = do
+  -- forCondExpr_visited_expr, loopState, forBody_forStep_ers
+  -- are inherited from `visitLoop`
   let loc = "SymbolicExecution.Method.createLoopSummary"
       logContents = [
          ("theLoopSyntax",show theLoopSyntax)
         ,("m_Acc",show m_Acc)
         ,("mForCondExpr",show mForCondExpr)
-        ,("branchRange",show branchRange)
+        ,("forCondExpr_visited_expr",show forCondExpr_visited_expr)
+        ,("loopState",show loopState)
+        ,("forBody_forStep_ers",show forBody_forStep_ers)
         ,("forBody_forStep_path",show forBody_forStep_path)
         ,("forBody_forStep_path_visited0",show forBody_forStep_path_visited0)
+        ,("branchRange",show branchRange)
         ]
   constructLog loc "createLoopSummary" logContents
   origState <- get
@@ -1906,6 +2057,7 @@ createLoopSummary theLoopSyntax m_Acc mForCondExpr (branchRange,forBody_forStep_
           Just symExpr -> return (Just symExpr,Just stateAfter)
           Nothing -> throwError $ constructErrorMsg loc "TODO1" [("er",show er)]
   -- visit the loop guard
+  {-
   (maybe_forCondExpr_visited :: Maybe SymExpr,maybe_stateAfterForCond) <- do
     case maybe_stateAfterAcc of
       Nothing -> return ()
@@ -1919,16 +2071,30 @@ createLoopSummary theLoopSyntax m_Acc mForCondExpr (branchRange,forBody_forStep_
         case getSymExpr er of
           Just symExpr -> return (Just symExpr,Just stateAfter)
           Nothing -> throwError $ constructErrorMsg loc "TODO2" [("er",show er)]
+   -}
+  let maybe_forCondExpr_visited = fmap (const forCondExpr_visited_expr) mForCondExpr
   -- visit the loop body
-  forBody_forStep_path_visited :: SymState <- do
+  {-
+  (forBody_forStep_path_visited,forBody_forStep_path_visited_ers)
+    :: (SymState,[ExecutionResult]) <- do
     case maybe_stateAfterForCond of
       Nothing -> return ()
       Just s -> put s
-    forM_ forBody_forStep_path (
+    ers <- forM forBody_forStep_path (
         censor (filter (const False))
       . methodProcessorMonad
       . visitNode)
-    get <* put origState
+    liftM (\s -> (,) s ers) get <* put origState
+   -}
+  let forBody_forStep_path_visited = loopState
+      forBody_forStep_path_visited_ers = forBody_forStep_ers
+  {-throwError $ constructErrorMsg loc "MEOW" [
+    ("forBody_forStep_path_visited",show forBody_forStep_path_visited),
+    ("forBody_forStep_path_visited_ers",show forBody_forStep_path_visited_ers),
+    ("loopState",show loopState),
+    ("forBody_forStep_ers",show forBody_forStep_ers)
+    ]
+   -}
   -- all varnames mentioned in the loop body + in the condition + in the accumulator
   let loopVarNames :: [String] = let
         acc_body_vars = (CFG.getVarNames2 $ maybe [] (:[]) m_Acc ++ forBody_forStep_path)
@@ -1959,7 +2125,7 @@ createLoopSummary theLoopSyntax m_Acc mForCondExpr (branchRange,forBody_forStep_
   theLoopReadOnlyVars :: [String] <- do
     incrementLogEnumeration
     incrementLogDepth *>
-      getLoopReadOnlyVars loopVarNames (branchRange, env forBody_forStep_path_visited)
+      getLoopReadOnlyVars loopVarNames (branchRange, env origState, env forBody_forStep_path_visited)
       <* decrementLogDepth
   -------------------
   -- loopFrameTargets
@@ -1974,26 +2140,33 @@ createLoopSummary theLoopSyntax m_Acc mForCondExpr (branchRange,forBody_forStep_
   ----------------
   theLoopInitFacts :: [(String,SymExpr)] <- do
     incrementLogEnumeration
-    incrementLogDepth *> getLoopInitFacts (env origState) theLoopFrameTargets <* decrementLogDepth
+    incrementLogDepth *>
+      getLoopInitFacts
+        (env origState) (env forBody_forStep_path_visited,forBody_forStep_path_visited_ers)
+        theLoopFrameTargets
+        branchRange
+          <* decrementLogDepth
   ------------
   -- loopGuard
   ------------
-  (theLoopGuards :: [SymExpr]) <- case (mForCondExpr,maybe_forCondExpr_converted) of
-    (Nothing,Nothing) -> return []
+  (theLoopGuard :: Maybe SymExpr) <- case (mForCondExpr,maybe_forCondExpr_converted) of
+    (Nothing,Nothing) -> return Nothing
     (Just forCondExpr,Just (forCondExpr_converted :: SymExpr)) -> do
       tellNextLog $ Log.LogTag loc "before Loop Guard" (show forCondExpr)
       tellNextLog $ Log.LogTag loc "Loop Guard" (show forCondExpr_converted)
       incrementLogEnumeration
-      incrementLogDepth *>
-        getLoopGuard (env origState, env forBody_forStep_path_visited) forCondExpr_converted
-          <* decrementLogDepth
+      res <-
+        incrementLogDepth *>
+          getLoopGuard (env origState, env forBody_forStep_path_visited) forCondExpr_converted
+            <* decrementLogDepth
+      return $ Just res
   ----------------------------
-  -- loopInitialGuardCondition
+  -- loopEnteringCondition
   ----------------------------
-  theLoopInitialGuardCondition :: Maybe SymExpr <- do
+  theLoopEnteringCondition :: Maybe SymExpr <- do
     incrementLogEnumeration
     incrementLogDepth *>
-      getLoopInitialGuardCondition theLoopInitFacts theLoopGuards
+      getLoopEnteringCondition theLoopInitFacts theLoopGuard
       <* decrementLogDepth
   --------------------
   -- loopSkipCondition
@@ -2001,15 +2174,25 @@ createLoopSummary theLoopSyntax m_Acc mForCondExpr (branchRange,forBody_forStep_
   theLoopSkipCondition :: Maybe SymExpr <- do
     incrementLogEnumeration
     incrementLogDepth *>
-      getLoopSkipCondition theLoopInitialGuardCondition
+      getLoopSkipCondition theLoopEnteringCondition
       <* decrementLogDepth
   ---------------------
-  -- loopExitConditions
+  -- loopExitingConditions
   ---------------------
-  theLoopExitConditions :: [SymExpr] <- do
+  theLoopExitingConditions :: [SymExpr] <- do
     incrementLogEnumeration
     incrementLogDepth *>
-      getLoopExitConditions theLoopGuards
+      getLoopExitingConditions theLoopGuard (
+        getBreaks  $ env forBody_forStep_path_visited,
+        getBreaks2 $ forBody_forStep_path_visited_ers)
+      <* decrementLogDepth
+  -----------------------------
+  -- loopExitViaBreakConditions
+  -----------------------------
+  theLoopExitViaBreakConditions :: [SymExpr] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopExitViaBreakConditions forBody_forStep_path_visited_ers
       <* decrementLogDepth
   ---------------
   -- loopCounters
@@ -2019,7 +2202,8 @@ createLoopSummary theLoopSyntax m_Acc mForCondExpr (branchRange,forBody_forStep_
     incrementLogDepth *>
       getLoopCounters
         (branchRange, env origState, env forBody_forStep_path_visited)
-        (theLoopInitFacts, theLoopGuards)
+        (theLoopGuard, theLoopExitingConditions)
+        (theLoopInitFacts, theLoopFrameTargets)
         <* decrementLogDepth
   ------------------
   -- loopAssignments
@@ -2039,6 +2223,16 @@ createLoopSummary theLoopSyntax m_Acc mForCondExpr (branchRange,forBody_forStep_
         theLoopFrameTargets
         (forBody_forStep_path,env origState, env forBody_forStep_path_visited)
       <* decrementLogDepth
+  ----------------
+  -- loopExitFacts
+  ----------------
+  theLoopExitFacts :: [LoopExitFact] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopExitFacts
+        (theLoopGuard,theLoopExitingConditions)
+        theLoopFrameTargetsDevelopmentTrajectory
+      <* decrementLogDepth
   ---------------------
   -- loopCountersBounds
   ---------------------
@@ -2048,8 +2242,9 @@ createLoopSummary theLoopSyntax m_Acc mForCondExpr (branchRange,forBody_forStep_
       getLoopCountersBounds
         theLoopInitFacts
         theLoopCounters
-        theLoopGuards
+        (theLoopGuard,theLoopExitingConditions)
         theLoopFrameTargetsDevelopmentTrajectory
+        theLoopReadOnlyVars
       <* decrementLogDepth
   --------------------------
   -- loopBoundStabilityFacts
@@ -2059,7 +2254,9 @@ createLoopSummary theLoopSyntax m_Acc mForCondExpr (branchRange,forBody_forStep_
     incrementLogDepth *>
       getLoopBoundStabilityFacts (
         forBody_forStep_path,
-        env origState, env forBody_forStep_path_visited) theLoopCountersBounds
+        env origState, env forBody_forStep_path_visited)
+        theLoopCountersBounds
+        theLoopFrameTargets
       <* decrementLogDepth
   -------------------------
   -- loopDecreasesCandidate
@@ -2072,35 +2269,27 @@ createLoopSummary theLoopSyntax m_Acc mForCondExpr (branchRange,forBody_forStep_
         theLoopCountersBounds
         theLoopBoundStabilityFacts
       <* decrementLogDepth
-  ----------------
-  -- loopExitFacts
-  ----------------
-  theLoopExitFacts :: [LoopExitFact] <- do
-    incrementLogEnumeration
-    incrementLogDepth *>
-      getLoopExitFacts
-        theLoopGuards
-        theLoopFrameTargetsDevelopmentTrajectory
-      <* decrementLogDepth
+
   --------------
   -- LoopSummary
   --------------
   let loopSummary = LoopSummary {
         loopSyntax = theLoopSyntax,
         loopInitFacts = theLoopInitFacts,
-        loopBoundStabilityFacts = theLoopBoundStabilityFacts,
-        loopGuards = theLoopGuards,
-        loopInitialGuardCondition = theLoopInitialGuardCondition,
+        loopGuard = theLoopGuard,
+        loopEnteringCondition = theLoopEnteringCondition,
         loopSkipCondition = theLoopSkipCondition,
-        loopExitConditions = theLoopExitConditions,
+        loopExitingConditions = theLoopExitingConditions,
+        loopExitViaBreakConditions = theLoopExitViaBreakConditions,
         loopCounters = theLoopCounters,
-        loopFrameTargetsDevelopmentTrajectory = theLoopFrameTargetsDevelopmentTrajectory,
         loopAssignments = theLoopAssignments,
         loopReadOnlyVars = theLoopReadOnlyVars,
         loopFrameTargets = theLoopFrameTargets,
-        loopDecreasesCandidate = theLoopDecreasesCandidate,
+        loopFrameTargetsDevelopmentTrajectory = theLoopFrameTargetsDevelopmentTrajectory,
+        loopExitFacts = theLoopExitFacts,
         loopCountersBounds = theLoopCountersBounds,
-        loopExitFacts = theLoopExitFacts
+        loopBoundStabilityFacts = theLoopBoundStabilityFacts,
+        loopDecreasesCandidate = theLoopDecreasesCandidate
       }
   -------------------------
   constructLog loc "summary in the end"
@@ -2110,35 +2299,36 @@ createLoopSummary theLoopSyntax m_Acc mForCondExpr (branchRange,forBody_forStep_
       ,("origState",show origState)
       ,("maybe_forCondExpr_visited",show maybe_forCondExpr_visited)
       ,("forBody_forStep_path_visited",show forBody_forStep_path_visited)
+      ,("forBody_forStep_path_visited_ers",show forBody_forStep_path_visited_ers)
       ,("forBody_forStep_path",show forBody_forStep_path)
       ,("loopVarNames",show loopVarNames)
       ,("maybe_forCondExpr_converted",show maybe_forCondExpr_converted)
       ,("theLoopSyntax",show theLoopSyntax)
       ,("theLoopInitFacts",show theLoopInitFacts)
-      ,("theLoopBoundStabilityFacts",show theLoopBoundStabilityFacts)
-      ,("theLoopGuards",show theLoopGuards)
-      ,("theLoopInitialGuardCondition",show theLoopInitialGuardCondition)
+      ,("theLoopGuard",show theLoopGuard)
+      ,("theLoopEnteringCondition",show theLoopEnteringCondition)
       ,("theLoopSkipCondition",show theLoopSkipCondition)
-      ,("theLoopExitConditions",show theLoopExitConditions)
+      ,("theLoopExitingConditions",show theLoopExitingConditions)
       ,("theLoopCounters",show theLoopCounters)
       ,("theLoopFrameTargetsDevelopmentTrajectory",show theLoopFrameTargetsDevelopmentTrajectory)
       ,("theLoopAssignments",show theLoopAssignments)
       ,("theLoopReadOnlyVars",show theLoopReadOnlyVars)
       ,("theLoopFrameTargets",show theLoopFrameTargets)
-      ,("theLoopDecreasesCandidate",show theLoopDecreasesCandidate)
+      ,("theLoopExitFacts",show theLoopExitFacts)
       ,("theLoopCountersBounds",show theLoopCountersBounds)
-      ,("theLoopExitFacts",show theLoopExitFacts)]
+      ,("theLoopBoundStabilityFacts",show theLoopBoundStabilityFacts)
+      ,("theLoopDecreasesCandidate",show theLoopDecreasesCandidate)]
   (tellNextLog $ Log.Return loc (show loopSummary)) $> loopSummary
 ------------------------------
 
 type Path = [CFGT.Node]
-runCFG :: [CFGT.CFG] -> CFGT.CFG -> Maybe Path -> Maybe SymState -> (String,[Log.Log],SymStateEnv)
+runCFG :: [CFGT.CFG] -> CFGT.CFG -> Maybe Path -> Maybe SymState -> (String,[Log.Log],[ExecutionResult],SymStateEnv)
 runCFG cfgs cfg mPath mSymState =
   let loc = "SymbolicExecution.Method.runCFG"
       path :: [CFGT.Node]
       path = maybe (CFG.getPath 0 cfg) id mPath
-      runner :: SymbolicExecutionMonad ()
-      runner = flip mapM_ path $ \node -> do
+      runner :: SymbolicExecutionMonad [ExecutionResult]
+      runner = flip mapM path $ \node -> do
         tellNextLog $ Log.NextNode (show node)
         stateEnv_ <- env <$> get
         case getReturnSymExpr stateEnv_ of
@@ -2155,16 +2345,16 @@ runCFG cfgs cfg mPath mSymState =
           (SymState Map.empty $ Log.Header 1 [0])
           id mSymState
       
-      run_e :: ReaderT (Config,[CFGT.CFG]) (WriterT [Log.Log] (State SymState)) (Either String ())
+      run_e :: ReaderT (Config,[CFGT.CFG]) (WriterT [Log.Log] (State SymState)) (Either String [ExecutionResult])
       run_e = runExceptT (runner <* (modify $ \s -> SymState (modifyVoidMethod $ env s) (logHeader s)))
       
-      run_r :: WriterT [Log.Log] (State SymState) (Either String ())
+      run_r :: WriterT [Log.Log] (State SymState) (Either String [ExecutionResult])
       run_r = runReaderT run_e (defaultConfig,cfgs)
       
-      run_w :: State SymState ((Either String ()),[Log.Log])
+      run_w :: State SymState ((Either String [ExecutionResult]),[Log.Log])
       run_w = runWriterT run_r
       
-      run_s :: ((Either String (),[Log.Log]),SymState)
+      run_s :: ((Either String [ExecutionResult],[Log.Log]),SymState)
       run_s@((er,logs),s) = runState run_w initialSymState
       
-  in (either id (const "") er,logs,env s)
+  in (either id (const "") er,logs,either (const []) id er,env s)

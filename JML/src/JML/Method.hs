@@ -10,7 +10,7 @@ import qualified JML.Logs.Log as Log
 import JML.PrettyPrint (ppBehavior, ppBehaviors)
 import qualified SymbolicExecution.Types as SYT (
   SymStateKey(..), SymExpr(..),
-  SymbolicExecution, SymbolicExecutionKey, SymbolicExecutionValue, LoopSummary(loopExitFacts))
+  SymbolicExecution, SymbolicExecutionKey, SymbolicExecutionValue)
 import qualified SymbolicExecution.Internal.Internal as SY (
   getFunName, isGlobalVariable2, hasReturn, isLocalVar, hasFormalParameter,
   isNotAssigned, isSymUnknown)

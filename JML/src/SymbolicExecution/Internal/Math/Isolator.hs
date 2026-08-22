@@ -276,7 +276,7 @@ isolateExpr varName expr = do
   let innerLoc = loc ++ ".isolateExpr"
   constructLog innerLoc "isolateExpr" [("varName",varName),("expr",show expr)]
   case expr of
-    SymVar _ vn
+    SymVar _ vn _
       | varName == vn ->
           return $ Right expr
       | otherwise -> return $ Left VarAbsent
@@ -548,7 +548,7 @@ isolateTerm varName tu@(term,op,rhs) = do
           undefined
     -- Term has %
     SBin a Mod _ -> case a of
-      SymVar _ vn
+      SymVar _ vn _
         | vn == varName -> return $ Right $ SBin term op rhs
       _ -> throwError $ printf
              "TODO in %s\n\
@@ -587,7 +587,7 @@ isolateTerm varName tu@(term,op,rhs) = do
                   <* decrementLogDepth)
             either_newOp_newRhs
     -- Term is a var
-    SymVar _ vn
+    SymVar _ vn _
       | vn == varName -> return $ Right $ SBin term op rhs
       | otherwise -> throwError $ printf
           "won't happen in %s\n%s" innerLoc (constructLogContents [("term",show term)])
@@ -804,7 +804,7 @@ data Sign =
 
 knowSign :: SymExpr -> Either String Sign
 knowSign symExpr = case symExpr of
-  SymVar _ vn -> Left vn
+  SymVar _ vn _ -> Left vn
   SymInt n
     | n > 0 -> Right PositiveSign
     | n < 0 -> Right NegativeSign

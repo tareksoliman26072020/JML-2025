@@ -183,13 +183,15 @@ showTypeException _ = error "won't happen"
   | ReturnStmt {returnS :: Maybe Expression}
 -}
 showStatement :: AST.Statement -> String
-showStatement stmt@AST.AssignStmt{} =
-  list "" (\li -> unwords (map showModifier li) ++ " ") (AST.varModifier stmt) ++
-  showExpr (AST.assign stmt)
-showStatement (AST.VarStmt expr) = showExpr expr
-showStatement stmt@AST.FunCallStmt{} = showExpr (AST.funCall stmt)
-showStatement AST.ContinueStmt = "continue"
-showStatement _ = error "TODO"
+showStatement stmt = case stmt of
+  AST.AssignStmt{} -> list ""
+    (\li -> unwords (map showModifier li) ++ " ")
+    (AST.varModifier stmt) ++ showExpr (AST.assign stmt)
+  AST.VarStmt expr -> showExpr expr
+  AST.FunCallStmt{} -> showExpr (AST.funCall stmt)
+  AST.ContinueStmt -> "continue"
+  AST.BreakStmt -> "break"
+  _ -> error $ "TODO ==> " ++ show stmt
 
 {-
 data Modifier

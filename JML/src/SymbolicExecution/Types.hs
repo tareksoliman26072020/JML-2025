@@ -56,23 +56,6 @@ data Config = Config
 defaultConfig :: Config
 defaultConfig = Config 20
 
--- | A binary operator in our symbolic language
-data SymBinOp
-  = Add      -- ^ +
-  | Sub      -- ^ -
-  | Mul      -- ^ *
-  | Div      -- ^ /
-  | Mod
-  | Eq       -- ^ ==
-  | Neq      -- ^ /=
-  | Lt       -- ^ <
-  | Le       -- ^ <=
-  | Gt       -- ^ >
-  | Ge       -- ^ >=
-  | And      -- ^ logical &&
-  | Or       -- ^ logical ||
-  deriving (Eq, Show)
-
 {-
 ExecutionResult is used to transform data from a monadic transformer to another.
 
@@ -119,6 +102,11 @@ visitSymExpr ==> SymInt: ER_SymStateMapEntry
 
 data ExecutionResult =
     ER_Expr SymExpr
+  | ER_IfExpr CFGT.ScopeRange
+              (SymExpr,          -- if condition before substitution of variables
+               SymExpr)          -- if condition after substitution of variables
+      [ExecutionResult]          -- of if body
+      [ExecutionResult]          -- of else body
   | ER_Continue
   | ER_Break
   | ER_Node {er_Node_id :: CFGT.NodeID, nodeName :: String}
@@ -139,7 +127,27 @@ data ExecutionResult =
   | ER_Void
   | ER_ReturnVoid
   | ER_ActualParameterDetected String SymExpr
-  deriving Show
+  deriving (Show,Eq)
+
+instance MonadFail (Either String) where
+  fail = Left
+
+-- | A binary operator in our symbolic language
+data SymBinOp
+  = Add      -- ^ +
+  | Sub      -- ^ -
+  | Mul      -- ^ *
+  | Div      -- ^ /
+  | Mod
+  | Eq       -- ^ ==
+  | Neq      -- ^ /=
+  | Lt       -- ^ <
+  | Le       -- ^ <=
+  | Gt       -- ^ >
+  | Ge       -- ^ >=
+  | And      -- ^ logical &&
+  | Or       -- ^ logical ||
+  deriving (Eq, Show)
 
 data SymExpr =
 -- | A (tiny) symbolic expression language
@@ -148,7 +156,7 @@ data SymExpr =
   | SymInt    Integer             -- ^ concrete integer literal
   | SymDouble Double              -- ^ concrete double literal
   | SymFloat  Float               -- ^ concrete float literal
-  | SBool   Bool                  -- ^ concrete Boolean literal
+  | SBool     Bool                -- ^ concrete Boolean literal
   | SymString String
   | SObjAcc [String]
   | SBin    SymExpr SymBinOp SymExpr  -- ^ binary operation
@@ -162,7 +170,7 @@ data SymExpr =
   | SLoopFailure CFGT.ScopeRange Int
 
   | SymNull SymType               -- ^ value of an unassigned variable
-  | SymVar SymType String
+  | SymVar SymType String [VarInfo]
   | SymArrayAccess [(Either SymExpr (SymType,String,SymExpr)
                     ,Maybe (SymType,String,SymExpr)
                     ,Either SymExpr (SymType,String,SymExpr))]
@@ -184,14 +192,15 @@ data SymExpr =
   | SymBreak
   deriving (Eq,Show)
 
+-- declared for the sake of `SymVar` in `SymExpr`
+-- the goal is to attach infos about the context of the variable when necessary
+data VarInfo = ForAccumulator CFGT.ScopeRange SymExpr deriving (Show,Eq)
+
 type SymReason = ([(CFGT.Kind,CFGT.ScopeRange)],Int)
 
 data SymType = Int | Double | Float | Bool | Void | Array SymType | String 
              | UnknownGlobalVarSymType
              | UnknownNumSymType deriving (Show,Eq,Ord)
-
-instance MonadFail (Either String) where
-  fail = Left
 
 predefinedFuns :: [String]
 predefinedFuns = ["toString","print","println"]
@@ -220,11 +229,12 @@ data LoopSummary = LoopSummary {
   -- purpose:
   --   1) Preservation: symbolic execution assumes `invariant && guard`
   --   2) Exit reasoning: after the loop, you know `invariant && !guard`.
-  , loopGuards :: [SymExpr]
+  , loopGuard :: Maybe SymExpr
   -- The initial loop guard which should be met so that the loop gets iterated
-  , loopInitialGuardCondition :: Maybe SymExpr
+  , loopEnteringCondition :: Maybe SymExpr
   , loopSkipCondition :: Maybe SymExpr
-  , loopExitConditions :: [SymExpr]
+  , loopExitingConditions :: [SymExpr]
+  , loopExitViaBreakConditions :: [SymExpr]
   -- The variables that function as loop counters or induction variables.
   -- A loopCounter is a variable whose value represents loop progress.
   -- Usually it is an induction variable:
@@ -237,14 +247,14 @@ data LoopSummary = LoopSummary {
   , loopAssignments :: [String]
   -- Records whether a effected vars increases, decreases, moves conditionally, or does not really change, and how much the var changes per iteration.
   , loopFrameTargetsDevelopmentTrajectory :: [(String,SymExprDevelopmentTrajectory)]
+  -- inferring how the loopFrameTargets end up looking like when the loop is exited
+  , loopExitFacts :: [LoopExitFact]
   -- Lower and upper bounds for each counter.
   , loopCountersBounds :: [(SymExpr,String,SymExpr)]
   -- how the loop bound changes during the loop
   , loopBoundStabilityFacts :: [(SymExpr,SymExprDevelopmentTrajectory)]
   -- Candidate termination variant
   , loopDecreasesCandidate :: [SymExpr]
-  -- inferring how the loopFrameTargets end up looking like when the loop is exited
-  , loopExitFacts :: [LoopExitFact]
 } deriving (Show,Eq)
 
 data LoopExitFact =
@@ -283,16 +293,16 @@ data LoopPattern
   deriving (Eq, Show)
 
 data CounterPattern
-  = CountingUp
-  | CountingDown
-  | StridedCounting
+  = CountingUp String
+  | CountingDown String
+  | StridedCounting String
   | ConditionalCounterMovement
   deriving (Eq, Show)
 
 data BoundPattern
-  = StableBound
+  = StableBound SymExpr
   | MovingBound
-  | GuardlessWithInternalExit
+  | GuardlessWithInternalExit SymExpr
   deriving (Eq, Show)
 
 data TraversalPattern
@@ -325,14 +335,14 @@ data SearchPattern
 
 data ControlFlowPattern
   = EarlyReturn
-  | BreakExit
+  | BreakExit SymExpr
   | ContinuePath
   | ThrowExit
   deriving (Eq, Show)
 
 data LoopSummaryTag =
    LoopInitFacts
- | LoopGuards
+ | LoopGuard
  | LoopCounters
  | LoopCountersBounds
  | LoopFrameTargetsDevelopmentTrajectory
@@ -341,8 +351,9 @@ data LoopSummaryTag =
  | LoopReadOnlyVars
  | LoopFrameTargets
  | LoopDecreasesCandidate
- | LoopInitialGuardCondition
+ | LoopEnteringCondition
  | LoopSkipCondition
- | LoopExitConditions
- | LoopExitFacts
+ | LoopExitingConditions
+ | LoopExitViaBreakConditions
+ | LoopExitFact
  deriving (Show,Eq)

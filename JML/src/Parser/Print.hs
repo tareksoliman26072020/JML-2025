@@ -133,6 +133,8 @@ showStmt = \case
   ReturnStmt {returnS} -> case returnS of
     Just e@ExcpExpr {} -> showExpr e
     _ -> showExpr (ReturnExpr returnS)
+  BreakStmt -> "break"
+  stmt -> error $ "TODO in Parser.Print.showStmt: " ++ show stmt
 
 showDecl :: Method -> String
 showDecl FunDef {funModifier, isPureFlag, funDecl, throws, funBody} =

@@ -96,7 +96,7 @@ numericCalculator2 op = \case
   (a@(SymNum 0), b) | op == Sub -> negate b
   (a, b@(SymNum 0)) | op == Sub -> a
   -- arithmetics on vars
-  (a@(SymVar t1 varName1),b@(SymVar t2 varName2))
+  (a@(SymVar t1 varName1 _),b@(SymVar t2 varName2 _))
     | op == Add && varName1 == varName2 ->
         let t3 = pick_known_symType (t1,t2)
         in SBin (cast t3 $ SymNum 2) Mul a
@@ -563,10 +563,10 @@ numericCalculator2 op = \case
         expr2 = numericCalculator2 op1 (cast symType symExpr1,cast symType symExpr2)
         in SBin expr1 op expr2
 ----------
-  (a, b@(SymVar t _)) ->
+  (a, b@(SymVar t _ _)) ->
     let t3 = pick_known_symType (toSymType2 a,t)
     in SBin (cast t3 a) op (cast t3 b)
-  (a@(SymVar t _), b) ->
+  (a@(SymVar t _ _), b) ->
     let t3 = pick_known_symType (t,toSymType2 b)
     in SBin (cast t3 a) op (cast t3 b)
 ----------
@@ -653,10 +653,10 @@ booleanCalculator2 op = \case
     t3 = pick_known_symType (t1,toSymType2 b)
     res = SymNull Bool
     in case b of
-         SymVar _ n2 -> let
+         SymVar _ n2 maybe_var_info -> let
            in case op of
-                Eq  -> SBin (SymNull t3) op (SymVar t3 n2)
-                Neq -> SBin (SymNull t3) op (SymVar t3 n2)
+                Eq  -> SBin (SymNull t3) op (SymVar t3 n2 maybe_var_info)
+                Neq -> SBin (SymNull t3) op (SymVar t3 n2 maybe_var_info)
                 _   -> res
          _ -> case op of
                 Eq  -> SBool False
@@ -672,9 +672,9 @@ booleanCalculator2 op = \case
     t3 = pick_known_symType (toSymType2 a,t2)
     res = SymNull Bool
     in case a of
-         SymVar _ n1 -> case op of
-           Eq  -> SBin (SymVar t3 n1) op (SymNull t3) 
-           Neq -> SBin (SymVar t3 n1) op (SymNull t3)
+         SymVar _ n1 maybe_var_info -> case op of
+           Eq  -> SBin (SymVar t3 n1 maybe_var_info) op (SymNull t3) 
+           Neq -> SBin (SymVar t3 n1 maybe_var_info) op (SymNull t3)
            _   -> res
          _ -> case op of
                 Eq  -> SBool False
@@ -706,13 +706,13 @@ booleanCalculator2 op = \case
   (SymFloat num1, SymFloat num2) ->
     SBool $ getArithBoolOp op num1 num2
   ----------
-  (a@(SymVar t1 _), b@(SymVar t2 _)) ->
+  (a@(SymVar t1 _ _), b@(SymVar t2 _ _)) ->
     let t3 = pick_known_symType (t1,t2)
     in SBin (cast t3 a) op (cast t3 b)
-  (a@(SymVar t1 _), b) ->
+  (a@(SymVar t1 _ _), b) ->
     let t3 = pick_known_symType (t1,toSymType2 b)
     in SBin (cast t3 a) op (cast t3 b)
-  (a, b@(SymVar t2 _)) ->
+  (a, b@(SymVar t2 _ _)) ->
     let t3 = pick_known_symType (toSymType2 a,t2)
     in SBin (cast t3 a) op (cast t3 b)
   ----------
@@ -842,7 +842,7 @@ objAccCalculator varNames expr = let
 
 objAccCalculator2 :: SymExpr -> SymExpr -> SymExpr
 objAccCalculator2 expr@(SObjAcc [varName,methodCall]) = \case
-  SymVar _ _ -> expr
+  SymVar _ _ _ -> expr
   SymArray _ Nothing elems
     | methodCall == "length" -> SymInt
         $ fromIntegral $ length elems
@@ -882,9 +882,9 @@ stringCalculator2 Add = \case
   ((SymString str1),(SymString str2)) -> SymString $ str1 ++ str2
   ----------
 --SBin (SymVar String "s") Add (SymString " ")
-  (e1@(SymVar String _),e2@(SymVar String _)) -> SBin e1 Add e2
-  (e1@(SymVar String _),e2@(SymString _)) -> SBin e1 Add e2
-  (e1@(SymString _),e2@(SymVar String _)) -> SBin e1 Add e2
+  (e1@(SymVar String _ _),e2@(SymVar String _ _)) -> SBin e1 Add e2
+  (e1@(SymVar String _ _),e2@(SymString _)) -> SBin e1 Add e2
+  (e1@(SymString _),e2@(SymVar String _ _)) -> SBin e1 Add e2
   ----------
   (e1@(SBin _ _ _),e2) ->
     let rec = stringCalculator e1
@@ -944,7 +944,7 @@ funCallCalculator = \case
                  $ printf "[%s]" (intercalate ", " $ flip map symExprs2 (\(SymString str) -> str))
           else SymFun ToString $ SymArray mt ms symExprs2
      SymNum num -> SymString $ show num
-     symExpr@(SymVar _ _) -> SymFun ToString symExpr
+     symExpr@(SymVar _ _ _) -> SymFun ToString symExpr
      SBin expr1 op expr2 ->
        case (whichCalculator expr1 op expr2) argExpr of
          res
@@ -968,7 +968,7 @@ funCallCalculator = \case
           res -> error $
             "TODO2: SymbolicExecution.Internal.Calculator.funCallCalculator ==> "
             ++ show res
-        SymVar (Array _) _ -> SymFun funName argExpr
+        SymVar (Array _) _ _ -> SymFun funName argExpr
         SException _ _ _ -> argExpr
         _ -> error $ printf
           "TODO3: funCallCalculator ==>\n\n\
@@ -1013,12 +1013,13 @@ calculator expr = case expr of
 ----------
 
 -- is being used in `SymbolicExecution.Internal.LoopSummary.getLoopInitialGuardCondition`
+-- also in `JML.Internal.Internal.processJMLVarUnknown_via_loopExitFacts` for `loopExitingConditions`
 substitute :: [(String,SymExpr)] -> SymExpr -> SymExpr
 substitute input symExpr = let
   loc = "SymbolicExecution.Internal.Math.Calculator.substitute"
   logContents = [("input",show input),("symExpr",show symExpr)] in
   calculator $ case symExpr of
-    SymVar _ vn -> case lookup vn input of
+    SymVar _ vn _ -> case lookup vn input of
       Just val -> val
       Nothing -> symExpr
     SymInt _ -> symExpr

@@ -65,12 +65,12 @@ isBooleanOperator = flip elem [Eq, Neq, Lt, Le, Gt, Ge, And, Or]
 
 isFormalParameter :: SymExpr -> Map.Map SymStateKey SymExpr -> Bool
 isFormalParameter symExpr ma = case symExpr of
-  SymVar _ varName -> hasFormalParameter varName ma
+  SymVar _ varName _ -> hasFormalParameter varName ma
   _ -> False
 
 isGlobalVariable :: SymExpr -> Map.Map SymStateKey SymExpr -> Bool
 isGlobalVariable symExpr ma = case symExpr of
-  SymVar _ varName -> hasGlobalVariable varName ma
+  SymVar _ varName _ -> hasGlobalVariable varName ma
   _ -> False
 
 -- a sign that a global variable exists is that
@@ -137,6 +137,11 @@ alterList f elm li
   fun m = case f m of
     Nothing -> []
     Just newElm -> [newElm]
+
+list :: b -> ([a] -> b) -> [a] -> b
+list whenEmpty whenNotEmpty li
+  | null li = whenEmpty
+  | otherwise = whenNotEmpty li
 
 hasFormalParameter :: String -> Map.Map SymStateKey SymExpr -> Bool
 hasFormalParameter varName ma = case Map.lookup FormalParms ma of
@@ -217,19 +222,19 @@ isSymFloat = \case
 isSymString :: SymExpr -> Bool
 isSymString = \case
   SymString _ -> True
-  SymVar String _ -> True
+  SymVar String _ _ -> True
   SBin sExpr1 op sExpr2 ->
     all isSymString [sExpr1, sExpr2] && op == Add
   _ -> False
 
 isSymVar :: SymExpr -> Bool
 isSymVar = \case
-  SymVar _ _ -> True
+  SymVar _ _ _ -> True
   _ -> False
 
 isConstant :: SymExpr -> Bool
 isConstant = \case
-  SymVar _ _ -> False
+  SymVar _ _ _ -> False
   SymNum _ -> True
   SymInt _ -> True
   SymDouble _ -> True
@@ -253,7 +258,7 @@ isSObjAcc symExpr = let
 -- 1) if the SymExpr is SymVar
 -- 2) and if the given SymType matches the SymType of that SymVar
 isSymVar2 :: SymExpr -> SymType -> Bool
-isSymVar2 (SymVar t _) symType = t == symType
+isSymVar2 (SymVar t _ _) symType = t == symType
 isSymVar2 _ _ = False
 
 isSymUnknown :: SymExpr -> Bool
@@ -265,7 +270,7 @@ hasSymUnknown :: SymExpr -> Bool
 hasSymUnknown = \case
   SBin symExpr1 _ symExpr2 -> any hasSymUnknown [symExpr1,symExpr2]
   SNot symExpr -> hasSymUnknown symExpr
-  SymVar _ _ -> False
+  SymVar _ _ _ -> False
   SymInt _ -> False
   SymString _ -> False
   SArrayIndexAccess _ _ symExpr -> hasSymUnknown symExpr
@@ -276,12 +281,13 @@ hasSymVar :: SymExpr -> Bool
 hasSymVar = \case
   SBin symExpr1 _ symExpr2 -> any hasSymVar [symExpr1,symExpr2]
   SNot symExpr -> hasSymVar symExpr
-  SymVar _ _ -> True
+  SymVar _ _ _ -> True
   SymInt _ -> False
   SymString _ -> False
   SArrayIndexAccess _ _ symExpr -> hasSymVar symExpr
   SymUnknown (_,symExpr) _ -> hasSymVar symExpr
   SObjAcc _ -> False
+  --SIte condExpr ifEnv maybe_elseEnv -> condExpr
   symExpr -> error $ "SymbolicExecution.Internal.hasSymVar: " ++ show symExpr
 
 isSymFun :: SymExpr -> Bool
@@ -298,7 +304,7 @@ isVar = \case
   SBool _ -> False
   SBin expr1 _ expr2 -> any isVar [expr1,expr2]
   SNot expr -> isVar expr
-  SymVar _ _ -> True
+  SymVar _ _ _ -> True
   SymString _ -> False
   SymUnknown _ _ -> True
   SObjAcc _ -> True
@@ -309,7 +315,7 @@ isVar = \case
 isArray :: SymExpr -> Bool
 isArray = \case
   SymArray _ _ _ -> True
-  SymVar (Array _) _ -> True
+  SymVar (Array _) _ _ -> True
   _ -> False
 
 getSymUnknownReasons :: SymExpr -> [SymReason]
@@ -352,7 +358,7 @@ toSymType2 = \case
   SymFloat _ -> Float
   SBool _ -> Bool
   SymNull t -> t
-  SymVar t _ -> t
+  SymVar t _ _ -> t
   SObjAcc li -> case li of
     [_,"length"] -> Int
     _ -> error $ "TODO1: toSymType2 ==> " ++ show (SObjAcc li)
@@ -397,7 +403,14 @@ pick_known_symType2 = \case
 
 toSymExpr :: SymType -> AST.Expression -> SymExpr
 toSymExpr theType expr = let
-  loc = "SymbolicExecution.Internal.Internal.toSymExpr" in case expr of
+  loc = "SymbolicExecution.Internal.Internal.toSymExpr"
+  fun_error :: Int -> a
+  fun_error num = error $ printf
+    "TODO%d in %s ==>\n\
+    \  1) theType: %s\n\
+    \  2) expr: %s" num loc
+    (show theType)
+    (show expr) in case expr of
   AST.NumberLiteral num -> SymNum num
   AST.BoolLiteral bool -> SBool bool
   AST.StringLiteral str -> SymString str
@@ -410,11 +423,18 @@ toSymExpr theType expr = let
     | null varObjs -> let
         theType0 = maybe theType toSymType1 maybeVarType
         in if
-          | theType `isInstanceOf` theType0 -> SymVar theType vn
-          | otherwise -> error $ printf "TODO1 in %s ==> %s" loc (show expr)
+          | theType `isInstanceOf` theType0 -> SymVar theType vn []
+          | otherwise -> fun_error 1
     | otherwise -> SObjAcc $ varObjs ++ [vn]
-  --  | otherwise -> error $ printf "TODO2 in %s ==> %s" loc (show expr)
-  _ -> error $ printf "TODO3 in %s ==> %s" loc (show expr)
+  AST.ArrayCallExpr arrName_expr maybe_index -> let
+    arrType = Array theType
+    arrName_symExpr = toSymExpr arrType arrName_expr in
+    case maybe_index of
+      Nothing -> fun_error 2
+      Just index -> case arrName_symExpr of
+        SymVar _ arrName _ -> SArrayIndexAccess arrType arrName (toSymExpr theType index)
+        _ -> fun_error 3
+  _ -> fun_error 4
 
 getReturnSymExpr :: SymStateEnv -> Maybe SymExpr
 getReturnSymExpr = Map.lookup Return
@@ -448,7 +468,7 @@ getInnerSymVars :: SymExpr -> [SymExpr]
 getInnerSymVars symExpr = let
   loc = "SymbolicExecution.Internal.getInnerSymVars" in
   case symExpr of
-    SymVar _ _ -> [symExpr]
+    SymVar _ _ _ -> [symExpr]
     SBin expr1 _ expr2 -> [expr1,expr2]
     _ -> error $ constructErrorMsg loc "TODO" [("symExpr",show symExpr)]
 
@@ -538,6 +558,34 @@ hasContinue = Map.member Continue
 hasBreak :: SymStateEnv -> Bool
 hasBreak = Map.member Break
 
+getBreaks :: SymStateEnv -> SymStateEnv
+getBreaks env = let
+  loc = "SymbolicExecution.Internal.Internal.getBreaks"
+  in flip Map.filter env $ \symExpr -> case symExpr of
+    SIte _ ifEnv maybe_elseEnv -> let
+      if_rec = getBreaks ifEnv
+      maybe_else_rec = getBreaks <$> maybe_elseEnv
+      if_has_no_break = Map.null if_rec
+      if_has_break = not if_has_no_break
+      else_has_no_break = maybe True Map.null maybe_else_rec
+      else_has_break = not else_has_no_break
+      in if_has_break || else_has_break 
+    SymBreak -> True
+    _ -> False
+
+getBreaks2 :: [ExecutionResult] -> [ExecutionResult]
+getBreaks2 ers = let
+  loc = "SymbolicExecution.Internal.Internal.getBreaks2" in
+  flip filter ers $ \er -> case er of
+    ER_SymStateMapEntry _ _ -> False
+    ER_Break -> True
+    ER_IfExpr _ _ if_ers else_ers -> case (getBreaks2 if_ers,getBreaks2 else_ers) of
+      ([],[]) -> False
+      _ -> True
+    ER_Void -> False
+    _ -> error $ constructErrorMsg loc "TODO" [
+      ("er",show er),("ers",show ers)]
+
 -- alters the type of a global variable based on the expression and the scope it exists in
 -- It is used in visitExpr ==> AssignExpr / ==> BinOpExpr
 {-
@@ -570,7 +618,7 @@ er: ER_SymStateMapEntry (VarName "y") (SymVar UnknownNumSymType "y")
           foldM_ (\ma vn -> do
             ma2 <- Map.alterF (\case
                   Nothing -> pure $ Just
-                    $ SymVar newType vn
+                    $ SymVar newType vn []
                   Just oldSymExpr ->
                     let newType2 = pick_known_symType2
                           $ toSymType2 oldSymExpr : toSymType2 val : [newType]
@@ -610,7 +658,7 @@ getVarName :: SymExpr -> String
 getVarName symExpr = let
   loc = "SymbolicExecution.Internal.Internal.getVarName" in
   case symExpr of
-    SymVar _ varName -> varName
+    SymVar _ varName _ -> varName
     SBin expr1 _ expr2 ->
       let n1 = if isVar expr1 then Just $ getVarName expr1 else Nothing
           n2 = if isVar expr2 then Just $ getVarName expr2 else Nothing
@@ -621,6 +669,7 @@ getVarName symExpr = let
            (Nothing,Just n) -> n
            (Just x,Just y) -> error
              $ constructErrorMsg loc "TODO" [("symExpr",show symExpr)]
+    SObjAcc [arrName,"length"] -> arrName
     _ -> error $ constructErrorMsg loc "won't happen2" [("symExpr",show symExpr)]
 
 get_SItes :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
@@ -687,9 +736,9 @@ isTypeNumeric = \case
 cast :: SymType -> SymExpr -> SymExpr
 cast symType symExpr = case (symType,symExpr) of
   ----------
-  (_,SymVar t vn)
+  (_,SymVar t vn maybe_var_info)
     | symType `isInstanceOf` t ->
-        SymVar symType vn
+        SymVar symType vn maybe_var_info
   ----------
   (String, SymString _) -> symExpr
   (String, SymFun ToString _) -> symExpr
@@ -718,8 +767,8 @@ cast symType symExpr = case (symType,symExpr) of
   (UnknownNumSymType, SymNum _) -> symExpr
   (UnknownGlobalVarSymType,SymNum _) -> symExpr
   ----------
-  (UnknownNumSymType,SymVar UnknownGlobalVarSymType vn) ->
-    SymVar UnknownNumSymType vn
+  (UnknownNumSymType,SymVar UnknownGlobalVarSymType vn maybe_var_info) ->
+    SymVar UnknownNumSymType vn maybe_var_info
   ----------
   (UnknownGlobalVarSymType,SymString _) -> symExpr
   ----------
@@ -792,7 +841,7 @@ cast2 vn newType tu@(symStateKey,symExpr) = case symStateKey of
                maybeElseSymStateEnv2 = flip fmap maybeElseSymStateEnv $ \elseSymStateEnv ->
                  Map.map (cast2 vn newType . (,) symStateKey) elseSymStateEnv
            in SIte ifCond2 ifSymStateEnv2 maybeElseSymStateEnv2
-         SymVar _ vn2
+         SymVar _ vn2 _
            | vn == vn2 -> cast newType symExpr
            | otherwise -> symExpr
          SGlobalVars _ -> symExpr
@@ -846,7 +895,7 @@ lookupPartialSymExprs vn tu@(symStateKey,symExpr) = case symStateKey of
           Just elseSymStateEnv -> foldl' (\l -> lookupPartialSymExprs vn . (,) symStateKey) [] elseSymStateEnv
           Nothing -> []
       ----------
-      SymVar _ vn2
+      SymVar _ vn2 _
         | vn == vn2 -> [symExpr]
         | otherwise -> []
       ----------
@@ -934,7 +983,7 @@ existsIn vn symExpr = case symExpr of
          Nothing -> False
          Just False -> False
          Just True -> True
-  SymVar _ vn2 -> vn == vn2
+  SymVar _ vn2 _ -> vn == vn2
   SymNum _ -> False
   SymInt _ -> False
   SymString _ -> False
@@ -949,6 +998,7 @@ existsIn vn symExpr = case symExpr of
   SObjAcc _ -> False
   SymNull _ -> False
   SNot expr -> vn `existsIn` expr
+  SBool _ -> False
   _ -> error
     $ printf "SymbolicExecution.Internal.existsIn ==> TODO ==> (%s ,, %s)" vn (show symExpr)
 
@@ -999,11 +1049,13 @@ toBinSymExpr op (expr1,expr2) = SBin expr1 op expr2
 
 negate :: SymExpr -> SymExpr
 negate symExpr = case symExpr of
+  SBool True  -> SBool False
+  SBool False -> SBool True
 --SArrayIndexAccess (Array Int) "arr" (SymInt 0)
   SArrayIndexAccess (Array t) _ _ ->
     SBin (cast t $ SymNum (-1)) Mul symExpr
   SymUnknown (x,expr) reasons -> SymUnknown (x,negate expr) reasons
-  SymVar t _ -> let
+  SymVar t _ _ -> let
     minusOne = cast t $ SymNum 1
     in SBin minusOne Mul symExpr
 --SBin (SymVar Int "i") Lt (SymVar Int "n")
@@ -1105,7 +1157,7 @@ getVarNames2 :: (SymStateKey,SymExpr) -> [String]
 getVarNames2 (symStateKey,symExpr) = (case symStateKey of
   VarName vn -> [vn]
   _ -> []) ++ case symExpr of
-    SymVar _ varName -> [varName]
+    SymVar _ varName _ -> [varName]
     SBin symExpr1 _ symExpr2 ->
       getVarNames2 (symStateKey,symExpr1) ++ getVarNames2 (symStateKey,symExpr2)
     SNot symExpr -> getVarNames2 (symStateKey,symExpr)
@@ -1125,7 +1177,7 @@ getVarNames2 (symStateKey,symExpr) = (case symStateKey of
 
 getVarNames3 :: SymExpr -> [String]
 getVarNames3 symExpr = case symExpr of
-  SymVar _ varName -> [varName]
+  SymVar _ varName _ -> [varName]
   SBin symExpr1 _ symExpr2 ->
     getVarNames3 symExpr1 ++ getVarNames3 symExpr2
   SNot symExpr -> getVarNames3 symExpr
@@ -1171,6 +1223,9 @@ getActions = maybe [] (\(SActions li) -> li) . Map.lookup Actions
 getVarAssignments :: SymStateEnv -> [(String,(SymExpr,CFGT.Node_Coor))]
 getVarAssignments = maybe [] (\(SVarAssignments li) -> li) . Map.lookup VarAssignments
 
+get_ER_IfExprs :: [ExecutionResult] -> [ExecutionResult]
+get_ER_IfExprs ers = [er | er@(ER_IfExpr _ _ _ _) <- ers]
+
 isReassigned :: String -> SymStateEnv -> Bool
 isReassigned vn sy = case find (\(vn2,_) -> vn2 == vn) (getVarAssignments sy) of
   Just _ -> True
@@ -1178,7 +1233,7 @@ isReassigned vn sy = case find (\(vn2,_) -> vn2 == vn) (getVarAssignments sy) of
 
 isNotAssigned :: String -> SymExpr -> Bool
 isNotAssigned vn symExpr = case symExpr of
-  SymVar _ vn2 -> vn == vn2
+  SymVar _ vn2 _ -> vn == vn2
   _ -> False
 
 getGlobalVars :: SymStateEnv -> [String]
@@ -1342,7 +1397,7 @@ ppSymExpr_no_symType = \case
     Int -> "0"
     Array _ -> "null"
     _ -> error $ "TODO1: ppSymExpr_no_symType ==> " ++ show t
-  SymVar _ s -> s
+  SymVar _ s _ -> s
   SymArray _ _ elems -> printf "[%s]" $ intercalate ", " (map ppSymExpr_no_symType elems)
   SArrayIndexAccess _ arrName arrIndexExpr ->
     printf "%s[%s]" arrName (ppSymExpr_no_symType arrIndexExpr)
@@ -1435,8 +1490,9 @@ initFactsHasCounter counterName summary =
       (loopInitFacts summary)
 
 loopGuardHasCounter :: String -> LoopSummary -> Bool
-loopGuardHasCounter counterName summary =
-  any (counterName `existsIn`) (loopGuards summary)
+loopGuardHasCounter counterName summary = case loopGuard summary of
+  Nothing -> False
+  Just g -> counterName `existsIn` g
 
 loopCounterBoundsHasCounter :: String -> LoopSummary -> Bool
 loopCounterBoundsHasCounter counterName summary =
@@ -1470,9 +1526,9 @@ isLoopCountersBoundsTag = \case
   LoopCountersBounds -> True
   _ -> False
 
-isLoopGuardsTag :: LoopSummaryTag -> Bool
-isLoopGuardsTag = \case
-  LoopGuards -> True
+isLoopGuardTag :: LoopSummaryTag -> Bool
+isLoopGuardTag = \case
+  LoopGuard -> True
   _ -> False
 
 isLoopBoundStabilityFactsTag :: LoopSummaryTag -> Bool

@@ -1,45 +1,33 @@
 /*
 LoopSummary:
-  loopSyntax = WhileSyntax
-  loopReadOnlyVars = ["n"]
-  loopFrameTargets = ["i"]
-  loopInitFacts = [("i",SymInt 0)]
-  loopGuards = [SBin (SymVar Int "i") Lt (SymVar Int "n")]
-  loopInitialGuardCondition = Just (SBin (SymInt 0) Lt (SymVar Int "n"))
-  loopSkipCondition = Just (SBin (SymInt 0) Ge (SymVar Int "n"))
-  loopExitConditions = [SBin (SymVar Int "i") Ge (SymVar Int "n")]
-  loopCounters = ["i"]
-  loopAssignments = ["i"]
-  loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))]
-  loopCountersBounds = [(SymInt 0,"i",SymVar Int "n")]
-  loopBoundStabilityFacts = [(SymVar Int "n",ReadOnly)]
-  loopDecreasesCandidate = [SBin (SymVar Int "n") Sub (SymVar Int "i")]
-  loopExitFacts = [LoopExitFactValue "i" (SymVar Int "n")]
+  loopSyntax = WhileSyntax,
+  loopReadOnlyVars = ["n"],
+  loopFrameTargets = ["i"],
+  loopInitFacts = [("i",SymInt 0)],
+  loopGuard = Just $ SBin (SymVar Int "i" []) Lt (SymVar Int "n" []),
+  loopEnteringCondition = Just $ SBin (SymInt 0) Lt (SymVar Int "n" []),
+  loopSkipCondition = Just (SBin (SymInt 0) Ge (SymVar Int "n" [])),
+  loopExitingConditions = [SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])],
+  loopExitViaBreakConditions = [],
+  loopCounters = ["i"],
+  loopAssignments = ["i"],
+  loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
+  loopCountersBounds = [(SymInt 0,"i",SymVar Int "n" [])],
+  loopBoundStabilityFacts = [(SymVar Int "n" [],ReadOnly)],
+  loopDecreasesCandidate = [SBin (SymVar Int "n" []) Sub (SymVar Int "i" [])],
+  loopExitFacts = [LoopExitFactValue "i" (SymVar Int "n" [])]
 */
 
 /*
 LoopPattern:
-[
- (CounterPattern CountingUp,
-  [LoopCounters
-  ,LoopFrameTargetsDevelopmentTrajectory
-  ,LoopInitFacts
-  ,LoopGuards
-  ,LoopCountersBounds
-  ,LoopAssignments
-  ,LoopFrameTargets
-  ,LoopDecreasesCandidate
-  ]
- ),
- (BoundPattern StableBound,
-  [LoopCounters
-  ,LoopCountersBounds
-  ,LoopGuards
-  ,LoopBoundStabilityFacts
-  ,LoopReadOnlyVars
-  ]
- )
-]
+   [
+    (CounterPattern (CountingUp "i"),
+     [LoopCounters,LoopFrameTargetsDevelopmentTrajectory,LoopCountersBounds]
+    ),
+    (BoundPattern (StableBound (SymVar Int "n" [])),
+     [LoopCounters,LoopCountersBounds,LoopGuard,LoopBoundStabilityFacts,LoopReadOnlyVars]
+    )
+   ]
 */
 
 /*
@@ -70,52 +58,44 @@ int idByLoop (int n) {
 
 /*
 LoopSummary:
-  loopSyntax = WhileSyntax
-  loopReadOnlyVars = ["n"]
-  loopFrameTargets = ["i"]
-  loopInitFacts = [("i",SymInt 0)]
-  loopGuards = [SBin (SymVar Int "i") Lt (SymVar Int "n")]
-  loopInitialGuardCondition = Just (SBin (SymInt 0) Lt (SymVar Int "n"))
-  loopSkipCondition = Just (SBin (SymInt 0) Ge (SymVar Int "n"))
-  loopExitConditions = [SBin (SymVar Int "i") Ge (SymVar Int "n")]
-  loopCounters = ["i"]
-  loopAssignments = ["i"]
-  loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 3))]
-  loopCountersBounds = [(SymInt 0,"i",SBin (SymVar Int "n") Add (SymInt 2))]
-  loopBoundStabilityFacts = [(SymVar Int "n",ReadOnly),(SBin (SymVar Int "n") Add (SymInt 2),ReadOnly)]
-  loopDecreasesCandidate = [SBin (SBin (SymVar Int "n") Add (SymInt 2)) Sub (SymVar Int "i")]
-  loopExitFacts = [LoopExitFactRange "i" (SymVar Int "n") (SBin (SymVar Int "n") Add (SymInt 2))]
+  loopSyntax = WhileSyntax,
+  loopReadOnlyVars = ["n"],
+  loopFrameTargets = ["i"],
+  loopInitFacts = [("i",SymInt 0)],
+  loopGuard = Just $ SBin (SymVar Int "i" []) Lt (SymVar Int "n" []),
+  loopEnteringCondition = Just (SBin (SymInt 0) Lt (SymVar Int "n" [])),
+  loopSkipCondition = Just (SBin (SymInt 0) Ge (SymVar Int "n" [])),
+  loopExitingConditions = [SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])],
+  loopExitViaBreakConditions = [],
+  loopCounters = ["i"],
+  loopAssignments = ["i"],
+  loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 3))],
+  loopCountersBounds = [(SymInt 0,"i",SBin (SymVar Int "n" []) Add (SymInt 2))],
+  loopBoundStabilityFacts = [(SymVar Int "n" [],ReadOnly),(SBin (SymVar Int "n" []) Add (SymInt 2),ReadOnly)],
+  loopDecreasesCandidate = [SBin (SBin (SymVar Int "n" []) Add (SymInt 2)) Sub (SymVar Int "i" [])],
+  loopExitFacts = [LoopExitFactRange "i" (SymVar Int "n" []) (SBin (SymVar Int "n" []) Add (SymInt 2))]
 */
 
 /*
 LoopPattern:
-[(CounterPattern StridedCounting,
-  [LoopCounters
-  ,LoopFrameTargetsDevelopmentTrajectory
-  ,LoopInitFacts
-  ,LoopGuards
-  ,LoopCountersBounds
-  ,LoopAssignments
-  ,LoopFrameTargets
-  ,LoopDecreasesCandidate
-  ]
- ),
- (BoundPattern StableBound,
-  [LoopCounters
-  ,LoopCountersBounds
-  ,LoopGuards
-  ,LoopBoundStabilityFacts
-  ,LoopReadOnlyVars
-  ]
- )
-]
+   [
+    (CounterPattern (CountingUp "i"),[LoopCounters,LoopFrameTargetsDevelopmentTrajectory,LoopCountersBounds]),
+    (CounterPattern (StridedCounting "i"),[LoopCounters,LoopFrameTargetsDevelopmentTrajectory]),
+    (BoundPattern (StableBound (SBin (SymVar Int "n" []) Add (SymInt 2))),
+     [LoopCounters
+     ,LoopCountersBounds
+     ,LoopGuard
+     ,LoopBoundStabilityFacts
+     ,LoopReadOnlyVars
+     ])
+   ]
 */
 
 /*
 LoopInvariantTemplate:
-  CounterBoundsTemplate (JMLInt 0) "i" (JMLBin (JMLVar Int_Type "n") Add (JMLInt 2)),
-  StridedCounterTemplate "i" (JMLInt 3) (JMLInt 0),
-  LoopFrameTemplate ["i"],
+  CounterBoundsTemplate (JMLInt 0) "i" (JMLBin (JMLVar Int_Type "n") Add (JMLInt 2))
+  StridedCounterTemplate "i" (JMLInt 3) (JMLInt 0)
+  LoopFrameTemplate ["i"]
   DecreasesTemplate $ JMLBin (JMLBin (JMLVar Int_Type "n") Add (JMLInt 2)) Sub (JMLVar Int_Type "i")
 */
 
@@ -138,3 +118,64 @@ int idByLoopStride3 (int n) {
 }
 
 //////////////////////////////
+
+/* LoopSummary
+loopSyntax = WhileSyntax
+loopReadOnlyVars = ["n"]
+loopFrameTargets = ["i"]
+loopInitFacts = [("i",SymInt 0)]
+loopGuard = Just (SBool True)
+loopEnteringCondition = Just (SBool True)
+loopSkipCondition = Just (SBool False)
+loopExitingConditions = [SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])]
+loopExitViaBreakConditions = [SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])]
+loopCounters = ["i"]
+loopAssignments = ["i"]
+loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))]
+loopExitFacts = [LoopExitFactValue "i" (SymVar Int "n" [])]
+loopCountersBounds = [(SymInt 0,"i",SymVar Int "n" [])]
+loopBoundStabilityFacts = [(SymVar Int "n" [],ReadOnly)]
+loopDecreasesCandidate = [SBin (SymVar Int "n" []) Sub (SymVar Int "i" [])]
+*/
+
+/*
+   [
+    (CounterPattern (CountingUp "i"),
+     [LoopCounters
+     ,LoopFrameTargetsDevelopmentTrajectory,LoopCountersBounds
+     ]
+    ),
+    (BoundPattern $ StableBound (SymVar Int "n" []),
+     [LoopCounters
+     ,LoopCountersBounds
+     ,LoopGuard
+     ,LoopBoundStabilityFacts
+     ,LoopReadOnlyVars
+     ]
+    ),
+    (BoundPattern $ GuardlessWithInternalExit (SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])),
+     [LoopGuard
+     ,LoopExitingConditions
+     ]
+    ),
+    (ControlFlowPattern $ BreakExit (SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])),
+     [LoopExitViaBreakConditions])
+   ]
+*/
+/*
+LoopInvariantTemplate:
+  CounterBoundsTemplate (JMLInt 0) "i" (JMLVar Int_Type "n")
+  LoopFrameTemplate ["i"]
+  DecreasesTemplate (JMLBin (JMLVar Int_Type "n") Sub (JMLVar Int_Type "i"))
+*/
+//TODO
+public static int idByLoop2(int n) {
+    int i = 0;
+    while (true) {
+        if(i >= n) {
+          break;
+        }
+        i++;
+    }
+    return i;
+}

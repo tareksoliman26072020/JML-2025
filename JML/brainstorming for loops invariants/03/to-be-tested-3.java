@@ -9,7 +9,7 @@ public static int idByLoop(int n) {
 
 ////////////////////
 
-//TODO: test a method in which the stride is 3 instead of 1
+//test a method in which the stride is 3 instead of 1
 public static int idByLoopStride3(int n) {
     int i = 0;
 
