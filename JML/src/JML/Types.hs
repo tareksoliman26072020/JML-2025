@@ -60,6 +60,14 @@ data Behavior =
     }
   deriving (Show,Eq)
 
+------------------------------------------------
+
+data LoopInvariantTemplate
+  = Maintaining Maintaining_LoopInvariantTemplate
+  | LoopAssigns LoopAssigns_LoopInvariantTemplate
+  | Decreases Decreases_LoopInvariantTemplate
+  deriving (Show,Eq)
+{-
 data LoopInvariantTemplate
   = CounterBoundsTemplate Expr String Expr
   | StridedCounterTemplate
@@ -69,6 +77,28 @@ data LoopInvariantTemplate
   | LoopFrameTemplate [String]
   | DecreasesTemplate Expr
   deriving (Show, Eq)
+  -}
+
+data Maintaining_LoopInvariantTemplate
+  = CounterBoundsTemplate Expr String Expr
+  | StridedCounterTemplate
+      String  -- counter
+      Expr    -- stride
+      Expr    -- residue
+  | MovingBoundRelationTemplate String Expr
+  | CounterLowerBoundTemplate Expr String
+  | GuardedInvariantTemplate Expr Expr
+  deriving (Show, Eq)
+
+data LoopAssigns_LoopInvariantTemplate
+  = LoopFrameTemplate [String]
+  deriving (Show, Eq)
+
+data Decreases_LoopInvariantTemplate
+  = DecreasesTemplate Expr
+  deriving (Show, Eq)
+
+------------------------------------------------
 
 data LoopInvariants = LoopInvariants {
   loopScopeRange :: CFGT.ScopeRange,

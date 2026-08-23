@@ -154,18 +154,18 @@ ppLoopInvariantTemplate template = let
   loc = "JML.PrettyPrint" in
   case template of
   --CounterBoundsTemplate Expr String Expr
-    CounterBoundsTemplate fromExpr counterName toExpr -> printf
+    Maintaining (CounterBoundsTemplate fromExpr counterName toExpr) -> printf
       "maintaining %s <= %s && %s <= %s"
       (ppExpr fromExpr) counterName
       counterName (ppExpr toExpr)
   --StridedCounterTemplate
-    StridedCounterTemplate counter stride residue -> printf
+    Maintaining (StridedCounterTemplate counter stride residue) -> printf
       "maintaining %s %% %s == %s"
       counter (ppExpr stride) (ppExpr residue)
   --LoopFrameTemplate [String]
-    LoopFrameTemplate vars -> "loop_assigns " ++ (intercalate ", " vars)
+    LoopAssigns (LoopFrameTemplate vars) -> "loop_assigns " ++ (intercalate ", " vars)
   --DecreasesTemplate Expr
-    DecreasesTemplate expr -> "decreases " ++ ppExpr expr
+    Decreases (DecreasesTemplate expr) -> "decreases " ++ ppExpr expr
 
 pp_CFG_JML :: CFGT.CFG -> [JMLSpecification] -> String
 pp_CFG_JML cfg jmlSpecifications = let

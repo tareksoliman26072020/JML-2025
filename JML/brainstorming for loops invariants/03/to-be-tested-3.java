@@ -22,7 +22,7 @@ public static int idByLoopStride3(int n) {
 
 ////////////////////
 
-//TODO: test a method in which the loop termination happens internally, such as:
+//test a method in which the loop termination happens internally, such as:
 public static int idByLoop2(int n) {
     int i = 0;
     while (true) {

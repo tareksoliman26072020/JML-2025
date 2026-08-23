@@ -3,7 +3,10 @@ module TargetState (target) where
 import CFG.Types (ScopeRange(..))
 import JML.Types (
   Method(..), Behavior(..), Expr(..), Op(..), JMLType(..), DefinedFun(..),
-  LoopInvariantTemplate(..), JMLSpecification(..), LoopInvariants(..))
+  LoopInvariantTemplate(..), JMLSpecification(..), LoopInvariants(..),
+  Maintaining_LoopInvariantTemplate(..),
+  LoopAssigns_LoopInvariantTemplate(..),
+  Decreases_LoopInvariantTemplate(..))
 
 target :: String -> Method
 target name = case lookup name allTargets of
@@ -5621,9 +5624,9 @@ idByLoop = Method {
     LoopSpecification $ LoopInvariants {
       loopScopeRange = SR {branchStart = 2, branchEnd = 4},
       loopClauses = [
-        CounterBoundsTemplate (JMLInt 0) "i" (JMLVar Int_Type "n"),
-        LoopFrameTemplate ["i"],
-        DecreasesTemplate (JMLBin (JMLVar Int_Type "n") Sub (JMLVar Int_Type "i"))
+        Maintaining $ CounterBoundsTemplate (JMLInt 0) "i" (JMLVar Int_Type "n"),
+        LoopAssigns $ LoopFrameTemplate ["i"],
+        Decreases $ DecreasesTemplate (JMLBin (JMLVar Int_Type "n") Sub (JMLVar Int_Type "i"))
       ]
     },
     MethodSpecification $ NormalBehavior {
@@ -5658,10 +5661,10 @@ idByLoopStride3 = Method {
     LoopSpecification $ LoopInvariants {
       loopScopeRange = SR {branchStart = 2, branchEnd = 4},
       loopClauses = [
-        CounterBoundsTemplate (JMLInt 0) "i" (JMLBin (JMLVar Int_Type "n") Add (JMLInt 2)),
-        StridedCounterTemplate "i" (JMLInt 3) (JMLInt 0),
-        LoopFrameTemplate ["i"],
-        DecreasesTemplate $ JMLBin (JMLBin (JMLVar Int_Type "n") Add (JMLInt 2)) Sub (JMLVar Int_Type "i")
+        Maintaining $ CounterBoundsTemplate (JMLInt 0) "i" (JMLBin (JMLVar Int_Type "n") Add (JMLInt 2)),
+        Maintaining $ StridedCounterTemplate "i" (JMLInt 3) (JMLInt 0),
+        LoopAssigns $ LoopFrameTemplate ["i"],
+        Decreases $ DecreasesTemplate $ JMLBin (JMLBin (JMLVar Int_Type "n") Add (JMLInt 2)) Sub (JMLVar Int_Type "i")
       ]
     },
     MethodSpecification $ NormalBehavior {
@@ -5703,7 +5706,11 @@ idByLoop2 = Method {
   jmlSpecifications = [
     LoopSpecification $ LoopInvariants {
       loopScopeRange = SR {branchStart = 2, branchEnd = 7},
-      loopClauses = [CounterBoundsTemplate (JMLInt 0) "i" (JMLVar Int_Type "n"),LoopFrameTemplate ["i"],DecreasesTemplate (JMLBin (JMLVar Int_Type "n") Sub (JMLVar Int_Type "i"))]
+      loopClauses = [
+        Maintaining $ CounterBoundsTemplate (JMLInt 0) "i" (JMLVar Int_Type "n"),
+        LoopAssigns $ LoopFrameTemplate ["i"],
+        Decreases $ DecreasesTemplate (JMLBin (JMLVar Int_Type "n") Sub (JMLVar Int_Type "i"))
+      ]
     },
     MethodSpecification $ NormalBehavior {
       behaviorScopeRange = Nothing,

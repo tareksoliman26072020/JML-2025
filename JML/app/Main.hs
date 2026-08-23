@@ -336,9 +336,9 @@ method = JMLT.Method {
       $ JMLT.LoopInvariants {
           JMLT.loopScopeRange = CFGT.SR {CFGT.branchStart = 2, CFGT.branchEnd = 4},
           JMLT.loopClauses = [
-            JMLT.CounterBoundsTemplate (JMLT.JMLInt 0) "i" (JMLT.JMLVar JMLT.Int_Type "n"),
-            JMLT.LoopFrameTemplate ["i"],
-            JMLT.DecreasesTemplate $ JMLT.JMLBin (JMLT.JMLVar JMLT.Int_Type "n") JMLT.Sub (JMLT.JMLVar JMLT.Int_Type "i")
+            JMLT.Maintaining $ JMLT.CounterBoundsTemplate (JMLT.JMLInt 0) "i" (JMLT.JMLVar JMLT.Int_Type "n"),
+            JMLT.LoopAssigns $ JMLT.LoopFrameTemplate ["i"],
+            JMLT.Decreases $ JMLT.DecreasesTemplate $ JMLT.JMLBin (JMLT.JMLVar JMLT.Int_Type "n") JMLT.Sub (JMLT.JMLVar JMLT.Int_Type "i")
           ]
         },
     JMLT.MethodSpecification
