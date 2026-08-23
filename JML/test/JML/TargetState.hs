@@ -5,8 +5,7 @@ import JML.Types (
   Method(..), Behavior(..), Expr(..), Op(..), JMLType(..), DefinedFun(..),
   LoopInvariantTemplate(..), JMLSpecification(..), LoopInvariants(..),
   Maintaining_LoopInvariantTemplate(..),
-  LoopAssigns_LoopInvariantTemplate(..),
-  Decreases_LoopInvariantTemplate(..))
+  LoopAssigns_LoopInvariantTemplate(..))
 
 target :: String -> Method
 target name = case lookup name allTargets of
@@ -5626,7 +5625,7 @@ idByLoop = Method {
       loopClauses = [
         Maintaining $ CounterBoundsTemplate (JMLInt 0) "i" (JMLVar Int_Type "n"),
         LoopAssigns $ LoopFrameTemplate ["i"],
-        Decreases $ DecreasesTemplate (JMLBin (JMLVar Int_Type "n") Sub (JMLVar Int_Type "i"))
+        DecreasesTemplate (JMLBin (JMLVar Int_Type "n") Sub (JMLVar Int_Type "i"))
       ]
     },
     MethodSpecification $ NormalBehavior {
@@ -5664,7 +5663,7 @@ idByLoopStride3 = Method {
         Maintaining $ CounterBoundsTemplate (JMLInt 0) "i" (JMLBin (JMLVar Int_Type "n") Add (JMLInt 2)),
         Maintaining $ StridedCounterTemplate "i" (JMLInt 3) (JMLInt 0),
         LoopAssigns $ LoopFrameTemplate ["i"],
-        Decreases $ DecreasesTemplate $ JMLBin (JMLBin (JMLVar Int_Type "n") Add (JMLInt 2)) Sub (JMLVar Int_Type "i")
+        DecreasesTemplate $ JMLBin (JMLBin (JMLVar Int_Type "n") Add (JMLInt 2)) Sub (JMLVar Int_Type "i")
       ]
     },
     MethodSpecification $ NormalBehavior {
@@ -5709,7 +5708,7 @@ idByLoop2 = Method {
       loopClauses = [
         Maintaining $ CounterBoundsTemplate (JMLInt 0) "i" (JMLVar Int_Type "n"),
         LoopAssigns $ LoopFrameTemplate ["i"],
-        Decreases $ DecreasesTemplate (JMLBin (JMLVar Int_Type "n") Sub (JMLVar Int_Type "i"))
+        DecreasesTemplate (JMLBin (JMLVar Int_Type "n") Sub (JMLVar Int_Type "i"))
       ]
     },
     MethodSpecification $ NormalBehavior {

@@ -65,19 +65,8 @@ data Behavior =
 data LoopInvariantTemplate
   = Maintaining Maintaining_LoopInvariantTemplate
   | LoopAssigns LoopAssigns_LoopInvariantTemplate
-  | Decreases Decreases_LoopInvariantTemplate
-  deriving (Show,Eq)
-{-
-data LoopInvariantTemplate
-  = CounterBoundsTemplate Expr String Expr
-  | StridedCounterTemplate
-      String  -- counter
-      Expr    -- stride
-      Expr    -- residue
-  | LoopFrameTemplate [String]
   | DecreasesTemplate Expr
-  deriving (Show, Eq)
-  -}
+  deriving (Show,Eq)
 
 data Maintaining_LoopInvariantTemplate
   = CounterBoundsTemplate Expr String Expr
@@ -92,10 +81,6 @@ data Maintaining_LoopInvariantTemplate
 
 data LoopAssigns_LoopInvariantTemplate
   = LoopFrameTemplate [String]
-  deriving (Show, Eq)
-
-data Decreases_LoopInvariantTemplate
-  = DecreasesTemplate Expr
   deriving (Show, Eq)
 
 ------------------------------------------------

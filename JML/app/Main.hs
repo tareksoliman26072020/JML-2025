@@ -338,7 +338,7 @@ method = JMLT.Method {
           JMLT.loopClauses = [
             JMLT.Maintaining $ JMLT.CounterBoundsTemplate (JMLT.JMLInt 0) "i" (JMLT.JMLVar JMLT.Int_Type "n"),
             JMLT.LoopAssigns $ JMLT.LoopFrameTemplate ["i"],
-            JMLT.Decreases $ JMLT.DecreasesTemplate $ JMLT.JMLBin (JMLT.JMLVar JMLT.Int_Type "n") JMLT.Sub (JMLT.JMLVar JMLT.Int_Type "i")
+            JMLT.DecreasesTemplate $ JMLT.JMLBin (JMLT.JMLVar JMLT.Int_Type "n") JMLT.Sub (JMLT.JMLVar JMLT.Int_Type "i")
           ]
         },
     JMLT.MethodSpecification

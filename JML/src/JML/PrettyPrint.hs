@@ -165,7 +165,7 @@ ppLoopInvariantTemplate template = let
   --LoopFrameTemplate [String]
     LoopAssigns (LoopFrameTemplate vars) -> "loop_assigns " ++ (intercalate ", " vars)
   --DecreasesTemplate Expr
-    Decreases (DecreasesTemplate expr) -> "decreases " ++ ppExpr expr
+    DecreasesTemplate expr -> "decreases " ++ ppExpr expr
 
 pp_CFG_JML :: CFGT.CFG -> [JMLSpecification] -> String
 pp_CFG_JML cfg jmlSpecifications = let

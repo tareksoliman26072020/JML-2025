@@ -5,8 +5,7 @@ import JML.Types (
   Expr(..), Op(..), JMLType(..), DefinedFun(..),
   LoopInvariantTemplate(..),
   Maintaining_LoopInvariantTemplate(..),
-  LoopAssigns_LoopInvariantTemplate(..),
-  Decreases_LoopInvariantTemplate(..))
+  LoopAssigns_LoopInvariantTemplate(..))
 
 allTargets :: [(String,[[LoopInvariantTemplate]])]
 allTargets = [
@@ -23,7 +22,7 @@ idByLoop :: [[LoopInvariantTemplate]]
 idByLoop = [
     [Maintaining $ CounterBoundsTemplate (JMLInt 0) "i" (JMLVar Int_Type "n"),
      LoopAssigns $ LoopFrameTemplate ["i"],
-     Decreases $ DecreasesTemplate (JMLBin (JMLVar Int_Type "n") Sub (JMLVar Int_Type "i"))
+     DecreasesTemplate (JMLBin (JMLVar Int_Type "n") Sub (JMLVar Int_Type "i"))
     ]
   ]
 
@@ -36,7 +35,7 @@ idByLoopStride3 = [
     [Maintaining $ CounterBoundsTemplate (JMLInt 0) "i" (JMLBin (JMLVar Int_Type "n") Add (JMLInt 2)),
      Maintaining $ StridedCounterTemplate "i" (JMLInt 3) (JMLInt 0),
      LoopAssigns $ LoopFrameTemplate ["i"],
-     Decreases $ DecreasesTemplate $ JMLBin (JMLBin (JMLVar Int_Type "n") Add (JMLInt 2)) Sub (JMLVar Int_Type "i")
+     DecreasesTemplate $ JMLBin (JMLBin (JMLVar Int_Type "n") Add (JMLInt 2)) Sub (JMLVar Int_Type "i")
     ]
   ]
 
@@ -48,6 +47,6 @@ idByLoop2 :: [[LoopInvariantTemplate]]
 idByLoop2 = [
     [Maintaining $ CounterBoundsTemplate (JMLInt 0) "i" (JMLVar Int_Type "n"),
      LoopAssigns $ LoopFrameTemplate ["i"],
-     Decreases $ DecreasesTemplate (JMLBin (JMLVar Int_Type "n") Sub (JMLVar Int_Type "i"))
+     DecreasesTemplate (JMLBin (JMLVar Int_Type "n") Sub (JMLVar Int_Type "i"))
     ]
   ]
