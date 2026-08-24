@@ -213,10 +213,15 @@ LoopSummary:
   loopReadOnlyVars = []
   loopFrameTargets = ["n","i"]
   loopInitFacts = [("i",SymInt 0), ("n",n0)]
+            ist:  [("i",SymInt 0),("n",SymVar Int "n" [])]
   loopGuard = Just $ SBin iCur Lt nCur
+        ist:  Just $ SBin (SymVar Int "i" []) Lt (SymVar Int "n" [])
   loopEnteringCondition = Just $ SBin (SymInt 0) Lt n0
+                    ist:  Just $ SBin (SymInt 0) Lt (SymVar Int "n" [])
   loopSkipCondition = Just $ SBin (SymInt 0) Ge n0
-  loopExitingConditions = [ SBin iCur Ge nCur]
+                ist:  Just $ SBin (SymInt 0) Ge (SymVar Int "n" [])
+  loopExitingConditions = [SBin iCur Ge nCur]
+                    ist:  [SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])]
   loopExitViaBreakConditions = []
   loopCounters = ["i","n"]
   loopAssignments = ["n","i"]

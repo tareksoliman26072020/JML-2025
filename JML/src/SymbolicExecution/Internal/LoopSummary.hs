@@ -37,14 +37,22 @@ getLoopInitFacts origEnv (newEnv,newEnv_ers) loopFrameTargets branchRange = do
         ("newEnv_ers",show newEnv_ers),
         ("loopFrameTargets",show loopFrameTargets)]
   constructLog loc "getLoopInitFacts" logContents
-  let theVarNames = let
+  let theVarNames = flip Map.foldMapWithKey (getVarNames origEnv) $ \(VarName vn) v ->
+        helper vn v
+        {-case v of
+          SymVar _ vn2 _
+            | vn2 `elem` loopFrameTargets -> [(vn,SymPreScope branchRange v)]
+            | vn /= vn2 -> [(vn,v)]
+            | otherwise -> []
+          _ -> [(vn,SymPreScope branchRange v)]-}
+  {-let theVarNames = let
         collecting = flip Map.filterWithKey (getVarNames origEnv) $ \(VarName vn) -> \case
           -- filter out uninitialized variables
           SymVar _ vn2 _ ->
             vn2 `elem` loopFrameTargets || vn /= vn2
           _ -> True
         in Map.toList
-           $ Map.mapKeys (\(VarName vn) -> vn) collecting
+           $ Map.mapKeys (\(VarName vn) -> vn) collecting-}
   let forLoopCountersInitFacts :: [(String,SymExpr)]
       forLoopCountersInitFacts = case Map.lookup VarAssignments origEnv of
         Just (SVarAssignments li) -> [(vn,initVal)
@@ -63,7 +71,28 @@ getLoopInitFacts origEnv (newEnv,newEnv_ers) loopFrameTargets branchRange = do
             ]
         Nothing -> []
   let toReturn = theVarNames ++ forLoopCountersInitFacts
-  (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
+  (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn where
+  helper :: String -> SymExpr -> [(String,SymExpr)]
+  helper vn v = let
+    loc = globalLoc ++ ".getLoopInitFacts.helper"
+    logContents = [("vn",vn),("v",show v)] in case v of
+    SymVar _ vn2 _
+      | vn2 `elem` loopFrameTargets -> [(vn,SymPreScope branchRange v)]
+      | vn /= vn2 -> [(vn,v)]
+      | otherwise -> []
+    SymNum _ -> [(vn,v)]
+    SymInt _ -> [(vn,v)]
+    SymDouble _ -> [(vn,v)]
+    SymFloat _ -> [(vn,v)]
+    SBool _ -> [(vn,v)]
+    SymString _ -> [(vn,v)]
+    -- this following pattern matches were written to shut up the tests for methods (2)
+    SymUnknown _ _ -> [(vn,v)]
+    SymArray _ _ _ -> [(vn,v)]
+    SArrayIndexAccess _ _ _ -> [(vn,v)]
+    SObjAcc _ -> [(vn,v)]
+    _ -> error $ constructErrorMsg "TODO" loc logContents
+  --_ -> [(vn,SymPreScope branchRange v)]
 
 --------------------
 --------------------
@@ -476,7 +505,8 @@ getLoopBoundStabilityFacts
   let exprs_2_study :: [SymExpr]
       exprs_2_study = concat [exprs
         | (expr1,_,expr2) <- loopCounterBounds
-        , let exprs = filter (not . isConstant) [expr1,expr2]]
+        , let exprs = filter (not . isConstant) [expr1,expr2]
+        ]
   constructLog loc "Expressions to study"
     $ [(printf "expr%d" counter,show expr) | (counter,expr) <- zip [1::Int ..] exprs_2_study]
   incrementLogDepth
@@ -490,8 +520,8 @@ getLoopBoundStabilityFacts
   ----------
   study :: SymExpr -> [(SymExpr,SymExprDevelopmentTrajectory)]
   study expr = let
-    loc = "SymbolicExecution.Internal.LoopSummary.getLoopBoundStabilityFacts.infer"
-    logContents = [("expr",show expr)] in
+    loc = "SymbolicExecution.Internal.LoopSummary.getLoopBoundStabilityFacts.study"
+    logContents = [("expr",show expr),("loopCounterBounds",show loopCounterBounds)] in
     case expr of
       SymInt _ -> []
       SymVar _ vn _ -> case studyVarDevelopment vn of--[(expr,studyVarDevelopment vn)]
