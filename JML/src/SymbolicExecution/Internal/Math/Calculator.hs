@@ -634,9 +634,10 @@ abs = \case
 ----------------------------------------------------------------------
 
 booleanCalculator2 :: SymBinOp -> (SymExpr, SymExpr) -> SymExpr
-booleanCalculator2 op = \case
+booleanCalculator2 op tu = let
+  loc = "SymbolicExecution.Internal.Math.Calculator.booleanCalculator2" in case tu of
   ----------
-  tu@(SymNull t1, SymNull t2) -> let
+  (SymNull t1, SymNull t2) -> let
     res = SymNull Bool
     in case op of
          Eq  -> SBool True
@@ -648,8 +649,8 @@ booleanCalculator2 op = \case
          Ge  -> res
          Or  -> res
          And -> res
-         _   -> error $ "TODO1: booleanCalculator2: " ++ show (op,tu)
-  tu@(a@(SymNull t1), b) -> let
+         _   -> error $ constructErrorMsg loc "TODO1" [("op",show op),("tu",show tu)]
+  (a@(SymNull t1), b) -> let
     t3 = pick_known_symType (t1,toSymType2 b)
     res = SymNull Bool
     in case b of
@@ -667,8 +668,8 @@ booleanCalculator2 op = \case
                 Ge  -> res
                 Or  -> res
                 And -> res
-                _   -> error $ "TODO2: booleanCalculator2: " ++ show (op,tu)
-  tu@(a,b@(SymNull t2)) -> let
+                _   -> error $ constructErrorMsg loc "TODO2" [("op",show op),("tu",show tu)]
+  (a,b@(SymNull t2)) -> let
     t3 = pick_known_symType (toSymType2 a,t2)
     res = SymNull Bool
     in case a of
@@ -687,14 +688,14 @@ booleanCalculator2 op = \case
                   SBool True -> SBool True
                   _          -> res
                 And -> res
-                _   -> error $ "TODO2: booleanCalculator2: " ++ show (op,tu)
+                _   -> error $ constructErrorMsg loc "TODO3" [("op",show op),("tu",show tu)]
   ----------
   (SBool b1,SBool b2) -> case op of
     Eq  -> SBool $ b1 == b2
     Neq -> SBool $ b1 /= b2
     Or  -> SBool $ b1 || b2
     And -> SBool $ b1 && b2
-    _   -> error $ "TODO4: booleanCalculator2: " ++ show op
+    _   -> error $ constructErrorMsg loc "TODO4" [("op",show op)]
   ----------
   (SymNum num1, SymNum num2)
 --    | op == Mod = SBool (round num1) `mod` (round num2)
@@ -785,7 +786,7 @@ booleanCalculator2 op = \case
     case op of
       Eq  -> SBool $ elems1 == elems2
       Neq -> SBool $ elems1 /= elems2
-      _   -> error $ "TODO5: SymbolicExecution.Calculator.booleanCalculator2: " ++ show op
+      _   -> error $ constructErrorMsg loc "TODO5" [("op",show op)]
   (a@(SymArray _ _ elems),b) ->
     let newType = pick_known_symType2 (map (Array . toSymType2) elems ++ [toSymType2 b])
     in SBin (cast newType a) op (cast newType b)
@@ -804,11 +805,19 @@ booleanCalculator2 op = \case
             op
             (cast newType b)
   ----------
-  (p1,p2) -> error $ printf
-    "TODO6: booleanCalculator2:\n\n\
-    \1) %s\n\n\
-    \2) %s\n\n\
-    \3) %s" (show p1) (show op) (show p1)
+  (a@(SymPreScope sr1 expr1),b@(SymPreScope sr2 expr2)) -> error $
+    constructErrorMsg loc "TODO6" [("a",show a),("b",show b)]
+  ----------
+  (a@(SymPreScope sr1 expr1),b) -> let
+    rec = booleanCalculator $ SBin expr1 op b
+    in SymPreScope sr1 rec
+  ----------
+  (a,b@(SymPreScope sr2 expr2)) -> let
+    rec = booleanCalculator $ SBin a op expr2
+    in SymPreScope sr2 rec
+  ----------
+  (p1,p2) -> error $
+    constructErrorMsg loc "TODO7" [("p1",show p1),("op",show op),("p2",show p2)]
   ----------
 
 ----------------------------------------------------------------------

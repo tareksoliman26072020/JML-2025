@@ -91,8 +91,11 @@ getLoopInitFacts origEnv (newEnv,newEnv_ers) loopFrameTargets branchRange = do
     SymArray _ _ _ -> [(vn,v)]
     SArrayIndexAccess _ _ _ -> [(vn,v)]
     SObjAcc _ -> [(vn,v)]
+    SBin v1 _ v2 -> let
+      rec1 = helper vn v1
+      rec2 = helper vn v2
+      in rec1 ++ rec2
     _ -> error $ constructErrorMsg "TODO" loc logContents
-  --_ -> [(vn,SymPreScope branchRange v)]
 
 --------------------
 --------------------
@@ -535,6 +538,9 @@ getLoopBoundStabilityFacts
         all_readOnly = all $ \(_,trajectory) -> trajectory == ReadOnly in if
         | all_readOnly rec1 && all_readOnly rec2 -> res0 ++ [(expr,ReadOnly)]
         | otherwise -> res0
+      SymPreScope sr inner_expr -> let
+        rec = study inner_expr
+        in rec--[(SymPreScope sr ex,tr) | (ex,tr) <- rec]
       _ -> error $ constructErrorMsg loc "TODO" logContents
   ----------
   studyVarDevelopment :: String -> Maybe SymExprDevelopmentTrajectory
@@ -775,11 +781,14 @@ getLoopDecreasesCandidate
     innerLoc = "SymbolicExecution.Internal.\
                \LoopSummary.getLoopDecreasesCandidate.getBoundStability"
     logContents = [("pos",show pos)
-                  ,("bound",show bound)] in
-    case lookup bound lookBoundStabilityFacts of
-      Just trajectory -> (pos,bound,trajectory)
-      Nothing -> case bound of
-        SymInt _ -> (pos,bound,ReadOnly)
+                  ,("bound",show bound)]
+    bound2 = case bound of
+      SymPreScope _ expr -> expr
+      _ -> bound
+    in case lookup bound2 lookBoundStabilityFacts of
+      Just trajectory -> (pos,bound2,trajectory)
+      Nothing -> case bound2 of
+        SymInt _ -> (pos,bound2,ReadOnly)
         SBin expr1 _ expr2 -> let
           maybe_trajectory1 = lookup expr1 lookBoundStabilityFacts
           maybe_trajectory2 = lookup expr2 lookBoundStabilityFacts
@@ -789,15 +798,16 @@ getLoopDecreasesCandidate
           case (maybe_trajectory1,maybe_trajectory2) of
             (Just trajectory1,Just trajectory2) -> let
               newTrajectory = compareTrajectories trajectory1 trajectory2
-              in (pos,bound,newTrajectory)
+              in (pos,bound2,newTrajectory)
             (Just trajectory1,Nothing) -> let
               (_,_,expr2_trajectory) = getBoundStability pos expr2
               newTrajectory = compareTrajectories trajectory1 expr2_trajectory
-              in (pos,bound,newTrajectory)
+              in (pos,bound2,newTrajectory)
             (Nothing,Just trajectory2) -> error $ constructErrorMsg innerLoc "TODO1" logContents2
             (Nothing,Nothing) -> error $ constructErrorMsg innerLoc "TODO2" logContents2
         _ -> error $ constructErrorMsg innerLoc "TODO3" $ [
           ("bound",show bound),
+          ("bound2",show bound2),
           ("loopFrameTargetsDevelopmentTrajectory",show loopFrameTargetsDevelopmentTrajectory),
           ("loopCountersBounds",show loopCountersBounds),
           ("loopBoundStabilityFacts",show lookBoundStabilityFacts)

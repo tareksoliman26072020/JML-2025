@@ -1061,6 +1061,7 @@ negate symExpr = case symExpr of
   SymVar t _ _ -> let
     minusOne = cast t $ SymNum 1
     in SBin minusOne Mul symExpr
+  SymPreScope sr expr -> SymPreScope sr (negate expr)
 --SBin (SymVar Int "i") Lt (SymVar Int "n")
   SBin expr1 op expr2
     | isBooleanOperator op -> case op of
