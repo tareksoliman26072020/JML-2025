@@ -792,22 +792,22 @@ getLoopDecreasesCandidate
                \LoopSummary.getLoopDecreasesCandidate.getBoundsStabilities" in
     [res
       | (pos,boundSymExpr) <- bounds
-      , let res = getBoundStability pos boundSymExpr]{-
-      , let res = case lookup boundSymExpr lookBoundStabilityFacts of
-              Nothing -> error $ constructErrorMsg innerLoc "TODO"
-                [("boundSymExpr",show boundSymExpr)
-                ,("lookBoundStabilityFacts",show lookBoundStabilityFacts)]
-              Just trajectory -> (pos,boundSymExpr,trajectory)]-}
+      , let res = getBoundStability pos boundSymExpr]
   getBoundStability :: BoundPosition -> SymExpr -> BoundInfos
   getBoundStability pos bound = let
     innerLoc = "SymbolicExecution.Internal.\
                \LoopSummary.getLoopDecreasesCandidate.getBoundStability"
     logContents = [("pos",show pos)
                   ,("bound",show bound)]
+    -- `bound2` converts `SymPreScope` to `SymVar` if possible.
+    -- it's possible only if there exists a `SymVar` in `lookBoundStabilityFacts`
+    -- for the same variable.
+    -- In the end: the bounds mentioned in the return tuples are supposed to be of a `SymVar`
     bound2 = case bound of
       SymPreScope _ (_,vn) -> let
         finding = flip find lookBoundStabilityFacts $ \(symExpr,_) -> case symExpr of
           SymVar _ vn2 _ -> vn == vn2
+          SymPreScope _ (_,vn2) -> vn == vn2
           _ -> False
         in case finding of
              Just (b,_) -> b
