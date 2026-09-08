@@ -18,7 +18,7 @@ import Text.Printf (printf)
 import Data.Functor (($>))
 import qualified CFG.Types as CFGT
 import qualified Parser.Types as AST
-import Data.List ((\\), find, nub)
+import Data.List ((\\), find, nub, nubBy)
 import Data.Maybe (catMaybes, fromJust)
 
 globalLoc = "SymbolicExecution.Internal.LoopSummary"
@@ -76,8 +76,8 @@ getLoopInitFacts origEnv (newEnv,newEnv_ers) loopFrameTargets branchRange = do
   helper vn v = let
     loc = globalLoc ++ ".getLoopInitFacts.helper"
     logContents = [("vn",vn),("v",show v)] in case v of
-    SymVar _ vn2 _
-      | vn2 `elem` loopFrameTargets -> [(vn,SymPreScope branchRange v)]
+    SymVar t vn2 _
+      | vn2 `elem` loopFrameTargets -> [(vn,SymPreScope branchRange (t,vn2))]
       | vn /= vn2 -> [(vn,v)]
       | otherwise -> []
     SymNum _ -> [(vn,v)]
@@ -506,10 +506,19 @@ getLoopBoundStabilityFacts
          ,("loopFrameTargets",show loopFrameTargets)]
   constructLog loc "getLoopBoundStabilityFacts" logContents
   let exprs_2_study :: [SymExpr]
-      exprs_2_study = concat [exprs
-        | (expr1,_,expr2) <- loopCounterBounds
-        , let exprs = filter (not . isConstant) [expr1,expr2]
-        ]
+      exprs_2_study = let
+        all_exprs = concat [exprs
+          | (expr1,_,expr2) <- loopCounterBounds
+          , let exprs = filter (not . isConstant) [expr1,expr2]
+          ]
+        nubbed = flip nubBy all_exprs $ \a b -> case (a,b) of
+          (SymVar _ vn1 _,SymPreScope _ (_,vn2)) -> vn1 == vn2
+          (SymPreScope _ (_,vn1), SymVar _ vn2 _) -> vn1 == vn2
+          (SymVar _ vn1 _,SymVar _ vn2 _) -> vn1 == vn2
+          (SymPreScope _ (_,vn1),SymPreScope _ (_,vn2)) -> vn1 == vn2
+          (_,_) -> a == b
+        in nubbed
+          
   constructLog loc "Expressions to study"
     $ [(printf "expr%d" counter,show expr) | (counter,expr) <- zip [1::Int ..] exprs_2_study]
   incrementLogDepth
@@ -538,9 +547,9 @@ getLoopBoundStabilityFacts
         all_readOnly = all $ \(_,trajectory) -> trajectory == ReadOnly in if
         | all_readOnly rec1 && all_readOnly rec2 -> res0 ++ [(expr,ReadOnly)]
         | otherwise -> res0
-      SymPreScope sr inner_expr -> let
-        rec = study inner_expr
-        in rec--[(SymPreScope sr ex,tr) | (ex,tr) <- rec]
+      SymPreScope sr (_,vn) -> case studyVarDevelopment vn of
+        Just trajectory -> [(expr,trajectory)]
+        Nothing -> []
       _ -> error $ constructErrorMsg loc "TODO" logContents
   ----------
   studyVarDevelopment :: String -> Maybe SymExprDevelopmentTrajectory
@@ -731,6 +740,9 @@ getLoopDecreasesCandidate
               zip_counter_bounds :: [(CounterInfos,BoundInfos)]
               zip_counter_bounds = zip (repeat (counter,counterTrajectory)) boundsStabilities
          ]
+  constructLog loc "tuples to study" [(printf "tuple %d" num,show x)
+    | (num,x) <- zip [1::Int ..] toStudy]
+  incrementLogDepth
   toReturn <- foldM (\acc tu@(counterInfos,boundInfos) -> do
     let studyLogContents = [
           ("counterInfos", show counterInfos)
@@ -738,9 +750,19 @@ getLoopDecreasesCandidate
     constructLog loc "studying" studyLogContents
     case study tu of
       Nothing -> do
-        constructLog loc "no candidate for decreasing template" studyLogContents
+        incrementLogDepth *>
+          constructLog loc "no candidate for decreasing template" studyLogContents
+            <* decrementLogDepth
         return acc
-      Just res -> return $ acc ++ [res]) [] toStudy
+      Just res -> do
+        let result
+              | res `elem` acc = acc
+              | otherwise = acc ++ [res]
+        incrementLogDepth *>
+          constructLog loc "candidate found" [("result",show result)]
+            <* decrementLogDepth
+        return result) [] toStudy
+  decrementLogDepth
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
   where
   -- if `loopCountersBounds` gives a (SymInt 0,"i",SymVar Int "n")
@@ -783,10 +805,19 @@ getLoopDecreasesCandidate
     logContents = [("pos",show pos)
                   ,("bound",show bound)]
     bound2 = case bound of
-      SymPreScope _ expr -> expr
+      SymPreScope _ (_,vn) -> let
+        finding = flip find lookBoundStabilityFacts $ \(symExpr,_) -> case symExpr of
+          SymVar _ vn2 _ -> vn == vn2
+          _ -> False
+        in case finding of
+             Just (b,_) -> b
+             Nothing -> error $ constructErrorMsg innerLoc "TODO1" [
+               ("bound",show bound),
+               ("lookBoundStabilityFacts",show lookBoundStabilityFacts)
+               ]
       _ -> bound
     in case lookup bound2 lookBoundStabilityFacts of
-      Just trajectory -> (pos,bound2,trajectory)
+      Just trajectory -> (pos,bound,trajectory)
       Nothing -> case bound2 of
         SymInt _ -> (pos,bound2,ReadOnly)
         SBin expr1 _ expr2 -> let
@@ -803,9 +834,9 @@ getLoopDecreasesCandidate
               (_,_,expr2_trajectory) = getBoundStability pos expr2
               newTrajectory = compareTrajectories trajectory1 expr2_trajectory
               in (pos,bound2,newTrajectory)
-            (Nothing,Just trajectory2) -> error $ constructErrorMsg innerLoc "TODO1" logContents2
-            (Nothing,Nothing) -> error $ constructErrorMsg innerLoc "TODO2" logContents2
-        _ -> error $ constructErrorMsg innerLoc "TODO3" $ [
+            (Nothing,Just trajectory2) -> error $ constructErrorMsg innerLoc "TODO2" logContents2
+            (Nothing,Nothing) -> error $ constructErrorMsg innerLoc "TODO3" logContents2
+        _ -> error $ constructErrorMsg innerLoc "TODO4" $ [
           ("bound",show bound),
           ("bound2",show bound2),
           ("loopFrameTargetsDevelopmentTrajectory",show loopFrameTargetsDevelopmentTrajectory),
@@ -981,15 +1012,25 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
         guards = map negate loopExitingConditions
         finding = [tu | tu@(vn,_) <- loopFrameTargetsDevelopmentTrajectory, vn `elem` vns]
         in flip concatMap guards $ \guard -> case finding of
-            [(vn,trajectory)] -> let
+            {-[(vn,trajectory)] -> let
               maybe_Res = symExprNextStep vn (isolate_vr vn guard) trajectory
               in case maybe_Res of
                 Nothing -> error $ constructErrorMsg loc "TODO1" $ logContents ++
                   [("vn",vn)
                   ,("guard",show guard)
                   ,("trajectory",show trajectory)]
-                Just loopExitFact -> [loopExitFact]
-            _ -> error $ constructErrorMsg loc "TODO1" $ logContents ++ [("finding",show finding)]
+                Just loopExitFact -> [loopExitFact]-}
+            _ -> [res
+              | (vn,trajectory) <- finding
+              , let maybe_Res = symExprNextStep vn (isolate_vr vn guard) trajectory
+              , let res = case maybe_Res of
+                      Nothing -> error $ constructErrorMsg loc "TODO1" $ logContents ++
+                        [("vn",vn)
+                        ,("guard",show guard)
+                        ,("trajectory",show trajectory)]
+                      Just loopExitFact -> loopExitFact 
+              ]
+            --_ -> error $ constructErrorMsg loc "TODO1" $ logContents ++ [("finding",show finding)]
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn where
   -- isolate `vr` in `guard`
   isolate_vr :: String -> SymExpr -> SymExpr

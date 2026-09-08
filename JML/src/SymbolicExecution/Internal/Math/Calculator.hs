@@ -805,19 +805,20 @@ booleanCalculator2 op tu = let
             op
             (cast newType b)
   ----------
-  (a@(SymPreScope sr1 expr1),b@(SymPreScope sr2 expr2)) -> error $
-    constructErrorMsg loc "TODO6" [("a",show a),("b",show b)]
+  (a@(SymPreScope _ (t1,_)),b@(SymPreScope _ (t2,_))) -> let
+    t3 = pick_known_symType (t1,t2)
+    in SBin (cast t3 a) op (cast t3 b)
   ----------
-  (a@(SymPreScope sr1 expr1),b) -> let
-    rec = booleanCalculator $ SBin expr1 op b
-    in SymPreScope sr1 rec
+  (a@(SymPreScope _ (t1,_)),b) -> let
+    t3 = pick_known_symType (t1,toSymType2 b)
+    in SBin (cast t3 a) op (cast t3 b)
   ----------
-  (a,b@(SymPreScope sr2 expr2)) -> let
-    rec = booleanCalculator $ SBin a op expr2
-    in SymPreScope sr2 rec
+  (a,b@(SymPreScope _ (t2,_))) -> let
+    t3 = pick_known_symType (toSymType2 a,t2)
+    in SBin (cast t3 a) op (cast t3 b)
   ----------
   (p1,p2) -> error $
-    constructErrorMsg loc "TODO7" [("p1",show p1),("op",show op),("p2",show p2)]
+    constructErrorMsg loc "TODO6" [("p1",show p1),("op",show op),("p2",show p2)]
   ----------
 
 ----------------------------------------------------------------------

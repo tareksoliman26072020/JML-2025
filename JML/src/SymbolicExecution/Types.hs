@@ -190,7 +190,7 @@ data SymExpr =
   | SymReturnVoid
   | SymContinue
   | SymBreak
-  | SymPreScope CFGT.ScopeRange SymExpr -- ^ Value of the expression prior to a scope.
+  | SymPreScope CFGT.ScopeRange (SymType,String) -- ^ Value of the expression prior to a scope.
   deriving (Eq,Show)
 
 -- declared for the sake of `SymVar` in `SymExpr`

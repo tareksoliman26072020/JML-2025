@@ -213,13 +213,14 @@ LoopSummary:
   loopReadOnlyVars = []
   loopFrameTargets = ["n","i"]
   loopInitFacts = [("i",SymInt 0), ("n",n0)]
-            ist:  [("i",SymInt 0),("n",SymVar Int "n" [])]
+            ist:  [("i",SymInt 0),
+                   ("n",SymPreScope (SR {branchStart = 2, branchEnd = 5}) (SymVar Int "n" []))]
   loopGuard = Just $ SBin iCur Lt nCur
         ist:  Just $ SBin (SymVar Int "i" []) Lt (SymVar Int "n" [])
   loopEnteringCondition = Just $ SBin (SymInt 0) Lt n0
-                    ist:  Just $ SBin (SymInt 0) Lt (SymVar Int "n" [])
+                    ist:  Just $ SBin (SymInt 0) Lt (SymPreScope (SR {branchStart = 2, branchEnd = 5}) (Int,"n"))
   loopSkipCondition = Just $ SBin (SymInt 0) Ge n0
-                ist:  Just $ SBin (SymInt 0) Ge (SymVar Int "n" [])
+                ist:  Just $ SBin (SymInt 0) Ge (SymPreScope (SR {branchStart = 2, branchEnd = 5}) (Int,"n"))
   loopExitingConditions = [SBin iCur Ge nCur]
                     ist:  [SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])]
   loopExitViaBreakConditions = []
@@ -228,19 +229,30 @@ LoopSummary:
   loopFrameTargetsDevelopmentTrajectory = [
     ("n",Decreasing (SymInt 1)),
     ("i",Increasing (SymInt 1))]
+                                    ist: dasselbe
   loopExitFacts = [
     LoopExitFactValue "i" halfUp,      -- i == ceil(n0 / 2)
     LoopExitFactValue "n" finalN]      -- n == floor(n0 / 2)
                                        -- And therefore also: i + n == n0
+            ist:  [
+    LoopExitFactValue "n" (SymVar Int "i" []),
+    LoopExitFactValue "i" (SymVar Int "n" [])]
   loopCountersBounds = [
     (SymInt 0,"i",halfUp),
     (finalN,"n",n0)]
+                 ist:  [
+    (SymInt 0,"i",SymVar Int "n" []),
+    (SymVar Int "i" [],"n",SymPreScope (SR {branchStart = 2, branchEnd = 5}) (Int,"n"))]
   loopBoundStabilityFacts = [
     (nCur, Decreasing (SymInt 1)), -- this should be enough honestly
     (n0, ReadOnly),
     (halfUp, ReadOnly),
     (finalN, ReadOnly)]
+                      ist: [
+    (SymVar Int "n" [],Decreasing (SymInt 1)),
+    (SymVar Int "i" [],Increasing (SymInt 1))]
   loopDecreasesCandidate = [SBin (SymVar Int "n" []) Sub (SymVar Int "i" [])]
+                     ist: [SBin (SymVar Int "n" []) Sub (SymVar Int "i" [])]
 */
 /*
 LoopPattern:
