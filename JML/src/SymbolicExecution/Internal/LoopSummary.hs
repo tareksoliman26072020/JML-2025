@@ -5,7 +5,7 @@ import Prelude hiding (negate)
 import SymbolicExecution.Types
 import qualified SymbolicExecution.Logs.Log as Log
 import SymbolicExecution.Internal.Internal
-import SymbolicExecution.Internal.Math.Calculator (numericCalculator, substitute, isSymExprGreaterThan)
+import SymbolicExecution.Internal.Math.Calculator (numericCalculator, substitute, isSymExprGreaterThan, trajectoryCalculator, symExprCompare)
 import SymbolicExecution.Internal.Math.Isolator (isolate, run_isolate, IsolationFailureReason)
 import qualified CFG.Internal as CFG (getExpression)
 import qualified Data.Map as Map
@@ -18,7 +18,7 @@ import Text.Printf (printf)
 import Data.Functor (($>))
 import qualified CFG.Types as CFGT
 import qualified Parser.Types as AST
-import Data.List ((\\), find, nub, nubBy)
+import Data.List ((\\), find, nub, nubBy, foldl')
 import Data.Maybe (catMaybes, fromJust)
 
 globalLoc = "SymbolicExecution.Internal.LoopSummary"
@@ -1012,14 +1012,6 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
         guards = map negate loopExitingConditions
         finding = [tu | tu@(vn,_) <- loopFrameTargetsDevelopmentTrajectory, vn `elem` vns]
         in flip concatMap guards $ \guard -> case finding of
-            {-[(vn,trajectory)] -> let
-              maybe_Res = symExprNextStep vn (isolate_vr vn guard) trajectory
-              in case maybe_Res of
-                Nothing -> error $ constructErrorMsg loc "TODO1" $ logContents ++
-                  [("vn",vn)
-                  ,("guard",show guard)
-                  ,("trajectory",show trajectory)]
-                Just loopExitFact -> [loopExitFact]-}
             _ -> [res
               | (vn,trajectory) <- finding
               , let maybe_Res = symExprNextStep vn (isolate_vr vn guard) trajectory
@@ -1052,40 +1044,113 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
   symExprNextStep :: String -> SymExpr -> SymExprDevelopmentTrajectory -> Maybe LoopExitFact
   symExprNextStep vn guard trajectory = let
     loc = globalLoc ++ ".getLoopExitFacts.symExprNextStep"
+    -- dissecting the guard so that the variables in it are looked at
+    guard_vns = getVarNames3 guard
+    -- the variables in the guard which are not `vn`
+    relevant_guard_vns = [guard_vn
+      | guard_vn <- guard_vns
+      , guard_vn /= vn
+      ]
+    -- `isConstantGuard` tells if `relevant_guard_vns` denote constant variables
+    isConstantGuard = flip all relevant_guard_vns $ \vn ->
+      maybe True (const False) (lookup vn loopFrameTargetsDevelopmentTrajectory)
+    -- if `isConstantGuard` is True,
+    -- then I want to calculate the overall trajectory
+    -- of the those variables
+    collective_relevant_guard_vns_trajectory :: Maybe SymExprDevelopmentTrajectory
+    collective_relevant_guard_vns_trajectory = foldl' (\acc guard_vn ->
+      case (acc,lookup guard_vn loopFrameTargetsDevelopmentTrajectory) of
+        (Nothing,b@(Just (Increasing _))) -> b
+        (Nothing,b@(Just (Decreasing _))) -> b
+        (Nothing,b) -> error $ constructErrorMsg loc "TODO1" [
+          ("relevant_guard_vns",show relevant_guard_vns),
+          ("b",show b)]
+        (Just acc_trajectory,Just vn_trajectory) ->
+          trajectoryCalculator acc_trajectory vn_trajectory
+      ) Nothing relevant_guard_vns
+    calculate_with_trajectory expr = case collective_relevant_guard_vns_trajectory of
+      Just (Increasing step) -> numericCalculator $ SBin expr Add step
+      Just (Decreasing step) -> numericCalculator $ SBin expr Sub step
+      _ -> error $ constructErrorMsg loc "TODO2" [
+        ("collective_relevant_guard_vns_trajectory",show collective_relevant_guard_vns_trajectory),
+        ("expr",show expr)]
     logContents = [
        ("vn",vn)
       ,("guard",show guard)
-      ,("trajectory",show trajectory)] in
+      ,("trajectory",show trajectory)
+      ,("guard_vns",show guard_vns)
+      ,("relevant_guard_vns",show relevant_guard_vns)
+      ,("loopFrameTargetsDevelopmentTrajectory",show loopFrameTargetsDevelopmentTrajectory)
+      ,("isConstantGuard",show isConstantGuard)
+      ,("collective_relevant_guard_vns_trajectory",show collective_relevant_guard_vns_trajectory)] in
     case (trajectory,guard) of
       (Increasing step,SBin expr1@(SymVar _ vn2 _) op expr2) -> let
         step_type = toSymType2 step in if
-        | vn == vn2 && isTypeNumeric step_type -> case op of
-          Lt -> let
-            left = expr2
-            expr_r = SBin expr2 Add (SBin step Sub (cast step_type $ SymNum 1))
-            right = numericCalculator expr_r
-            in if | isOne step -> Just $ LoopExitFactValue vn left
-                  | otherwise  -> Just $ LoopExitFactRange vn left right
-          Le -> let
-            left = SBin expr2 Add (cast step_type $ SymNum 1)
-            right = numericCalculator $ SBin expr2 Add step
-            in if | isOne step -> Just $ LoopExitFactValue vn left
-                  | otherwise  -> Just $ LoopExitFactRange vn left right
-          _ -> error $ constructErrorMsg loc "TODO1" logContents
-    
-        | otherwise -> error $ constructErrorMsg loc "TODO2" logContents
+          | vn == vn2 && isTypeNumeric step_type -> case op of
+            Lt -> let
+              left = expr2
+              expr_r = SBin expr2 Add (SBin step Sub (cast step_type $ SymNum 1))
+              right = numericCalculator expr_r
+              in if | isOne step && isConstantGuard -> Just $ LoopExitFactValue vn left
+                    | isConstantGuard -> Just $ LoopExitFactRange vn left right
+                    | not isConstantGuard -> let
+                        new_left = calculate_with_trajectory left
+                        in case symExprCompare new_left right of
+                             GT -> Just $ LoopExitFactRange vn right new_left
+                             LT -> Just $ LoopExitFactRange vn new_left right
+                             {-LT -> error $ constructErrorMsg loc "MM" [
+                               ("vn",vn),
+                               ("left",show left),
+                               ("right",show right),
+                               ("new_left",show new_left),
+                               ("collective_relevant_guard_vns_trajectory",show collective_relevant_guard_vns_trajectory)
+                               ]-}
+                             EQ -> Just $ LoopExitFactValue vn right
+            Le -> let
+              left = SBin expr2 Add (cast step_type $ SymNum 1)
+              right = numericCalculator $ SBin expr2 Add step
+              in if | isOne step && isConstantGuard -> Just $ LoopExitFactValue vn left
+                    | isConstantGuard -> Just $ LoopExitFactRange vn left right
+                    | not isConstantGuard -> let
+                        new_left = calculate_with_trajectory left
+                        in Just $ case symExprCompare new_left right of
+                             GT -> LoopExitFactRange vn right new_left
+                             LT -> LoopExitFactRange vn new_left right
+                             EQ -> LoopExitFactValue vn right
+            _ -> error $ constructErrorMsg loc "TODO2" logContents
+          | otherwise -> error $ constructErrorMsg loc "TODO3" logContents
       (Decreasing step,SBin expr1@(SymVar _ vn2 _) op expr2) -> let
         step_type = toSymType2 step in if
-        | vn == vn2 && isTypeNumeric step_type -> case op of
-          Gt -> let
-            right = expr2
-            left = numericCalculator $ SBin expr2 Sub step
-            in if | isOne step -> Just $ LoopExitFactValue vn right
-                  | otherwise  -> Just $ LoopExitFactRange vn left right
-          Ge -> let
-            right = SBin expr2 Sub (cast step_type $ SymNum 1)
-            left = SBin right Sub step
-            in if | isOne step -> Just $ LoopExitFactValue vn right
-                  | otherwise  -> Just $ LoopExitFactRange vn left right
-          _ -> error $ constructErrorMsg loc "TODO3" logContents
-      _ -> error $ constructErrorMsg loc "TODO4" logContents
+          | vn == vn2 && isTypeNumeric step_type -> case op of
+            Gt -> let
+              right = expr2
+              left = numericCalculator $ SBin expr2 Sub step
+              in if | isOne step && isConstantGuard -> Just $ LoopExitFactValue vn right
+                    | isConstantGuard -> Just $ LoopExitFactRange vn left right
+                    | not isConstantGuard -> let
+                        new_right = calculate_with_trajectory right
+                        in Just $ case symExprCompare left new_right of
+                             GT -> LoopExitFactRange vn new_right left
+                             --LT -> LoopExitFactRange vn left new_right
+                             LT -> error $ constructErrorMsg loc "M" [
+                               ("vn",vn),
+                               ("left",show left),
+                               ("right",show right),
+                               ("new_right",show new_right),
+                               ("collective_relevant_guard_vns_trajectory",show collective_relevant_guard_vns_trajectory)
+                               ]
+                             EQ -> LoopExitFactValue vn left
+            Ge -> let
+              right = SBin expr2 Sub (cast step_type $ SymNum 1)
+              left = SBin right Sub step
+              in if | isOne step && isConstantGuard -> Just $ LoopExitFactValue vn right
+                    | isConstantGuard -> Just $ LoopExitFactRange vn left right
+                    | not isConstantGuard -> let
+                        new_right = calculate_with_trajectory right
+                        in Just $ case symExprCompare left new_right of
+                             GT -> LoopExitFactRange vn new_right left
+                             LT -> LoopExitFactRange vn left new_right
+                             EQ -> LoopExitFactValue vn left
+            _ -> error $ constructErrorMsg loc "TODO4" logContents
+          | otherwise -> error $ constructErrorMsg loc "TODO5" logContents
+      _ -> error $ constructErrorMsg loc "TODO6" logContents

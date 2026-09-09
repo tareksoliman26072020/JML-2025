@@ -1,7 +1,7 @@
 {-# Language LambdaCase, MultiWayIf #-}
 -- a calculator == linear solver == linear normalizer (linear normalization)
 module SymbolicExecution.Internal.Math.Calculator (
-  numericCalculator, booleanCalculator, objAccCalculator, stringCalculator, funCallCalculator,
+  numericCalculator, booleanCalculator, objAccCalculator, stringCalculator, funCallCalculator, trajectoryCalculator,
   calculator, whichCalculator, whichCalculator2, substitute, symExprCompare, isSymExprGreaterThan
 ) where
 
@@ -988,6 +988,34 @@ funCallCalculator = \case
       Print   -> ""
       Println -> "\n"
   tu@(funName,argsExprs) -> error $ "TODO5: funCallCalculator ==> " ++ show tu
+
+trajectoryCalculator :: SymExprDevelopmentTrajectory -> SymExprDevelopmentTrajectory -> Maybe SymExprDevelopmentTrajectory
+trajectoryCalculator trajectory1 trajectory2 = let
+  loc = "SymbolicExecution.Internal.Math.Calculator.trajectoryCalculator"
+  logContents = [
+    ("trajectory1",show trajectory1),
+    ("trajectory2",show trajectory2)
+    ] in
+  case (trajectory1,trajectory2) of
+    (Increasing step1,Increasing step2) -> Just $ Increasing $ numericCalculator
+      $ SBin step1 Add step2
+    (Decreasing step1,Decreasing step2) -> Just $ Decreasing $ numericCalculator
+      $ SBin step1 Add step2
+    (Increasing step1,Decreasing step2) -> let
+      calculating1 = numericCalculator $ SBin step1 Sub step2
+      calculating2 = numericCalculator $ SBin step2 Sub step1 in
+      case symExprCompare step1 step2 of
+        GT -> Just $ Increasing calculating1
+        LT -> Just $ Decreasing calculating2
+        EQ -> Nothing -- the trajectories cancel each other out
+    (Decreasing step1,Increasing step2) -> let
+      calculating1 = numericCalculator $ SBin step1 Sub step2
+      calculating2 = numericCalculator $ SBin step2 Sub step1 in
+      case symExprCompare step1 step2 of
+        GT -> Just $ Decreasing calculating1
+        LT -> Just $ Increasing calculating2
+        EQ -> Nothing -- the trajectories cancel each other out
+    _ -> error $ constructErrorMsg loc "TODO" logContents
 
 ----------------------------------------------------------------------
 ----------------------------------------------------------------------
