@@ -302,7 +302,7 @@ data CounterPattern
 
 data BoundPattern
   = StableBound SymExpr
-  | MovingBound
+  | MovingBound String
   | GuardlessWithInternalExit SymExpr
   deriving (Eq, Show)
 

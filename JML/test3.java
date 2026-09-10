@@ -235,8 +235,10 @@ LoopSummary:
     LoopExitFactValue "n" finalN]      -- n == floor(n0 / 2)
                                        -- And therefore also: i + n == n0
             ist:  [
-    LoopExitFactValue "n" (SymVar Int "i" []),
-    LoopExitFactValue "i" (SymVar Int "n" [])]
+    LoopExitFactRange "n" (SBin (SymVar Int "i" []) Sub (SymInt 1))
+                          (SymVar Int "i" []),
+    LoopExitFactRange "i" (SymVar Int "n" [])
+                          (SBin (SymVar Int "n" []) Add (SymInt 1))]
   loopCountersBounds = [
     (SymInt 0,"i",halfUp),
     (finalN,"n",n0)]
@@ -403,6 +405,42 @@ public static int halving(int n) {
     return i;
 }
 
+/* LoopSummary:
+loopSyntax = WhileSyntax
+loopReadOnlyVars = []
+loopFrameTargets = ["n","i"]
+loopInitFacts = [("i",SymInt 0),("n",SymPreScope (SR {branchStart = 2, branchEnd = 5}) (Int,"n"))]
+loopGuard = Just (SBin (SymVar Int "i" []) Lt (SymVar Int "n" []))
+loopEnteringCondition = Just (SBin (SymInt 0) Lt (SymPreScope (SR {branchStart = 2, branchEnd = 5}) (Int,"n")))
+loopSkipCondition = Just (SBin (SymInt 0) Ge (SymPreScope (SR {branchStart = 2, branchEnd = 5}) (Int,"n")))
+loopExitingConditions = [SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])]
+loopExitViaBreakConditions = []
+loopCounters = ["i","n"]
+loopAssignments = ["n","i"]
+loopFrameTargetsDevelopmentTrajectory = [("n",Decreasing (SymInt 1)),("i",Increasing (SymInt 1))]
+loopExitFacts = [LoopExitFactRange "n" (SBin (SymVar Int "i" []) Sub (SymInt 1)) (SymVar Int "i" []),LoopExitFactRange "i" (SymVar Int "n" []) (SBin (SymVar Int "n" []) Add (SymInt 1))]
+loopCountersBounds = [(SymInt 0,"i",SymVar Int "n" []),(SymVar Int "i" [],"n",SymPreScope (SR {branchStart = 2, branchEnd = 5}) (Int,"n"))]
+loopBoundStabilityFacts = [(SymVar Int "n" [],Decreasing (SymInt 1)),(SymVar Int "i" [],Increasing (SymInt 1))]
+loopDecreasesCandidate = [SBin (SymVar Int "n" []) Sub (SymVar Int "i" [])]
+*/
+/* LoopPattern:
+[
+ (CounterPattern (CountingUp "i"),
+  [LoopCounters,LoopFrameTargetsDevelopmentTrajectory,LoopCountersBounds]
+ ),
+ (CounterPattern (CountingDown "n"),
+  [LoopCounters,LoopFrameTargetsDevelopmentTrajectory,LoopCountersBounds]
+ ),
+ (BoundPattern (MovingBound "n"),
+  [LoopFrameTargets,LoopBoundStabilityFacts]
+ ),
+ (BoundPattern (MovingBound "i"),
+  [LoopFrameTargets,LoopBoundStabilityFacts]
+ )
+]
+*/
+/*
+*/
 public static int halving(int n) {
   int i = 0;
   while (i < n) {
