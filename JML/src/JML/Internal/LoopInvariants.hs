@@ -146,13 +146,11 @@ inferCounterBoundsTemplates loopSummary loopPatternsInfos = do
   let toReturn :: [LoopInvariantTemplate]
       toReturn = case checkPatterns of
         [] -> []
-        [_] -> [res
+        _ -> [res
           | (l,c,u) <- SYT.loopCountersBounds loopSummary
           , let res = Maintaining $ CounterBoundsTemplate
                   (symExprToExpr2 l) c (symExprToExpr2 u)
           ]
-        _ -> error $ constructErrorMsg loc "won't happen" $ logContents
-          ++ [("checkPatterns",show checkPatterns)]
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
 
 -- CounterPattern StridedCounting ==> [LoopFrameTargets, LoopInitFacts, LoopFrameTargetsDevelopmentTrajectory]

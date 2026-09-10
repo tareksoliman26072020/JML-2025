@@ -40,8 +40,8 @@ LoopInvariantTemplate:
 /*@ normal_behavior
   @   requires true;
   @   assignable \nothing;
-  @   ensures \result == (0 < n ==> n);
-  @   ensures \result == (0 >= n ==> 0);
+  @   ensures 0 < n ==> \result == n;
+  @   ensures 0 >= n ==> \result == 0;
   @*/
 int idByLoop (int n) {
   int i = 0;
@@ -102,8 +102,8 @@ LoopInvariantTemplate:
 /*@ normal_behavior
   @   requires true;
   @   assignable \nothing;
-  @   ensures \result == (0 < n ==> n <= i <= n + 2);
-  @   ensures \result == (0 >= n ==> 0);
+  @   ensures 0 < n ==> n <= \result <= n + 2;
+  @   ensures 0 >= n ==> \result == 0;
   @*/
 int idByLoopStride3 (int n) {
   int i = 0;
@@ -171,8 +171,8 @@ LoopInvariantTemplate:
 /*@ normal_behavior
   @   requires true;
   @   assignable \nothing;
-  @   ensures \result == (0 < n ==> n);
-  @   ensures \result == (0 >= n ==> 0);
+  @   ensures 0 < n ==> \result == n;
+  @   ensures 0 >= n ==> \result == 0;
   @*/
 int idByLoop2 (int n) {
   int i = 0;
@@ -441,9 +441,19 @@ loopDecreasesCandidate = [SBin (SymVar Int "n" []) Sub (SymVar Int "i" [])]
 */
 /*
 */
-public static int halving(int n) {
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures 0 < \old(n) ==> n <= \result <= n + 1;
+  @   ensures 0 >= \old(n) ==> \result == 0;
+  @*/
+int halving (int n) {
   int i = 0;
-  while (i < n) {
+  //@ maintaining 0 <= i && i <= n;
+  //@ maintaining i <= n && n <= \old(n);
+  //@ loop_assigns n, i;
+  //@ decreases n - i;
+  while(i<n) {
     n--;
     i++;
   }
