@@ -171,7 +171,8 @@ allTargets = [
 ----------
   ("idByLoop", idByLoop),
   ("idByLoopStride3", idByLoopStride3),
-  ("idByLoop2", idByLoop2)
+  ("idByLoop2", idByLoop2),
+  ("halving", halving)
   ]
 
 -----------------------------
@@ -5085,3 +5086,54 @@ idByLoop2 = Map.fromList [
            [LoopExitViaBreakConditions])]),
   (Return,SymUnknown ("i",SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 7})],6)])
   ]
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+halving :: SymStateEnv
+halving = Map.fromList [
+  (MethodHandle,SMethodHandle SYT.Int "halving"),
+  (GlobalVars,SGlobalVars []),
+  (FormalParms,SFormalParms ["n"]),
+  (VarBindings,SVarBindings (Map.fromList [("i",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 6}})])),
+  (VarAssignments,SVarAssignments [("i",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 6}})),("n",(SBin (SymVar SYT.Int "n" []) SYT.Sub (SymInt 1),Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 5}})),("i",(SymInt 1,Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 5}}))]),
+  (VarName "i",SymUnknown ("i",SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 5})],4)]),
+  (VarName "n",SymUnknown ("n",SymVar SYT.Int "n" []) [([(For,SR {branchStart = 2, branchEnd = 5})],3)]),
+  (ScopeRange (SR {branchStart = 2, branchEnd = 5}),
+   SLoop Nothing
+         (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Less, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "n"}}))
+         [Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "n"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = Minus, expr2 = NumberLiteral 1.0}}}), parent = 2},Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Plus, expr2 = NumberLiteral 1.0}}}), parent = 2}]
+         (Just (LoopSummary {
+             loopSyntax = WhileSyntax,
+             loopReadOnlyVars = [],
+             loopFrameTargets = ["n","i"],
+             loopInitFacts = [("i",SymInt 0),("n",SymPreScope (SR {branchStart = 2, branchEnd = 5}) (SYT.Int,"n"))],
+             loopGuard = Just (SBin (SymVar SYT.Int "i" []) SYT.Lt (SymVar SYT.Int "n" [])),
+             loopEnteringCondition = Just (SBin (SymInt 0) SYT.Lt (SymPreScope (SR {branchStart = 2, branchEnd = 5}) (SYT.Int,"n"))),
+             loopSkipCondition = Just (SBin (SymInt 0) SYT.Ge (SymPreScope (SR {branchStart = 2, branchEnd = 5}) (SYT.Int,"n"))),
+             loopExitingConditions = [SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" [])],
+             loopExitViaBreakConditions = [],
+             loopCounters = ["i","n"],
+             loopAssignments = ["n","i"],
+             loopFrameTargetsDevelopmentTrajectory = [("n",Decreasing (SymInt 1)),("i",Increasing (SymInt 1))],
+             loopExitFacts = [LoopExitFactRange "n" (SBin (SymVar SYT.Int "i" []) SYT.Sub (SymInt 1)) (SymVar SYT.Int "i" []),LoopExitFactRange "i" (SymVar SYT.Int "n" []) (SBin (SymVar SYT.Int "n" []) SYT.Add (SymInt 1))],
+             loopCountersBounds = [(SymInt 0,"i",SymVar SYT.Int "n" []),(SymVar SYT.Int "i" [],"n",SymPreScope (SR {branchStart = 2, branchEnd = 5}) (SYT.Int,"n"))],
+             loopBoundStabilityFacts = [(SymVar SYT.Int "n" [],Decreasing (SymInt 1)),(SymVar SYT.Int "i" [],Increasing (SymInt 1))],
+             loopDecreasesCandidate = [SBin (SymVar SYT.Int "n" []) SYT.Sub (SymVar SYT.Int "i" [])]}))
+         [(CounterPattern (CountingUp "i"),
+           [LoopCounters,LoopFrameTargetsDevelopmentTrajectory,LoopCountersBounds]
+          ),
+          (CounterPattern (CountingDown "n"),
+           [LoopCounters,LoopFrameTargetsDevelopmentTrajectory,LoopCountersBounds]
+          ),
+          (BoundPattern (MovingBound "n"),
+           [LoopFrameTargets,LoopBoundStabilityFacts]
+          ),
+          (BoundPattern (MovingBound "i"),
+           [LoopFrameTargets,LoopBoundStabilityFacts]
+          )
+         ]),
+  (Return,SymUnknown ("i",SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 5})],4)])
+  ]
+

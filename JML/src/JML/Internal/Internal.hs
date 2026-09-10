@@ -218,6 +218,7 @@ symExprToExpr2 symExpr =
        SYT.SymFun definedFun symExpr -> SymFun
          (toDefinedFun definedFun) (symExprToExpr2 symExpr)
        SYT.SymNull symType -> JMLNull (toJMLType symType)
+       SYT.SymPreScope _ (t,vn) -> JMLOld $ JMLVar (toJMLType t) vn
        _ -> error $ printf "%s: TODO: %s" loc (show symExpr)
 
 toDefinedFun :: SYT.DefinedFun -> DefinedFun

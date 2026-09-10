@@ -235,6 +235,7 @@ isSymVar = \case
 isConstant :: SymExpr -> Bool
 isConstant = \case
   SymVar _ _ _ -> False
+  SymPreScope _ _ -> False
   SymNum _ -> True
   SymInt _ -> True
   SymDouble _ -> True
@@ -298,14 +299,15 @@ isSymFun = \case
 isVar :: SymExpr -> Bool
 isVar = \case
   SymNum _ -> False
-  SymInt _ -> False             -- ^ concrete integer literal
+  SymInt _ -> False
   SymDouble _ -> False
   SymFloat _ -> False
   SBool _ -> False
+  SymString _ -> False
+  SymPreScope _ _ -> True
   SBin expr1 _ expr2 -> any isVar [expr1,expr2]
   SNot expr -> isVar expr
   SymVar _ _ _ -> True
-  SymString _ -> False
   SymUnknown _ _ -> True
   SObjAcc _ -> True
   SymFun _ symExpr -> isVar symExpr
@@ -359,6 +361,7 @@ toSymType2 = \case
   SBool _ -> Bool
   SymNull t -> t
   SymVar t _ _ -> t
+  SymPreScope _ (t,_) -> t
   SObjAcc li -> case li of
     [_,"length"] -> Int
     _ -> error $ "TODO1: toSymType2 ==> " ++ show (SObjAcc li)
@@ -1056,6 +1059,9 @@ negate symExpr = case symExpr of
     SBin (cast t $ SymNum (-1)) Mul symExpr
   SymUnknown (x,expr) reasons -> SymUnknown (x,negate expr) reasons
   SymVar t _ _ -> let
+    minusOne = cast t $ SymNum 1
+    in SBin minusOne Mul symExpr
+  SymPreScope _ (t,_) -> let
     minusOne = cast t $ SymNum 1
     in SBin minusOne Mul symExpr
 --SBin (SymVar Int "i") Lt (SymVar Int "n")

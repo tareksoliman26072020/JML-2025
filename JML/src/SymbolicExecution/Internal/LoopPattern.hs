@@ -194,10 +194,28 @@ inferStableBoundPatterns loopSummary = do
   checkBound _ = []
 
 inferMovingBoundPatterns :: LoopSummary -> SymbolicExecutionMonad [(LoopPattern,[LoopSummaryTag])]
-inferMovingBoundPatterns _ = do
+inferMovingBoundPatterns loopSummary = do
   let loc = "SymbolicExecution.Internal.LoopPattern.inferMovingBoundPatterns"
-  tellNextLog $ Log.Location loc
-  let toReturn :: [(LoopPattern,[LoopSummaryTag])] = []
+      theLoopFrameTargets = loopFrameTargets loopSummary
+      theLoopBoundStabilityFacts = loopBoundStabilityFacts loopSummary
+      logContents = [
+        ("loopFrameTargets",show theLoopFrameTargets),
+        ("loopBoundStabilityFacts",show theLoopBoundStabilityFacts)]
+  constructLog loc "inferMovingBoundPatterns" logContents
+  let toReturn :: [(LoopPattern,[LoopSummaryTag])] = [(one,movingBoundTags)
+        | (symExpr,trajectory) <- theLoopBoundStabilityFacts
+        , case trajectory of
+            Increasing _ -> True
+            Decreasing _ -> True
+            _ -> False
+        , let vns = getVarNames3 symExpr
+        , let vn = case vns of
+                [vn] -> vn
+                _ -> error $ constructErrorMsg loc "inferMovingBoundPatterns" $ logContents
+                  ++ [("symExpr",show symExpr),
+                      ("vns",show vns)]
+        , let one = BoundPattern $ MovingBound vn
+        ]
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
 
 inferGuardlessWithInternalExitBoundPatterns :: LoopSummary -> SymbolicExecutionMonad [(LoopPattern,[LoopSummaryTag])]
@@ -249,9 +267,7 @@ stridedCountingPatternTags = [LoopCounters, LoopFrameTargetsDevelopmentTrajector
 stableBoundTags :: LoopSummary -> SymExpr -> [LoopSummaryTag]
 stableBoundTags loopSummary bound =
   concat
-    [ [LoopCounters]
-    , [LoopCountersBounds]
-    , [LoopGuard]
+    [ [LoopCounters, LoopCountersBounds, LoopGuard]
 
     , if isReadOnlyBoundViaStabilityFacts bound loopSummary
         then [LoopBoundStabilityFacts]
@@ -261,6 +277,9 @@ stableBoundTags loopSummary bound =
         then [LoopReadOnlyVars]
         else []
     ]
+
+movingBoundTags :: [LoopSummaryTag]
+movingBoundTags = [LoopFrameTargets, LoopBoundStabilityFacts]
 
 guardlessWithInternalExitTags :: [LoopSummaryTag]
 guardlessWithInternalExitTags = [LoopGuard,LoopExitingConditions]

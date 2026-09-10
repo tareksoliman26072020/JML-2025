@@ -174,7 +174,8 @@ javaMethodInputs = [
 ----------
   ("idByLoop",3,idByLoop),
   ("idByLoopStride3",3,idByLoopStride3),
-  ("idByLoop2",3,idByLoop2)
+  ("idByLoop2",3,idByLoop2),
+  ("halving",3,halving)
   ]
 
 boo21 = "public int boo21(){\n\
@@ -2077,3 +2078,11 @@ idByLoop2 = "public static int idByLoop2(int n) {\n\
             \  return i;\n\
             \}"
 
+halving = "int halving (int n) {\n\
+          \  int i = 0;\n\
+          \  while(i<n) {\n\
+          \    n--;\n\
+          \    i++;\n\
+          \  }\n\
+          \  return i;\n\
+          \}"

@@ -26,6 +26,50 @@ inferLoopInvariantTemplates loopSummary allLoopPatternsInfos = do
         ("loopSummary",show loopSummary),
         ("allLoopPatternsInfos",show allLoopPatternsInfos)]
   constructLog loc "inferLoopInvariantTemplates" logContents
+  --------------------------
+  -- theMaintainingTemplates
+  --------------------------
+  theMaintainingTemplates <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      inferMaintainingTemplates loopSummary allLoopPatternsInfos
+        <* decrementLogDepth
+  --------------------------
+  -- theLoopAssignsTemplates
+  --------------------------
+  theLoopAssignsTemplates <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      inferLoopAssignsTemplates loopSummary allLoopPatternsInfos
+        <* decrementLogDepth
+  ------------------------
+  -- theDecreasesTemplates
+  ------------------------
+  theDecreasesTemplates <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      inferDecreasesTemplates loopSummary
+        <* decrementLogDepth
+  -----------
+  -- toReturn
+  -----------
+  let toReturn =
+        theMaintainingTemplates ++
+        theLoopAssignsTemplates ++
+        theDecreasesTemplates
+  constructLog loc "Summary" $ logContents ++
+    [("theMaintainingTemplates",show theMaintainingTemplates)
+    ,("theLoopAssignsTemplates",show theLoopAssignsTemplates)
+    ,("theDecreasesTemplates",show theDecreasesTemplates)]
+  (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
+
+inferMaintainingTemplates :: SYT.LoopSummary -> [(SYT.LoopPattern,[SYT.LoopSummaryTag])] -> JMLMonad [LoopInvariantTemplate]
+inferMaintainingTemplates loopSummary allLoopPatternsInfos = do
+  let loc = globalLoc ++ ".inferMaintainingTemplates"
+      logContents = [
+        ("loopSummary",show loopSummary),
+        ("allLoopPatternsInfos",show allLoopPatternsInfos)]
+  constructLog loc "inferMaintainingTemplates" logContents
   ----------------------------
   -- theCounterBoundsTemplates
   ----------------------------
@@ -48,6 +92,24 @@ inferLoopInvariantTemplates loopSummary allLoopPatternsInfos = do
     incrementLogDepth *>
       inferStridedCounterTemplates loopSummary relevantLoopPatternsInfos
         <* decrementLogDepth
+  -----------
+  -- toReturn
+  -----------
+  let toReturn =
+        theCounterBoundsTemplates ++
+        theStridedCounterTemplates
+  constructLog loc "Summary" $ logContents ++
+    [("theCounterBoundsTemplates",show theCounterBoundsTemplates)
+    ,("theStridedCounterTemplates",show theStridedCounterTemplates)]
+  (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
+
+inferLoopAssignsTemplates :: SYT.LoopSummary -> [(SYT.LoopPattern,[SYT.LoopSummaryTag])] -> JMLMonad [LoopInvariantTemplate]
+inferLoopAssignsTemplates loopSummary allLoopPatternsInfos = do
+  let loc = globalLoc ++ ".inferLoopAssignsTemplates"
+      logContents = [
+        ("loopSummary",show loopSummary),
+        ("allLoopPatternsInfos",show allLoopPatternsInfos)]
+  constructLog loc "inferLoopAssignsTemplates" logContents
   ------------------------
   -- theLoopFrameTemplates
   ------------------------
@@ -56,28 +118,9 @@ inferLoopInvariantTemplates loopSummary allLoopPatternsInfos = do
     incrementLogDepth *>
       inferLoopFrameTemplates loopSummary
         <* decrementLogDepth
-  ------------------------
-  -- theDecreasesTemplates
-  ------------------------
-  theDecreasesTemplates <- do
-    incrementLogEnumeration
-    incrementLogDepth *>
-      inferDecreasesTemplates loopSummary
-        <* decrementLogDepth
-  -----------
-  -- toReturn
-  -----------
-  let toReturn =
-        theCounterBoundsTemplates ++
-        theStridedCounterTemplates ++
-        theLoopFrameTemplates ++
-        theDecreasesTemplates
-  constructLog loc "Summary" $ logContents ++
-    [("theCounterBoundsTemplates",show theCounterBoundsTemplates)
-    ,("theStridedCounterTemplates",show theStridedCounterTemplates)
-    ,("theLoopFrameTemplates",show theLoopFrameTemplates)
-    ,("theDecreasesTemplates",show theDecreasesTemplates)]
+  let toReturn = theLoopFrameTemplates
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
+
 {-
 data LoopPattern
   = CounterPattern CounterPattern
@@ -103,13 +146,11 @@ inferCounterBoundsTemplates loopSummary loopPatternsInfos = do
   let toReturn :: [LoopInvariantTemplate]
       toReturn = case checkPatterns of
         [] -> []
-        [_] -> [res
+        _ -> [res
           | (l,c,u) <- SYT.loopCountersBounds loopSummary
-          , let res = CounterBoundsTemplate
+          , let res = Maintaining $ CounterBoundsTemplate
                   (symExprToExpr2 l) c (symExprToExpr2 u)
           ]
-        _ -> error $ constructErrorMsg loc "won't happen" $ logContents
-          ++ [("checkPatterns",show checkPatterns)]
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
 
 -- CounterPattern StridedCounting ==> [LoopFrameTargets, LoopInitFacts, LoopFrameTargetsDevelopmentTrajectory]
@@ -127,7 +168,7 @@ inferStridedCounterTemplates loopSummary loopPatternsInfos = do
       relevantLoopInitFacts :: [(String,SYT.SymbolicExecutionValue)]
       relevantLoopInitFacts = flip filter (SYT.loopInitFacts loopSummary)
         $ \(vn,_) -> maybe False (const True) (lookup vn relevantVarTrajectories)
-      toReturn = [ StridedCounterTemplate vn1 stride (symExprToExpr2 initVal)
+      toReturn = [ Maintaining $ StridedCounterTemplate vn1 stride (symExprToExpr2 initVal)
         | (vn1,trajectory) <- relevantVarTrajectories
         , (vn2,initVal) <- relevantLoopInitFacts
         , vn1 == vn2
@@ -146,7 +187,7 @@ inferLoopFrameTemplates :: SYT.LoopSummary -> JMLMonad [LoopInvariantTemplate]
 inferLoopFrameTemplates loopSummary = do
   let loc = globalLoc ++ ".inferLoopFrameTemplates"
   constructLog loc "inferLoopFrameTemplates" []
-  let toReturn = [LoopFrameTemplate $ SYT.loopFrameTargets loopSummary]
+  let toReturn = [LoopAssigns $ LoopFrameTemplate $ SYT.loopFrameTargets loopSummary]
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
 
 -- CounterPattern ==> LoopDecreasesCandidate ==> DecreasesTemplate

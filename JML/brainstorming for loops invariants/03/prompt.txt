@@ -1,137 +1,26 @@
-{-# Language FlexibleInstances, LambdaCase #-} -- to enable instancing MonadFail (Either String)
-module SymbolicExecution.Types where
+In this chat, the main focus is getting JML syntax for the method „halving“, especially how the loop invariants look like, and how they affect the overall JML specifications of the method.
 
-import qualified SymbolicExecution.Logs.Log as Log (Log,Header)
-import Control.Monad.Reader
-import Control.Monad.State
-import Control.Monad.Except
-import Control.Monad.Writer
-import qualified Parser.Types as AST
-import qualified CFG.Types as CFGT (CFG, NodeID, Node, ScopeRange, Node_Coor, Kind)
-import qualified Data.Map as Map (Map)
-import Text.Printf (printf)
-import Data.List (intercalate)
+In this JML project called „JML“, there's knowledge and informations which are the stepping stone for this current chat. There informations are to be found in this project's source files:
+1) loop_invariant_missions_idByLoop2_halving.md
+2) loop_invariant_missions_report_to_be_tested_3.md
+3) LoopPattern.md
+4) to-be-tested-3.annotated.java
+5) to-be-tested-3.java
+6) test3.java
 
-type SymbolicExecutionMonad =
-    ExceptT String (ReaderT (Config,[CFGT.CFG]) (WriterT [Log.Log] (State SymState)))
-----------
-----------
-----------
-    
-newtype MethodProcessor = MethodProcessor {
-  methodProcessorMonad :: SymbolicExecutionMonad ExecutionResult
-}
+*) in the two files 1) and 2) you find an „initial“ output for loops invariants for the methods mentioned in 5)
+*) The file mentioned in 3) is a new representation „LoopPattern“ (read in that file the first small section: Goal Of This Document).
+*) 5) has methods which I'm basing my work on, and in 4) you see the same methods, but with „initial“ JML specifications.
+*) 6) provides informations about the LoopSummary, LoopPattern that are satisfactory for the methods `idByLoop` and `idByLoopStride3`
 
-----------
+The five files (from 1) to 5)) may be outdated in some sections, but in majority they are a decent representation. This is to be noticed by going throught the other chats in this project, mainly the following 4 chats:
+  4) Loop Invariants Review
+  5.1) idByLoop: to-be-tested-3 LoopSummary, InvariantTemplate
+  5.2) idByLoopStride3
+  5.3) idByLoop2
 
-data SymStateKey = MethodHandle
-                 | GlobalVars | FormalParms | VarBindings | VarAssignments
-                 | VarName String | ArrayAccess
-                 | ScopeRange CFGT.ScopeRange | InheritedScopeRange String CFGT.ScopeRange
-                 | LoopFailure
-                 | LoopConditions CFGT.ScopeRange | Continue | Break
-                 | Exception | Actions | Return
-                 deriving (Eq,Ord,Show)
-
-type SymStateEnv = Map.Map SymStateKey SymExpr
-type SymbolicExecution = SymStateEnv
-type SymbolicExecutionKey = SymStateKey
-type SymbolicExecutionValue = SymExpr
-
-data SymState = SymState
- { env :: SymStateEnv
- , logHeader :: Log.Header
- }
- deriving (Eq,Show)
-
-{-
-In short, every element of pc becomes a clause in your requires or loop_invariant, and every binding in your final env becomes an equation in your ensures. That’s exactly how symbolic execution wires into JML inference.
--}
-
--- | Global settings for symbolic execution
-data Config = Config
-  { iterationMaxBound :: Int              -- ^ max number of loop iterations
-  }
-
-defaultConfig :: Config
-defaultConfig = Config 20
-
-{-
-ExecutionResult is used to transform data from a monadic transformer to another.
-
-visitExpr sends data to visitExpr, visitStmt, visitNode
-
-visitExpr ==> NumberLiteral: ER_Expr
-visitExpr ==> StringLiteral: ER_Expr
-ER_FunCall encapsulates the state of a function call which posseses actual parameters.
-visitExpr ==> FunCallExpr ==> function without parameters: ER_Expr
-visitExpr ==> FunCallExpr ==> function with parameters: ER_FunCall
-visitExpr ==> BinOpExpr: ER_Expr
-visitExpr ==> AssignExpr: ER_SymStateMapEntry
-visitExpr ==> VarExpr ==> no object access: ER_SymStateMapEntry
-visitExpr ==> VarExpr ==> object access: ER_Expr
-visitExpr ==> ExcpExpr: ER_Expr SException
-visitExpr ==> ArrayInstantiationExpr: ER_Expr 
-visitExpr ==> ArrayCallExpr: ER_ArrayCallExpr
-
-visitStmt sends data to visitNode (this may change in the future so that it also sends data to visitStmt)
-
-visitStmt ==> ReturnStmt: ER_State or (visitExpr ==> expr)
-visitStmt ==> VarStmt: ER_SymStateMapEntry or ER_Expr (look visitExpr ==> VarExpr)
-visitStmt ==> AssignStmt: ER_SymStateMapEntry
-visitStmt ==> FunCallStmt: ER_PredefinedFunCall
-
-visitNode ==> Entry: ER_State
-visitNode ==> End: ER_ReturnVoid
-visitNode ==> Node ==> Statement: ER_State
-visitNode ==> Node ==> BooleanExpression if ==> SBool: ER_State
-visitNode ==> Node ==> BooleanExpression if ==> SBin: ER_Expr SIte
-visitNode ==> Node ==> ForInitialization ==> no accumulation variable ==> ER_Triplet
-visitNode ==> Node ==> ForStep ==> no statement ==> ER_Void
-visitNode ==> Node ==> ForStep ==> yes statement ==> ER_Void
-
-visitForLoop ==> loop can be processed ==> visitForLoop1 ==> ER_ForLoopDone
-visitForLoop ==> loop can't be processed ==> visitForLoop2 ==> ER_SymStateMapEntry
-
-visitForLoop2 ==> ER_SymStateMapEntry
-
-visitSymExpr ==> SymFormalParam: ER_SymStateMapEntry
-visitSymExpr ==> SBin: ER_SymStateMapEntry
-visitSymExpr ==> SymInt: ER_SymStateMapEntry
--}
-
-data ExecutionResult =
-    ER_Expr SymExpr
-  | ER_IfExpr CFGT.ScopeRange
-              (SymExpr,          -- if condition before substitution of variables
-               SymExpr)          -- if condition after substitution of variables
-      [ExecutionResult]          -- of if body
-      [ExecutionResult]          -- of else body
-  | ER_Continue
-  | ER_Break
-  | ER_Node {er_Node_id :: CFGT.NodeID, nodeName :: String}
-  | ER_SymStateMapEntry SymStateKey SymExpr
-  | ER_VarExprObjAccess {-object access name-}String {-object access value-}SymExpr
-  | ER_ArrayCallExpr {arrayIndexCall :: SymExpr, arrayIndexCallValue :: SymExpr}
-  | ER_State SymState
-  | ER_Logs [Log.Log]
-  | ER_Triplet (ExecutionResult,ExecutionResult,ExecutionResult)
-  | ER_FunCall SymStateEnv
-  | ER_FunHandle SymType String
-  | ER_IfCond SymExpr  -- ^ boolean expressions found in if conditions. Its existance in the environment values map means that the ......
-  | ER_PredefinedFunCall SymExpr
-  | ER_ForLoopDone
-  | ER_ForLoopCounterTooBig
-  | ER_ForLoopDoneViaReturnStmt
-  | ER_ForLoopDoneViaBreakStmt
-  | ER_Void
-  | ER_ReturnVoid
-  | ER_ActualParameterDetected String SymExpr
-  deriving (Show,Eq)
-
-instance MonadFail (Either String) where
-  fail = Left
-
+For the sake of accuracy in this chat, LoopSummary, LoopPattern, LoopInvariantTemplate look like this (all the provided data types below are a subject of getting extended by you if necessary to provide correct and thorough answers. The addition can be based on files attached in this project, or invented by you):
+```haskell
 -- | A binary operator in our symbolic language
 data SymBinOp
   = Add      -- ^ +
@@ -190,12 +79,7 @@ data SymExpr =
   | SymReturnVoid
   | SymContinue
   | SymBreak
-  | SymPreScope CFGT.ScopeRange (SymType,String) -- ^ Value of the expression prior to a scope.
   deriving (Eq,Show)
-
--- declared for the sake of `SymVar` in `SymExpr`
--- the goal is to attach infos about the context of the variable when necessary
-data VarInfo = ForAccumulator CFGT.ScopeRange SymExpr deriving (Show,Eq)
 
 type SymReason = ([(CFGT.Kind,CFGT.ScopeRange)],Int)
 
@@ -302,7 +186,7 @@ data CounterPattern
 
 data BoundPattern
   = StableBound SymExpr
-  | MovingBound String
+  | MovingBound
   | GuardlessWithInternalExit SymExpr
   deriving (Eq, Show)
 
@@ -358,3 +242,34 @@ data LoopSummaryTag =
  | LoopExitViaBreakConditions
  | LoopExitFact
  deriving (Show,Eq)
+```
+```haskell
+data LoopInvariantTemplate
+  = CounterBoundsTemplate Expr String Expr
+  | StridedCounterTemplate
+      String  -- counter
+      Expr    -- stride
+      Expr    -- residue
+  | LoopFrameTemplate [String]
+  | DecreasesTemplate Expr
+  deriving (Show, Eq)
+
+data LoopInvariants = LoopInvariants {
+  loopScopeRange :: CFGT.ScopeRange,
+  loopClauses :: [LoopInvariantTemplate]
+} deriving (Show,Eq)
+```
+
+Now we arrive the my question which is the initiation of this current chat:
+Similar to `idByLoop`, `idByLoopStride3`, `idByLoop` in test3.java, Give me all JML specifications of the following method `halving`, including the loop specifications too for sure:
+```java
+public static int halving(int n) {
+  int i = 0;
+  while (i < n) {
+    n--;
+    i++;
+  }
+  return i;
+}
+```
+I want you to double-check your answers for correctness and take your time answering. This goes for this prompt and all future prompts in this chat.

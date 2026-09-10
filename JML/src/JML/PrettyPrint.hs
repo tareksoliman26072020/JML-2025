@@ -101,7 +101,6 @@ ppExpr expr = case expr of
   JMLVar _ vn -> vn
   expr1 `JMLEquals` expr2 -> printf "%s == %s" (ppExpr expr1) (ppExpr expr2)
   JMLOld expr -> printf "\\old(%s)" (ppExpr expr)
-  JMLResult expr -> printf "\\result == %s" (ppExpr expr)
   JMLBin expr1 op expr2 -> case (expr1,expr2) of
     (JMLBin _ _ _,JMLBin _ _ _) -> printf "(%s) %s (%s)" (ppExpr expr1) (ppOp op) (ppExpr expr2)
     (JMLBin _ _ _,_) -> printf "(%s) %s %s" (ppExpr expr1) (ppOp op) (ppExpr expr2)
@@ -121,10 +120,17 @@ ppExpr expr = case expr of
   JMLArray _ _ elems -> printf "[%s]" (intercalate ", " $ map ppExpr elems)
   SymFun ToString expr -> printf "toString(%s)" (ppExpr expr)
   JMLNull _ -> "null"
+
 --JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n") `JMLImplies` JMLVar Int_Type "i"
   expr1 `JMLImplies` expr2 -> printf "(%s ==> %s)" (ppExpr expr1) (ppExpr expr2)
   JMLRange vn from to -> printf
     "%s <= %s <= %s" (ppExpr from) vn (ppExpr to)
+  JMLResult (expr1 `JMLImplies` (JMLRange _ from to)) -> ppExpr $
+    expr1 `JMLImplies` (JMLRange "\\result" from to)
+  JMLResult (expr1 `JMLImplies` expr2) -> ppExpr $
+    expr1 `JMLImplies` (JMLResult expr2)
+  JMLResult expr -> printf "\\result == %s" (ppExpr expr)
+
   _ -> error $ "JML.PrettyPrint.ppExpr ==> TODO2: " ++ show expr
 
 ppOp :: Op -> String
@@ -154,16 +160,16 @@ ppLoopInvariantTemplate template = let
   loc = "JML.PrettyPrint" in
   case template of
   --CounterBoundsTemplate Expr String Expr
-    CounterBoundsTemplate fromExpr counterName toExpr -> printf
+    Maintaining (CounterBoundsTemplate fromExpr counterName toExpr) -> printf
       "maintaining %s <= %s && %s <= %s"
       (ppExpr fromExpr) counterName
       counterName (ppExpr toExpr)
   --StridedCounterTemplate
-    StridedCounterTemplate counter stride residue -> printf
+    Maintaining (StridedCounterTemplate counter stride residue) -> printf
       "maintaining %s %% %s == %s"
       counter (ppExpr stride) (ppExpr residue)
   --LoopFrameTemplate [String]
-    LoopFrameTemplate vars -> "loop_assigns " ++ (intercalate ", " vars)
+    LoopAssigns (LoopFrameTemplate vars) -> "loop_assigns " ++ (intercalate ", " vars)
   --DecreasesTemplate Expr
     DecreasesTemplate expr -> "decreases " ++ ppExpr expr
 

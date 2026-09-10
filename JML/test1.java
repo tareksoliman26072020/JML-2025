@@ -7057,25 +7057,53 @@ public static int idByLoopStride3(int n) {
 
 ////////////////////////////////////////
 
-//TODO
 /*
 (MethodHandle,SMethodHandle Int "idByLoop2"),
 (GlobalVars,SGlobalVars []),
 (FormalParms,SFormalParms ["n"]),
-(VarBindings,SVarBindings (fromList [
-    ("i",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
-(VarAssignments,SVarAssignments [
-    ("i",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),
-    ("i",(SymInt 1,Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 7}}))]),
-(VarName "i",SymUnknown ("i",SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 7})],3)]),
+(VarBindings,SVarBindings (fromList [("i",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})])),
+(VarAssignments,SVarAssignments [("i",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}})),("i",(SymInt 1,Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 2, branchEnd = 7}}))]),
+(VarName "i",SymUnknown ("i",SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 7})],6)]),
 (VarName "n",SymVar Int "n" []),
 (ScopeRange (SR {branchStart = 2, branchEnd = 7}),
  SLoop Nothing
        (Just (BoolLiteral True))
-       [Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}}), parent = 2},Node {id = 4, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >=, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "n"}})), parent = 2}]
-       (Just (LoopSummary {loopSyntax = WhileSyntax, loopReadOnlyVars = ["n"], loopFrameTargets = ["i"], loopInitFacts = [("i",SymInt 0)], loopGuard = Just (SBool True), loopEnteringCondition = Just (SBool True), loopSkipCondition = Just (SBool False), loopExitingConditions = [SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])], loopCounters = ["i"], loopAssignments = ["i"], loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))], loopExitFacts = [LoopExitFactValue "i" (SymVar Int "n" [])], loopCountersBounds = [(SymInt 0,"i",SymVar Int "n" [])], loopBoundStabilityFacts = [(SymVar Int "n" [],ReadOnly)], loopDecreasesCandidate = [SBin (SymVar Int "n" []) Sub (SymVar Int "i" [])]}))
-       [(CounterPattern (CountingUp "i"),[LoopCounters,LoopFrameTargetsDevelopmentTrajectory,LoopInitFacts,LoopCountersBounds,LoopAssignments,LoopFrameTargets,LoopDecreasesCandidate]),(BoundPattern (StableBound (SymVar Int "n" [])),[LoopCounters,LoopCountersBounds,LoopGuard,LoopBoundStabilityFacts,LoopReadOnlyVars]),(BoundPattern (GuardlessWithInternalExit (SBin (SymVar Int "i" []) Ge (SymVar Int "n" []))),[LoopGuard,LoopExitingConditions])]),
-(Return,SymUnknown ("i",SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 7})],3)])]
+       [Node {id = 3, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >=, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "n"}})), parent = 2},Node {id = 6, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}}), parent = 2}]
+       (Just (LoopSummary {
+           loopSyntax = WhileSyntax,
+           loopReadOnlyVars = ["n"],
+           loopFrameTargets = ["i"],
+           loopInitFacts = [("i",SymInt 0)],
+           loopGuard = Just (SBool True),
+           loopEnteringCondition = Just (SBool True),
+           loopSkipCondition = Just (SBool False),
+           loopExitingConditions = [SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])],
+           loopExitViaBreakConditions = [SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])],
+           loopCounters = ["i"],
+           loopAssignments = ["i"],
+           loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
+           loopExitFacts = [LoopExitFactValue "i" (SymVar Int "n" [])],
+           loopCountersBounds = [(SymInt 0,"i",SymVar Int "n" [])],
+           loopBoundStabilityFacts = [(SymVar Int "n" [],ReadOnly)],
+           loopDecreasesCandidate = [SBin (SymVar Int "n" []) Sub (SymVar Int "i" [])]}))
+       [(CounterPattern (CountingUp "i"),
+         [LoopCounters
+         ,LoopFrameTargetsDevelopmentTrajectory
+         ,LoopCountersBounds
+         ]
+        ),
+        (BoundPattern (StableBound (SymVar Int "n" [])),
+         [LoopCounters
+         ,LoopCountersBounds
+         ,LoopGuard
+         ,LoopBoundStabilityFacts
+         ,LoopReadOnlyVars
+         ]
+        ),
+        (BoundPattern (GuardlessWithInternalExit (SBin (SymVar Int "i" []) Ge (SymVar Int "n" []))),[LoopGuard,LoopExitingConditions]),
+        (ControlFlowPattern (BreakExit (SBin (SymVar Int "i" []) Ge (SymVar Int "n" []))),
+         [LoopExitViaBreakConditions])]),
+(Return,SymUnknown ("i",SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 7})],6)])
 */
 public static int idByLoop2(int n) {
   int i = 0;
@@ -7083,6 +7111,18 @@ public static int idByLoop2(int n) {
     if(i >= n) {
       break;
     }
+    i++;
+  }
+  return i;
+}
+
+////////////////////////////////////////
+
+//TODO
+public static int halving(int n) {
+  int i = 0;
+  while (i < n) {
+    n--;
     i++;
   }
   return i;
