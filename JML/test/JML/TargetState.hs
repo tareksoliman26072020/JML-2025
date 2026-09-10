@@ -148,7 +148,8 @@ allTargets = [
                           , ("quickSortCall3", quickSortCall3)-}
   ("idByLoop", idByLoop),
   ("idByLoopStride3", idByLoopStride3),
-  ("idByLoop2", idByLoop2)
+  ("idByLoop2", idByLoop2),
+  ("halving", halving)
   ]
 
 -----------------------------
@@ -5718,6 +5719,56 @@ idByLoop2 = Method {
       vars = [JMLVar Int_Type "i" `JMLEquals` (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n") `JMLImplies` JMLVar Int_Type "n"),JMLVar Int_Type "i" `JMLEquals` (JMLBin (JMLInt 0) Ge (JMLVar Int_Type "n") `JMLImplies` JMLInt 0)],
       hasSideEffect = False,
       ensures = [JMLResult (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n") `JMLImplies` JMLVar Int_Type "n"),JMLResult (JMLBin (JMLInt 0) Ge (JMLVar Int_Type "n") `JMLImplies` JMLInt 0)]
+    }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+halving :: Method
+halving = Method {
+  name = "halving",
+  jmlSpecifications = [
+    LoopSpecification $ LoopInvariants {
+      loopScopeRange = SR {branchStart = 2, branchEnd = 5},
+      loopClauses = [
+        Maintaining (CounterBoundsTemplate (JMLInt 0) "i" (JMLVar Int_Type "n")),
+        Maintaining (CounterBoundsTemplate (JMLVar Int_Type "i") "n" (JMLOld (JMLVar Int_Type "n"))),
+        LoopAssigns (LoopFrameTemplate ["n","i"]),
+        DecreasesTemplate (JMLBin (JMLVar Int_Type "n") Sub (JMLVar Int_Type "i"))
+      ]
+    },
+    MethodSpecification $ NormalBehavior {
+      behaviorScopeRange = Nothing,
+      requires = Nothing,
+      assignable = [],
+      vars = [
+        JMLVar Int_Type "i"
+          `JMLEquals`
+            (JMLBin (JMLInt 0) Lt (JMLOld (JMLVar Int_Type "n")) `JMLImplies` JMLRange "i" (JMLVar Int_Type "n") (JMLBin (JMLVar Int_Type "n") Add (JMLInt 1))),
+        JMLVar Int_Type "i"
+          `JMLEquals`
+            (JMLBin (JMLInt 0) Ge (JMLOld (JMLVar Int_Type "n")) `JMLImplies` JMLInt 0),
+        JMLVar Int_Type "n"
+          `JMLEquals`
+            (JMLBin (JMLInt 0) Lt (JMLOld (JMLVar Int_Type "n")) `JMLImplies` JMLRange "n" (JMLBin (JMLVar Int_Type "i") Sub (JMLInt 1)) (JMLVar Int_Type "i")),
+        JMLVar Int_Type "n"
+          `JMLEquals`
+            (JMLBin (JMLInt 0) Ge (JMLOld (JMLVar Int_Type "n")) `JMLImplies` JMLOld (JMLVar Int_Type "n"))
+      ],
+      hasSideEffect = False,
+      ensures = [
+        JMLResult
+        $ JMLBin (JMLInt 0) Lt (JMLOld (JMLVar Int_Type "n"))
+            `JMLImplies`
+              JMLRange "i" (JMLVar Int_Type "n") (JMLBin (JMLVar Int_Type "n") Add (JMLInt 1)),
+        JMLResult
+        $ JMLBin (JMLInt 0) Ge (JMLOld (JMLVar Int_Type "n"))
+            `JMLImplies`
+              JMLInt 0
+      ]
     }
   ]
 }

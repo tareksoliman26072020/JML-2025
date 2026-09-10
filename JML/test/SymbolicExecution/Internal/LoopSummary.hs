@@ -1,13 +1,15 @@
 module Internal.LoopSummary where
 
 import SymbolicExecution.Types
+import CFG.Types (ScopeRange(..))
 
 -- testing the output of `createLoopSummary` in SymbolicExecution.Method
 allTargets :: [(String,[LoopSummary])]
 allTargets = [
   ("idByLoop",idByLoop),
   ("idByLoopStride3",idByLoopStride3),
-  ("idByLoop2",idByLoop2)
+  ("idByLoop2",idByLoop2),
+  ("halving",halving)
   ]
 
 idByLoop :: [LoopSummary]
@@ -67,5 +69,33 @@ idByLoop2 = [LoopSummary {
   loopExitFacts = [LoopExitFactValue "i" (SymVar Int "n" [])],
   loopCountersBounds = [(SymInt 0,"i",SymVar Int "n" [])],
   loopBoundStabilityFacts = [(SymVar Int "n" [],ReadOnly)],
+  loopDecreasesCandidate = [SBin (SymVar Int "n" []) Sub (SymVar Int "i" [])]
+}]
+
+halving :: [LoopSummary]
+halving = [LoopSummary {
+  loopSyntax = WhileSyntax,
+  loopReadOnlyVars = [],
+  loopFrameTargets = ["n","i"],
+  loopInitFacts = [("i",SymInt 0),("n",SymPreScope (SR {branchStart = 2, branchEnd = 5}) (Int,"n"))],
+  loopGuard = Just (SBin (SymVar Int "i" []) Lt (SymVar Int "n" [])),
+  loopEnteringCondition = Just (SBin (SymInt 0) Lt (SymPreScope (SR {branchStart = 2, branchEnd = 5}) (Int,"n"))),
+  loopSkipCondition = Just (SBin (SymInt 0) Ge (SymPreScope (SR {branchStart = 2, branchEnd = 5}) (Int,"n"))),
+  loopExitingConditions = [SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])],
+  loopExitViaBreakConditions = [],
+  loopCounters = ["i","n"],
+  loopAssignments = ["n","i"],
+  loopFrameTargetsDevelopmentTrajectory = [("n",Decreasing (SymInt 1)),("i",Increasing (SymInt 1))],
+  loopExitFacts = [
+    LoopExitFactRange "n" (SBin (SymVar Int "i" []) Sub (SymInt 1))
+                          (SymVar Int "i" []),
+    LoopExitFactRange "i" (SymVar Int "n" [])
+                          (SBin (SymVar Int "n" []) Add (SymInt 1))],
+  loopCountersBounds = [
+    (SymInt 0,"i",SymVar Int "n" []),
+    (SymVar Int "i" [],"n",SymPreScope (SR {branchStart = 2, branchEnd = 5}) (Int,"n"))],
+  loopBoundStabilityFacts = [
+    (SymVar Int "n" [],Decreasing (SymInt 1)),
+    (SymVar Int "i" [],Increasing (SymInt 1))],
   loopDecreasesCandidate = [SBin (SymVar Int "n" []) Sub (SymVar Int "i" [])]
 }]

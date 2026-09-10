@@ -7,7 +7,8 @@ allTargets :: [(String,[[(LoopPattern,[LoopSummaryTag])]])]
 allTargets = [
   ("idByLoop",idByLoop),
   ("idByLoopStride3",idByLoopStride3),
-  ("idByLoop2",idByLoop2)
+  ("idByLoop2",idByLoop2),
+  ("halving",halving)
   ]
 
 idByLoop :: [[(LoopPattern, [LoopSummaryTag])]]
@@ -66,3 +67,21 @@ idByLoop2 =
    ]
   ]
 
+halving :: [[(LoopPattern, [LoopSummaryTag])]]
+halving =
+  [
+   [
+    (CounterPattern (CountingUp "i"),
+     [LoopCounters,LoopFrameTargetsDevelopmentTrajectory,LoopCountersBounds]
+    ),
+    (CounterPattern (CountingDown "n"),
+     [LoopCounters,LoopFrameTargetsDevelopmentTrajectory,LoopCountersBounds]
+    ),
+    (BoundPattern (MovingBound "n"),
+     [LoopFrameTargets,LoopBoundStabilityFacts]
+    ),
+    (BoundPattern (MovingBound "i"),
+     [LoopFrameTargets,LoopBoundStabilityFacts]
+    )
+   ]
+  ]
