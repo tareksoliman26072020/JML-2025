@@ -1095,17 +1095,12 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
                     | isConstantGuard -> Just $ LoopExitFactRange vn left right
                     | not isConstantGuard -> let
                         new_left = calculate_with_trajectory left
-                        in case symExprCompare new_left right of
-                             GT -> Just $ LoopExitFactRange vn right new_left
-                             LT -> Just $ LoopExitFactRange vn new_left right
-                             {-LT -> error $ constructErrorMsg loc "MM" [
-                               ("vn",vn),
-                               ("left",show left),
-                               ("right",show right),
-                               ("new_left",show new_left),
-                               ("collective_relevant_guard_vns_trajectory",show collective_relevant_guard_vns_trajectory)
-                               ]-}
-                             EQ -> Just $ LoopExitFactValue vn right
+                        expr3 = expr2
+                        expr4 = numericCalculator $ SBin expr2 Add step
+                        in case symExprCompare expr3 expr4 of
+                             GT -> Just $ LoopExitFactRange vn expr4 expr3
+                             LT -> Just $ LoopExitFactRange vn expr3 expr4
+                             EQ -> Just $ LoopExitFactValue vn expr3
             Le -> let
               left = SBin expr2 Add (cast step_type $ SymNum 1)
               right = numericCalculator $ SBin expr2 Add step
@@ -1113,10 +1108,12 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
                     | isConstantGuard -> Just $ LoopExitFactRange vn left right
                     | not isConstantGuard -> let
                         new_left = calculate_with_trajectory left
-                        in Just $ case symExprCompare new_left right of
-                             GT -> LoopExitFactRange vn right new_left
-                             LT -> LoopExitFactRange vn new_left right
-                             EQ -> LoopExitFactValue vn right
+                        expr3 = expr2
+                        expr4 = numericCalculator $ SBin expr2 Add step
+                        in Just $ case symExprCompare expr3 expr4 of
+                             GT -> LoopExitFactRange vn expr4 expr3
+                             LT -> LoopExitFactRange vn expr3 expr4
+                             EQ -> LoopExitFactValue vn expr3
             _ -> error $ constructErrorMsg loc "TODO2" logContents
           | otherwise -> error $ constructErrorMsg loc "TODO3" logContents
       (Decreasing step,SBin expr1@(SymVar _ vn2 _) op expr2) -> let
@@ -1128,29 +1125,24 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
               in if | isOne step && isConstantGuard -> Just $ LoopExitFactValue vn right
                     | isConstantGuard -> Just $ LoopExitFactRange vn left right
                     | not isConstantGuard -> let
-                        new_right = calculate_with_trajectory right
-                        in Just $ case symExprCompare left new_right of
-                             GT -> LoopExitFactRange vn new_right left
-                             --LT -> LoopExitFactRange vn left new_right
-                             LT -> error $ constructErrorMsg loc "M" [
-                               ("vn",vn),
-                               ("left",show left),
-                               ("right",show right),
-                               ("new_right",show new_right),
-                               ("collective_relevant_guard_vns_trajectory",show collective_relevant_guard_vns_trajectory)
-                               ]
-                             EQ -> LoopExitFactValue vn left
+                        expr3 = expr2
+                        expr4 = numericCalculator $ SBin expr2 Sub step
+                        in Just $ case symExprCompare expr3 expr4 of
+                             GT -> LoopExitFactRange vn expr4 expr3
+                             LT -> LoopExitFactRange vn expr3 expr4
+                             EQ -> LoopExitFactValue vn expr3
             Ge -> let
               right = SBin expr2 Sub (cast step_type $ SymNum 1)
               left = SBin right Sub step
               in if | isOne step && isConstantGuard -> Just $ LoopExitFactValue vn right
                     | isConstantGuard -> Just $ LoopExitFactRange vn left right
                     | not isConstantGuard -> let
-                        new_right = calculate_with_trajectory right
-                        in Just $ case symExprCompare left new_right of
-                             GT -> LoopExitFactRange vn new_right left
-                             LT -> LoopExitFactRange vn left new_right
-                             EQ -> LoopExitFactValue vn left
+                        expr3 = expr2
+                        expr4 = numericCalculator $ SBin expr2 Sub step
+                        in Just $ case symExprCompare expr3 expr4 of
+                             GT -> LoopExitFactRange vn expr4 expr3
+                             LT -> LoopExitFactRange vn expr3 expr4
+                             EQ -> LoopExitFactValue vn right
             _ -> error $ constructErrorMsg loc "TODO4" logContents
           | otherwise -> error $ constructErrorMsg loc "TODO5" logContents
       _ -> error $ constructErrorMsg loc "TODO6" logContents
