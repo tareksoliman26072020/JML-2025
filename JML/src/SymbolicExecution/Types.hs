@@ -201,7 +201,8 @@ type SymReason = ([(CFGT.Kind,CFGT.ScopeRange)],Int)
 
 data SymType = Int | Double | Float | Bool | Void | Array SymType | String 
              | UnknownGlobalVarSymType
-             | UnknownNumSymType deriving (Show,Eq,Ord)
+             | UnknownNumSymType
+             deriving (Show,Eq,Ord)
 
 predefinedFuns :: [String]
 predefinedFuns = ["toString","print","println"]

@@ -36,7 +36,7 @@ public static int idByLoop2(int n) {
 
 ////////////////////
 
-//TODO: the goal here is to test the counter bound (n) because it's not a constant.
+//test the counter bound (n) because it's not a constant.
 public static int halving(int n) {
   int i = 0;
   while (i < n) {
@@ -50,15 +50,16 @@ public static int halving(int n) {
 
 // Array traversal without mutation
 public static boolean contains(int[] a, int x) {
-    int i = 0;
-    while (i < a.length) {
-        if (a[i] == x) {
-            return true;
-        }
-        i++;
+  int i = 0;
+  while (i < a.length) {
+    if (a[i] == x) {
+      return true;
     }
-    return false;
+    i++;
+  }
+  return false;
 }
+
 ////////////////////
 
 // First-index search
