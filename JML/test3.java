@@ -248,3 +248,262 @@ int halving (int n) {
   }
   return i;
 }
+
+//////////////////////////////
+
+/*
+Your current LoopSummary is sufficient for the counter structure, but it does not directly represent two facts that matter particularly for contains:
+
+1. a loop exit caused by return, together with its returned value;
+2. the semantic search-exclusion fact from which the quantified invariant is generated.
+
+The older report contains these concepts informally as earlyExits and semanticPrefixFact.
+
+data LoopReturnExit = LoopReturnExit {
+    loopReturnCondition :: SymExpr
+  , loopReturnValue     :: SymExpr
+} deriving (Show, Eq)
+
+data LoopSearchFact
+  = LoopSearchExclusion
+      String   -- counter
+      String   -- array
+      SymExpr  -- searched value
+  deriving (Show, Eq)
+
+Then extend `LoopSummary` with:
+
+data LoopSummary = LoopSummary {
+    loopSyntax :: LoopSyntax
+  , loopReadOnlyVars :: [String]
+  , loopFrameTargets :: [String]
+  , loopInitFacts :: [(String,SymExpr)]
+  , loopGuard :: Maybe SymExpr
+  , loopEnteringCondition :: Maybe SymExpr
+  , loopSkipCondition :: Maybe SymExpr
+  , loopExitingConditions :: [SymExpr]
+  , loopExitViaBreakConditions :: [SymExpr]
+
+  -- NEW:
+  , loopExitViaReturnFacts :: [LoopReturnExit]
+
+  , loopCounters :: [String]
+  , loopAssignments :: [String]
+  , loopFrameTargetsDevelopmentTrajectory
+      :: [(String,SymExprDevelopmentTrajectory)]
+  , loopExitFacts :: [LoopExitFact]
+  , loopCountersBounds :: [(SymExpr,String,SymExpr)]
+  , loopBoundStabilityFacts
+      :: [(SymExpr,SymExprDevelopmentTrajectory)]
+
+  -- NEW:
+  , loopSearchFacts :: [LoopSearchFact]
+
+  , loopDecreasesCandidate :: [SymExpr]
+} deriving (Show,Eq)
+
+/*
+Complete LoopSummary for contains:
+For readability, define:
+iE =
+  SymVar Int "i" []
+
+xE =
+  SymVar Int "x" []
+
+aLenE =
+  SObjAcc ["a","length"]
+
+aAtIE =
+  SArrayIndexAccess Int "a" iE
+
+foundE =
+  SBin aAtIE Eq xE
+*/
+
+/*
+LoopSummary {
+    loopSyntax =
+      WhileSyntax
+
+  , loopReadOnlyVars =
+      ["a","x"]
+
+  , loopFrameTargets =
+      ["i"]
+
+  , loopInitFacts =
+      [("i", SymInt 0)]
+
+  , loopGuard =
+      Just $
+        SBin iE Lt aLenE
+
+  , loopEnteringCondition =
+      Just $
+        SBin (SymInt 0) Lt aLenE
+
+  , loopSkipCondition =
+      Just $
+        SBin (SymInt 0) Ge aLenE
+
+  , loopExitingConditions =
+      [SBin iE Ge aLenE]
+
+  , loopExitViaBreakConditions =
+      []
+
+  , loopExitViaReturnFacts =
+      [ LoopReturnExit {
+          loopReturnCondition =
+            SBin
+              (SBin iE Lt aLenE)
+              And
+              foundE
+
+        , loopReturnValue =
+            SBool True
+        }
+      ]
+
+  , loopCounters =
+      ["i"]
+
+  , loopAssignments =
+      ["i"]
+
+  , loopFrameTargetsDevelopmentTrajectory =
+      [("i", Increasing (SymInt 1))]
+
+  , loopExitFacts =
+      [LoopExitFactValue "i" aLenE]
+
+  , loopCountersBounds =
+      [(SymInt 0, "i", aLenE)]
+
+  , loopBoundStabilityFacts =
+      [(aLenE, ReadOnly)]
+
+  , loopSearchFacts =
+      [LoopSearchExclusion "i" "a" xE]
+
+  , loopDecreasesCandidate =
+      [SBin aLenE Sub iE]
+}
+*/
+
+/*
+EarlyReturn is important for control-flow analysis and postcondition validation:
+[
+  ( CounterPattern (CountingUp "i")
+  , [ LoopCounters
+    , LoopFrameTargetsDevelopmentTrajectory
+    , LoopCountersBounds
+    ]
+  ),
+
+  ( BoundPattern (StableBound aLenE)
+  , [ LoopGuard
+    , LoopCountersBounds
+    , LoopBoundStabilityFacts
+    , LoopReadOnlyVars
+    ]
+  ),
+
+  ( TraversalPattern ArrayScan
+  , [ LoopGuard
+    , LoopCounters
+    , LoopCountersBounds
+    , LoopReadOnlyVars
+    ]
+  ),
+
+  ( SearchPattern LinearSearch
+  , [ LoopCounters
+    , LoopGuard
+    , LoopSearchFacts
+    , LoopExitViaReturnFacts
+    ]
+  ),
+
+  ( ControlFlowPattern EarlyReturn
+  , [ LoopExitViaReturnFacts
+    ]
+  )
+]
+*/
+
+/*
+`LoopInvariantTemplate` needs one new maintaining template:
+```
+data Maintaining_LoopInvariantTemplate =
+  -- NEW:
+  SearchExclusionTemplate
+    String   -- counter
+    String   -- array
+    Expr     -- searched value
+
+  deriving (Show, Eq)
+```
+
+SearchExclusionTemplate counter array target  ===>
+```
+//@ maintaining
+//@   (\forall int k;
+//       0 <= k && k < counter;
+//       array[k] != target);
+```
+*/
+/*
+let:
+aLen =
+  -- your JML Expr representation of a.length
+
+Then the complete generated template set is:
+[
+  Maintaining $
+    CounterBoundsTemplate
+      (JMLInt 0)
+      "i"
+      aLen
+
+, Maintaining $
+    SearchExclusionTemplate
+      "i"
+      "a"
+      (JMLVar Int_Type "x")
+
+, LoopAssigns $
+    LoopFrameTemplate
+      ["i"]
+
+, DecreasesTemplate $
+    JMLBin
+      aLen
+      Sub
+      (JMLVar Int_Type "i")
+]
+*/
+
+/*@ normal_behavior
+  @   requires a != null;
+  @   assignable \nothing;
+  @   ensures \result <==>
+  @       (\exists int k; 0 <= k && k < a.length; a[k] == x);
+  @*/
+public static boolean contains(int[] a, int x) {
+  int i = 0;
+  //@ maintaining 0 <= i && i <= a.length;
+  //@ maintaining (\forall int k; 0 <= k && k < i; a[k] != x);
+  //@ loop_assigns i;
+  //@ decreases a.length - i;
+  while (i < a.length) {
+    if (a[i] == x) {
+      return true;
+    }
+    i++;
+  }
+  return false;
+}
+
+//////////////////////////////

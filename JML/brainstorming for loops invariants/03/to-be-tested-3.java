@@ -62,6 +62,21 @@ public static boolean contains(int[] a, int x) {
 
 ////////////////////
 
+public static boolean contains2(int[] a, int x) {
+  int i = 0;
+  while (true) {
+    if (a[i] == x) {
+      return true;
+    }
+    i++;
+    if (i >= a.length) {
+      return false;
+    }
+  }
+}
+
+////////////////////
+
 // First-index search
 public static int indexOf(int[] a, int x) {
     int i = 0;
