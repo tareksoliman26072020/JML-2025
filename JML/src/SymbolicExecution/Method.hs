@@ -2189,7 +2189,7 @@ createLoopSummary theLoopSyntax m_Acc
   -----------------------------
   -- loopExitViaBreakConditions
   -----------------------------
-  theLoopExitViaBreakConditions :: [SymExpr] <- do
+  theLoopExitViaBreakConditions :: [StateChangingCondition] <- do
     incrementLogEnumeration
     incrementLogDepth *>
       getLoopExitViaBreakConditions forBody_forStep_path_visited_ers

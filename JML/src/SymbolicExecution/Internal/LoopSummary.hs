@@ -182,7 +182,7 @@ getLoopExitingConditions loopGuard (breaksEnv,breaks_ers) = do
 --------------------
 --------------------
 
-getLoopExitViaBreakConditions :: [ExecutionResult] -> SymbolicExecutionMonad [SymExpr]
+getLoopExitViaBreakConditions :: [ExecutionResult] -> SymbolicExecutionMonad [StateChangingCondition]
 getLoopExitViaBreakConditions forBody_forStep_ers = do
   let loc = globalLoc ++ ".getLoopExitViaBreakConditions"
   let logContents = [
@@ -192,10 +192,10 @@ getLoopExitViaBreakConditions forBody_forStep_ers = do
   let breakConds = concat [ifCond ++ elseCond
         | ER_IfExpr _ (cond,_) if_ers else_ers <- forBody_forStep_ers
         , let ifCond = if ER_Break `elem` if_ers
-                then [cond]
+                then [Condition cond]
                 else []
         , let elseCond = if ER_Break `elem` else_ers
-                then [negate cond]
+                then [Condition $ negate cond]
                 else []
         ]
   tellNextLog (Log.Return loc (show breakConds)) $> breakConds

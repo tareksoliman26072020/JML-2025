@@ -259,14 +259,9 @@ Your current LoopSummary is sufficient for the counter structure, but it does no
 
 The older report contains these concepts informally as earlyExits and semanticPrefixFact.
 
-data LoopReturnExit = LoopReturnExit {
-    loopReturnCondition :: SymExpr
-  , loopReturnValue     :: SymExpr
-} deriving (Show, Eq)
-
-data LoopSearchFact
-  = LoopSearchExclusion
-      String   -- counter
+data StateChangingFact
+  = ExcludeElemInArray
+      SymExpr   -- counter
       String   -- array
       SymExpr  -- searched value
   deriving (Show, Eq)
@@ -284,9 +279,6 @@ data LoopSummary = LoopSummary {
   , loopExitingConditions :: [SymExpr]
   , loopExitViaBreakConditions :: [SymExpr]
 
-  -- NEW:
-  , loopExitViaReturnFacts :: [LoopReturnExit]
-
   , loopCounters :: [String]
   , loopAssignments :: [String]
   , loopFrameTargetsDevelopmentTrajectory
@@ -297,7 +289,7 @@ data LoopSummary = LoopSummary {
       :: [(SymExpr,SymExprDevelopmentTrajectory)]
 
   -- NEW:
-  , loopSearchFacts :: [LoopSearchFact]
+  , loopExitViaReturnFacts :: [(StateChangingCondition,SymExpr)]
 
   , loopDecreasesCandidate :: [SymExpr]
 } deriving (Show,Eq)
@@ -354,17 +346,7 @@ LoopSummary {
       []
 
   , loopExitViaReturnFacts =
-      [ LoopReturnExit {
-          loopReturnCondition =
-            SBin
-              (SBin iE Lt aLenE)
-              And
-              foundE
-
-        , loopReturnValue =
-            SBool True
-        }
-      ]
+      [(ExcludeElemInArray "i" "a" xE,SBool True)]
 
   , loopCounters =
       ["i"]
@@ -383,9 +365,6 @@ LoopSummary {
 
   , loopBoundStabilityFacts =
       [(aLenE, ReadOnly)]
-
-  , loopSearchFacts =
-      [LoopSearchExclusion "i" "a" xE]
 
   , loopDecreasesCandidate =
       [SBin aLenE Sub iE]
@@ -410,7 +389,10 @@ EarlyReturn is important for control-flow analysis and postcondition validation:
     ]
   ),
 
-  ( TraversalPattern ArrayScan
+  ( TraversalPattern ArrayScan  -- ArrayScan because (CounterPattern (CountingUp "i"))
+                                -- and because "i" increases by 1
+                                -- and because a.length does not change
+                                --             (BoundPattern (StableBound aLenE))
   , [ LoopGuard
     , LoopCounters
     , LoopCountersBounds
@@ -418,15 +400,17 @@ EarlyReturn is important for control-flow analysis and postcondition validation:
     ]
   ),
 
-  ( SearchPattern LinearSearch
+  ( SearchPattern LinearSearch  -- LinearSearch because (CounterPattern (CountingUp "i"))
+                                -- and because a.length does not change
+                                --             (BoundPattern (StableBound aLenE))
+                                -- and because the value of `loopExitViaReturnFacts`
   , [ LoopCounters
     , LoopGuard
-    , LoopSearchFacts
-    , LoopExitViaReturnFacts
+    , loopExitViaReturnFacts
     ]
   ),
 
-  ( ControlFlowPattern EarlyReturn
+  ( ControlFlowPattern EarlyReturn -- because the value of `loopExitViaReturnFacts`
   , [ LoopExitViaReturnFacts
     ]
   )
@@ -438,7 +422,7 @@ EarlyReturn is important for control-flow analysis and postcondition validation:
 ```
 data Maintaining_LoopInvariantTemplate =
   -- NEW:
-  SearchExclusionTemplate
+  ArrayFilterTemplate
     String   -- counter
     String   -- array
     Expr     -- searched value
@@ -446,15 +430,13 @@ data Maintaining_LoopInvariantTemplate =
   deriving (Show, Eq)
 ```
 
-SearchExclusionTemplate counter array target  ===>
+ArrayFilterTemplate counter array target  ===>
 ```
 //@ maintaining
 //@   (\forall int k;
 //       0 <= k && k < counter;
 //       array[k] != target);
 ```
-*/
-/*
 let:
 aLen =
   -- your JML Expr representation of a.length
@@ -468,7 +450,7 @@ Then the complete generated template set is:
       aLen
 
 , Maintaining $
-    SearchExclusionTemplate
+    ArrayFilterTemplate
       "i"
       "a"
       (JMLVar Int_Type "x")
@@ -483,6 +465,26 @@ Then the complete generated template set is:
       Sub
       (JMLVar Int_Type "i")
 ]
+*/
+
+/*
+1)
+CounterPattern (CountingUp "i")
+  ==> Maintaining $ CounterBoundsTemplate (JMLInt 0) "i" (SObjAcc ["a","length"])
+    ==> maintaining 0 <= i && i <= (SObjAcc ["a","length"])
+
+2)
+SearchPattern LinearSearch, ControlFlowPattern EarlyReturn
+  ==> Maintaining $ ArrayFilterTemplate "i" "a" (JMLVar Int_Type "x")
+    ==> maintaining (\forall int k; 0 <= k && k < i; a[k] != x)
+
+3)
+LoopAssigns $ LoopFrameTemplate ["i"]
+  ==> loop_assigns i
+
+4)
+DecreasesTemplate $ JMLBin (SObjAcc ["a","length"]) Sub (JMLVar Int_Type "i")
+  ==> decreases a.length - i
 */
 
 /*@ normal_behavior

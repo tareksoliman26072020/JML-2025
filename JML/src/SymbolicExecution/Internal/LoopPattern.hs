@@ -245,7 +245,7 @@ inferBreakExitPatterns loopSummary = do
   let loc = "SymbolicExecution.Internal.LoopPattern.inferBreakExitPatterns"
   tellNextLog $ Log.Location loc
   let toReturn = [(one,two)
-        | breakCond <- loopExitViaBreakConditions loopSummary
+        | Condition breakCond <- loopExitViaBreakConditions loopSummary
         , let one = ControlFlowPattern $ BreakExit breakCond
         , let two = breakExitPatternsTags
         ]

@@ -236,7 +236,8 @@ data LoopSummary = LoopSummary {
   , loopEnteringCondition :: Maybe SymExpr
   , loopSkipCondition :: Maybe SymExpr
   , loopExitingConditions :: [SymExpr]
-  , loopExitViaBreakConditions :: [SymExpr]
+  , loopExitViaBreakConditions :: [StateChangingCondition]
+--  , loopExitViaReturnFacts :: [(StateChangingCondition,SymExpr)]
   -- The variables that function as loop counters or induction variables.
   -- A loopCounter is a variable whose value represents loop progress.
   -- Usually it is an induction variable:
@@ -258,6 +259,14 @@ data LoopSummary = LoopSummary {
   -- Candidate termination variant
   , loopDecreasesCandidate :: [SymExpr]
 } deriving (Show,Eq)
+
+data StateChangingCondition =
+   ExcludeElemInArray--ArraySearchExclusion
+     SymExpr  -- counter
+     String   -- array
+     SymExpr  -- value to exclude
+ | Condition SymExpr
+   deriving (Show,Eq)
 
 data LoopExitFact =
     LoopExitFactRange String SymExpr SymExpr
@@ -357,5 +366,6 @@ data LoopSummaryTag =
  | LoopSkipCondition
  | LoopExitingConditions
  | LoopExitViaBreakConditions
+ | LoopExitViaReturnFacts
  | LoopExitFact
  deriving (Show,Eq)
