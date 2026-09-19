@@ -7118,7 +7118,7 @@ public static int idByLoop2(int n) {
 
 ////////////////////////////////////////
 
-//TODO
+//DONE
 public static int halving(int n) {
   int i = 0;
   while (i < n) {
@@ -7126,6 +7126,20 @@ public static int halving(int n) {
     i++;
   }
   return i;
+}
+
+////////////////////////////////////////
+
+//TODO
+public static boolean contains(int[] a, int x) {
+  int i = 0;
+  while (i < a.length) {
+    if (a[i] == x) {
+      return true;
+    }
+    i++;
+  }
+  return false;
 }
 
 ////////////////////////////////////////

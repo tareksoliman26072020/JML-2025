@@ -107,8 +107,6 @@ data ExecutionResult =
                SymExpr)          -- if condition after substitution of variables
       [ExecutionResult]          -- of if body
       [ExecutionResult]          -- of else body
-  | ER_Continue
-  | ER_Break
   | ER_Node {er_Node_id :: CFGT.NodeID, nodeName :: String}
   | ER_SymStateMapEntry SymStateKey SymExpr
   | ER_VarExprObjAccess {-object access name-}String {-object access value-}SymExpr
@@ -126,6 +124,9 @@ data ExecutionResult =
   | ER_ForLoopDoneViaBreakStmt
   | ER_Void
   | ER_ReturnVoid
+  | ER_Continue
+  | ER_Break
+  | ER_Return (Maybe SymExpr)
   | ER_ActualParameterDetected String SymExpr
   deriving (Show,Eq)
 
@@ -193,6 +194,42 @@ data SymExpr =
   | SymPreScope CFGT.ScopeRange (SymType,String) -- ^ Value of the expression prior to a scope.
   deriving (Eq,Show)
 
+data SymExprTag =
+    SMethodHandleTag
+  | SymNumTag
+  | SymIntTag
+  | SymDoubleTag
+  | SymFloatTag
+  | SBoolTag
+  | SymStringTag
+  | SObjAccTag
+  | SBinTag
+  | SNotTag
+  | SIteTag
+  | SIte2Tag
+  | SLoopTag
+  | SLoopConditionsTag
+  | SLoopFailureTag
+  | SymNullTag
+  | SymVarTag
+  | SymArrayAccessTag
+  | SymArrayElemTag
+  | SymFunTag
+  | SVarBindingsTag
+  | SVarAssignmentsTag
+  | SExceptionTag
+  | SActionsTag
+  | SArrayIndexAccessTag
+  | SymArrayTag
+  | SymUnknownTag
+  | SFormalParmsTag
+  | SGlobalVarsTag
+  | SymReturnVoidTag
+  | SymContinueTag
+  | SymBreakTag
+  | SymPreScopeTag
+  deriving (Show,Eq)
+
 -- declared for the sake of `SymVar` in `SymExpr`
 -- the goal is to attach infos about the context of the variable when necessary
 data VarInfo = ForAccumulator CFGT.ScopeRange SymExpr deriving (Show,Eq)
@@ -237,7 +274,7 @@ data LoopSummary = LoopSummary {
   , loopSkipCondition :: Maybe SymExpr
   , loopExitingConditions :: [SymExpr]
   , loopExitViaBreakConditions :: [StateChangingCondition]
---  , loopExitViaReturnFacts :: [(StateChangingCondition,SymExpr)]
+  , loopExitViaReturnFacts :: [([StateChangingCondition],Maybe SymExpr)]
   -- The variables that function as loop counters or induction variables.
   -- A loopCounter is a variable whose value represents loop progress.
   -- Usually it is an induction variable:
@@ -261,9 +298,9 @@ data LoopSummary = LoopSummary {
 } deriving (Show,Eq)
 
 data StateChangingCondition =
-   ExcludeElemInArray--ArraySearchExclusion
-     SymExpr  -- counter
+   ElemInArray--ArraySearchExclusion
      String   -- array
+     SymExpr  -- counter
      SymExpr  -- value to exclude
  | Condition SymExpr
    deriving (Show,Eq)

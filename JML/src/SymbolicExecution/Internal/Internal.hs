@@ -578,7 +578,8 @@ getBreaks env = let
 
 getBreaks2 :: [ExecutionResult] -> [ExecutionResult]
 getBreaks2 ers = let
-  loc = "SymbolicExecution.Internal.Internal.getBreaks2" in
+  loc = "SymbolicExecution.Internal.Internal.getBreaks2"
+  errContents er = [("er",show er),("ers",show ers)] in
   flip filter ers $ \er -> case er of
     ER_SymStateMapEntry _ _ -> False
     ER_Break -> True
@@ -586,8 +587,10 @@ getBreaks2 ers = let
       ([],[]) -> False
       _ -> True
     ER_Void -> False
-    _ -> error $ constructErrorMsg loc "TODO" [
-      ("er",show er),("ers",show ers)]
+    ER_Expr SymBreak -> error $ constructErrorMsg loc "TODO1" $ errContents er
+    ER_Expr _ -> False
+    ER_Return _ -> False
+    _ -> error $ constructErrorMsg loc "TODO2" $ errContents er
 
 -- alters the type of a global variable based on the expression and the scope it exists in
 -- It is used in visitExpr ==> AssignExpr / ==> BinOpExpr
@@ -997,7 +1000,8 @@ existsIn vn symExpr = case symExpr of
   SVarAssignments _ -> False
   SymUnknown (_,expr) _ -> existsIn vn expr
   SymFun _ expr -> existsIn vn expr
-  SArrayIndexAccess _ _ _ -> False
+  --SArrayIndexAccess (SYT.Array SYT.Int) "a" (SYT.SymVar SYT.Int "i" [])
+  SArrayIndexAccess _ vn2 _ -> vn == vn2
   SObjAcc _ -> False
   SymNull _ -> False
   SNot expr -> vn `existsIn` expr
@@ -1456,6 +1460,91 @@ getFactAbout :: [LoopExitFact] -> String -> Maybe LoopExitFact
 getFactAbout loopExitFacts vn = flip find loopExitFacts $ \loopExitFact -> case loopExitFact of
   LoopExitFactRange vn2 _ _ -> vn == vn2
   LoopExitFactValue vn2 _   -> vn == vn2
+
+-------------------
+-------------------
+-------------------
+{-
+isSArrayIndexAccess :: SymExpr -> Bool
+isSArrayIndexAccess = \case
+  SArrayIndexAccess _ _ _ -> True
+  _ -> False 
+
+getSymExprTags :: SymExpr -> [SymExprTag]
+getSymExprTags symExpr = let
+  loc = "SymbolicExecution.Internal.Internal.getSymExprTag"
+  logContents = [("symExpr",show symExpr)] in case symExpr of
+  SMethodHandle _ _ -> [SMethodHandleTag]
+  SymNum _ -> [SymNumTag]
+  SymInt _ -> [SymIntTag]
+  SymDouble _ -> [SymDoubleTag]
+  SymFloat _ -> [SymFloatTag]
+  SBool _ -> [SBoolTag]
+  SymString _ -> [SymStringTag]
+  SObjAcc _ -> [SObjAccTag]
+  SBin symExpr1 _ symExpr2 -> SBinTag : map getSymExprTags [symExpr1,symExpr2]
+  SNot symExpr1 -> SNotTag : getSymExprTags symExpr1
+  SIte symExpr1 -> SIteTag : getSymExprTags symExpr1
+  SIte2 symExpr1 symExpr2 symExpr3 -> SIte2Tag : map getSymExprTags [symExpr1,symExpr2,symExpr3]
+  SLoop _ _ _ _ _ > SLoopTag
+  SLoopConditions _ -> SLoopConditionsTag
+  SLoopFailure _ _ -> SLoopFailureTag
+  SymNull _ -> SymNullTag
+  SymVar _ _ _ -> SymVarTag
+  SymArrayAccess _ -> SymArrayAccessTag
+  SymArrayElem _ _ -> SymArrayElemTag
+  SymFun _ symExpr1 -> SymFunTag : getSymExprTags symExpr1
+  SVarBindings _ -> SVarBindingsTag
+  SVarAssignments _ -> SVarAssignmentsTag
+  SException _ _ _ -> SExceptionTag
+  SActions _ -> SActionsTag
+  SArrayIndexAccess _ _ _ -> SArrayIndexAccessTag
+  SymArray _ _ _ -> SymArrayTag
+  SymUnknown (_,symExpr1) _ -> SymUnknownTag : getSymExprTags symExpr1
+  SFormalParms _ -> SFormalParmsTag
+  SGlobalVars _ -> SGlobalVarsTag
+  SymReturnVoid -> SymReturnVoidTag
+  SymContinue -> SymContinueTag
+  SymBreak -> SymBreakTag
+  SymPreScope _ _ -> SymPreScopeTag
+
+isSArrayIndexAccessTag :: SymExprTag -> Bool
+isSArrayIndexAccessTag = \case
+  SArrayIndexAccessTag -> True
+  _ -> False
+
+getSymExprViaTag :: String -> SymExprTag -> SymExpr -> Maybe SymExpr
+getSymExprViaTag vn tag symExpr = let
+  loc = "SymbolicExecution.Internal.Internal.getSymExprViaTag"
+ -}
+
+createStateChangingCondition :: SymExpr -> StateChangingCondition
+createStateChangingCondition cond = let
+  loc = "SymbolicExecution.Internal.Internal.createStateChangingCondition"
+  {-
+  vns = getVarNames3 cond
+  arrayIndexAccess_vns = [
+    | tags <- getSymExprTags cond
+    , SArrayIndexAccessTag `elem` tags
+    , let get = [
+            | vn <- vns
+            , let mExpr = getSymExprViaTag vn SArrayIndexAccessTag cond
+            ]
+    ]-}
+  logContents = [("cond",show cond)]
+  in case cond of
+       SBin expr1@(SArrayIndexAccess _ vn1 indexSymExpr1)
+            Eq
+            expr2@(SArrayIndexAccess _ vn2 indexSymExpr2) -> error
+              $ constructErrorMsg loc "TODO" $ logContents ++ [
+                  ("expr1",show expr1),
+                  ("expr2",show expr2)]
+       SBin expr1@(SArrayIndexAccess _ vn indexSymExpr) Eq expr2 ->
+         ElemInArray vn indexSymExpr expr2
+       SBin expr1 Eq expr2@(SArrayIndexAccess _ vn indexSymExpr) ->
+         ElemInArray vn indexSymExpr expr1
+       _ -> Condition cond
+--  in error $ constructErrorMsg loc "TODO" logContents
 
 -------------------
 -------------------

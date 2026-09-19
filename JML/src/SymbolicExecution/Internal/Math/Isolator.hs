@@ -226,11 +226,13 @@ data IsolationFailureReason
   | AlwaysFalse          -- i > i + 1 ==> i-i > 1 ==> 0 > 1 ==> always false
   | AmbiguousSign String -- i * j > n ==> i can't be isolated because j's sign is ambiguous
   deriving (Eq, Show)
+
+type E = Either IsolationFailureReason SymExpr
 ----------
 -- This function was mainly created to be used in `getLoopCountersBounds`
 -- so that a loop counter can be separated from the rest of the expression.
 ----------
-isolate :: String -> SymExpr -> SymbolicExecutionMonad (Either IsolationFailureReason SymExpr)
+isolate :: String -> SymExpr -> SymbolicExecutionMonad E
 isolate varName expr = do
   let innerLoc = loc ++ ".isolate"
   constructLog innerLoc "isolate" [("varName",varName),("expr",show expr)]
@@ -241,9 +243,18 @@ isolate varName expr = do
     else constructLog innerLoc "new expr after calculation"
            [("old expr",show expr)
            ,("calculated before isolating",show calculated_before)] $> ()
-  if | not (varName `existsIn` expr) -> return $ Left VarAbsent
-     | calculated_before == SBool False -> return $ Left AlwaysFalse
-     | calculated_before == SBool True  -> return $ Left AlwaysTrue
+  if | not (varName `existsIn` expr) -> do
+         let toReturn :: E = Left VarAbsent
+         constructLog loc "failure case 1" []
+         (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
+     | calculated_before == SBool False -> do
+         let toReturn :: E = Left AlwaysFalse
+         constructLog loc "failure case 2" []
+         (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
+     | calculated_before == SBool True  -> do
+         let toReturn :: E = Left AlwaysTrue
+         constructLog loc "failure case 3" []
+         (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
      | varName `existsIn` calculated_before -> do
          constructLog innerLoc
            (printf "varName <%s> exists in <%s>" varName (show calculated_before)) []
@@ -254,11 +265,16 @@ isolate varName expr = do
          constructLog innerLoc "Isolation & Calculation"
            [("Isolation output",show isolated)
            ,("Then Calculation",show calculated_after)]
-         case calculated_after of
-           Right (SBool False) -> return $ Left AlwaysFalse
-           Right (SBool True) -> return $ Left AlwaysTrue
-           _ -> return calculated_after
-     | varName `existsIn` expr -> return $ Left $ Eliminated calculated_before
+         let (toReturn :: E,whichStr) = case calculated_after of
+               Right (SBool False) -> (Left AlwaysFalse,"failure")
+               Right (SBool True) -> (Left AlwaysTrue,"failure")
+               _ -> (calculated_after,"success")
+         constructLog loc (printf "%s case 4" whichStr) []
+         (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
+     | varName `existsIn` expr -> do
+         let toReturn :: E = Left $ Eliminated calculated_before
+         constructLog loc "failure case 5" []
+         (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
      | otherwise -> throwError $ printf
          "TODO in %s\n\
          \%s" innerLoc
@@ -271,7 +287,7 @@ isolate varName expr = do
 ----------
 ----------
 
-isolateExpr :: String -> SymExpr -> SymbolicExecutionMonad (Either IsolationFailureReason SymExpr)
+isolateExpr :: String -> SymExpr -> SymbolicExecutionMonad E
 isolateExpr varName expr = do
   let innerLoc = loc ++ ".isolateExpr"
   constructLog innerLoc "isolateExpr" [("varName",varName),("expr",show expr)]
@@ -385,7 +401,7 @@ negateBool expr = do
 ----------
 ----------
 
-isolateLogic :: String -> (SymExpr,SymBinOp,SymExpr) -> SymbolicExecutionMonad (Either IsolationFailureReason SymExpr)
+isolateLogic :: String -> (SymExpr,SymBinOp,SymExpr) -> SymbolicExecutionMonad E
 isolateLogic varName (expr1,op,expr2) = do
   let innerLoc = loc ++ ".isolateLogic"
       logContentsList = [
@@ -397,7 +413,7 @@ isolateLogic varName (expr1,op,expr2) = do
   incrementLogDepth
   whichSide0 <- whichSide varName (expr1,expr2)
   decrementLogDepth
-  toReturn :: Either IsolationFailureReason SymExpr <- case whichSide0 of
+  toReturn :: E <- case whichSide0 of
     LeftSide -> do
       either_newExpr1 <- do
         incrementLogEnumeration
@@ -414,7 +430,7 @@ isolateLogic varName (expr1,op,expr2) = do
       return $ (\expr2 -> SBin expr1 op expr2) <$> either_newExpr2
     BothSides -> do
       -- isolate left side
-      leftSideIsolated :: Either IsolationFailureReason SymExpr <- do
+      leftSideIsolated :: E <- do
         incrementLogEnumeration
         incrementLogDepth *>
           censor (map $ \(Log.Log num logTag) -> Log.Log num $ Log.Nested "Left Side" logTag)
@@ -422,7 +438,7 @@ isolateLogic varName (expr1,op,expr2) = do
             <* decrementLogDepth
 
       -- isolate right side
-      rightSideIsolated :: Either IsolationFailureReason SymExpr <- do
+      rightSideIsolated :: E <- do
         incrementLogEnumeration
         incrementLogDepth *>
           censor (map $ \(Log.Log num logTag) -> Log.Log num $ Log.Nested "Right Side" logTag)
@@ -445,7 +461,7 @@ isolateLogic varName (expr1,op,expr2) = do
 ----------
 ----------
 
-isolateRelation :: String -> (SymExpr,SymBinOp,SymExpr) -> SymbolicExecutionMonad (Either IsolationFailureReason SymExpr)
+isolateRelation :: String -> (SymExpr,SymBinOp,SymExpr) -> SymbolicExecutionMonad E
 isolateRelation varName tu@(expr1,op,expr2) = do
   let innerLoc = loc ++ ".isolateRelation"
       logContentsList = [
@@ -470,7 +486,7 @@ isolateRelation varName tu@(expr1,op,expr2) = do
       -- this is linear normalization / collection of like terms.
       
       -- isolate left side
-      leftSideIsolated :: Either IsolationFailureReason SymExpr <-
+      leftSideIsolated :: E <-
         incrementLogDepth *>
           censor (map $ \(Log.Log num logTag) -> Log.Log num $ Log.Nested "Left Side" logTag)
                  (isolateExpr varName expr1)
@@ -478,7 +494,7 @@ isolateRelation varName tu@(expr1,op,expr2) = do
 
       incrementLogEnumeration
       -- isolate right side
-      rightSideIsolated :: Either IsolationFailureReason SymExpr <-
+      rightSideIsolated :: E <-
         incrementLogDepth *>
           censor (map $ \(Log.Log num logTag) -> Log.Log num $ Log.Nested "Right Side" logTag)
                  (isolateExpr varName expr2)
@@ -506,7 +522,7 @@ isolateRelation varName tu@(expr1,op,expr2) = do
 ----------
 ----------
 
-isolateTerm :: String -> (SymExpr,SymBinOp,SymExpr) -> SymbolicExecutionMonad (Either IsolationFailureReason SymExpr)
+isolateTerm :: String -> (SymExpr,SymBinOp,SymExpr) -> SymbolicExecutionMonad E
 isolateTerm varName tu@(term,op,rhs) = do
   let innerLoc = loc ++ ".isolateTerm"
       logContentsList = [
@@ -551,7 +567,7 @@ isolateTerm varName tu@(term,op,rhs) = do
       SymVar _ vn _
         | vn == varName -> return $ Right $ SBin term op rhs
       _ -> throwError $ printf
-             "TODO in %s\n\
+             "TODO3 in %s\n\
              \%s" loc
              (constructLogContents [("term",show term)])
     -- Term has *
@@ -590,9 +606,13 @@ isolateTerm varName tu@(term,op,rhs) = do
     SymVar _ vn _
       | vn == varName -> return $ Right $ SBin term op rhs
       | otherwise -> throwError $ printf
-          "won't happen in %s\n%s" innerLoc (constructLogContents [("term",show term)])
+          "won't happen1 in %s\n%s" innerLoc (constructLogContents [("term",show term)])
     --
-    _ -> constructLog innerLoc "TODO1" logContentsList >> undefined
+    SArrayIndexAccess _ vn _
+      | vn == varName -> return $ Right $ SBin term op rhs
+      | otherwise -> throwError $ printf
+          "won't happen2 in %s\n%s" innerLoc (constructLogContents [("term",show term)])
+    _ -> constructLog innerLoc "TODO4" logContentsList >> undefined
   (tellNextLog $ Log.Return innerLoc (show toReturn)) $> toReturn
   where
   moveTermToRhs :: SymBinOp -> (SymExpr,SymBinOp,SymExpr) -> SymbolicExecutionMonad (Either IsolationFailureReason (SymBinOp,SymExpr))
@@ -888,5 +908,5 @@ whichSide varName (expr1,expr2) = do
 ----------
 ----------
 
-run_isolate :: SymbolicExecutionMonad (Either IsolationFailureReason SymExpr) -> (String,Either String (Either IsolationFailureReason SymExpr))
+run_isolate :: SymbolicExecutionMonad E -> (String,Either String E)
 run_isolate = runMonad

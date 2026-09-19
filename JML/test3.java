@@ -259,7 +259,7 @@ Your current LoopSummary is sufficient for the counter structure, but it does no
 
 The older report contains these concepts informally as earlyExits and semanticPrefixFact.
 
-data StateChangingFact
+data StateChangingCondition
   = ExcludeElemInArray
       SymExpr   -- counter
       String   -- array
@@ -346,7 +346,7 @@ LoopSummary {
       []
 
   , loopExitViaReturnFacts =
-      [(ExcludeElemInArray "i" "a" xE,SBool True)]
+      [(ExcludeElemInArray "a" "i" xE,SBool True)]
 
   , loopCounters =
       ["i"]
@@ -499,6 +499,68 @@ public static boolean contains(int[] a, int x) {
   //@ maintaining (\forall int k; 0 <= k && k < i; a[k] != x);
   //@ loop_assigns i;
   //@ decreases a.length - i;
+  while (i < a.length) {
+    if (a[i] == x) {
+      return true;
+    }
+    i++;
+  }
+  return false;
+}
+
+//////////////////////////////
+
+/*
+fromList [
+  (MethodHandle,SMethodHandle Bool "contains"),
+  (GlobalVars,SGlobalVars []),
+  (FormalParms,SFormalParms ["a","x"]),
+  (VarBindings,SVarBindings (fromList [("i",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
+  (VarAssignments,SVarAssignments [("i",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),("i",(SymInt 1,Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 2, branchEnd = 7}}))]),
+  (VarName "a",SymVar (Array Int) "a" []),
+  (VarName "i",SymUnknown ("i",SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 7})],6)]),
+  (VarName "x",SymVar Int "x" []),
+  (ScopeRange (SR {branchStart = 2, branchEnd = 7}),
+   SLoop Nothing
+         (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = ["a"], varName = "length"}}))
+         [Node {id = 3, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "a"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, binOp = ==, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "x"}})), parent = 2},Node {id = 6, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}}), parent = 2}]
+         (Just (LoopSummary {
+             loopSyntax = WhileSyntax,
+             loopReadOnlyVars = ["a","x"],
+             loopFrameTargets = ["i"],
+             loopInitFacts = [("i",SymInt 0)],
+             loopGuard = Just (SBin (SymVar Int "i" []) Lt (SObjAcc ["a","length"])),
+             loopEnteringCondition = Just (SBin (SymInt 0) Lt (SObjAcc ["a","length"])),
+             loopSkipCondition = Just (SBin (SymInt 0) Ge (SObjAcc ["a","length"])),
+             loopExitingConditions = [SBin (SymVar Int "i" []) Ge (SObjAcc ["a","length"])],
+             loopExitViaBreakConditions = [],
+             loopExitViaReturnFacts = [([ElemInArray "a" (SymVar Int "i" []) (SymVar Int "x" [])],Just (SBool True))],
+             loopCounters = ["i"],
+             loopAssignments = ["i"],
+             loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
+             loopExitFacts = [LoopExitFactValue "i" (SObjAcc ["a","length"])],
+             loopCountersBounds = [(SymInt 0,"i",SObjAcc ["a","length"])],
+             loopBoundStabilityFacts = [(SObjAcc ["a","length"],ReadOnly)],
+             loopDecreasesCandidate = [SBin (SObjAcc ["a","length"]) Sub (SymVar Int "i" [])]})) 
+         [(CounterPattern (CountingUp "i"),
+           [LoopCounters
+           ,LoopFrameTargetsDevelopmentTrajectory
+           ,LoopCountersBounds
+           ]
+          ),
+          (BoundPattern (StableBound (SObjAcc ["a","length"])),
+           [LoopCounters
+           ,LoopCountersBounds
+           ,LoopGuard
+           ,LoopBoundStabilityFacts
+           ,LoopReadOnlyVars
+           ]
+          )
+         ]),
+  (Return,SBool False)]
+ */
+public static boolean contains(int[] a, int x) {
+  int i = 0;
   while (i < a.length) {
     if (a[i] == x) {
       return true;

@@ -380,3 +380,4 @@ f = run_isolate
   $ SYT.SBin (SYT.SBin (SYT.SymVar SYT.Int "i" []) SYT.Lt (SYT.SymVar SYT.Int "n" []))
              SYT.Add
              (SYT.SymInt 2)
+

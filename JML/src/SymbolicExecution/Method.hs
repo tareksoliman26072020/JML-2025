@@ -636,7 +636,10 @@ visitStmt (AST.ReturnStmt (Just expr)) = do
       logHeader = logHeader symState
     }
 
-  tellNextLog (Log.Return "visitStmt -> ReturnStmt" (show er)) $> er
+  let toReturn = case getSymExpr er of
+        Just expr -> ER_Return $ Just expr
+        Nothing -> error $ constructErrorMsg loc "TODO" [("er",show er)]
+  tellNextLog (Log.Return "visitStmt -> ReturnStmt" (show toReturn)) $> toReturn
 
 -- AssignStmt {varModifier :: [Modifier], assign :: Expression}
 visitStmt stmt@AST.AssignStmt{} = do
@@ -2194,6 +2197,14 @@ createLoopSummary theLoopSyntax m_Acc
     incrementLogDepth *>
       getLoopExitViaBreakConditions forBody_forStep_path_visited_ers
       <* decrementLogDepth
+  -------------------------
+  -- loopExitViaReturnFacts
+  -------------------------
+  theLoopExitViaReturnFacts :: [([StateChangingCondition],Maybe SymExpr)] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopExitViaReturnFacts forBody_forStep_path_visited_ers
+      <* decrementLogDepth
   ---------------
   -- loopCounters
   ---------------
@@ -2281,6 +2292,7 @@ createLoopSummary theLoopSyntax m_Acc
         loopSkipCondition = theLoopSkipCondition,
         loopExitingConditions = theLoopExitingConditions,
         loopExitViaBreakConditions = theLoopExitViaBreakConditions,
+        loopExitViaReturnFacts = theLoopExitViaReturnFacts,
         loopCounters = theLoopCounters,
         loopAssignments = theLoopAssignments,
         loopReadOnlyVars = theLoopReadOnlyVars,
