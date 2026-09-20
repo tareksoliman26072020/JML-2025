@@ -229,6 +229,9 @@ getLoopExitingConditions loopGuard (breaksEnv,breaks_ers) (returnsEnv,returns_er
       (VarAssignments,_) -> []
       (VarName _,_) -> []
       _ -> error $ constructErrorMsg loc "TODO2" [("k",show k),("v",show v)]
+  study_ER_IfExpr :: CFGT.ScopeRange -> [ExecutionResult] -> [SymExpr]
+  study_ER_IfExpr sr = concatMap $ \case
+    _ -> undefined
 
 --------------------
 --------------------
