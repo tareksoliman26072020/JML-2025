@@ -389,10 +389,10 @@ EarlyReturn is important for control-flow analysis and postcondition validation:
     ]
   ),
 
-  ( TraversalPattern ArrayScan  -- ArrayScan because (CounterPattern (CountingUp "i"))
-                                -- and because "i" increases by 1
-                                -- and because a.length does not change
-                                --             (BoundPattern (StableBound aLenE))
+  ( TraversalPattern ArrayScan  -- ArrayScan because
+                                --   1) because the counters "i" increases or decreases monotonically
+                                --   2) and because The guard or another proven invariant keeps the index within a logical array range, typically: i < a.length
+                                --   3) and because there is a StateChangingFact which is related to an array that leads to a return or break.
   , [ LoopGuard
     , LoopCounters
     , LoopCountersBounds

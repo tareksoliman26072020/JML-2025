@@ -2185,9 +2185,12 @@ createLoopSummary theLoopSyntax m_Acc
   theLoopExitingConditions :: [SymExpr] <- do
     incrementLogEnumeration
     incrementLogDepth *>
-      getLoopExitingConditions theLoopGuard (
-        getBreaks  $ env forBody_forStep_path_visited,
-        getBreaks2 $ forBody_forStep_path_visited_ers)
+      getLoopExitingConditions
+        theLoopGuard
+        (getBreaks   $ env forBody_forStep_path_visited,
+         getBreaks2  $ forBody_forStep_path_visited_ers)
+        (getReturns  $ env forBody_forStep_path_visited,
+         getReturns2 $ forBody_forStep_path_visited_ers)
       <* decrementLogDepth
   -----------------------------
   -- loopExitViaBreakConditions

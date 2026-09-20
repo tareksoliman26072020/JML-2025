@@ -6,7 +6,7 @@ import SymbolicExecution.Types
 import qualified SymbolicExecution.Logs.Log as Log
 import SymbolicExecution.Internal.Internal
 import SymbolicExecution.Internal.Math.Calculator (numericCalculator, substitute, isSymExprGreaterThan, trajectoryCalculator, symExprCompare)
-import SymbolicExecution.Internal.Math.Isolator (isolate, run_isolate, IsolationFailureReason)
+import SymbolicExecution.Internal.Math.Isolator (isolate, run_isolate, IsolationFailureReason(VarAbsent))
 import qualified CFG.Internal as CFG (getExpression)
 import qualified Data.Map as Map
 import Control.Monad (forM, foldM)
@@ -116,13 +116,18 @@ getLoopGuard (origEnv,newEnv) loopCondition = do
 --------------------
 --------------------
 
-getLoopExitingConditions :: Maybe SymExpr -> (SymStateEnv,[ExecutionResult]) -> SymbolicExecutionMonad [SymExpr]
-getLoopExitingConditions loopGuard (breaksEnv,breaks_ers) = do
+getLoopExitingConditions :: Maybe SymExpr
+  -> (SymStateEnv,[ExecutionResult])
+  -> (SymStateEnv,[ExecutionResult])
+  -> SymbolicExecutionMonad [SymExpr]
+getLoopExitingConditions loopGuard (breaksEnv,breaks_ers) (returnsEnv,returns_ers) = do
   let loc = globalLoc ++ ".getLoopExitingConditions"
       logContents = [
         ("loopGuard",show loopGuard),
         ("breaksEnv",show breaksEnv),
-        ("breaks_ers",show breaks_ers)]
+        ("breaks_ers",show breaks_ers),
+        ("returnsEnv",show returnsEnv),
+        ("returns_ers",show returns_ers)]
   constructLog loc "getLoopExitingConditions" logContents
       -- whether there's a break statement
   let unconditionalBreaks = case Map.lookup Break breaksEnv of
@@ -131,15 +136,27 @@ getLoopExitingConditions loopGuard (breaksEnv,breaks_ers) = do
         _ -> error $ constructErrorMsg loc "won't happen" logContents
       breaksConditions :: [SymExpr]
       breaksConditions = Map.foldMapWithKey studyBreakSymExpr breaksEnv
+      ----------
+      unconditionalReturns = case Map.lookup Return returnsEnv of
+        Just _ -> [SBool True]
+        Nothing -> []
+      returnsConditions :: [SymExpr]
+      returnsConditions = Map.foldMapWithKey studyreturnSymExpr returnsEnv
+      ----------
       pickLoopGuards = case loopGuard of
         Just (SBool True) -> []
         Just guard -> [negate guard]
         Nothing -> []
       summary = [
         ("unconditionalBreaks",show unconditionalBreaks),
-        ("breaksConditions",show breaksConditions)]
+        ("breaksConditions",show breaksConditions),
+        ("unconditionalReturns",show unconditionalReturns),
+        ("returnsConditions",show returnsConditions),
+        ("pickLoopGuards",show pickLoopGuards)]
   constructLog loc "summary" summary
-  let toReturn = pickLoopGuards ++ unconditionalBreaks ++ breaksConditions
+  let toReturn = pickLoopGuards
+                   ++ unconditionalBreaks ++ breaksConditions
+                   ++ unconditionalReturns ++ returnsConditions
   --throwError $ constructErrorMsg loc "W" $
   --  logContents ++ [("toReturn",show toReturn)]
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
@@ -156,7 +173,7 @@ getLoopExitingConditions loopGuard (breaksEnv,breaks_ers) = do
           , sr == sr2
           ] of
           [cond] -> cond
-          _ -> error $ constructErrorMsg loc "won't happen" [
+          _ -> error $ constructErrorMsg loc "TODO1" [
             ("k",show k),
             ("v",show v)
             ]
@@ -169,7 +186,7 @@ getLoopExitingConditions loopGuard (breaksEnv,breaks_ers) = do
       (VarBindings,_) -> []
       (VarAssignments,_) -> []
       (VarName _,_) -> []
-      _ -> error $ constructErrorMsg loc "TODO" [("k",show k),("v",show v)]
+      _ -> error $ constructErrorMsg loc "TODO2" [("k",show k),("v",show v)]
   addCond :: SymExpr -> [SymExpr] -> [SymExpr]
   addCond cond li = [res
     | symExpr <- li
@@ -177,6 +194,41 @@ getLoopExitingConditions loopGuard (breaksEnv,breaks_ers) = do
             SBool True -> cond
             _ -> symExpr
     ]
+  studyreturnSymExpr :: SymStateKey -> SymExpr -> [SymExpr]
+  studyreturnSymExpr k v = let
+    loc = globalLoc ++ ".getLoopExitingConditions.studyreturnSymExpr" in
+    case (k,v) of
+      (Break,SymBreak) -> []
+      (Return,_) -> [SBool True]
+      {-(ScopeRange sr,SIte _ ifEnv maybe_elseEnv) -> let
+        ifCond = foldl' (\acc er -> case er of
+          ER_IfExpr sr2 (ifCond,_) ifErs elseErs
+            | sr2 == sr -> acc ++ 
+          _ -> acc) [] returns_ers-}
+      (ScopeRange sr,SIte _ ifEnv maybe_elseEnv) -> let
+        ifCond = case [ifCond
+          | ER_IfExpr sr2 (ifCond,_) ifErs elseErs <- returns_ers
+          , sr == sr2
+          ] of
+          [cond] -> cond
+          
+          w -> error $ constructErrorMsg loc "TODO1" $ [
+            ("returns_ers",show returns_ers),
+            ("sr",show sr),
+            ("k",show k),
+            ("v",show v),
+            ("w",show w)
+            ]
+        if_rec = addCond ifCond (Map.foldMapWithKey studyreturnSymExpr ifEnv)
+        else_rec = addCond (negate ifCond) (maybe [] (Map.foldMapWithKey studyreturnSymExpr) maybe_elseEnv)
+        in if_rec ++ else_rec
+      (MethodHandle,_) -> []
+      (GlobalVars,_) -> []
+      (FormalParms,_) -> []
+      (VarBindings,_) -> []
+      (VarAssignments,_) -> []
+      (VarName _,_) -> []
+      _ -> error $ constructErrorMsg loc "TODO2" [("k",show k),("v",show v)]
 
 --------------------
 --------------------
@@ -1068,6 +1120,11 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
         $ logContents ++ [("error",err)]
       ----------
       Right either_isolation -> case either_isolation of
+        Left VarAbsent -> let
+          g = lookupPartialSymExprs vn (MethodHandle,guard)
+          in if | null g -> error $ constructErrorMsg loc "won't happen"
+                    $ logContents ++ [("g",show g)]
+                | otherwise -> guard
         Left (isolationFailureReason :: IsolationFailureReason) -> error
             $ constructErrorMsg loc "TODO2"
             $ logContents ++ [
@@ -1096,8 +1153,11 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
       case (acc,lookup guard_vn loopFrameTargetsDevelopmentTrajectory) of
         (Nothing,b@(Just (Increasing _))) -> b
         (Nothing,b@(Just (Decreasing _))) -> b
+        (Nothing,Nothing) -> Nothing
         (Nothing,b) -> error $ constructErrorMsg loc "TODO1" [
+          ("loopFrameTargetsDevelopmentTrajectory",show loopFrameTargetsDevelopmentTrajectory),
           ("relevant_guard_vns",show relevant_guard_vns),
+          ("guard_vn",show guard_vn),
           ("b",show b)]
         (Just acc_trajectory,Just vn_trajectory) ->
           trajectoryCalculator acc_trajectory vn_trajectory
@@ -1179,4 +1239,8 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
                              EQ -> LoopExitFactValue vn right
             _ -> error $ constructErrorMsg loc "TODO4" logContents
           | otherwise -> error $ constructErrorMsg loc "TODO5" logContents
+      (_,SBin (SArrayIndexAccess _ arrName (SymVar _ vn1 [])) Neq expr2)
+        | vn == vn1 -> Just $ LoopExitFactValue vn expr2
+      (_,SBin expr1 Neq (SArrayIndexAccess _ arrName (SymVar _ vn2 [])))
+        | vn == vn2 -> Just $ LoopExitFactValue vn expr1
       _ -> error $ constructErrorMsg loc "TODO6" logContents

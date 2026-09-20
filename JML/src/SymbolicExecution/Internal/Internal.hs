@@ -592,6 +592,37 @@ getBreaks2 ers = let
     ER_Return _ -> False
     _ -> error $ constructErrorMsg loc "TODO2" $ errContents er
 
+getReturns :: SymStateEnv -> SymStateEnv
+getReturns env = let
+  loc = "SymbolicExecution.Internal.Internal.getReturns"
+  in flip Map.filterWithKey env $ \case
+    Return -> const True
+    _ -> \case
+      SIte _ ifEnv maybe_elseEnv -> let
+        if_rec = getReturns ifEnv
+        maybe_else_rec = getReturns <$> maybe_elseEnv
+        if_has_no_return = Map.null if_rec
+        if_has_return = not if_has_no_return
+        else_has_no_return = maybe True Map.null maybe_else_rec
+        else_has_return = not else_has_no_return
+        in if_has_return || else_has_return
+      _ -> False
+
+getReturns2 :: [ExecutionResult] -> [ExecutionResult]
+getReturns2 ers = let
+  loc = "SymbolicExecution.Internal.Internal.getReturns2"
+  errContents er = [("er",show er),("ers",show ers)] in
+  flip filter ers $ \er -> case er of
+    ER_SymStateMapEntry _ _ -> False
+    ER_Break -> False
+    ER_IfExpr _ _ if_ers else_ers -> case (getReturns2 if_ers,getReturns2 else_ers) of
+      ([],[]) -> False
+      _ -> True
+    ER_Void -> False
+    ER_Expr _ -> False
+    ER_Return _ -> True
+    _ -> error $ constructErrorMsg loc "TODO1" $ errContents er
+
 -- alters the type of a global variable based on the expression and the scope it exists in
 -- It is used in visitExpr ==> AssignExpr / ==> BinOpExpr
 {-

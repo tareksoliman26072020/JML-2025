@@ -5171,13 +5171,21 @@ contains = Map.fromList [
              loopGuard = Just (SBin (SymVar SYT.Int "i" []) SYT.Lt (SObjAcc ["a","length"])),
              loopEnteringCondition = Just (SBin (SymInt 0) SYT.Lt (SObjAcc ["a","length"])),
              loopSkipCondition = Just (SBin (SymInt 0) SYT.Ge (SObjAcc ["a","length"])),
-             loopExitingConditions = [SBin (SymVar SYT.Int "i" []) SYT.Ge (SObjAcc ["a","length"])],
+             loopExitingConditions = [
+               SBin (SymVar SYT.Int "i" [])
+                    SYT.Ge
+                    (SObjAcc ["a","length"]),
+               SBin (SArrayIndexAccess (SYT.Array SYT.Int) "a" (SymVar SYT.Int "i" []))
+                    SYT.Eq
+                    (SymVar SYT.Int "x" [])],
              loopExitViaBreakConditions = [],
              loopExitViaReturnFacts = [([ElemInArray "a" (SymVar SYT.Int "i" []) (SymVar SYT.Int "x" [])],Just (SBool True))],
              loopCounters = ["i"],
              loopAssignments = ["i"],
              loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
-             loopExitFacts = [LoopExitFactValue "i" (SObjAcc ["a","length"])],
+             loopExitFacts = [
+               LoopExitFactValue "i" (SObjAcc ["a","length"]),
+               LoopExitFactValue "i" (SymVar SYT.Int "x" [])],
              loopCountersBounds = [(SymInt 0,"i",SObjAcc ["a","length"])],
              loopBoundStabilityFacts = [(SObjAcc ["a","length"],ReadOnly)],
              loopDecreasesCandidate = [SBin (SObjAcc ["a","length"]) SYT.Sub (SymVar SYT.Int "i" [])]})) 
@@ -5193,6 +5201,11 @@ contains = Map.fromList [
            ,LoopGuard
            ,LoopBoundStabilityFacts
            ,LoopReadOnlyVars
+           ]
+          ),
+          (BoundPattern $ GuardlessWithInternalExit (SBin (SArrayIndexAccess (SYT.Array SYT.Int) "a" (SymVar SYT.Int "i" [])) SYT.Eq (SymVar SYT.Int "x" [])),
+           [LoopGuard
+           ,LoopExitingConditions
            ]
           )
          ]),
