@@ -215,7 +215,7 @@ getLoopExitViaReturnFacts forBody_forStep_ers = do
   let toReturn :: [([StateChangingCondition],Maybe SymExpr)] = [
         (stateChangingConditions,mSymExpr)
         | (conds,mSymExpr) <- studied
-        , let stateChangingConditions = map createStateChangingCondition conds
+        , let stateChangingConditions = concatMap createStateChangingCondition conds
         ]
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
   -- each tuple has two elements:

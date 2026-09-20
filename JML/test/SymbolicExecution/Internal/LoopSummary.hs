@@ -9,7 +9,8 @@ allTargets = [
   ("idByLoop",idByLoop),
   ("idByLoopStride3",idByLoopStride3),
   ("idByLoop2",idByLoop2),
-  ("halving",halving)
+  ("halving",halving),
+  ("contains",contains)
   ]
 
 idByLoop :: [LoopSummary]
@@ -23,6 +24,7 @@ idByLoop = [LoopSummary {
   loopSkipCondition = Just (SBin (SymInt 0) Ge (SymVar Int "n" [])),
   loopExitingConditions = [SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])],
   loopExitViaBreakConditions = [],
+  loopExitViaReturnFacts = [],
   loopCounters = ["i"],
   loopAssignments = ["i"],
   loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
@@ -43,6 +45,7 @@ idByLoopStride3 = [LoopSummary {
   loopSkipCondition = Just (SBin (SymInt 0) Ge (SymVar Int "n" [])),
   loopExitingConditions = [SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])],
   loopExitViaBreakConditions = [],
+  loopExitViaReturnFacts = [],
   loopCounters = ["i"],
   loopAssignments = ["i"],
   loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 3))],
@@ -63,6 +66,7 @@ idByLoop2 = [LoopSummary {
   loopSkipCondition = Just (SBool False),
   loopExitingConditions = [SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])],
   loopExitViaBreakConditions = [Condition $ SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])],
+  loopExitViaReturnFacts = [],
   loopCounters = ["i"],
   loopAssignments = ["i"],
   loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
@@ -83,6 +87,7 @@ halving = [LoopSummary {
   loopSkipCondition = Just (SBin (SymInt 0) Ge (SymPreScope (SR {branchStart = 2, branchEnd = 5}) (Int,"n"))),
   loopExitingConditions = [SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])],
   loopExitViaBreakConditions = [],
+  loopExitViaReturnFacts = [],
   loopCounters = ["i","n"],
   loopAssignments = ["n","i"],
   loopFrameTargetsDevelopmentTrajectory = [("n",Decreasing (SymInt 1)),("i",Increasing (SymInt 1))],
@@ -98,4 +103,25 @@ halving = [LoopSummary {
     (SymVar Int "n" [],Decreasing (SymInt 1)),
     (SymVar Int "i" [],Increasing (SymInt 1))],
   loopDecreasesCandidate = [SBin (SymVar Int "n" []) Sub (SymVar Int "i" [])]
+}]
+
+contains :: [LoopSummary]
+contains = [LoopSummary {
+  loopSyntax = WhileSyntax,
+  loopReadOnlyVars = ["a","x"],
+  loopFrameTargets = ["i"],
+  loopInitFacts = [("i",SymInt 0)],
+  loopGuard = Just (SBin (SymVar Int "i" []) Lt (SObjAcc ["a","length"])),
+  loopEnteringCondition = Just (SBin (SymInt 0) Lt (SObjAcc ["a","length"])),
+  loopSkipCondition = Just (SBin (SymInt 0) Ge (SObjAcc ["a","length"])),
+  loopExitingConditions = [SBin (SymVar Int "i" []) Ge (SObjAcc ["a","length"])],
+  loopExitViaBreakConditions = [],
+  loopExitViaReturnFacts = [([ElemInArray "a" (SymVar Int "i" []) (SymVar Int "x" [])],Just (SBool True))],
+  loopCounters = ["i"],
+  loopAssignments = ["i"],
+  loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
+  loopExitFacts = [LoopExitFactValue "i" (SObjAcc ["a","length"])],
+  loopCountersBounds = [(SymInt 0,"i",SObjAcc ["a","length"])],
+  loopBoundStabilityFacts = [(SObjAcc ["a","length"],ReadOnly)],
+  loopDecreasesCandidate = [SBin (SObjAcc ["a","length"]) Sub (SymVar Int "i" [])]
 }]

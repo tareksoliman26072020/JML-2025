@@ -194,42 +194,6 @@ data SymExpr =
   | SymPreScope CFGT.ScopeRange (SymType,String) -- ^ Value of the expression prior to a scope.
   deriving (Eq,Show)
 
-data SymExprTag =
-    SMethodHandleTag
-  | SymNumTag
-  | SymIntTag
-  | SymDoubleTag
-  | SymFloatTag
-  | SBoolTag
-  | SymStringTag
-  | SObjAccTag
-  | SBinTag
-  | SNotTag
-  | SIteTag
-  | SIte2Tag
-  | SLoopTag
-  | SLoopConditionsTag
-  | SLoopFailureTag
-  | SymNullTag
-  | SymVarTag
-  | SymArrayAccessTag
-  | SymArrayElemTag
-  | SymFunTag
-  | SVarBindingsTag
-  | SVarAssignmentsTag
-  | SExceptionTag
-  | SActionsTag
-  | SArrayIndexAccessTag
-  | SymArrayTag
-  | SymUnknownTag
-  | SFormalParmsTag
-  | SGlobalVarsTag
-  | SymReturnVoidTag
-  | SymContinueTag
-  | SymBreakTag
-  | SymPreScopeTag
-  deriving (Show,Eq)
-
 -- declared for the sake of `SymVar` in `SymExpr`
 -- the goal is to attach infos about the context of the variable when necessary
 data VarInfo = ForAccumulator CFGT.ScopeRange SymExpr deriving (Show,Eq)

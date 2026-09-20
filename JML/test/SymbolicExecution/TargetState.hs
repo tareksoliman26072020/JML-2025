@@ -172,7 +172,8 @@ allTargets = [
   ("idByLoop", idByLoop),
   ("idByLoopStride3", idByLoopStride3),
   ("idByLoop2", idByLoop2),
-  ("halving", halving)
+  ("halving", halving),
+  ("contains", contains)
   ]
 
 -----------------------------
@@ -4949,6 +4950,7 @@ idByLoop = Map.fromList [
                loopSkipCondition = Just (SBin (SymInt 0) SYT.Ge (SymVar SYT.Int "n" [])),
                loopExitingConditions = [SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" [])],
                loopExitViaBreakConditions = [],
+               loopExitViaReturnFacts = [],
                loopCounters = ["i"],
                loopAssignments = ["i"],
                loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
@@ -5003,6 +5005,7 @@ idByLoopStride3 = Map.fromList [
              loopSkipCondition = Just (SBin (SymInt 0) SYT.Ge (SymVar SYT.Int "n" [])),
              loopExitingConditions = [SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" [])],
              loopExitViaBreakConditions = [],
+             loopExitViaReturnFacts = [],
              loopCounters = ["i"],
              loopAssignments = ["i"],
              loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 3))],
@@ -5056,6 +5059,7 @@ idByLoop2 = Map.fromList [
              loopSkipCondition = Just (SBool False),
              loopExitingConditions = [SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" [])],
              loopExitViaBreakConditions = [Condition $ SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" [])],
+             loopExitViaReturnFacts = [],
              loopCounters = ["i"],
              loopAssignments = ["i"],
              loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
@@ -5114,6 +5118,7 @@ halving = Map.fromList [
              loopSkipCondition = Just (SBin (SymInt 0) SYT.Ge (SymPreScope (SR {branchStart = 2, branchEnd = 5}) (SYT.Int,"n"))),
              loopExitingConditions = [SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" [])],
              loopExitViaBreakConditions = [],
+             loopExitViaReturnFacts = [],
              loopCounters = ["i","n"],
              loopAssignments = ["n","i"],
              loopFrameTargetsDevelopmentTrajectory = [("n",Decreasing (SymInt 1)),("i",Increasing (SymInt 1))],
@@ -5137,3 +5142,63 @@ halving = Map.fromList [
   (Return,SymUnknown ("i",SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 5})],4)])
   ]
 
+-----------------------------
+-----------------------------
+-----------------------------
+
+contains :: SymStateEnv
+contains = Map.fromList [
+  (MethodHandle,SMethodHandle SYT.Bool "contains"),
+  (GlobalVars,SGlobalVars []),
+  (FormalParms,SFormalParms ["a","x"]),
+  (VarBindings,SVarBindings (Map.fromList [
+      ("i",Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})])),
+  (VarAssignments,SVarAssignments [
+      ("i",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
+      ("i",(SymInt 1,Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 2, branchEnd = 7}}))]),
+  (VarName "a",SymVar (SYT.Array SYT.Int) "a" []),
+  (VarName "i",SymUnknown ("i",SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 7})],6)]),
+  (VarName "x",SymVar SYT.Int "x" []),
+  (ScopeRange (SR {branchStart = 2, branchEnd = 7}),
+   SLoop Nothing
+         (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Less, expr2 = VarExpr {varType = Nothing, varObj = ["a"], varName = "length"}}))
+         [Node {id = 3, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "a"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, binOp = Eq, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "x"}})), parent = 2},Node {id = 6, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Plus, expr2 = NumberLiteral 1.0}}}), parent = 2}]
+         (Just (LoopSummary {
+             loopSyntax = WhileSyntax,
+             loopReadOnlyVars = ["a","x"],
+             loopFrameTargets = ["i"],
+             loopInitFacts = [("i",SymInt 0)],
+             loopGuard = Just (SBin (SymVar SYT.Int "i" []) SYT.Lt (SObjAcc ["a","length"])),
+             loopEnteringCondition = Just (SBin (SymInt 0) SYT.Lt (SObjAcc ["a","length"])),
+             loopSkipCondition = Just (SBin (SymInt 0) SYT.Ge (SObjAcc ["a","length"])),
+             loopExitingConditions = [SBin (SymVar SYT.Int "i" []) SYT.Ge (SObjAcc ["a","length"])],
+             loopExitViaBreakConditions = [],
+             loopExitViaReturnFacts = [([ElemInArray "a" (SymVar SYT.Int "i" []) (SymVar SYT.Int "x" [])],Just (SBool True))],
+             loopCounters = ["i"],
+             loopAssignments = ["i"],
+             loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
+             loopExitFacts = [LoopExitFactValue "i" (SObjAcc ["a","length"])],
+             loopCountersBounds = [(SymInt 0,"i",SObjAcc ["a","length"])],
+             loopBoundStabilityFacts = [(SObjAcc ["a","length"],ReadOnly)],
+             loopDecreasesCandidate = [SBin (SObjAcc ["a","length"]) SYT.Sub (SymVar SYT.Int "i" [])]})) 
+         [(CounterPattern (CountingUp "i"),
+           [LoopCounters
+           ,LoopFrameTargetsDevelopmentTrajectory
+           ,LoopCountersBounds
+           ]
+          ),
+          (BoundPattern (StableBound (SObjAcc ["a","length"])),
+           [LoopCounters
+           ,LoopCountersBounds
+           ,LoopGuard
+           ,LoopBoundStabilityFacts
+           ,LoopReadOnlyVars
+           ]
+          )
+         ]),
+  (Return,SBool False)
+  ]
+
+-----------------------------
+-----------------------------
+-----------------------------

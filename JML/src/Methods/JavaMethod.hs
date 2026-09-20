@@ -175,7 +175,8 @@ javaMethodInputs = [
   ("idByLoop",3,idByLoop),
   ("idByLoopStride3",3,idByLoopStride3),
   ("idByLoop2",3,idByLoop2),
-  ("halving",3,halving)
+  ("halving",3,halving),
+  ("contains",3,contains)
   ]
 
 boo21 = "public int boo21(){\n\
@@ -2086,3 +2087,14 @@ halving = "int halving (int n) {\n\
           \  }\n\
           \  return i;\n\
           \}"
+
+contains = "public static boolean contains(int[] a, int x) {\n\
+           \  int i = 0;\n\
+           \  while (i < a.length) {\n\
+           \    if (a[i] == x) {\n\
+           \      return true;\n\
+           \    }\n\
+           \    i++;\n\
+           \  }\n\
+           \  return false;\n\
+           \}"
