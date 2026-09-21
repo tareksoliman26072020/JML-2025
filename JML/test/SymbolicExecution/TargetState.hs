@@ -5208,9 +5208,9 @@ contains = Map.fromList [
            ,LoopReadOnlyVars
            ]
           ),
-          (BoundPattern $ GuardlessWithInternalExit (SBin (SArrayIndexAccess (SYT.Array SYT.Int) "a" (SymVar SYT.Int "i" [])) SYT.Eq (SymVar SYT.Int "x" [])),
-           [LoopGuard
-           ,LoopExitingConditions
+          (TraversalPattern (ArrayScan ("x",["i"])),
+           [DynamicallyAccessedArrays
+           ,LoopFrameTargetsDevelopmentTrajectory
            ]
           )
          ]),

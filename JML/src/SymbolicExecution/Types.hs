@@ -247,6 +247,7 @@ data LoopSummary = LoopSummary {
   --   3) updated predictably in the loop,
   --   4) and used to define bounds, processed ranges, or termination.
   , loopCounters :: [String]
+  -- arrays that are accessed via loop counters
   , dynamicallyAccessedArrays :: [
       (String, -- array name
        [String]) -- loop counters used to access the array
@@ -326,12 +327,14 @@ data BoundPattern
   deriving (Eq, Show)
 
 data TraversalPattern
-  = ArrayScan         --   1) because the counters "i" increases or decreases monotonically.
-                      --   2) and because The guard or another proven invariant
+  = ArrayScan (String,[String])
+                      --   1) and because there is an array access expression
+                      --      via a dynamically changeable expression (a loop counter).
+                      --   2) because the counters which allow dynamic access to an array (i.e. "i") increase or decrease monotonically.
+                      --   3) and because The guard or another proven invariant
                       --      keeps the index within a logical array range
                       --      , typically: i < a.length
-                      --   3) and because there is an array access expression
-                      --      via a dynamically changeable expression (a loop counter).
+                      -- indicators: loopCounters, loopFrameTargetsDevelopmentTrajectory, dynamicallyAccessedArrays
   | PrefixProperty
   | SourceUnchanged
   deriving (Eq, Show)
@@ -369,6 +372,7 @@ data LoopSummaryTag =
    LoopInitFacts
  | LoopGuard
  | LoopCounters
+ | DynamicallyAccessedArrays
  | LoopCountersBounds
  | LoopFrameTargetsDevelopmentTrajectory
  | LoopBoundStabilityFacts

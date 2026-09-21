@@ -35,6 +35,13 @@ inferLoopPatterns loopSummary = do
       inferBoundPatterns loopSummary
       <* decrementLogDepth
   constructLog loc "Bound Patterns" [("BoundPatterns",show boundPatterns)]
+  -- traversalPatterns
+  traversalPatterns <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      inferTraversalPatterns loopSummary
+      <* decrementLogDepth
+  constructLog loc "traversal Patterns" [("TraversalPatterns",show traversalPatterns)]
   -- controlFlowPatterns
   controlFlowPattern <- do
     incrementLogEnumeration
@@ -44,7 +51,7 @@ inferLoopPatterns loopSummary = do
   constructLog loc "Control Flow Patterns" [("BoundPatterns",show boundPatterns)]
   
   --
-  let toReturn = counterPatterns ++ boundPatterns ++ controlFlowPattern
+  let toReturn = counterPatterns ++ boundPatterns ++ traversalPatterns ++ controlFlowPattern
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
 
 -------------------------------------------------
@@ -99,6 +106,19 @@ inferBoundPatterns loopSummary = do
       inferGuardlessWithInternalExitBoundPatterns loopSummary
       <* decrementLogDepth
   let toReturn = stableBoundPatterns ++ movingBoundPatterns ++ guardlessBoundPatterns
+  (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
+
+inferTraversalPatterns :: LoopSummary -> SymbolicExecutionMonad [(LoopPattern,[LoopSummaryTag])]
+inferTraversalPatterns loopSummary = do
+  let loc = "SymbolicExecution.Internal.LoopPattern.inferTraversalPatterns"
+  tellNextLog $ Log.Location loc
+  --ArrayScanPatterns
+  arrayScanPatterns <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      inferArrayScanPatterns loopSummary
+      <* decrementLogDepth
+  let toReturn = arrayScanPatterns
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
 
 inferControlFlowPatterns :: LoopSummary -> SymbolicExecutionMonad [(LoopPattern,[LoopSummaryTag])]
@@ -222,6 +242,10 @@ inferGuardlessWithInternalExitBoundPatterns :: LoopSummary -> SymbolicExecutionM
 inferGuardlessWithInternalExitBoundPatterns loopSummary = do
   let loc = "SymbolicExecution.Internal.LoopPattern.inferGuardlessWithInternalExitBoundPatterns"
   tellNextLog $ Log.Location loc
+  let hasLoopGuard = case loopGuard loopSummary of
+        Nothing -> False
+        Just (SBool True) -> False
+        _ -> True
   -- if there are guards in `loopExitingConditions` which are not derived from `loopGuard`
   -- then these conditions are to be processed
   let relevant_loopExitingConditions :: [SymExpr]
@@ -233,12 +257,50 @@ inferGuardlessWithInternalExitBoundPatterns loopSummary = do
         ) (loopGuard loopSummary)
   constructLog loc "Summary" [("relevant_loopExitingConditions",show relevant_loopExitingConditions)]
   let toReturn :: [(LoopPattern,[LoopSummaryTag])]
-      toReturn = [(one,two)
-        | cond <- relevant_loopExitingConditions
-        , let one = BoundPattern $ GuardlessWithInternalExit cond
-              two = guardlessWithInternalExitTags
-        ]
+      toReturn
+        | hasLoopGuard = []
+        | otherwise = [(one,two)
+            | cond <- relevant_loopExitingConditions
+            , let one = BoundPattern $ GuardlessWithInternalExit cond
+                  two = guardlessWithInternalExitTags
+            ]
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
+
+inferArrayScanPatterns :: LoopSummary -> SymbolicExecutionMonad [(LoopPattern,[LoopSummaryTag])]
+inferArrayScanPatterns loopSummary = do
+  let loc = "SymbolicExecution.Internal.LoopPattern.inferArrayScanPatterns"
+      theLoopFrameTargetsDevelopmentTrajectory = loopFrameTargetsDevelopmentTrajectory loopSummary
+      theDynamicallyAccessedArrays = dynamicallyAccessedArrays loopSummary
+      logContents = [
+        ("theLoopFrameTargetsDevelopmentTrajectory",show theLoopFrameTargetsDevelopmentTrajectory),
+        ("theDynamicallyAccessedArrays",show theDynamicallyAccessedArrays)
+        ]
+  constructLog loc "inferArrayScanPatterns" logContents
+  {-
+  look at the loop counters in `dynamicallyAccessedArrays`
+    , and check which of them have monotonic trajectory, and then return them.
+   -}
+  let toReturn = [ (one,two)
+        | (arrName,vns) <- theDynamicallyAccessedArrays
+        , let vns2 = catMaybes [
+                studyTrajectory vn theLoopFrameTargetsDevelopmentTrajectory
+                | vn <- vns]
+              one = TraversalPattern $ ArrayScan (arrName,vns2)
+              two = arrayScanPatternsTags
+        ]
+  (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn where
+  -- see if `vn` has a monotonic trajectory
+  studyTrajectory :: String -> [(String,SymExprDevelopmentTrajectory)] -> Maybe String
+  studyTrajectory vn theLoopFrameTargetsDevelopmentTrajectory = let
+    loc = "SymbolicExecution.Internal.LoopPattern.inferArrayScanPatterns.studyTrajectory"
+    logContents = [
+      ("vn",vn),
+      ("theLoopFrameTargetsDevelopmentTrajectory",show theLoopFrameTargetsDevelopmentTrajectory)
+      ] in case lookup vn theLoopFrameTargetsDevelopmentTrajectory of
+    Just (Increasing _) -> Just vn
+    Just (Decreasing _) -> Just vn
+    Nothing -> error $ constructErrorMsg loc "won't happen" logContents
+    _ -> Nothing
 
 inferBreakExitPatterns :: LoopSummary -> SymbolicExecutionMonad [(LoopPattern,[LoopSummaryTag])]
 inferBreakExitPatterns loopSummary = do
@@ -283,6 +345,9 @@ movingBoundTags = [LoopFrameTargets, LoopBoundStabilityFacts]
 
 guardlessWithInternalExitTags :: [LoopSummaryTag]
 guardlessWithInternalExitTags = [LoopGuard,LoopExitingConditions]
+
+arrayScanPatternsTags :: [LoopSummaryTag]
+arrayScanPatternsTags = [DynamicallyAccessedArrays, LoopFrameTargetsDevelopmentTrajectory]
 
 breakExitPatternsTags :: [LoopSummaryTag]
 breakExitPatternsTags = [LoopExitViaBreakConditions]
