@@ -402,10 +402,14 @@ EarlyReturn is important for control-flow analysis and postcondition validation:
     ]
   ),
 
-  ( SearchPattern LinearSearch  -- LinearSearch because (CounterPattern (CountingUp "i"))
-                                -- and because a.length does not change
-                                --             (BoundPattern (StableBound aLenE))
-                                -- and because the value of `loopExitViaReturnFacts`
+  ( SearchPattern LinearSearch  -- LinearSearch
+                                --   1) because the comparison can terminate due to a criterion (a[i] == x) the search successfully: return True
+                                        (loopExitViaBreakConditions, loopExitViaReturnFacts)
+                                --   2) because (CounterPattern (CountingUp "i"))
+                                        (There is an array traversal)
+                                        (loopFrameTargetsDevelopmentTrajectory, dynamicallyAccessedArrays)
+                                --   3) because if the criterion is not satisfied, the traversal progresses: i++;
+                                --   4) If the criterion is not satisfied, the loop eventually exhausts the candidate range: i < a.length
   , [ LoopCounters
     , LoopGuard
     , loopExitViaReturnFacts

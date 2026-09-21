@@ -63,7 +63,7 @@ idByLoop2 =
      ]
     ),
     (ControlFlowPattern $ BreakExit (SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])),
-     [LoopExitViaBreakConditions])
+     [LoopExitViaBreakFacts])
    ]
   ]
 

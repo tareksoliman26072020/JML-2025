@@ -2181,12 +2181,12 @@ createLoopSummary theLoopSyntax m_Acc
          getReturns2 $ forBody_forStep_path_visited_ers)
       <* decrementLogDepth
   -----------------------------
-  -- loopExitViaBreakConditions
+  -- LoopExitViaBreakFacts
   -----------------------------
-  theLoopExitViaBreakConditions :: [StateChangingCondition] <- do
+  theLoopExitViaBreakFacts :: [StateChangingCondition] <- do
     incrementLogEnumeration
     incrementLogDepth *>
-      getLoopExitViaBreakConditions forBody_forStep_path_visited_ers
+      getLoopExitViaBreakFacts forBody_forStep_path_visited_ers
       <* decrementLogDepth
   -------------------------
   -- loopExitViaReturnFacts
@@ -2292,7 +2292,7 @@ createLoopSummary theLoopSyntax m_Acc
         loopEnteringCondition = theLoopEnteringCondition,
         loopSkipCondition = theLoopSkipCondition,
         loopExitingConditions = theLoopExitingConditions,
-        loopExitViaBreakConditions = theLoopExitViaBreakConditions,
+        loopExitViaBreakFacts = theLoopExitViaBreakFacts,
         loopExitViaReturnFacts = theLoopExitViaReturnFacts,
         loopCounters = theLoopCounters,
         dynamicallyAccessedArrays = theDynamicallyAccessedArrays,

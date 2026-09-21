@@ -237,7 +237,7 @@ data LoopSummary = LoopSummary {
   , loopEnteringCondition :: Maybe SymExpr
   , loopSkipCondition :: Maybe SymExpr
   , loopExitingConditions :: [SymExpr]
-  , loopExitViaBreakConditions :: [StateChangingCondition]
+  , loopExitViaBreakFacts :: [StateChangingCondition]
   , loopExitViaReturnFacts :: [([StateChangingCondition],Maybe SymExpr)]
   -- The variables that function as loop counters or induction variables.
   -- A loopCounter is a variable whose value represents loop progress.
@@ -334,7 +334,7 @@ data TraversalPattern
                       --   3) and because The guard or another proven invariant
                       --      keeps the index within a logical array range
                       --      , typically: i < a.length
-                      -- indicators: loopCounters, loopFrameTargetsDevelopmentTrajectory, dynamicallyAccessedArrays
+                      -- indicators: loopFrameTargetsDevelopmentTrajectory, dynamicallyAccessedArrays
   | PrefixProperty
   | SourceUnchanged
   deriving (Eq, Show)
@@ -355,7 +355,17 @@ data AccumulatorPattern
   deriving (Eq, Show)
 
 data SearchPattern
-  = LinearSearch
+  = LinearSearch ([StateChangingCondition],Maybe SymExpr)
+                          -- because there's an array access, which is dynamically accessed
+                          --   that is present in a condition,
+                          --   which lead to the termination of the loop
+                          -- Linearsearch =
+                          --   1) ArrayScan
+                          --      +
+                          --   2) loopExitViaReturnFacts (due to the array that is scanned)
+                          -- indicators: dynamicallyAccessedArrays, loopExitViaBreakFacts, loopExitViaReturnFacts
+                          --   Because the arrays that is dynamically getting accessed
+                          --           is the reason why the loop is terminated
   | FirstIndexSearch
   | BooleanPredicateScan
   | BinarySearch
@@ -383,7 +393,7 @@ data LoopSummaryTag =
  | LoopEnteringCondition
  | LoopSkipCondition
  | LoopExitingConditions
- | LoopExitViaBreakConditions
+ | LoopExitViaBreakFacts
  | LoopExitViaReturnFacts
  | LoopExitFact
  deriving (Show,Eq)

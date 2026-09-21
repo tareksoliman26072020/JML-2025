@@ -4949,7 +4949,7 @@ idByLoop = Map.fromList [
                loopEnteringCondition = Just (SBin (SymInt 0) SYT.Lt (SymVar SYT.Int "n" [])),
                loopSkipCondition = Just (SBin (SymInt 0) SYT.Ge (SymVar SYT.Int "n" [])),
                loopExitingConditions = [SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" [])],
-               loopExitViaBreakConditions = [],
+               loopExitViaBreakFacts = [],
                loopExitViaReturnFacts = [],
                loopCounters = ["i"],
                dynamicallyAccessedArrays = [],
@@ -5005,7 +5005,7 @@ idByLoopStride3 = Map.fromList [
              loopEnteringCondition = Just (SBin (SymInt 0) SYT.Lt (SymVar SYT.Int "n" [])),
              loopSkipCondition = Just (SBin (SymInt 0) SYT.Ge (SymVar SYT.Int "n" [])),
              loopExitingConditions = [SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" [])],
-             loopExitViaBreakConditions = [],
+             loopExitViaBreakFacts = [],
              loopExitViaReturnFacts = [],
              loopCounters = ["i"],
              dynamicallyAccessedArrays = [],
@@ -5060,7 +5060,7 @@ idByLoop2 = Map.fromList [
              loopEnteringCondition = Just (SBool True),
              loopSkipCondition = Just (SBool False),
              loopExitingConditions = [SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" [])],
-             loopExitViaBreakConditions = [Condition $ SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" [])],
+             loopExitViaBreakFacts = [Condition $ SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" [])],
              loopExitViaReturnFacts = [],
              loopCounters = ["i"],
              dynamicallyAccessedArrays = [],
@@ -5090,7 +5090,7 @@ idByLoop2 = Map.fromList [
            ]
           ),
           (ControlFlowPattern (BreakExit (SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" []))),
-           [LoopExitViaBreakConditions])]),
+           [LoopExitViaBreakFacts])]),
   (Return,SymUnknown ("i",SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 7})],6)])
   ]
 
@@ -5120,7 +5120,7 @@ halving = Map.fromList [
              loopEnteringCondition = Just (SBin (SymInt 0) SYT.Lt (SymPreScope (SR {branchStart = 2, branchEnd = 5}) (SYT.Int,"n"))),
              loopSkipCondition = Just (SBin (SymInt 0) SYT.Ge (SymPreScope (SR {branchStart = 2, branchEnd = 5}) (SYT.Int,"n"))),
              loopExitingConditions = [SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" [])],
-             loopExitViaBreakConditions = [],
+             loopExitViaBreakFacts = [],
              loopExitViaReturnFacts = [],
              loopCounters = ["i","n"],
              dynamicallyAccessedArrays = [],
@@ -5182,7 +5182,7 @@ contains = Map.fromList [
                SBin (SArrayIndexAccess (SYT.Array SYT.Int) "a" (SymVar SYT.Int "i" []))
                     SYT.Eq
                     (SymVar SYT.Int "x" [])],
-             loopExitViaBreakConditions = [],
+             loopExitViaBreakFacts = [],
              loopExitViaReturnFacts = [([ElemInArray "a" (SymVar SYT.Int "i" []) (SymVar SYT.Int "x" [])],Just (SBool True))],
              loopCounters = ["i"],
              dynamicallyAccessedArrays = [("x",["i"])],

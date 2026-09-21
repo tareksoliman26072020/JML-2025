@@ -293,12 +293,12 @@ getLoopExitingConditions loopGuard (breaksEnv,breaks_ers) (returnsEnv,returns_er
 --------------------
 --------------------
 
-getLoopExitViaBreakConditions :: [ExecutionResult] -> SymbolicExecutionMonad [StateChangingCondition]
-getLoopExitViaBreakConditions forBody_forStep_ers = do
-  let loc = globalLoc ++ ".getLoopExitViaBreakConditions"
+getLoopExitViaBreakFacts :: [ExecutionResult] -> SymbolicExecutionMonad [StateChangingCondition]
+getLoopExitViaBreakFacts forBody_forStep_ers = do
+  let loc = globalLoc ++ ".getLoopExitViaBreakFacts"
   let logContents = [
         ("forBody_forStep_ers",show forBody_forStep_ers)]
-  constructLog loc "getLoopExitViaBreakConditions" logContents
+  constructLog loc "getLoopExitViaBreakFacts" logContents
   -- the conditions which lead to a break statement
   let breakConds = concat [ifCond ++ elseCond
         | ER_IfExpr _ (cond,_) if_ers else_ers <- forBody_forStep_ers
@@ -320,7 +320,7 @@ getLoopExitViaReturnFacts forBody_forStep_ers = do
   let loc = globalLoc ++ ".getLoopExitViaReturnFacts"
   let logContents = [
         ("forBody_forStep_ers",show forBody_forStep_ers)]
-  constructLog loc "getLoopExitViaBreakConditions" logContents
+  constructLog loc "getLoopExitViaReturnFacts" logContents
   let studied = study forBody_forStep_ers
   constructLog loc "summary" [("studied",show studied)]
   let toReturn :: [([StateChangingCondition],Maybe SymExpr)] = [
