@@ -374,26 +374,80 @@ getLoopCounters (branchRange,origEnv,newEnv)
         , vn `elem` loopFrameTargets
         ]
   let toReturn = conds_vns
-  
-  {-let loopGuard_vars = maybe [] getVarNames3 loopGuard
-
-  toReturn <- case Map.lookup VarAssignments newEnv of
-    Nothing -> return []
-    Just (SVarAssignments li) -> let
-      -- VarAssignments provides informations about variables which are re-assigned in the loop
-      -- and I care about those who were caught in the branch range of the loop
-      relevantVars :: [String]
-      relevantVars = [vn
-        | (vn,(symExpr,CFGT.Node_Coor _ (CFGT.SR begin end))) <- li
-        , begin == CFGT.branchStart branchRange
-        , end == CFGT.branchEnd branchRange
-        , vn `elem` loopGuard_vars
-        ]
-      in return relevantVars-}
-  {-throwError $ constructErrorMsg loc "Summary" $ logContents ++ [
-    ("loopGuard_vars",show loopGuard_vars),
-    ("toReturn",show toReturn)]-}
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn
+
+--------------------
+--------------------
+--------------------
+
+getDynamicallyAccessedArrays :: [String] -> [ExecutionResult] -> SymbolicExecutionMonad [(String,[String])]
+getDynamicallyAccessedArrays loopCounters loop_ers = do
+  let loc = "SymbolicExecution.Internal.LoopSummary.getDynamicallyAccessedArrays"
+      logContents = [
+        ("loopCounters",show loopCounters),
+        ("loop_ers",show loop_ers)]
+      relevantSymExprs :: [(SymExpr,[String])]
+      relevantSymExprs = study_loop_ers loop_ers
+      toReturn = [(getVarName symExpr,vns)
+        | (symExpr,vns) <- relevantSymExprs
+        ]
+  tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
+  -- checks `loop_ers` and returns all expressions of form `SArrayIndexAccess`
+  -- which involve `loopCounters`
+  study_loop_ers :: [ExecutionResult] -> [(SymExpr,[String])]
+  study_loop_ers ers = let
+    loc = "SymbolicExecution.Internal.LoopSummary.getDynamicallyAccessedArrays.study_loop_ers"
+    err msg er = error $ constructErrorMsg loc msg [("er",show er)]
+    in flip concatMap ers $ \er -> case er of
+    ER_IfExpr _ (ifCond,_) ifErs elseErs ->
+      studySymExpr ifCond ++ study_loop_ers ifErs ++ study_loop_ers elseErs
+    ER_SymStateMapEntry _ symExpr -> studySymExpr symExpr
+    ER_Expr symExpr -> studySymExpr symExpr
+    ER_ArrayCallExpr{} -> err "TODO1" er
+    ER_IfCond symExpr -> studySymExpr symExpr
+    ER_PredefinedFunCall symExpr -> studySymExpr symExpr
+    ER_Return mSymExpr -> maybe [] studySymExpr mSymExpr
+    ER_ActualParameterDetected _ _ -> err "TODO2" er
+    ER_Break -> []
+    _ -> err "TODO3" er
+  studySymExpr :: SymExpr -> [(SymExpr,[String])]
+  studySymExpr symExpr = case studySymExprHelper symExpr of
+    [] -> []
+    vns -> [(symExpr,vns)]
+  -- returns True is SymExpr has an accessed array (SArrayIndexAccess),
+  -- and the index is a loop counter (a frame target)
+  studySymExprHelper :: SymExpr -> [String]
+  studySymExprHelper symExpr = let
+    loc = "SymbolicExecution.Internal\
+          \.LoopSummary.getDynamicallyAccessedArrays.studySymExprHelper"
+    logContents = [("symExpr",show symExpr)]
+    err msg = error $ constructErrorMsg loc msg logContents in
+    case symExpr of
+      SBin expr1 _ expr2 -> concatMap studySymExprHelper [expr1,expr2]
+      SNot expr -> studySymExprHelper expr
+      SIte _ _ _ -> err "TODO1"
+      SLoop _ _ _ _ _ -> err "TODO2"
+      SArrayIndexAccess _ _ index -> study_array_index index
+      SymVar _ _ _ -> []
+      SBool _ -> []
+      SymInt _ -> []
+      SymString _ -> []
+      SymDouble _ -> []
+      SymFloat _ -> []
+      SObjAcc _ -> []
+      _ -> err "TODO3"
+  -- checks if the index has a loop counter
+  study_array_index :: SymExpr -> [String]
+  study_array_index index = let
+    loc = "SymbolicExecution.Internal\
+          \.LoopSummary.getDynamicallyAccessedArrays.study_array_index"
+    logContents = [
+      ("index",show index)
+      ] in case index of
+    SymVar _ vn _
+      | vn `elem` loopCounters -> [vn]
+      | otherwise -> []
+    _ -> error $ constructErrorMsg loc "TODO" [("index",show index)]
 
 --------------------
 --------------------

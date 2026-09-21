@@ -723,6 +723,7 @@ getVarName symExpr = let
   loc = "SymbolicExecution.Internal.Internal.getVarName" in
   case symExpr of
     SymVar _ varName _ -> varName
+    SArrayIndexAccess _ vn _ -> vn
     SBin expr1 _ expr2 ->
       let n1 = if isVar expr1 then Just $ getVarName expr1 else Nothing
           n2 = if isVar expr2 then Just $ getVarName expr2 else Nothing

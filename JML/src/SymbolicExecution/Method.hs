@@ -1483,11 +1483,6 @@ visitLoop theLoopSyntax cfg m_Acc mForCondExpr forBody_forStep_path branchRange 
        incrementLogDepth *>
          studyLoop (env loopState,forBody_forStep_visited) forCondExpr_visited_expr
            <* decrementLogDepth
-     {-throwError $ constructErrorMsg loc "MEOW" [
-       ("loopState",show loopState),
-       ("forCondExpr_visited_expr",show forCondExpr_visited_expr),
-       ("forBody_forStep_visited",show forBody_forStep_visited),
-       ("de",show de)]-}
      let summary = [
            ("mForCondExpr",show mForCondExpr),
            ("maybe_forCondExpr_visited",show maybe_forCondExpr_visited),
@@ -2091,13 +2086,6 @@ createLoopSummary theLoopSyntax m_Acc
    -}
   let forBody_forStep_path_visited = loopState
       forBody_forStep_path_visited_ers = forBody_forStep_ers
-  {-throwError $ constructErrorMsg loc "MEOW" [
-    ("forBody_forStep_path_visited",show forBody_forStep_path_visited),
-    ("forBody_forStep_path_visited_ers",show forBody_forStep_path_visited_ers),
-    ("loopState",show loopState),
-    ("forBody_forStep_ers",show forBody_forStep_ers)
-    ]
-   -}
   -- all varnames mentioned in the loop body + in the condition + in the accumulator
   let loopVarNames :: [String] = let
         acc_body_vars = (CFG.getVarNames2 $ maybe [] (:[]) m_Acc ++ forBody_forStep_path)
@@ -2219,6 +2207,16 @@ createLoopSummary theLoopSyntax m_Acc
         (theLoopGuard, theLoopExitingConditions)
         (theLoopInitFacts, theLoopFrameTargets)
         <* decrementLogDepth
+  ----------------------------
+  -- dynamicallyAccessedArrays
+  ----------------------------
+  theDynamicallyAccessedArrays :: [(String,[String])] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getDynamicallyAccessedArrays
+        theLoopCounters
+        forBody_forStep_path_visited_ers
+        <* decrementLogDepth
   ------------------
   -- loopAssignments
   ------------------
@@ -2297,6 +2295,7 @@ createLoopSummary theLoopSyntax m_Acc
         loopExitViaBreakConditions = theLoopExitViaBreakConditions,
         loopExitViaReturnFacts = theLoopExitViaReturnFacts,
         loopCounters = theLoopCounters,
+        dynamicallyAccessedArrays = theDynamicallyAccessedArrays,
         loopAssignments = theLoopAssignments,
         loopReadOnlyVars = theLoopReadOnlyVars,
         loopFrameTargets = theLoopFrameTargets,
@@ -2325,6 +2324,7 @@ createLoopSummary theLoopSyntax m_Acc
       ,("theLoopSkipCondition",show theLoopSkipCondition)
       ,("theLoopExitingConditions",show theLoopExitingConditions)
       ,("theLoopCounters",show theLoopCounters)
+      ,("theDynamicallyAccessedArrays",show theDynamicallyAccessedArrays)
       ,("theLoopFrameTargetsDevelopmentTrajectory",show theLoopFrameTargetsDevelopmentTrajectory)
       ,("theLoopAssignments",show theLoopAssignments)
       ,("theLoopReadOnlyVars",show theLoopReadOnlyVars)
@@ -2372,4 +2372,8 @@ runCFG cfgs cfg mPath mSymState =
       run_s :: ((Either String [ExecutionResult],[Log.Log]),SymState)
       run_s@((er,logs),s) = runState run_w initialSymState
       
-  in (either id (const "") er,logs,either (const []) id er,env s)
+  --in either (const undefined) ({-id-}\r -> error $ constructErrorMsg loc "MEOW" [("r",show r)]) er
+  in (either id (const "") er
+     ,logs
+     ,either (const []) id er
+     ,env s)
