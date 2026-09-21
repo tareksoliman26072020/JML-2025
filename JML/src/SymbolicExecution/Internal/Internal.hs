@@ -445,6 +445,32 @@ getReturnSymExpr = Map.lookup Return
 hasReturn :: SymStateEnv -> Bool
 hasReturn = Map.member Return
 
+hasReturn2 :: [ExecutionResult] -> Bool
+hasReturn2 = any $ \case
+  ER_Return _ -> True
+  ER_ReturnVoid -> True
+  ER_IfExpr _ _ ifErs elseErs -> hasReturn2 $ ifErs ++ elseErs
+  _ -> False
+
+hasBreak2 :: [ExecutionResult] -> Bool
+hasBreak2 = any $ \case
+  ER_Break -> True
+  ER_IfExpr _ _ ifErs elseErs -> hasBreak2 $ ifErs ++ elseErs
+  _ -> False
+
+conjunctConditions :: [SymExpr] -> SymExpr
+conjunctConditions conds = let
+  loc = "SymbolicExecution.Internal.Internal.conjunctConditions"
+  logContents = [("conds",show conds)] in
+  case conds of
+    [] -> error $ constructErrorMsg loc "won't happen" logContents
+    (cond : rest) -> foldl' (\acc r -> SBin acc And r) cond rest
+
+-- this function removes SBool True
+-- because an expression such as „y == j && True“ equals „y == j“
+normalizeConditions :: [SymExpr] -> [SymExpr]
+normalizeConditions = filter (/= SBool True)
+
 modifyVoidMethod :: SymStateEnv -> SymStateEnv
 modifyVoidMethod sy
   | Map.size sy == 1 = case Map.lookup MethodHandle sy of
@@ -621,6 +647,7 @@ getReturns2 ers = let
     ER_Void -> False
     ER_Expr _ -> False
     ER_Return _ -> True
+    ER_ForLoopDone -> False
     _ -> error $ constructErrorMsg loc "TODO1" $ errContents er
 
 -- alters the type of a global variable based on the expression and the scope it exists in

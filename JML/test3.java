@@ -532,13 +532,21 @@ fromList [
              loopGuard = Just (SBin (SymVar Int "i" []) Lt (SObjAcc ["a","length"])),
              loopEnteringCondition = Just (SBin (SymInt 0) Lt (SObjAcc ["a","length"])),
              loopSkipCondition = Just (SBin (SymInt 0) Ge (SObjAcc ["a","length"])),
-             loopExitingConditions = [SBin (SymVar Int "i" []) Ge (SObjAcc ["a","length"])],
+             loopExitingConditions = [
+               SBin (SymVar Int "i" [])
+                    Ge
+                    (SObjAcc ["a","length"]),
+               SBin (SArrayIndexAccess (Array Int) "a" (SymVar Int "i" []))
+                    Eq
+                    (SymVar Int "x" [])],
              loopExitViaBreakConditions = [],
              loopExitViaReturnFacts = [([ElemInArray "a" (SymVar Int "i" []) (SymVar Int "x" [])],Just (SBool True))],
              loopCounters = ["i"],
              loopAssignments = ["i"],
              loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
-             loopExitFacts = [LoopExitFactValue "i" (SObjAcc ["a","length"])],
+             loopExitFacts = [
+               LoopExitFactValue "i" (SObjAcc ["a","length"]),
+               LoopExitFactArrayAccessValue "a" (SymVar Int "i" []) (SymVar Int "x" [])],
              loopCountersBounds = [(SymInt 0,"i",SObjAcc ["a","length"])],
              loopBoundStabilityFacts = [(SObjAcc ["a","length"],ReadOnly)],
              loopDecreasesCandidate = [SBin (SObjAcc ["a","length"]) Sub (SymVar Int "i" [])]})) 

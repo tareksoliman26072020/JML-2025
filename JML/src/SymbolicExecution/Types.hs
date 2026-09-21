@@ -272,6 +272,10 @@ data StateChangingCondition =
 data LoopExitFact =
     LoopExitFactRange String SymExpr SymExpr
   | LoopExitFactValue String SymExpr
+  | LoopExitFactArrayAccessValue
+      String -- Array name
+      SymExpr -- Element index
+      SymExpr -- value
   deriving (Show,Eq)
 
 data SymExprDevelopmentTrajectory =

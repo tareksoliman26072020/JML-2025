@@ -167,26 +167,17 @@ getLoopExitingConditions loopGuard (breaksEnv,breaks_ers) (returnsEnv,returns_er
     loc = globalLoc ++ ".getLoopExitingConditions.studyBreakSymExpr" in
     case (k,v) of
       (Break,SymBreak) -> [SBool True]
-      (ScopeRange sr,SIte _ ifEnv maybe_elseEnv) -> let
-        ifCond = case [ifCond
-          | ER_IfExpr sr2 (ifCond,_) _ _ <- breaks_ers
-          , sr == sr2
-          ] of
-          [cond] -> cond
-          _ -> error $ constructErrorMsg loc "TODO1" [
-            ("k",show k),
-            ("v",show v)
-            ]
-        if_rec = addCond ifCond (Map.foldMapWithKey studyBreakSymExpr ifEnv)
-        else_rec = addCond (negate ifCond) (maybe [] (Map.foldMapWithKey studyBreakSymExpr) maybe_elseEnv)
-        in if_rec ++ else_rec
+      (ScopeRange sr,SIte _ ifEnv maybe_elseEnv) -> [
+        conjunctConditions $ normalizeConditions conds
+          | conds <- study_breaks_ER_IfExpr sr breaks_ers
+        ]
       (MethodHandle,_) -> []
       (GlobalVars,_) -> []
       (FormalParms,_) -> []
       (VarBindings,_) -> []
       (VarAssignments,_) -> []
       (VarName _,_) -> []
-      _ -> error $ constructErrorMsg loc "TODO2" [("k",show k),("v",show v)]
+      _ -> error $ constructErrorMsg loc "TODO1" [("k",show k),("v",show v)]
   addCond :: SymExpr -> [SymExpr] -> [SymExpr]
   addCond cond li = [res
     | symExpr <- li
@@ -200,38 +191,103 @@ getLoopExitingConditions loopGuard (breaksEnv,breaks_ers) (returnsEnv,returns_er
     case (k,v) of
       (Break,SymBreak) -> []
       (Return,_) -> [SBool True]
-      {-(ScopeRange sr,SIte _ ifEnv maybe_elseEnv) -> let
-        ifCond = foldl' (\acc er -> case er of
-          ER_IfExpr sr2 (ifCond,_) ifErs elseErs
-            | sr2 == sr -> acc ++ 
-          _ -> acc) [] returns_ers-}
-      (ScopeRange sr,SIte _ ifEnv maybe_elseEnv) -> let
-        ifCond = case [ifCond
-          | ER_IfExpr sr2 (ifCond,_) ifErs elseErs <- returns_ers
-          , sr == sr2
-          ] of
-          [cond] -> cond
-          
-          w -> error $ constructErrorMsg loc "TODO1" $ [
-            ("returns_ers",show returns_ers),
-            ("sr",show sr),
-            ("k",show k),
-            ("v",show v),
-            ("w",show w)
-            ]
-        if_rec = addCond ifCond (Map.foldMapWithKey studyreturnSymExpr ifEnv)
-        else_rec = addCond (negate ifCond) (maybe [] (Map.foldMapWithKey studyreturnSymExpr) maybe_elseEnv)
-        in if_rec ++ else_rec
+      (ScopeRange sr,SIte _ _ _) -> [
+        conjunctConditions $ normalizeConditions conds
+          | conds <- study_returns_ER_IfExpr sr returns_ers
+        ]
       (MethodHandle,_) -> []
       (GlobalVars,_) -> []
       (FormalParms,_) -> []
       (VarBindings,_) -> []
       (VarAssignments,_) -> []
       (VarName _,_) -> []
-      _ -> error $ constructErrorMsg loc "TODO2" [("k",show k),("v",show v)]
-  study_ER_IfExpr :: CFGT.ScopeRange -> [ExecutionResult] -> [SymExpr]
-  study_ER_IfExpr sr = concatMap $ \case
-    _ -> undefined
+      _ -> error $ constructErrorMsg loc "TODO1" [("k",show k),("v",show v)]
+  -- this function collects (the condition which lead to a return statement).
+  -- each inner list represents a concatenation of conditions which lead to a return statement.
+  -- Example:
+  {-
+  public static int sqrt(int y) throws Exception{
+    for(int i=0; i<=y; i=i+1){
+      int j = i*i;
+      if(j==y){
+        return i;
+      }
+      else{
+        if(i==y){
+	  throw new Exception("not found");
+        }
+      }
+    }
+  }
+  [[j==y]
+  ,[j/=y,i==y]
+  ]
+   -}
+  study_returns_ER_IfExpr :: CFGT.ScopeRange -> [ExecutionResult] -> [[SymExpr]]
+  study_returns_ER_IfExpr sr ers = let
+    loc = globalLoc ++ ".getLoopExitingConditions.study_returns_ER_IfExpr" in
+    flip concatMap ers $ \er -> case er of
+      ER_ReturnVoid -> [[SBool True]]
+      ER_Return _ -> [[SBool True]]
+      ER_IfExpr sr2 (ifCond,_) ifErs elseErs
+        | sr == sr2 -> let
+            ifErsStudy
+              | hasReturn2 ifErs = [ ifCond : li
+                  | li <- study_returns_ER_IfExpr sr ifErs
+                  ]
+              | otherwise = []
+            negated = negate ifCond
+            elseErsStudy
+              | hasReturn2 elseErs = [ negated : li
+                  | li <- study_returns_ER_IfExpr sr elseErs
+                  ]
+              | otherwise = []
+            in ifErsStudy ++ elseErsStudy
+      ER_IfExpr _ (ifCond,_) ifErs elseErs -> let
+        ifRec = study_returns_ER_IfExpr sr ifErs
+        elseRec = study_returns_ER_IfExpr sr elseErs
+        ifRecStudy
+          | null ifRec = []
+          | otherwise  = map (ifCond :) ifRec
+        elseRecStudy
+          | null elseRec = []
+          | otherwise    = let
+              negated = negate ifCond
+              in map (negated :) elseRec in
+        ifRecStudy ++ elseRecStudy
+      _ -> []
+  study_breaks_ER_IfExpr :: CFGT.ScopeRange -> [ExecutionResult] -> [[SymExpr]]
+  study_breaks_ER_IfExpr sr ers = let
+    loc = globalLoc ++ ".getLoopExitingConditions.study_breaks_ER_IfExpr" in
+    flip concatMap ers $ \er -> case er of
+      ER_Break -> [[SBool True]]
+      ER_IfExpr sr2 (ifCond,_) ifErs elseErs
+        | sr == sr2 -> let
+            ifErsStudy
+              | hasBreak2 ifErs = [ ifCond : li
+                  | li <- study_breaks_ER_IfExpr sr ifErs
+                  ]
+              | otherwise = []
+            negated = negate ifCond
+            elseErsStudy
+              | hasBreak2 elseErs = [ negated : li
+                  | li <- study_breaks_ER_IfExpr sr elseErs
+                  ]
+              | otherwise = []
+            in ifErsStudy ++ elseErsStudy
+      ER_IfExpr _ (ifCond,_) ifErs elseErs -> let
+        ifRec = study_breaks_ER_IfExpr sr ifErs
+        elseRec = study_breaks_ER_IfExpr sr elseErs
+        ifRecStudy
+          | null ifRec = []
+          | otherwise  = map (ifCond :) ifRec
+        elseRecStudy
+          | null elseRec = []
+          | otherwise    = let
+              negated = negate ifCond
+              in map (negated :) elseRec in
+        ifRecStudy ++ elseRecStudy
+      _ -> []
 
 --------------------
 --------------------
@@ -1181,6 +1237,7 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
       ,("isConstantGuard",show isConstantGuard)
       ,("collective_relevant_guard_vns_trajectory",show collective_relevant_guard_vns_trajectory)] in
     case (trajectory,guard) of
+      ----------
       (Increasing step,SBin expr1@(SymVar _ vn2 _) op expr2) -> let
         step_type = toSymType2 step in if
           | vn == vn2 && isTypeNumeric step_type -> case op of
@@ -1213,6 +1270,7 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
                              EQ -> LoopExitFactValue vn expr3
             _ -> error $ constructErrorMsg loc "TODO2" logContents
           | otherwise -> error $ constructErrorMsg loc "TODO3" logContents
+      ----------
       (Decreasing step,SBin expr1@(SymVar _ vn2 _) op expr2) -> let
         step_type = toSymType2 step in if
           | vn == vn2 && isTypeNumeric step_type -> case op of
@@ -1242,8 +1300,11 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
                              EQ -> LoopExitFactValue vn right
             _ -> error $ constructErrorMsg loc "TODO4" logContents
           | otherwise -> error $ constructErrorMsg loc "TODO5" logContents
-      (_,SBin (SArrayIndexAccess _ arrName (SymVar _ vn1 [])) Neq expr2)
-        | vn == vn1 -> Just $ LoopExitFactValue vn expr2
-      (_,SBin expr1 Neq (SArrayIndexAccess _ arrName (SymVar _ vn2 [])))
-        | vn == vn2 -> Just $ LoopExitFactValue vn expr1
+      ----------
+      (_,SBin (SArrayIndexAccess _ arrName index@(SymVar _ vn1 [])) Neq expr2)
+        | vn == vn1 -> Just $ LoopExitFactArrayAccessValue arrName index expr2
+      ----------
+      (_,SBin expr1 Neq (SArrayIndexAccess _ arrName index@(SymVar _ vn2 [])))
+        | vn == vn2 -> Just $ LoopExitFactArrayAccessValue arrName index expr1
+      ----------
       _ -> error $ constructErrorMsg loc "TODO6" logContents

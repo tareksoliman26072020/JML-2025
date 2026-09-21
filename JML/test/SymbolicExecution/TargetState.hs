@@ -5185,7 +5185,7 @@ contains = Map.fromList [
              loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
              loopExitFacts = [
                LoopExitFactValue "i" (SObjAcc ["a","length"]),
-               LoopExitFactValue "i" (SymVar SYT.Int "x" [])],
+               LoopExitFactArrayAccessValue "a" (SymVar SYT.Int "i" []) (SymVar SYT.Int "x" [])],
              loopCountersBounds = [(SymInt 0,"i",SObjAcc ["a","length"])],
              loopBoundStabilityFacts = [(SObjAcc ["a","length"],ReadOnly)],
              loopDecreasesCandidate = [SBin (SObjAcc ["a","length"]) SYT.Sub (SymVar SYT.Int "i" [])]})) 
