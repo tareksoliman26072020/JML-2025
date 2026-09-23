@@ -327,29 +327,19 @@ inferLinearSearchPatterns loopSummary = do
   let loc = "SymbolicExecution.Internal.LoopPattern.inferLinearSearchPatterns"
   tellNextLog $ Log.Location loc
   let theDynamicallyAccessedArrays = dynamicallyAccessedArrays loopSummary
-      theLoopExitViaBreakFacts = loopExitViaBreakFacts loopSummary
       theLoopExitViaReturnFacts = loopExitViaReturnFacts loopSummary
       logContents = [
         ("theDynamicallyAccessedArrays",show theDynamicallyAccessedArrays),
-        ("theLoopExitViaBreakFacts",show theLoopExitViaBreakFacts),
         ("theLoopExitViaReturnFacts",show theLoopExitViaReturnFacts)
         ] 
   constructLog loc "inferLinearSearchPatterns" logContents
-  let studied = {-studyBreaksFacts theLoopExitViaBreakFacts theDynamicallyAccessedArrays ++-}
-                studyReturnsFacts theLoopExitViaReturnFacts theDynamicallyAccessedArrays
+  let studied = studyReturnsFacts theLoopExitViaReturnFacts theDynamicallyAccessedArrays
       toReturn = [(one,two)
         | val <- studied
         , let one = SearchPattern $ LinearSearch val
               two = linearSearchPatternsTags
         ]
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
-  {-studyBreaksFacts :: [StateChangingCondition] -> [(String,[String])] -> [(StateChangingCondition,Maybe SymExpr)]
-  studyBreaksFacts loopExitViaBreakFacts dynamicallyAccessedArrays = [(cond,Nothing)
-    | cond@(ElemInArray arrName _ _) <- loopExitViaBreakFacts
-    , case lookup arrName dynamicallyAccessedArrays of
-        Nothing -> False
-        Just _  -> True
-    ]-}
   studyReturnsFacts :: [([StateChangingCondition], Maybe SymExpr)] -> [(String,[String])] -> [([StateChangingCondition],Maybe SymExpr)]
   studyReturnsFacts loopExitViaReturnFacts dynamicallyAccessedArrays = [(conds,mReturnVal)
     | (conds,mReturnVal) <- loopExitViaReturnFacts

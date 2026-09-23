@@ -306,15 +306,6 @@ getLoopExitViaBreakFacts forBody_forStep_ers = do
         | conds <- filter (not . null) studied
         , let res = Conditions $ normalizeConditions conds
         ]
-  {-let breakConds = concat [ifCond ++ elseCond
-        | ER_IfExpr _ (cond,_) if_ers else_ers <- forBody_forStep_ers
-        , let ifCond = if ER_Break `elem` if_ers
-                then [Condition cond]
-                else []
-        , let elseCond = if ER_Break `elem` else_ers
-                then [Condition $ negate cond]
-                else []
-        ]-}
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
   study :: [ExecutionResult] -> [[SymExpr]]
   study = concatMap $ \case
