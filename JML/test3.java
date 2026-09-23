@@ -428,18 +428,17 @@ EarlyReturn is important for control-flow analysis and postcondition validation:
 ```
 data Maintaining_LoopInvariantTemplate =
   -- NEW:
-  ArrayFilterTemplate
+  SearchExclusionTemplate
     Int         -- counterLowerBound
     String      -- counter
     Trajectory  -- counterTrajectoryStride
     Expr        -- counterUpperBound
-    String      -- array
-    Expr        -- searched value
+    Expr        -- metPredicate
 
   deriving (Show, Eq)
 ```
 
-ArrayFilterTemplate (counterLowerBound,counter,counterTrajectoryStride,counterUpperBound) array target  ===>
+SearchExclusionTemplate (counterLowerBound,counter,counterTrajectoryStride,counterUpperBound) metPredicate  ===>
 ```
 //@ maintaining
 //@   (\forall int k;
@@ -462,7 +461,7 @@ Then the complete generated template set is:
       aLen
 
 , Maintaining $
-    ArrayFilterTemplate
+    SearchExclusionTemplate
       "i"
       "a"
       (JMLVar Int_Type "x")
@@ -487,7 +486,7 @@ CounterPattern (CountingUp "i")
 
 2)
 SearchPattern LinearSearch, ControlFlowPattern EarlyReturn
-  ==> Maintaining $ ArrayFilterTemplate "i" "a" (JMLVar Int_Type "x")
+  ==> Maintaining $ SearchExclusionTemplate "i" "a" (JMLVar Int_Type "x")
     ==> maintaining (\forall int k; 0 <= k && k < i; a[k] != x)
 
 3)
