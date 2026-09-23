@@ -311,7 +311,7 @@ isVar = \case
   SymUnknown _ _ -> True
   SObjAcc _ -> True
   SymFun _ symExpr -> isVar symExpr
-  SArrayIndexAccess _ _ _ -> False
+  SArrayIndexAccess _ _ _ -> True
   expr -> error $ "TODO: isVar: " ++ show expr
 
 isArray :: SymExpr -> Bool
@@ -744,6 +744,17 @@ getVarName symExpr = let
              $ constructErrorMsg loc "TODO" [("symExpr",show symExpr)]
     SObjAcc [arrName,"length"] -> arrName
     _ -> error $ constructErrorMsg loc "won't happen2" [("symExpr",show symExpr)]
+
+getAccessedArraysNamesViaNamedIndexes :: [String] -> SymExpr -> [String]
+getAccessedArraysNamesViaNamedIndexes indexes symExpr = let
+  loc = "SymbolicExecution.Internal.Internal.getAccessedArraysNamesViaNamedIndexes"
+  logContents = [("symExpr",show symExpr)]
+  in case symExpr of
+    SymVar _ _ _ -> []
+    SArrayIndexAccess _ arrName (SymVar _ index _)
+      | index `elem` indexes -> [arrName]
+    SBin expr1 _ expr2 -> concatMap (getAccessedArraysNamesViaNamedIndexes indexes) [expr1,expr2]
+    _ -> error $ constructErrorMsg loc "TODO" logContents
 
 get_SItes :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
 get_SItes m = flip Map.filterWithKey m $ \_ -> \case

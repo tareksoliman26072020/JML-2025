@@ -404,9 +404,18 @@ getDynamicallyAccessedArrays loopCounters loop_ers = do
         ("loop_ers",show loop_ers)]
       relevantSymExprs :: [(SymExpr,[String])]
       relevantSymExprs = study_loop_ers loop_ers
-      toReturn = [(getVarName symExpr,vns)
+      --symExpr = SBin (SArrayIndexAccess (Array Int) "a" (SymVar Int "i" [])) Eq (SymVar Int "x" [])
+      toReturn = [(arrName,vns)
         | (symExpr,vns) <- relevantSymExprs
+        , arrName <- getAccessedArraysNamesViaNamedIndexes loopCounters symExpr
         ]
+      {-toReturn = [(getVarName symExpr,vns)
+        | (symExpr,vns) <- relevantSymExprs
+        ]-}
+  {-throwError $ constructErrorMsg loc "MEOW" $ logContents ++ [
+    ("relevantSymExprs",show relevantSymExprs),
+    --("studySymExpr symExpr",show $ studySymExpr symExpr),
+    ("toReturn",show toReturn)]-}
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
   -- checks `loop_ers` and returns all expressions of form `SArrayIndexAccess`
   -- which involve `loopCounters`

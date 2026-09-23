@@ -8,7 +8,8 @@ allTargets = [
   ("idByLoop",idByLoop),
   ("idByLoopStride3",idByLoopStride3),
   ("idByLoop2",idByLoop2),
-  ("halving",halving)
+  ("halving",halving),
+  ("contains",contains)
   ]
 
 idByLoop :: [[(LoopPattern, [LoopSummaryTag])]]
@@ -85,3 +86,34 @@ halving =
     )
    ]
   ]
+
+contains :: [[(LoopPattern, [LoopSummaryTag])]]
+contains =
+  [
+   [(CounterPattern (CountingUp "i"),
+     [LoopCounters
+     ,LoopFrameTargetsDevelopmentTrajectory
+     ,LoopCountersBounds
+     ]
+    ),
+    (BoundPattern (StableBound (SObjAcc ["a","length"])),
+     [LoopCounters
+     ,LoopCountersBounds
+     ,LoopGuard
+     ,LoopBoundStabilityFacts
+     ,LoopReadOnlyVars
+     ]
+    ),
+    (TraversalPattern (ArrayScan ("a",["i"])),
+     [DynamicallyAccessedArrays
+     ,LoopFrameTargetsDevelopmentTrajectory
+     ]
+    ),
+    (SearchPattern $ LinearSearch ([ElemInArray "a" (SymVar Int "i" []) (SymVar Int "x" [])],Just (SBool True)),
+     [DynamicallyAccessedArrays
+     ,LoopExitViaBreakFacts
+     ,LoopExitViaReturnFacts
+     ])
+   ]
+  ]
+

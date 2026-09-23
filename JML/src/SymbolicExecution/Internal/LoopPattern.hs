@@ -339,6 +339,7 @@ inferLinearSearchPatterns loopSummary = do
         , let one = SearchPattern $ LinearSearch val
               two = linearSearchPatternsTags
         ]
+  --throwError $ constructErrorMsg loc "MEOW" $ logContents ++ [("studied",show studied)]
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
   studyReturnsFacts :: [([StateChangingCondition], Maybe SymExpr)] -> [(String,[String])] -> [([StateChangingCondition],Maybe SymExpr)]
   studyReturnsFacts loopExitViaReturnFacts dynamicallyAccessedArrays = [(conds,mReturnVal)

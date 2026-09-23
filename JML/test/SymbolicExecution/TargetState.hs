@@ -5185,7 +5185,7 @@ contains = Map.fromList [
              loopExitViaBreakFacts = [],
              loopExitViaReturnFacts = [([ElemInArray "a" (SymVar SYT.Int "i" []) (SymVar SYT.Int "x" [])],Just (SBool True))],
              loopCounters = ["i"],
-             dynamicallyAccessedArrays = [("x",["i"])],
+             dynamicallyAccessedArrays = [("a",["i"])],
              loopAssignments = ["i"],
              loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
              loopExitFacts = [
@@ -5208,11 +5208,16 @@ contains = Map.fromList [
            ,LoopReadOnlyVars
            ]
           ),
-          (TraversalPattern (ArrayScan ("x",["i"])),
+          (TraversalPattern (ArrayScan ("a",["i"])),
            [DynamicallyAccessedArrays
            ,LoopFrameTargetsDevelopmentTrajectory
            ]
-          )
+          ),
+          (SearchPattern $ LinearSearch ([ElemInArray "a" (SymVar SYT.Int "i" []) (SymVar SYT.Int "x" [])],Just (SBool True)),
+           [DynamicallyAccessedArrays
+           ,LoopExitViaBreakFacts
+           ,LoopExitViaReturnFacts
+           ])
          ]),
   (Return,SBool False)
   ]
