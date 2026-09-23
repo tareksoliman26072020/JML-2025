@@ -113,7 +113,11 @@ contains =
      [DynamicallyAccessedArrays
      ,LoopExitViaBreakFacts
      ,LoopExitViaReturnFacts
-     ])
+     ]
+    ),
+    (ControlFlowPattern $ EarlyReturn ([ElemInArray "a" (SymVar Int "i" []) (SymVar Int "x" [])],Just (SBool True)),
+     [LoopExitViaReturnFacts]
+    )
    ]
   ]
 

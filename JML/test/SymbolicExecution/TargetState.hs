@@ -5217,7 +5217,10 @@ contains = Map.fromList [
            [DynamicallyAccessedArrays
            ,LoopExitViaBreakFacts
            ,LoopExitViaReturnFacts
-           ])
+           ]),
+          (ControlFlowPattern $ EarlyReturn ([ElemInArray "a" (SymVar SYT.Int "i" []) (SymVar SYT.Int "x" [])],Just (SBool True)),
+           [LoopExitViaReturnFacts]
+          )
          ]),
   (Return,SBool False)
   ]

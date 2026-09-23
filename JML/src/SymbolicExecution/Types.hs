@@ -373,7 +373,7 @@ data SearchPattern
   deriving (Eq, Show)
 
 data ControlFlowPattern
-  = EarlyReturn
+  = EarlyReturn ([StateChangingCondition],Maybe SymExpr)
   | BreakExit SymExpr
   | ContinuePath
   | ThrowExit

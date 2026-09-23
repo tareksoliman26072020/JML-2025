@@ -151,7 +151,13 @@ inferControlFlowPatterns loopSummary = do
     incrementLogDepth *>
       inferBreakExitPatterns loopSummary
       <* decrementLogDepth
-  let toReturn = breakExitPatterns
+  -- earlyReturnPatterns
+  earlyReturnPatterns <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      inferEarlyReturnPatterns loopSummary
+      <* decrementLogDepth
+  let toReturn = breakExitPatterns ++ earlyReturnPatterns
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
 
 -------------------
@@ -339,7 +345,6 @@ inferLinearSearchPatterns loopSummary = do
         , let one = SearchPattern $ LinearSearch val
               two = linearSearchPatternsTags
         ]
-  --throwError $ constructErrorMsg loc "MEOW" $ logContents ++ [("studied",show studied)]
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
   studyReturnsFacts :: [([StateChangingCondition], Maybe SymExpr)] -> [(String,[String])] -> [([StateChangingCondition],Maybe SymExpr)]
   studyReturnsFacts loopExitViaReturnFacts dynamicallyAccessedArrays = [(conds,mReturnVal)
@@ -359,6 +364,19 @@ inferBreakExitPatterns loopSummary = do
         | Conditions breakConds <- loopExitViaBreakFacts loopSummary
         , let one = ControlFlowPattern $ BreakExit $ conjunctConditions breakConds
         , let two = breakExitPatternsTags
+        ]
+  (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
+
+inferEarlyReturnPatterns :: LoopSummary -> SymbolicExecutionMonad [(LoopPattern, [LoopSummaryTag])]
+inferEarlyReturnPatterns loopSummary = do
+  let loc = "SymbolicExecution.Internal.LoopPattern.inferEarlyReturnPatterns"
+      theLoopExitViaReturnFacts = loopExitViaReturnFacts loopSummary
+      logContents = [("theLoopExitViaReturnFacts",show theLoopExitViaReturnFacts)]
+  constructLog loc "inferEarlyReturnPatterns" logContents
+  let toReturn = [(one,two)
+        | tuple <- theLoopExitViaReturnFacts
+        , let one = ControlFlowPattern $ EarlyReturn tuple
+              two = earlyReturnPatternTags
         ]
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
 
@@ -404,6 +422,8 @@ linearSearchPatternsTags = [DynamicallyAccessedArrays, LoopExitViaBreakFacts, Lo
 breakExitPatternsTags :: [LoopSummaryTag]
 breakExitPatternsTags = [LoopExitViaBreakFacts]
 
+earlyReturnPatternTags :: [LoopSummaryTag]
+earlyReturnPatternTags = [LoopExitViaReturnFacts]
 -------------------
 -------------------
 -------------------
