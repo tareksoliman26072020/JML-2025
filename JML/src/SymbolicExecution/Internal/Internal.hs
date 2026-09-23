@@ -452,11 +452,17 @@ hasReturn2 = any $ \case
   ER_IfExpr _ _ ifErs elseErs -> hasReturn2 $ ifErs ++ elseErs
   _ -> False
 
+hasBreak :: SymStateEnv -> Bool
+hasBreak = Map.member Break
+
 hasBreak2 :: [ExecutionResult] -> Bool
 hasBreak2 = any $ \case
   ER_Break -> True
   ER_IfExpr _ _ ifErs elseErs -> hasBreak2 $ ifErs ++ elseErs
   _ -> False
+
+hasBreak3 :: [ExecutionResult] -> Bool
+hasBreak3 = (ER_Break `elem`)
 
 conjunctConditions :: [SymExpr] -> SymExpr
 conjunctConditions conds = let
@@ -469,7 +475,12 @@ conjunctConditions conds = let
 -- this function removes SBool True
 -- because an expression such as „y == j && True“ equals „y == j“
 normalizeConditions :: [SymExpr] -> [SymExpr]
-normalizeConditions = filter (/= SBool True)
+normalizeConditions conds = let
+  noTrues = filter (/= SBool True) in case conds of
+  [SBool True] -> conds
+  _ | any (== SBool False) conds -> [SBool False]
+  (SBool True : rest) -> SBool True : noTrues rest
+  _ -> noTrues conds
 
 modifyVoidMethod :: SymStateEnv -> SymStateEnv
 modifyVoidMethod sy
@@ -583,9 +594,6 @@ constructErrorMsg = constructLogMsg
 
 hasContinue :: SymStateEnv -> Bool
 hasContinue = Map.member Continue
-
-hasBreak :: SymStateEnv -> Bool
-hasBreak = Map.member Break
 
 getBreaks :: SymStateEnv -> SymStateEnv
 getBreaks env = let

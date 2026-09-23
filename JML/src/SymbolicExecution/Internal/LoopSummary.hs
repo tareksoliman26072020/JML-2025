@@ -300,7 +300,13 @@ getLoopExitViaBreakFacts forBody_forStep_ers = do
         ("forBody_forStep_ers",show forBody_forStep_ers)]
   constructLog loc "getLoopExitViaBreakFacts" logContents
   -- the conditions which lead to a break statement
-  let breakConds = concat [ifCond ++ elseCond
+  let studied = study forBody_forStep_ers
+  constructLog loc "summary" [("studied",show studied)]
+  let toReturn = [ res
+        | conds <- filter (not . null) studied
+        , let res = Conditions $ normalizeConditions conds
+        ]
+  {-let breakConds = concat [ifCond ++ elseCond
         | ER_IfExpr _ (cond,_) if_ers else_ers <- forBody_forStep_ers
         , let ifCond = if ER_Break `elem` if_ers
                 then [Condition cond]
@@ -308,8 +314,27 @@ getLoopExitViaBreakFacts forBody_forStep_ers = do
         , let elseCond = if ER_Break `elem` else_ers
                 then [Condition $ negate cond]
                 else []
+        ]-}
+  tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
+  study :: [ExecutionResult] -> [[SymExpr]]
+  study = concatMap $ \case
+    ER_Break -> [[SBool True]]
+    ER_IfExpr _ (ifCond,_) ifErs elseErs -> let
+      negated = negate ifCond
+      fromIf = [res
+        | conds <- study ifErs
+        , let res
+                | hasBreak3 ifErs = ifCond : conds
+                | otherwise      = conds
         ]
-  tellNextLog (Log.Return loc (show breakConds)) $> breakConds
+      fromElse = [res
+        | conds <- study elseErs
+        , let res
+                | hasBreak3 elseErs = negated : conds
+                | otherwise        = conds
+        ]
+      in fromIf ++ fromElse
+    _ -> []
 
 --------------------
 --------------------

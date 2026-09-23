@@ -271,7 +271,8 @@ data StateChangingCondition =
      String   -- array
      SymExpr  -- counter
      SymExpr  -- value to exclude
- | Condition SymExpr
+ | Condition SymExpr     -- a singular condition
+ | Conditions [SymExpr]  -- Conditions represent a conjunction of conditions
    deriving (Show,Eq)
 
 data LoopExitFact =
