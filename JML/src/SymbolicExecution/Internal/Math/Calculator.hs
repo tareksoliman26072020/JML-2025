@@ -1071,6 +1071,8 @@ substitute input symExpr = let
     SObjAcc [arrName,"length"] -> case lookup arrName input of
       Just expr -> error $ constructErrorMsg loc "TODO1" $ logContents ++ [("expr",show expr)]
       Nothing -> symExpr
+    SArrayIndexAccess arrType arrName indexSymExpr ->
+      SArrayIndexAccess arrType arrName $ substitute input indexSymExpr
     _ -> error $ constructErrorMsg loc "TODO2" logContents
 
 ----------

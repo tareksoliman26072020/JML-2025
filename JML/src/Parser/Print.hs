@@ -30,7 +30,7 @@ showExpr = \case
   CharLiteral char -> show char
   StringLiteral str -> show str
   Null -> "null"
-  ArrayCallExpr {arrName, index} -> show arrName
+  ArrayCallExpr {arrName, index} -> showExpr arrName
     ++ "[" ++ maybe "" showExpr index ++ "]"
   FunCallExpr {funName, funArgs} -> showExpr funName
     ++ "(" ++ intercalate ", " (map showExpr funArgs) ++ ")"

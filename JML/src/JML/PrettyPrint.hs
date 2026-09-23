@@ -178,6 +178,7 @@ pp_CFG_JML cfg jmlSpecifications = let
   innerLoc = loc ++ ".pp_CFG_JML.helper"
   ppBehs = ppBehaviors [behavior | MethodSpecification behavior <- jmlSpecifications]
   (_,_,_,pp) = foldl' (helper innerLoc) (0,Nothing,[],"") (CFGT.nodes cfg)
+  --in error $ show cfg where
   in ppBehs ++ "\n" ++ pp where
   ---
   getLoopInvariants :: [JMLSpecification] -> [LoopInvariants]

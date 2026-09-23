@@ -429,18 +429,24 @@ EarlyReturn is important for control-flow analysis and postcondition validation:
 data Maintaining_LoopInvariantTemplate =
   -- NEW:
   ArrayFilterTemplate
-    String   -- counter
-    String   -- array
-    Expr     -- searched value
+    Int         -- counterLowerBound
+    String      -- counter
+    Trajectory  -- counterTrajectoryStride
+    Expr        -- counterUpperBound
+    String      -- array
+    Expr        -- searched value
 
   deriving (Show, Eq)
 ```
 
-ArrayFilterTemplate counter array target  ===>
+ArrayFilterTemplate (counterLowerBound,counter,counterTrajectoryStride,counterUpperBound) array target  ===>
 ```
 //@ maintaining
 //@   (\forall int k;
-//       0 <= k && k < counter;
+//       counterInitFact <= k
+           && k < counter
+           && k < counterUpperBound
+           && k % counterTrajectoryStride == counterLowerBound;
 //       array[k] != target);
 ```
 let:

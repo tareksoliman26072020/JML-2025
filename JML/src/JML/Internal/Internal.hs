@@ -261,6 +261,7 @@ toJMLType2 expr = let
     JMLOld expr -> toJMLType2 expr
     JMLException t _ _ -> t
     JMLBool _ -> Bool_Type
+    JMLObjAcc [_,"length"] -> Int_Type
     _ -> error $ printf "%s: TODO2: %s" loc (show expr)
 
 inferJMLType :: Expr -> JMLType
@@ -341,8 +342,10 @@ symBinOpToOp symBinOp = case symBinOp of
   SYT.Lt  -> Lt
   SYT.Le  -> Le
   SYT.Eq  -> Eq
+  SYT.Neq -> Neq
   SYT.Mod -> Mod
   SYT.Or  -> Or
+  SYT.And  -> And
   _ -> error $ printf "JML.Internal.symBinOpToOp: TODO: %s" (show symBinOp)
 
 hasReturn :: [ExecutionResult] -> Bool

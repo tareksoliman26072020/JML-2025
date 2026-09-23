@@ -328,8 +328,12 @@ data BoundPattern
   deriving (Eq, Show)
 
 data TraversalPattern
-  = ArrayScan (String,[String])
-                      --   1) and because there is an array access expression
+  = ArrayScan (String,[String{-
+      ((String,SymExprDevelopmentTrajectory), -- index name, and its development trajectory & stride
+      (SymExpr,SymExpr))-} -- lower and upper bound of the index
+      ])
+                      -- ArrayScan == There is a sequence of elements that being visited.
+                      --   1) because there is an array access expression
                       --      via a dynamically changeable expression (a loop counter).
                       --   2) because the counters which allow dynamic access to an array (i.e. "i") increase or decrease monotonically.
                       --   3) and because The guard or another proven invariant
@@ -357,6 +361,7 @@ data AccumulatorPattern
 
 data SearchPattern
   = LinearSearch ([StateChangingCondition],Maybe SymExpr)
+                          -- LinearSearch == An element in an array is being tested against a search predicate at a time.
                           -- because there's an array access, which is dynamically accessed
                           --   that is present in a condition,
                           --   which lead to the termination of the loop
@@ -374,6 +379,7 @@ data SearchPattern
 
 data ControlFlowPattern
   = EarlyReturn ([StateChangingCondition],Maybe SymExpr)
+                            -- EarlyReturn == When the search predicate succeeds, the execution of the loop does not continue to the next iteration.
   | BreakExit SymExpr
   | ContinuePath
   | ThrowExit
