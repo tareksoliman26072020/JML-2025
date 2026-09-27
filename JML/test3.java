@@ -446,8 +446,9 @@ SearchExclusionTemplate (counterLowerBound,counter,counterTrajectoryStride,count
            && k < counter
            && k < counterUpperBound
            && k % counterTrajectoryStride == counterLowerBound;
-//       array[k] != target);
+//       metPredicate);
 ```
+if Stride == 1, then drop `&& k % counterTrajectoryStride == counterLowerBound`
 let:
 aLen =
   -- your JML Expr representation of a.length

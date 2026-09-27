@@ -449,7 +449,7 @@ hasReturn2 :: [ExecutionResult] -> Bool
 hasReturn2 = any $ \case
   ER_Return _ -> True
   ER_ReturnVoid -> True
-  ER_IfExpr _ _ ifErs elseErs -> hasReturn2 $ ifErs ++ elseErs
+  ER_IfExpr _ _ (_,ifErs) (_,elseErs) -> hasReturn2 $ ifErs ++ elseErs
   _ -> False
 
 hasBreak :: SymStateEnv -> Bool
@@ -458,7 +458,7 @@ hasBreak = Map.member Break
 hasBreak2 :: [ExecutionResult] -> Bool
 hasBreak2 = any $ \case
   ER_Break -> True
-  ER_IfExpr _ _ ifErs elseErs -> hasBreak2 $ ifErs ++ elseErs
+  ER_IfExpr _ _ (_,ifErs) (_,elseErs) -> hasBreak2 $ ifErs ++ elseErs
   _ -> False
 
 hasBreak3 :: [ExecutionResult] -> Bool
@@ -617,7 +617,7 @@ getBreaks2 ers = let
   flip filter ers $ \er -> case er of
     ER_SymStateMapEntry _ _ -> False
     ER_Break -> True
-    ER_IfExpr _ _ if_ers else_ers -> case (getBreaks2 if_ers,getBreaks2 else_ers) of
+    ER_IfExpr _ _ (_,if_ers) (_,else_ers) -> case (getBreaks2 if_ers,getBreaks2 else_ers) of
       ([],[]) -> False
       _ -> True
     ER_Void -> False
@@ -649,7 +649,7 @@ getReturns2 ers = let
   flip filter ers $ \er -> case er of
     ER_SymStateMapEntry _ _ -> False
     ER_Break -> False
-    ER_IfExpr _ _ if_ers else_ers -> case (getReturns2 if_ers,getReturns2 else_ers) of
+    ER_IfExpr _ _ (_,if_ers) (_,else_ers) -> case (getReturns2 if_ers,getReturns2 else_ers) of
       ([],[]) -> False
       _ -> True
     ER_Void -> False

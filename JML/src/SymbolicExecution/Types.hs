@@ -105,8 +105,10 @@ data ExecutionResult =
   | ER_IfExpr CFGT.ScopeRange
               (SymExpr,          -- if condition before substitution of variables
                SymExpr)          -- if condition after substitution of variables
-      [ExecutionResult]          -- of if body
-      [ExecutionResult]          -- of else body
+      (CFGT.Node_Coor,             -- coordinates of the if statement
+       [ExecutionResult])          -- of if body
+      (Maybe CFGT.Node_Coor,       -- coordinates of the if statement
+       [ExecutionResult])          -- of else body
   | ER_Node {er_Node_id :: CFGT.NodeID, nodeName :: String}
   | ER_SymStateMapEntry SymStateKey SymExpr
   | ER_VarExprObjAccess {-object access name-}String {-object access value-}SymExpr
@@ -328,10 +330,7 @@ data BoundPattern
   deriving (Eq, Show)
 
 data TraversalPattern
-  = ArrayScan (String,[String{-
-      ((String,SymExprDevelopmentTrajectory), -- index name, and its development trajectory & stride
-      (SymExpr,SymExpr))-} -- lower and upper bound of the index
-      ])
+  = ArrayScan (String,[String])
                       -- ArrayScan == There is a sequence of elements that being visited.
                       --   1) because there is an array access expression
                       --      via a dynamically changeable expression (a loop counter).

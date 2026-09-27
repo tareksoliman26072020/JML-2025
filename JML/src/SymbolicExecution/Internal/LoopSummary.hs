@@ -229,7 +229,7 @@ getLoopExitingConditions loopGuard (breaksEnv,breaks_ers) (returnsEnv,returns_er
     flip concatMap ers $ \er -> case er of
       ER_ReturnVoid -> [[SBool True]]
       ER_Return _ -> [[SBool True]]
-      ER_IfExpr sr2 (ifCond,_) ifErs elseErs
+      ER_IfExpr sr2 (ifCond,_) (_,ifErs) (_,elseErs)
         | sr == sr2 -> let
             ifErsStudy
               | hasReturn2 ifErs = [ ifCond : li
@@ -243,7 +243,7 @@ getLoopExitingConditions loopGuard (breaksEnv,breaks_ers) (returnsEnv,returns_er
                   ]
               | otherwise = []
             in ifErsStudy ++ elseErsStudy
-      ER_IfExpr _ (ifCond,_) ifErs elseErs -> let
+      ER_IfExpr _ (ifCond,_) (_,ifErs) (_,elseErs) -> let
         ifRec = study_returns_ER_IfExpr sr ifErs
         elseRec = study_returns_ER_IfExpr sr elseErs
         ifRecStudy
@@ -261,7 +261,7 @@ getLoopExitingConditions loopGuard (breaksEnv,breaks_ers) (returnsEnv,returns_er
     loc = globalLoc ++ ".getLoopExitingConditions.study_breaks_ER_IfExpr" in
     flip concatMap ers $ \er -> case er of
       ER_Break -> [[SBool True]]
-      ER_IfExpr sr2 (ifCond,_) ifErs elseErs
+      ER_IfExpr sr2 (ifCond,_) (_,ifErs) (_,elseErs)
         | sr == sr2 -> let
             ifErsStudy
               | hasBreak2 ifErs = [ ifCond : li
@@ -275,7 +275,7 @@ getLoopExitingConditions loopGuard (breaksEnv,breaks_ers) (returnsEnv,returns_er
                   ]
               | otherwise = []
             in ifErsStudy ++ elseErsStudy
-      ER_IfExpr _ (ifCond,_) ifErs elseErs -> let
+      ER_IfExpr _ (ifCond,_) (_,ifErs) (_,elseErs) -> let
         ifRec = study_breaks_ER_IfExpr sr ifErs
         elseRec = study_breaks_ER_IfExpr sr elseErs
         ifRecStudy
@@ -306,11 +306,12 @@ getLoopExitViaBreakFacts forBody_forStep_ers = do
         | conds <- filter (not . null) studied
         , let res = Conditions $ normalizeConditions conds
         ]
+  --throwError $ constructErrorMsg loc "MEOW" logContents where
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
   study :: [ExecutionResult] -> [[SymExpr]]
   study = concatMap $ \case
     ER_Break -> [[SBool True]]
-    ER_IfExpr _ (ifCond,_) ifErs elseErs -> let
+    ER_IfExpr _ (ifCond,_) (_,ifErs) (_,elseErs) -> let
       negated = negate ifCond
       fromIf = [res
         | conds <- study ifErs
@@ -351,7 +352,7 @@ getLoopExitViaReturnFacts forBody_forStep_ers = do
   study :: [ExecutionResult] -> [([SymExpr],Maybe SymExpr)]
   study = concatMap $ \case
     ER_Return mExpr -> [([],mExpr)]
-    ER_IfExpr _ (ifCond,_) ifErs elseErs -> let
+    ER_IfExpr _ (ifCond,_) (_,ifErs) (_,elseErs) -> let
       fromIf = [([ifCond] ++ conds,mReturnSymExpr)
         | (conds,mReturnSymExpr) <- study ifErs
         ]
@@ -409,13 +410,6 @@ getDynamicallyAccessedArrays loopCounters loop_ers = do
         | (symExpr,vns) <- relevantSymExprs
         , arrName <- getAccessedArraysNamesViaNamedIndexes loopCounters symExpr
         ]
-      {-toReturn = [(getVarName symExpr,vns)
-        | (symExpr,vns) <- relevantSymExprs
-        ]-}
-  {-throwError $ constructErrorMsg loc "MEOW" $ logContents ++ [
-    ("relevantSymExprs",show relevantSymExprs),
-    --("studySymExpr symExpr",show $ studySymExpr symExpr),
-    ("toReturn",show toReturn)]-}
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
   -- checks `loop_ers` and returns all expressions of form `SArrayIndexAccess`
   -- which involve `loopCounters`
@@ -424,7 +418,7 @@ getDynamicallyAccessedArrays loopCounters loop_ers = do
     loc = "SymbolicExecution.Internal.LoopSummary.getDynamicallyAccessedArrays.study_loop_ers"
     err msg er = error $ constructErrorMsg loc msg [("er",show er)]
     in flip concatMap ers $ \er -> case er of
-    ER_IfExpr _ (ifCond,_) ifErs elseErs ->
+    ER_IfExpr _ (ifCond,_) (_,ifErs) (_,elseErs) ->
       studySymExpr ifCond ++ study_loop_ers ifErs ++ study_loop_ers elseErs
     ER_SymStateMapEntry _ symExpr -> studySymExpr symExpr
     ER_Expr symExpr -> studySymExpr symExpr

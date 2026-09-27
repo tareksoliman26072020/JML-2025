@@ -466,7 +466,29 @@ instance CFGVisitor MethodProcessor where
                 _ -> v,
               logHeader = logHeader symState
             }
-            return $ ER_IfExpr condBranchRange (expr_before_substitution,symExpr) if_ers else_ers
+            return $ let
+              -- if coor
+              ifCoor = CFGT.Node_Coor {
+                CFGT.varDeclAt = CFGT.id n,
+                CFGT.varFrame = let
+                  bStart = CFGT.id n
+                  in CFGT.SR bStart (CFG.getBranchEnd bStart cfg)
+              }
+              -- else coor
+              -- if `branches_paths` has one elem then there is no else body
+              maybeElseCoor = case branches_paths of
+                [_] -> Nothing
+                [_,_] -> let
+                  firstElseStatementNodeId = case CFG.findEdge_via_id cfg (CFGT.id n) of
+                    Just (_,[_,theId]) -> theId
+                  in Just $ CFGT.Node_Coor {
+                       CFGT.varDeclAt = firstElseStatementNodeId,
+                       CFGT.varFrame = let
+                         bStart = CFGT.id n
+                         in CFGT.SR bStart (CFG.getBranchEnd bStart cfg)
+                     }
+              in ER_IfExpr condBranchRange (expr_before_substitution,symExpr)
+                   (ifCoor,if_ers) (maybeElseCoor,else_ers)
           _ -> throwError $ printf "TODO: %s: %s" loc (show expr2)
         tellNextLog (Log.Return loc (show toReturn)) $> toReturn
       ----------------------------------------
@@ -1521,7 +1543,7 @@ visitLoop theLoopSyntax cfg m_Acc mForCondExpr forBody_forStep_path branchRange 
     let if_conds = flip map (get_ER_IfExprs forBody_forStep_visited)
           $ \(ER_IfExpr _ (_,(SIte cond _ _)) _ _) -> cond
         if_else_ers = flip concatMap (get_ER_IfExprs forBody_forStep_visited)
-          $ \(ER_IfExpr _ _ if_ers else_ers) -> if_ers ++ else_ers
+          $ \(ER_IfExpr _ _ (_,if_ers) (_,else_ers)) -> if_ers ++ else_ers
         anyHasSymVar = [vn
           | ER_SymStateMapEntry (VarName vn) expr <- forBody_forStep_visited ++ if_else_ers   
           , hasSymVar expr || hasSymUnknown expr
