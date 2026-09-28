@@ -304,29 +304,34 @@ getLoopExitViaBreakFacts forBody_forStep_ers = do
   constructLog loc "summary" [("studied",show studied)]
   let toReturn = [ res
         | conds <- filter (not . null) studied
-        , let res = Conditions $ normalizeConditions conds
+        , let res = Conditions conds--Conditions $ normalizeConditions conds
         ]
   --throwError $ constructErrorMsg loc "MEOW" logContents where
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
-  study :: [ExecutionResult] -> [[SymExpr]]
+  study :: [ExecutionResult] -> [[(Maybe CFGT.Node_Coor,SymExpr)]]
   study = concatMap $ \case
-    ER_Break -> [[SBool True]]
-    ER_IfExpr _ (ifCond,_) (_,ifErs) (_,elseErs) -> let
+    ER_Break -> [[(Nothing,SBool True)]]
+    ER_IfExpr _ (ifCond,_) (ifCoor,ifErs) (maybeElseCoor,elseErs) -> let
       negated = negate ifCond
       fromIf = [res
-        | conds <- study ifErs
+        | rec <- study ifErs
         , let res
-                | hasBreak3 ifErs = ifCond : conds
-                | otherwise      = conds
+                | null rec      = rec
+                | otherwise{-hasBreak3 ifErs-} = (Just ifCoor,ifCond) : filterCoor rec
         ]
       fromElse = [res
-        | conds <- study elseErs
+        | rec <- study elseErs
         , let res
-                | hasBreak3 elseErs = negated : conds
-                | otherwise        = conds
+                | null rec        = rec
+                | otherwise{-hasBreak3 elseErs-} = (maybeElseCoor,negated) : filterCoor rec
         ]
       in fromIf ++ fromElse
     _ -> []
+  --
+  filterCoor :: [(Maybe CFGT.Node_Coor,SymExpr)] -> [(Maybe CFGT.Node_Coor,SymExpr)]
+  filterCoor = filter $ \case
+    (Nothing,SBool True) -> False
+    _ -> True
 
 --------------------
 --------------------

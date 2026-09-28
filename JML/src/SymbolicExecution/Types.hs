@@ -274,7 +274,7 @@ data StateChangingCondition =
      SymExpr  -- counter
      SymExpr  -- value to exclude
  | Condition SymExpr     -- a singular condition
- | Conditions [SymExpr]  -- Conditions represent a conjunction of conditions
+ | Conditions [(Maybe CFGT.Node_Coor,SymExpr)]  -- Conditions represent a conjunction of conditions
    deriving (Show,Eq)
 
 data LoopExitFact =

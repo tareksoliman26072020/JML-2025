@@ -1,7 +1,7 @@
 module Internal.LoopSummary where
 
 import SymbolicExecution.Types
-import CFG.Types (ScopeRange(..))
+import CFG.Types (ScopeRange(..), Node_Coor(..))
 
 -- testing the output of `createLoopSummary` in SymbolicExecution.Method
 allTargets :: [(String,[LoopSummary])]
@@ -67,7 +67,12 @@ idByLoop2 = [LoopSummary {
   loopEnteringCondition = Just (SBool True),
   loopSkipCondition = Just (SBool False),
   loopExitingConditions = [SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])],
-  loopExitViaBreakFacts = [Conditions [SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])]],
+  loopExitViaBreakFacts = [
+    Conditions [
+      (Just $ Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},
+       SBin (SymVar Int "i" []) Ge (SymVar Int "n" []))
+    ]
+  ],
   loopExitViaReturnFacts = [],
   loopCounters = ["i"],
   dynamicallyAccessedArrays = [],

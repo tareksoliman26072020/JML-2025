@@ -5060,7 +5060,12 @@ idByLoop2 = Map.fromList [
              loopEnteringCondition = Just (SBool True),
              loopSkipCondition = Just (SBool False),
              loopExitingConditions = [SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" [])],
-             loopExitViaBreakFacts = [Conditions [SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" [])]],
+             loopExitViaBreakFacts = [
+               Conditions [
+                 (Just $ Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},
+                  SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" []))
+               ]
+             ],
              loopExitViaReturnFacts = [],
              loopCounters = ["i"],
              dynamicallyAccessedArrays = [],

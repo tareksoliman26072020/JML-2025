@@ -2053,7 +2053,8 @@ createLoopSummary theLoopSyntax m_Acc
   -- are inherited from `visitLoop`
   let loc = "SymbolicExecution.Method.createLoopSummary"
       logContents = [
-         ("theLoopSyntax",show theLoopSyntax)
+         ("branchRange",show branchRange)
+        ,("theLoopSyntax",show theLoopSyntax)
         ,("m_Acc",show m_Acc)
         ,("mForCondExpr",show mForCondExpr)
         ,("forCondExpr_visited_expr",show forCondExpr_visited_expr)
