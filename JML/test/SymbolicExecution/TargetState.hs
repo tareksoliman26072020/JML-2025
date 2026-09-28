@@ -5063,7 +5063,7 @@ idByLoop2 = Map.fromList [
              loopExitViaBreakFacts = [
                Conditions [
                  (Just $ Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},
-                  SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" []))
+                  Condition $ SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" []))
                ]
              ],
              loopExitViaReturnFacts = [],

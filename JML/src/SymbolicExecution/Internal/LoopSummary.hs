@@ -308,29 +308,29 @@ getLoopExitViaBreakFacts forBody_forStep_ers = do
         ]
   --throwError $ constructErrorMsg loc "MEOW" logContents where
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
-  study :: [ExecutionResult] -> [[(Maybe CFGT.Node_Coor,SymExpr)]]
+  study :: [ExecutionResult] -> [[(Maybe CFGT.Node_Coor,StateChangingCondition)]]
   study = concatMap $ \case
-    ER_Break -> [[(Nothing,SBool True)]]
+    ER_Break -> [[(Nothing,Condition $ SBool True)]]
     ER_IfExpr _ (ifCond,_) (ifCoor,ifErs) (maybeElseCoor,elseErs) -> let
       negated = negate ifCond
       fromIf = [res
         | rec <- study ifErs
         , let res
                 | null rec      = rec
-                | otherwise{-hasBreak3 ifErs-} = (Just ifCoor,ifCond) : filterCoor rec
+                | otherwise{-hasBreak3 ifErs-} = (Just ifCoor,Condition ifCond) : filterCoor rec
         ]
       fromElse = [res
         | rec <- study elseErs
         , let res
                 | null rec        = rec
-                | otherwise{-hasBreak3 elseErs-} = (maybeElseCoor,negated) : filterCoor rec
+                | otherwise{-hasBreak3 elseErs-} = (maybeElseCoor,Condition negated) : filterCoor rec
         ]
       in fromIf ++ fromElse
     _ -> []
   --
-  filterCoor :: [(Maybe CFGT.Node_Coor,SymExpr)] -> [(Maybe CFGT.Node_Coor,SymExpr)]
+  filterCoor :: [(Maybe CFGT.Node_Coor,StateChangingCondition)] -> [(Maybe CFGT.Node_Coor,StateChangingCondition)]
   filterCoor = filter $ \case
-    (Nothing,SBool True) -> False
+    (Nothing,Condition (SBool True)) -> False
     _ -> True
 
 --------------------

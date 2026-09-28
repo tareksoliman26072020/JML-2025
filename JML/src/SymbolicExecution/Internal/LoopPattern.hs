@@ -365,7 +365,7 @@ inferBreakExitPatterns loopSummary = do
         , let one = ControlFlowPattern
                     $ BreakExit
                     $ conjunctConditions
-                    $ map snd breakConds
+                    [cond | (_,Condition cond) <- breakConds]
         , let two = breakExitPatternsTags
         ]
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
