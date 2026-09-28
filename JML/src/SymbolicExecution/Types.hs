@@ -239,8 +239,8 @@ data LoopSummary = LoopSummary {
   , loopEnteringCondition :: Maybe SymExpr
   , loopSkipCondition :: Maybe SymExpr
   , loopExitingConditions :: [SymExpr]
-  , loopExitViaBreakFacts :: [StateChangingCondition]
-  , loopExitViaReturnFacts :: [([StateChangingCondition],Maybe SymExpr)]
+  , loopExitViaBreakFacts :: [StateChangingConditions]
+  , loopExitViaReturnFacts :: [(StateChangingConditions,Maybe SymExpr)]
   -- The variables that function as loop counters or induction variables.
   -- A loopCounter is a variable whose value represents loop progress.
   -- Usually it is an induction variable:
@@ -268,14 +268,15 @@ data LoopSummary = LoopSummary {
   , loopDecreasesCandidate :: [SymExpr]
 } deriving (Show,Eq)
 
+type StateChangingConditions = [(Maybe CFGT.Node_Coor,StateChangingCondition)]  -- Conditions represent a conjunction of conditions
+
 data StateChangingCondition =
    ElemInArray--ArraySearchExclusion
      String   -- array
      SymExpr  -- counter
      SymExpr  -- value to exclude
  | Condition SymExpr     -- a singular condition
- | Conditions [(Maybe CFGT.Node_Coor,StateChangingCondition)]  -- Conditions represent a conjunction of conditions
-   deriving (Show,Eq)
+ deriving (Show,Eq)
 
 data LoopExitFact =
     LoopExitFactRange String SymExpr SymExpr
@@ -377,7 +378,7 @@ data SearchPattern
   deriving (Eq, Show)
 
 data ControlFlowPattern
-  = EarlyReturn ([StateChangingCondition],Maybe SymExpr)
+  = EarlyReturn (StateChangingConditions,Maybe SymExpr)
                             -- EarlyReturn == When the search predicate succeeds, the execution of the loop does not continue to the next iteration.
   | BreakExit SymExpr
   | ContinuePath

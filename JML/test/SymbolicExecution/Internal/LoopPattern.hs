@@ -1,6 +1,7 @@
 module Internal.LoopPattern where
 
 import SymbolicExecution.Types
+import CFG.Types
 
 -- testing the output of `inferLoopPatterns` in SymbolicExecution.Internal.LoopPattern
 allTargets :: [(String,[[(LoopPattern,[LoopSummaryTag])]])]
@@ -115,7 +116,7 @@ contains =
      ,LoopExitViaReturnFacts
      ]
     ),
-    (ControlFlowPattern $ EarlyReturn ([ElemInArray "a" (SymVar Int "i" []) (SymVar Int "x" [])],Just (SBool True)),
+    (ControlFlowPattern $ EarlyReturn ([(Just $ Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},ElemInArray "a" (SymVar Int "i" []) (SymVar Int "x" []))],Just (SBool True)),
      [LoopExitViaReturnFacts]
     )
    ]

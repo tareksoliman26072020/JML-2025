@@ -68,7 +68,7 @@ idByLoop2 = [LoopSummary {
   loopSkipCondition = Just (SBool False),
   loopExitingConditions = [SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])],
   loopExitViaBreakFacts = [
-    Conditions [
+    [
       (Just $ Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},
        Condition $ SBin (SymVar Int "i" []) Ge (SymVar Int "n" []))
     ]
@@ -131,7 +131,7 @@ contains = [LoopSummary {
          Eq
          (SymVar Int "x" [])],
   loopExitViaBreakFacts = [],
-  loopExitViaReturnFacts = [([ElemInArray "a" (SymVar Int "i" []) (SymVar Int "x" [])],Just (SBool True))],
+  loopExitViaReturnFacts = [([(Just $ Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},ElemInArray "a" (SymVar Int "i" []) (SymVar Int "x" []))],Just (SBool True))],
   loopCounters = ["i"],
   dynamicallyAccessedArrays = [("a",["i"])],
   loopAssignments = ["i"],

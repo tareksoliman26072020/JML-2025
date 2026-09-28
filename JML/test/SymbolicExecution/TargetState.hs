@@ -5061,7 +5061,7 @@ idByLoop2 = Map.fromList [
              loopSkipCondition = Just (SBool False),
              loopExitingConditions = [SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" [])],
              loopExitViaBreakFacts = [
-               Conditions [
+               [
                  (Just $ Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},
                   Condition $ SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" []))
                ]
@@ -5188,7 +5188,7 @@ contains = Map.fromList [
                     SYT.Eq
                     (SymVar SYT.Int "x" [])],
              loopExitViaBreakFacts = [],
-             loopExitViaReturnFacts = [([ElemInArray "a" (SymVar SYT.Int "i" []) (SymVar SYT.Int "x" [])],Just (SBool True))],
+             loopExitViaReturnFacts = [([(Just $ Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},ElemInArray "a" (SymVar SYT.Int "i" []) (SymVar SYT.Int "x" []))],Just (SBool True))],
              loopCounters = ["i"],
              dynamicallyAccessedArrays = [("a",["i"])],
              loopAssignments = ["i"],
@@ -5223,7 +5223,7 @@ contains = Map.fromList [
            ,LoopExitViaBreakFacts
            ,LoopExitViaReturnFacts
            ]),
-          (ControlFlowPattern $ EarlyReturn ([ElemInArray "a" (SymVar SYT.Int "i" []) (SymVar SYT.Int "x" [])],Just (SBool True)),
+          (ControlFlowPattern $ EarlyReturn ([(Just $ Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},ElemInArray "a" (SymVar SYT.Int "i" []) (SymVar SYT.Int "x" []))],Just (SBool True)),
            [LoopExitViaReturnFacts]
           )
          ]),

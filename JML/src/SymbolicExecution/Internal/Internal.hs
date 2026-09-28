@@ -1543,9 +1543,9 @@ getFactAbout loopExitFacts vn = flip find loopExitFacts $ \loopExitFact -> case 
 -------------------
 -------------------
 
-createStateChangingCondition :: SymExpr -> [StateChangingCondition]
-createStateChangingCondition cond = let
-  loc = "SymbolicExecution.Internal.Internal.createStateChangingCondition"
+createStateChangingConditions :: SymExpr -> [StateChangingCondition]
+createStateChangingConditions cond = let
+  loc = "SymbolicExecution.Internal.Internal.createStateChangingConditions"
   logContents = [("cond",show cond)]
   in case cond of
        -----

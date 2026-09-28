@@ -346,14 +346,17 @@ inferLinearSearchPatterns loopSummary = do
               two = linearSearchPatternsTags
         ]
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
-  studyReturnsFacts :: [([StateChangingCondition], Maybe SymExpr)] -> [(String,[String])] -> [([StateChangingCondition],Maybe SymExpr)]
+  studyReturnsFacts :: [(StateChangingConditions, Maybe SymExpr)] -> [(String,[String])] -> [([StateChangingCondition],Maybe SymExpr)]
   studyReturnsFacts loopExitViaReturnFacts dynamicallyAccessedArrays = [(conds,mReturnVal)
-    | (conds,mReturnVal) <- loopExitViaReturnFacts
+    | (li,mReturnVal) <- loopExitViaReturnFacts
     -- at least one cond has to have an array which is dynamically accessed
-    , flip any conds $ \case
-        ElemInArray arrName _ _ -> case lookup arrName dynamicallyAccessedArrays of
-          Nothing -> False
-          Just _  -> True
+    , flip any li $ \case
+        (_,cond) -> case cond of
+          ElemInArray arrName _ _ -> case lookup arrName dynamicallyAccessedArrays of
+            Nothing -> False
+            Just _  -> True
+          _ -> False
+    , let conds = map snd li
     ]
 
 inferBreakExitPatterns :: LoopSummary -> SymbolicExecutionMonad [(LoopPattern,[LoopSummaryTag])]
@@ -361,7 +364,7 @@ inferBreakExitPatterns loopSummary = do
   let loc = "SymbolicExecution.Internal.LoopPattern.inferBreakExitPatterns"
   tellNextLog $ Log.Location loc
   let toReturn = [(one,two)
-        | Conditions breakConds <- loopExitViaBreakFacts loopSummary
+        | breakConds <- loopExitViaBreakFacts loopSummary
         , let one = ControlFlowPattern
                     $ BreakExit
                     $ conjunctConditions

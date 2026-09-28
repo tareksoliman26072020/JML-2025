@@ -293,7 +293,7 @@ getLoopExitingConditions loopGuard (breaksEnv,breaks_ers) (returnsEnv,returns_er
 --------------------
 --------------------
 
-getLoopExitViaBreakFacts :: [ExecutionResult] -> SymbolicExecutionMonad [StateChangingCondition]
+getLoopExitViaBreakFacts :: [ExecutionResult] -> SymbolicExecutionMonad [StateChangingConditions]
 getLoopExitViaBreakFacts forBody_forStep_ers = do
   let loc = globalLoc ++ ".getLoopExitViaBreakFacts"
   let logContents = [
@@ -302,13 +302,9 @@ getLoopExitViaBreakFacts forBody_forStep_ers = do
   -- the conditions which lead to a break statement
   let studied = study forBody_forStep_ers
   constructLog loc "summary" [("studied",show studied)]
-  let toReturn = [ res
-        | conds <- filter (not . null) studied
-        , let res = Conditions conds--Conditions $ normalizeConditions conds
-        ]
-  --throwError $ constructErrorMsg loc "MEOW" logContents where
+  let toReturn = filter (not . null) studied
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
-  study :: [ExecutionResult] -> [[(Maybe CFGT.Node_Coor,StateChangingCondition)]]
+  study :: [ExecutionResult] -> [StateChangingConditions]
   study = concatMap $ \case
     ER_Break -> [[(Nothing,Condition $ SBool True)]]
     ER_IfExpr _ (ifCond,_) (ifCoor,ifErs) (maybeElseCoor,elseErs) -> let
@@ -317,18 +313,18 @@ getLoopExitViaBreakFacts forBody_forStep_ers = do
         | rec <- study ifErs
         , let res
                 | null rec      = rec
-                | otherwise{-hasBreak3 ifErs-} = (Just ifCoor,Condition ifCond) : filterCoor rec
+                | otherwise = (Just ifCoor,Condition ifCond) : filterCoor rec
         ]
       fromElse = [res
         | rec <- study elseErs
         , let res
                 | null rec        = rec
-                | otherwise{-hasBreak3 elseErs-} = (maybeElseCoor,Condition negated) : filterCoor rec
+                | otherwise = (maybeElseCoor,Condition negated) : filterCoor rec
         ]
       in fromIf ++ fromElse
     _ -> []
   --
-  filterCoor :: [(Maybe CFGT.Node_Coor,StateChangingCondition)] -> [(Maybe CFGT.Node_Coor,StateChangingCondition)]
+  filterCoor :: StateChangingConditions -> StateChangingConditions
   filterCoor = filter $ \case
     (Nothing,Condition (SBool True)) -> False
     _ -> True
@@ -337,35 +333,39 @@ getLoopExitViaBreakFacts forBody_forStep_ers = do
 --------------------
 --------------------
 -- [([ElemInArray "a" (SymVar Int "i" []) (SymVar Int "x" [])],Just (SBool True))]
-getLoopExitViaReturnFacts :: [ExecutionResult] -> SymbolicExecutionMonad [([StateChangingCondition],Maybe SymExpr)]
+getLoopExitViaReturnFacts :: [ExecutionResult] -> SymbolicExecutionMonad [(StateChangingConditions,Maybe SymExpr)]
 getLoopExitViaReturnFacts forBody_forStep_ers = do
   let loc = globalLoc ++ ".getLoopExitViaReturnFacts"
   let logContents = [
         ("forBody_forStep_ers",show forBody_forStep_ers)]
   constructLog loc "getLoopExitViaReturnFacts" logContents
-  let studied = study forBody_forStep_ers
-  constructLog loc "summary" [("studied",show studied)]
-  let toReturn :: [([StateChangingCondition],Maybe SymExpr)] = [
-        (stateChangingConditions,mSymExpr)
-        | (conds,mSymExpr) <- studied
-        , let stateChangingConditions = concatMap createStateChangingCondition conds
-        ]
+  let toReturn = study forBody_forStep_ers
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
   -- each tuple has two elements:
   --   1) the concatenation of conditions which lead to the return statement
   --   2) the expression which is returned
-  study :: [ExecutionResult] -> [([SymExpr],Maybe SymExpr)]
-  study = concatMap $ \case
+  study :: [ExecutionResult] -> [(StateChangingConditions,Maybe SymExpr)]
+  study ers = let
+    loc = globalLoc ++ ".getLoopExitViaReturnFacts.study" in flip concatMap ers $ \case
     ER_Return mExpr -> [([],mExpr)]
-    ER_IfExpr _ (ifCond,_) (_,ifErs) (_,elseErs) -> let
-      fromIf = [([ifCond] ++ conds,mReturnSymExpr)
-        | (conds,mReturnSymExpr) <- study ifErs
+    ER_IfExpr _ (ifCond,_) (ifCoor,ifErs) (maybeElseCoor,elseErs) -> let
+      fromIf = [(one,mReturnSymExpr)
+        | (stateChangingConditions,mReturnSymExpr) <- study ifErs
+        , let newStateChangingConditions = [(Just ifCoor,cond)
+                | cond <- createStateChangingConditions ifCond
+                ]
+        , let one = newStateChangingConditions ++ stateChangingConditions
         ]
-      fromElse = [([negate ifCond] ++ conds,mReturnSymExpr)
-        | (conds,mReturnSymExpr) <- study elseErs
+      fromElse = [(one,mReturnSymExpr)
+        | (stateChangingConditions,mReturnSymExpr) <- study elseErs
+        , let newStateChangingConditions = [(maybeElseCoor,cond)
+                | cond <- createStateChangingConditions (negate ifCond)
+                ]
+        , let one = newStateChangingConditions ++ stateChangingConditions
         ]
       in fromIf ++ fromElse
     _ -> []
+    er -> error $ constructErrorMsg loc "TODO" [("er",show er)]
 
 --------------------
 --------------------

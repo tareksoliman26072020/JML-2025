@@ -2206,7 +2206,7 @@ createLoopSummary theLoopSyntax m_Acc
   -----------------------------
   -- LoopExitViaBreakFacts
   -----------------------------
-  theLoopExitViaBreakFacts :: [StateChangingCondition] <- do
+  theLoopExitViaBreakFacts :: [StateChangingConditions] <- do
     incrementLogEnumeration
     incrementLogDepth *>
       getLoopExitViaBreakFacts forBody_forStep_path_visited_ers
@@ -2214,7 +2214,7 @@ createLoopSummary theLoopSyntax m_Acc
   -------------------------
   -- loopExitViaReturnFacts
   -------------------------
-  theLoopExitViaReturnFacts :: [([StateChangingCondition],Maybe SymExpr)] <- do
+  theLoopExitViaReturnFacts :: [(StateChangingConditions,Maybe SymExpr)] <- do
     incrementLogEnumeration
     incrementLogDepth *>
       getLoopExitViaReturnFacts forBody_forStep_path_visited_ers
