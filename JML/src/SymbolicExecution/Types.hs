@@ -251,7 +251,8 @@ data LoopSummary = LoopSummary {
   , loopCounters :: [String]
   -- arrays that are accessed via loop counters
   , dynamicallyAccessedArrays :: [
-      (String, -- array name
+      (SymType,  -- array type
+       String,   -- array name
        [String]) -- loop counters used to access the array
       ]
   -- Local variables assigned inside the loop
@@ -271,10 +272,10 @@ data LoopSummary = LoopSummary {
 type StateChangingConditions = [(Maybe CFGT.Node_Coor,StateChangingCondition)]  -- Conditions represent a conjunction of conditions
 
 data StateChangingCondition =
-   ElemInArray--ArraySearchExclusion
-     String   -- array
-     SymExpr  -- counter
-     SymExpr  -- value to exclude
+   ElemInArray           -- ArraySearchExclusion
+     String                -- array
+     SymExpr               -- counter
+     SymExpr               -- value to exclude
  | Condition SymExpr     -- a singular condition
  deriving (Show,Eq)
 
@@ -360,7 +361,7 @@ data AccumulatorPattern
   deriving (Eq, Show)
 
 data SearchPattern
-  = LinearSearch ([StateChangingCondition],Maybe SymExpr)
+  = LinearSearch (StateChangingConditions,Maybe SymExpr)
                           -- LinearSearch == An element in an array is being tested against a search predicate at a time.
                           -- because there's an array access, which is dynamically accessed
                           --   that is present in a condition,

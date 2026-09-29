@@ -7,6 +7,7 @@ import Text.Printf (printf)
 import Data.List
 import Data.Functor (($>))
 import qualified Data.Map as Map (Map)
+import Data.Maybe (catMaybes)
 
 import JML.Types
 import JML.Internal.Internal
@@ -91,6 +92,17 @@ inferMaintainingTemplates loopSummary allLoopPatternsInfos = do
     incrementLogEnumeration
     incrementLogDepth *>
       inferStridedCounterTemplates loopSummary relevantLoopPatternsInfos
+        <* decrementLogDepth
+  ------------------------------
+  -- theSearchExclusionTemplates
+  ------------------------------
+  theSearchExclusionTemplates <- let
+    relevantLoopPatternsInfos = SY.Internal.filterLoopPatterns
+      istheSearchExclusionTemplatePattern istheSearchExclusionTemplateTag allLoopPatternsInfos
+    in do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      inferSearchExclusionTemplates loopSummary relevantLoopPatternsInfos
         <* decrementLogDepth
   -----------
   -- toReturn
@@ -181,6 +193,84 @@ inferStridedCounterTemplates loopSummary loopPatternsInfos = do
     ("relevantLoopInitFacts",show relevantLoopInitFacts),
     ("toReturn",show toReturn)]
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
+
+inferSearchExclusionTemplates :: SYT.LoopSummary -> [(SYT.LoopPattern,[SYT.LoopSummaryTag])] -> JMLMonad [LoopInvariantTemplate]
+inferSearchExclusionTemplates loopSummary loopPatternsInfos = do
+  let loc = globalLoc ++ ".inferSearchExclusionTemplates"
+      logContents = [("loopPatternsInfos",show loopPatternsInfos)]
+  constructLog loc "inferSearchExclusionTemplates" logContents
+  let from_loopPatterns :: [(SYT.StateChangingConditions,Maybe SYT.SymExpr)]
+      from_loopPatterns = SY.Internal.getSimilar_linearSearch_earlyReturn loopPatternsInfos
+      -- convert the conditions in `from_loopPatterns` to SymExprs
+      symExprs :: [SYT.SymExpr]
+      symExprs = concat [res
+        | (conds,_) <- from_loopPatterns
+        , let res :: [SYT.SymExpr] = concat [res
+                | (_,cond) <- conds
+                , let condSymType = studyCondSymType cond
+                , let res = SY.Internal.stateChangingCondition_2_symExprs condSymType cond
+                ]
+        ]
+      {-
+      [(
+        [(SymInt 0,("i",Increasing (SymInt 1)),SObjAcc ["a","length"])]
+       ,SBin (SArrayIndexAccess (Array Int) "a" (SymVar Int "i" [])) Eq (SymVar Int "x" [])
+       )
+      ]
+       -}
+      infos :: [([(SYT.SymExpr,(String,SYT.SymExprDevelopmentTrajectory),SYT.SymExpr)]
+                ,SYT.SymExpr)]
+      infos = [(with_bounds,symExpr)
+        | symExpr <- symExprs
+        , let vns = SY.Internal.getVarNames3 symExpr
+        , let relevant_vns_trajectories :: [(String,SYT.SymExprDevelopmentTrajectory)]
+              relevant_vns_trajectories = [ a
+                | a@(vn,_) <- SYT.loopFrameTargetsDevelopmentTrajectory loopSummary
+                , vn `elem` vns
+                ]
+        , let with_bounds :: [(SYT.SymExpr
+                             ,(String,SYT.SymExprDevelopmentTrajectory)
+                             ,SYT.SymExpr)]
+              with_bounds = catMaybes [res
+                | (lower,vn,upper) <- SYT.loopCountersBounds loopSummary
+                , let res = flip fmap (lookup vn relevant_vns_trajectories)
+                        $ \trajectory -> (lower,(vn,trajectory),upper)
+                ]
+        ]
+  let empty :: [LoopInvariantTemplate] = []
+  let toReturn :: [LoopInvariantTemplate] = []
+  if null from_loopPatterns
+    then (tellNextLog $ Log.Return loc (show empty)) $> empty
+    else (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
+  throwError $ constructErrorMsg loc "MEOW:Summary" $ logContents ++ [
+    ("from_loopPatterns",show from_loopPatterns),
+    ("symExprs",show symExprs),
+    ("infos",show infos)] where
+  -- get the SymType of the array mentioned in the condition
+  studyCondSymType :: SYT.StateChangingCondition -> SYT.SymType
+  studyCondSymType cond = let
+    loc = globalLoc ++ ".inferSearchExclusionTemplates.studyCondSymType"
+    logContents = [("cond",show cond)] in
+    case cond of
+      -- you get array type from LoopSummary: `dynamicallyAccessedArrays`
+      SYT.ElemInArray arrName _ _ -> let
+        finding = flip find (SYT.dynamicallyAccessedArrays loopSummary)
+          $ \(_,arrName2,_) -> arrName == arrName2 in
+        case finding of
+          Just (arrType,_,_) -> arrType
+          _ -> error $ constructErrorMsg loc "TODO1" logContents
+      _ -> error $ constructErrorMsg loc "TODO2" $ logContents
+             ++ [("logContents",show logContents)
+                 ,("cond",show cond)]
+  --throwError $ constructErrorMsg loc "MEOW" logContents
+  {-let -- both (SearchPattern LinearSearch) and (ControlFlowPattern EarlyReturn)
+      -- must be present in order for a searchExclusionTemplate to exist
+      onlyIf = foldr f1 0 loopPatternsInfos
+  throwError $ constructErrorMsg loc "TODO" logContents where
+  f1 :: (SYT.LoopPattern,[SYT.LoopSummaryTag]) -> Int -> Int
+  f1 _ 2 = 2
+  f1 (SearchPattern $ LinearSearch _,_) acc = acc+1
+  f1 (ControlFlowPattern $ EarlyReturn _,_) acc = acc+1-}
 
 -- CounterPattern ==> LoopFrameTargets ==> LoopFrameTemplate
 inferLoopFrameTemplates :: SYT.LoopSummary -> JMLMonad [LoopInvariantTemplate]

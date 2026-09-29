@@ -307,7 +307,7 @@ inferArrayScanPatterns loopSummary = do
     , and check which of them have monotonic trajectory, and then return them.
    -}
   let toReturn = [ (one,two)
-        | (arrName,vns) <- theDynamicallyAccessedArrays
+        | (arrType,arrName,vns) <- theDynamicallyAccessedArrays
         , let vns2 = catMaybes [
                 studyTrajectory vn theLoopFrameTargetsDevelopmentTrajectory
                 | vn <- vns]
@@ -346,17 +346,16 @@ inferLinearSearchPatterns loopSummary = do
               two = linearSearchPatternsTags
         ]
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
-  studyReturnsFacts :: [(StateChangingConditions, Maybe SymExpr)] -> [(String,[String])] -> [([StateChangingCondition],Maybe SymExpr)]
-  studyReturnsFacts loopExitViaReturnFacts dynamicallyAccessedArrays = [(conds,mReturnVal)
+  studyReturnsFacts :: [(StateChangingConditions, Maybe SymExpr)] -> [(SymType,String,[String])] -> [(StateChangingConditions,Maybe SymExpr)]
+  studyReturnsFacts loopExitViaReturnFacts dynamicallyAccessedArrays = [(li,mReturnVal)
     | (li,mReturnVal) <- loopExitViaReturnFacts
     -- at least one cond has to have an array which is dynamically accessed
     , flip any li $ \case
         (_,cond) -> case cond of
-          ElemInArray arrName _ _ -> case lookup arrName dynamicallyAccessedArrays of
-            Nothing -> False
+          ElemInArray arrName _ _ -> case find (\(_,name,_) -> name == arrName) dynamicallyAccessedArrays of
             Just _  -> True
+            Nothing -> False
           _ -> False
-    , let conds = map snd li
     ]
 
 inferBreakExitPatterns :: LoopSummary -> SymbolicExecutionMonad [(LoopPattern,[LoopSummaryTag])]

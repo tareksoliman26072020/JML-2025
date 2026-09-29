@@ -2233,7 +2233,7 @@ createLoopSummary theLoopSyntax m_Acc
   ----------------------------
   -- dynamicallyAccessedArrays
   ----------------------------
-  theDynamicallyAccessedArrays :: [(String,[String])] <- do
+  theDynamicallyAccessedArrays :: [(SymType,String,[String])] <- do
     incrementLogEnumeration
     incrementLogDepth *>
       getDynamicallyAccessedArrays

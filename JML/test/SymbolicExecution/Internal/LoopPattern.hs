@@ -110,7 +110,7 @@ contains =
      ,LoopFrameTargetsDevelopmentTrajectory
      ]
     ),
-    (SearchPattern $ LinearSearch ([ElemInArray "a" (SymVar Int "i" []) (SymVar Int "x" [])],Just (SBool True)),
+    (SearchPattern $ LinearSearch ([(Just $ Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},ElemInArray "a" (SymVar Int "i" []) (SymVar Int "x" []))],Just (SBool True)),
      [DynamicallyAccessedArrays
      ,LoopExitViaBreakFacts
      ,LoopExitViaReturnFacts

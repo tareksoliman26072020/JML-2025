@@ -24,6 +24,7 @@ import qualified CFG.Types as CFGT (ScopeRange, ScopeRange(SR))
 import qualified SymbolicExecution.Types as SYT
 import qualified SymbolicExecution.Internal.Internal as SY.Internal
 import qualified SymbolicExecution.Internal.Math.Calculator as SY.Internal.Calculator
+import qualified SymbolicExecution.Internal.LoopPattern as SY.Internal.LoopPattern
 
 yellow :: String -> String
 yellow = printf "\ESC[1;33m%s\ESC[m"
@@ -1813,6 +1814,24 @@ isStridedCounterTemplateTag loopSummaryTag = let
        SY.Internal.isLoopFrameTargetsTag,
        SY.Internal.isLoopInitFactsTag,
        SY.Internal.isLoopFrameTargetsDevelopmentTrajectoryTag]
+
+--------------------------------------
+-- Helpers for SearchExclusionTemplate
+--------------------------------------
+istheSearchExclusionTemplatePattern :: SYT.LoopPattern -> Bool
+istheSearchExclusionTemplatePattern loopPattern = case loopPattern of
+  SYT.TraversalPattern (SYT.ArrayScan _) -> True
+  SYT.SearchPattern (SYT.LinearSearch _) -> True
+  SYT.ControlFlowPattern (SYT.EarlyReturn _) -> True
+  _ -> False 
+
+istheSearchExclusionTemplateTag :: SYT.LoopSummaryTag -> Bool
+istheSearchExclusionTemplateTag loopSummaryTag = let
+  loc = "JML.Internal.Internal.istheSearchExclusionTemplateTag"
+  in (loopSummaryTag `elem`) 
+       (SY.Internal.LoopPattern.arrayScanPatternsTags ++
+        SY.Internal.LoopPattern.linearSearchPatternsTags ++
+        SY.Internal.LoopPattern.earlyReturnPatternTags)
 
 --------------------------------
 -- Helpers for LoopFrameTemplate

@@ -745,14 +745,14 @@ getVarName symExpr = let
     SObjAcc [arrName,"length"] -> arrName
     _ -> error $ constructErrorMsg loc "won't happen2" [("symExpr",show symExpr)]
 
-getAccessedArraysNamesViaNamedIndexes :: [String] -> SymExpr -> [String]
+getAccessedArraysNamesViaNamedIndexes :: [String] -> SymExpr -> [(SymType,String)]
 getAccessedArraysNamesViaNamedIndexes indexes symExpr = let
   loc = "SymbolicExecution.Internal.Internal.getAccessedArraysNamesViaNamedIndexes"
   logContents = [("symExpr",show symExpr)]
   in case symExpr of
     SymVar _ _ _ -> []
-    SArrayIndexAccess _ arrName (SymVar _ index _)
-      | index `elem` indexes -> [arrName]
+    SArrayIndexAccess arrType arrName (SymVar _ index _)
+      | index `elem` indexes -> [(arrType,arrName)]
     SBin expr1 _ expr2 -> concatMap (getAccessedArraysNamesViaNamedIndexes indexes) [expr1,expr2]
     _ -> error $ constructErrorMsg loc "TODO" logContents
 
@@ -1574,6 +1574,12 @@ createStateChangingConditions cond = let
        -----
        _ -> (:[]) $ Condition cond
 
+stateChangingCondition_2_symExprs :: SymType -> StateChangingCondition -> [SymExpr]
+stateChangingCondition_2_symExprs symType = \case
+  ElemInArray arrayName counterSymExpr value_2_exclude -> (:[]) $
+    SBin (SArrayIndexAccess symType arrayName counterSymExpr) Eq value_2_exclude
+  Condition symExpr -> [symExpr]
+
 -------------------
 -------------------
 -------------------
@@ -1697,3 +1703,34 @@ filterLoopPatterns loopPatternPredicate templateTagPredicate loopPatternsInfos =
       , loopPatternPredicate loopPattern
       , let relevantTags = filter templateTagPredicate tags
       ]
+
+-- looks at all loop patterns,
+-- and keeps only the EarlyReturn and LinearSearch which address same conditions
+-- then returns only their conditions.
+--
+-- This function was primarily implemented to be used in JML.Internal.LoopInvariants.inferSearchExclusionTemplates
+--   in order to 1) decide if a SearchExclusionTemplate is in effect,
+--               2) and to get the informations needed to build the invariant.
+getSimilar_linearSearch_earlyReturn ::
+  [(LoopPattern,[LoopSummaryTag])] -> [(StateChangingConditions,Maybe SymExpr)]
+getSimilar_linearSearch_earlyReturn loopPatternsInfos = case loopPatternsInfos of
+  [] -> []
+  ((SearchPattern (LinearSearch tuple),_) : rest) -> case lookup (ControlFlowPattern $ EarlyReturn tuple) loopPatternsInfos of
+    Just _ -> let
+      newRest = [a
+        | a@(loopPattern,_) <- rest
+        , case loopPattern of
+            ControlFlowPattern (EarlyReturn tu) -> tu /= tuple
+            _ -> True
+        ]
+      in tuple : getSimilar_linearSearch_earlyReturn newRest
+  ((ControlFlowPattern (EarlyReturn tuple),_) : rest) -> case lookup (SearchPattern $ LinearSearch tuple) loopPatternsInfos of
+    Just _ -> let
+      newRest = [a
+        | a@(loopPattern,_) <- rest
+        , case loopPattern of
+            SearchPattern (LinearSearch tu) -> tu /= tuple
+            _ -> True
+        ]
+      in tuple : getSimilar_linearSearch_earlyReturn newRest
+  (_ : rest) -> getSimilar_linearSearch_earlyReturn rest

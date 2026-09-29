@@ -313,13 +313,19 @@ getLoopExitViaBreakFacts forBody_forStep_ers = do
         | rec <- study ifErs
         , let res
                 | null rec      = rec
-                | otherwise = (Just ifCoor,Condition ifCond) : filterCoor rec
+                | otherwise = [(Just ifCoor,cond)
+                    | cond <- createStateChangingConditions ifCond
+                    ] ++ filterCoor rec
+--              | otherwise = (Just ifCoor,Condition ifCond) : filterCoor rec
         ]
       fromElse = [res
         | rec <- study elseErs
         , let res
                 | null rec        = rec
-                | otherwise = (maybeElseCoor,Condition negated) : filterCoor rec
+                | otherwise = [(maybeElseCoor,cond)
+                    | cond <- createStateChangingConditions negated
+                    ] ++ filterCoor rec
+--              | otherwise = (maybeElseCoor,Condition negated) : filterCoor rec
         ]
       in fromIf ++ fromElse
     _ -> []
@@ -402,7 +408,7 @@ getLoopCounters (branchRange,origEnv,newEnv)
 --------------------
 --------------------
 
-getDynamicallyAccessedArrays :: [String] -> [ExecutionResult] -> SymbolicExecutionMonad [(String,[String])]
+getDynamicallyAccessedArrays :: [String] -> [ExecutionResult] -> SymbolicExecutionMonad [(SymType,String,[String])]
 getDynamicallyAccessedArrays loopCounters loop_ers = do
   let loc = "SymbolicExecution.Internal.LoopSummary.getDynamicallyAccessedArrays"
       logContents = [
@@ -411,9 +417,9 @@ getDynamicallyAccessedArrays loopCounters loop_ers = do
       relevantSymExprs :: [(SymExpr,[String])]
       relevantSymExprs = study_loop_ers loop_ers
       --symExpr = SBin (SArrayIndexAccess (Array Int) "a" (SymVar Int "i" [])) Eq (SymVar Int "x" [])
-      toReturn = [(arrName,vns)
+      toReturn = [(arrType,arrName,vns)
         | (symExpr,vns) <- relevantSymExprs
-        , arrName <- getAccessedArraysNamesViaNamedIndexes loopCounters symExpr
+        , (arrType,arrName) <- getAccessedArraysNamesViaNamedIndexes loopCounters symExpr
         ]
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
   -- checks `loop_ers` and returns all expressions of form `SArrayIndexAccess`

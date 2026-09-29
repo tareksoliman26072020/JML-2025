@@ -8,7 +8,7 @@ import Control.Monad.Writer
 
 import qualified SymbolicExecution.Types as SYT (
   SymbolicExecution,SymbolicExecutionValue,SymType,
-  LoopSummary,LoopPattern,LoopSummaryTag,LoopExitFact)
+  LoopSummary,LoopPattern,LoopSummaryTag,LoopExitFact,SymExprDevelopmentTrajectory)
 import qualified CFG.Types as CFGT (Node_Coor, ScopeRange)
 import qualified JML.Logs.Log as Log (Log, Header)
 
@@ -74,6 +74,12 @@ data Maintaining_LoopInvariantTemplate
       String  -- counter
       Expr    -- stride
       Expr    -- residue
+  | SearchExclusionTemplate
+      Int         -- counterLowerBound
+      String      -- counter
+      SYT.SymExprDevelopmentTrajectory  -- counterTrajectoryStride
+      Expr        -- counterUpperBound
+      Expr        -- metPredicate
   | MovingBoundRelationTemplate String Expr
   | CounterLowerBoundTemplate Expr String
   | GuardedInvariantTemplate Expr Expr
