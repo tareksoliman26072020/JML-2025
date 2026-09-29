@@ -1,6 +1,7 @@
 {-# Language MultiWayIf, LambdaCase, ScopedTypeVariables #-}
 module JML.Internal.LoopInvariants where
 
+import Prelude hiding (negate)
 import Control.Monad.State (get)
 import Control.Monad.Except (throwError)
 import Text.Printf (printf)
@@ -17,6 +18,7 @@ import qualified CFG.Types as CFGT (ScopeRange)
 
 import qualified SymbolicExecution.Types as SYT
 import qualified SymbolicExecution.Internal.Internal as SY.Internal
+import qualified SymbolicExecution.Internal.Math.Calculator as SY.Calculator (substitute)
 
 globalLoc = "JML.Internal.LoopInvariants"
 
@@ -108,8 +110,9 @@ inferMaintainingTemplates loopSummary allLoopPatternsInfos = do
   -- toReturn
   -----------
   let toReturn =
-        theCounterBoundsTemplates ++
-        theStridedCounterTemplates
+        theCounterBoundsTemplates  ++
+        theStridedCounterTemplates ++
+        theSearchExclusionTemplates
   constructLog loc "Summary" $ logContents ++
     [("theCounterBoundsTemplates",show theCounterBoundsTemplates)
     ,("theStridedCounterTemplates",show theStridedCounterTemplates)]
@@ -159,7 +162,7 @@ inferCounterBoundsTemplates loopSummary loopPatternsInfos = do
       toReturn = case checkPatterns of
         [] -> []
         _ -> [res
-          | (l,c,u) <- SYT.loopCountersBounds loopSummary
+          | (l,(_,c),u) <- SYT.loopCountersBounds loopSummary
           , let res = Maintaining $ CounterBoundsTemplate
                   (symExprToExpr2 l) c (symExprToExpr2 u)
           ]
@@ -199,13 +202,13 @@ inferSearchExclusionTemplates loopSummary loopPatternsInfos = do
   let loc = globalLoc ++ ".inferSearchExclusionTemplates"
       logContents = [("loopPatternsInfos",show loopPatternsInfos)]
   constructLog loc "inferSearchExclusionTemplates" logContents
-  let from_loopPatterns :: [(SYT.StateChangingConditions,Maybe SYT.SymExpr)]
+  let from_loopPatterns :: [(SYT.StateChangingConditions,Maybe SYT.SymbolicExecutionValue)]
       from_loopPatterns = SY.Internal.getSimilar_linearSearch_earlyReturn loopPatternsInfos
       -- convert the conditions in `from_loopPatterns` to SymExprs
-      symExprs :: [SYT.SymExpr]
+      symExprs :: [SYT.SymbolicExecutionValue]
       symExprs = concat [res
         | (conds,_) <- from_loopPatterns
-        , let res :: [SYT.SymExpr] = concat [res
+        , let res :: [SYT.SymbolicExecutionValue] = concat [res
                 | (_,cond) <- conds
                 , let condSymType = studyCondSymType cond
                 , let res = SY.Internal.stateChangingCondition_2_symExprs condSymType cond
@@ -218,8 +221,8 @@ inferSearchExclusionTemplates loopSummary loopPatternsInfos = do
        )
       ]
        -}
-      infos :: [([(SYT.SymExpr,(String,SYT.SymExprDevelopmentTrajectory),SYT.SymExpr)]
-                ,SYT.SymExpr)]
+      infos :: [([(SYT.SymbolicExecutionValue,(SYT.SymType,String,SYT.SymExprDevelopmentTrajectory),SYT.SymbolicExecutionValue)]
+                ,SYT.SymbolicExecutionValue)]
       infos = [(with_bounds,symExpr)
         | symExpr <- symExprs
         , let vns = SY.Internal.getVarNames3 symExpr
@@ -228,24 +231,21 @@ inferSearchExclusionTemplates loopSummary loopPatternsInfos = do
                 | a@(vn,_) <- SYT.loopFrameTargetsDevelopmentTrajectory loopSummary
                 , vn `elem` vns
                 ]
-        , let with_bounds :: [(SYT.SymExpr
-                             ,(String,SYT.SymExprDevelopmentTrajectory)
-                             ,SYT.SymExpr)]
+        , let with_bounds :: [(SYT.SymbolicExecutionValue
+                             ,(SYT.SymType,String,SYT.SymExprDevelopmentTrajectory)
+                             ,SYT.SymbolicExecutionValue)]
               with_bounds = catMaybes [res
-                | (lower,vn,upper) <- SYT.loopCountersBounds loopSummary
+                | (lower,(vnType,vn),upper) <- SYT.loopCountersBounds loopSummary
                 , let res = flip fmap (lookup vn relevant_vns_trajectories)
-                        $ \trajectory -> (lower,(vn,trajectory),upper)
+                        $ \trajectory -> (lower,(vnType,vn,trajectory),upper)
                 ]
         ]
-  let empty :: [LoopInvariantTemplate] = []
-  let toReturn :: [LoopInvariantTemplate] = []
-  if null from_loopPatterns
-    then (tellNextLog $ Log.Return loc (show empty)) $> empty
-    else (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
-  throwError $ constructErrorMsg loc "MEOW:Summary" $ logContents ++ [
+  let toReturn = studyInfos infos
+  (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
+  {-throwError $ constructErrorMsg loc "MEOW:Summary" $ logContents ++ [
     ("from_loopPatterns",show from_loopPatterns),
     ("symExprs",show symExprs),
-    ("infos",show infos)] where
+    ("infos",show infos)] -}where
   -- get the SymType of the array mentioned in the condition
   studyCondSymType :: SYT.StateChangingCondition -> SYT.SymType
   studyCondSymType cond = let
@@ -262,15 +262,49 @@ inferSearchExclusionTemplates loopSummary loopPatternsInfos = do
       _ -> error $ constructErrorMsg loc "TODO2" $ logContents
              ++ [("logContents",show logContents)
                  ,("cond",show cond)]
-  --throwError $ constructErrorMsg loc "MEOW" logContents
-  {-let -- both (SearchPattern LinearSearch) and (ControlFlowPattern EarlyReturn)
-      -- must be present in order for a searchExclusionTemplate to exist
-      onlyIf = foldr f1 0 loopPatternsInfos
-  throwError $ constructErrorMsg loc "TODO" logContents where
-  f1 :: (SYT.LoopPattern,[SYT.LoopSummaryTag]) -> Int -> Int
-  f1 _ 2 = 2
-  f1 (SearchPattern $ LinearSearch _,_) acc = acc+1
-  f1 (ControlFlowPattern $ EarlyReturn _,_) acc = acc+1-}
+  --
+  studyInfos :: [([(SYT.SymbolicExecutionValue,(SYT.SymType,String,SYT.SymExprDevelopmentTrajectory),SYT.SymbolicExecutionValue)]
+                 ,SYT.SymbolicExecutionValue)] -> [LoopInvariantTemplate] = \infos -> let
+    loc = globalLoc ++ ".inferSearchExclusionTemplates.studyInfos" in [Maintaining res
+    | (predicateInformations,predicate) <- infos
+    , (lowerBoundSymExpr,(counterType,counterName,counterTrajectory),upperBoundSymExpr) <- predicateInformations
+    , let logContents = [
+            ("predicate",show predicate),
+            ("lowerBoundSymExpr",show lowerBoundSymExpr),
+            ("counterName",counterName),
+            ("counterTrajectory",show counterTrajectory),
+            ("upperBoundSymExpr",show upperBoundSymExpr)]
+    {-
+      SearchExclusionTemplate
+      1)  (String     -- quantified variable name
+      2)  ,JMLType)   -- type of quantified variable
+      3)  Expr        -- counterLowerBound
+      4)  (String     -- counter
+      5)  ,SymExpr)   -- counter init fact
+      6)  Expr        -- counterTrajectoryStride
+      7)  Expr        -- counterUpperBound
+      8)  Expr        -- metPredicate
+   -}
+    , let one   :: String = "k"
+          two   :: JMLType = toJMLType counterType
+          three :: Expr = symExprToExpr2 lowerBoundSymExpr
+          five  :: Expr = case lookup counterName (SYT.loopInitFacts loopSummary) of
+            Just counterInitFact -> symExprToExpr2 counterInitFact
+            Nothing -> error $ constructErrorMsg loc "TODO1" logContents
+          six   :: Expr = case counterTrajectory of
+            SYT.Increasing symExpr -> symExprToExpr2 symExpr
+            SYT.Decreasing symExpr -> symExprToExpr2 symExpr
+            _ -> error $ constructErrorMsg loc "TODO2" logContents
+          seven :: Expr = symExprToExpr2 upperBoundSymExpr
+          eight :: Expr = negate
+            $ symExprToExpr2 
+            $ SY.Calculator.substitute [(counterName,SYT.SymVar counterType one [])] predicate
+          nine  :: Bool = case counterTrajectory of
+            SYT.Increasing symExpr -> SY.Internal.isOne symExpr
+            SYT.Decreasing symExpr -> SY.Internal.isOne symExpr
+            _ -> error $ constructErrorMsg loc "TODO3" logContents
+          res = SearchExclusionTemplate (one,two) three (counterName,five) six seven eight nine
+    ]
 
 -- CounterPattern ==> LoopFrameTargets ==> LoopFrameTemplate
 inferLoopFrameTemplates :: SYT.LoopSummary -> JMLMonad [LoopInvariantTemplate]

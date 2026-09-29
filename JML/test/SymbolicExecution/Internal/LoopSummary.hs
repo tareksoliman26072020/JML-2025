@@ -29,7 +29,7 @@ idByLoop = [LoopSummary {
   dynamicallyAccessedArrays = [],
   loopAssignments = ["i"],
   loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
-  loopCountersBounds = [(SymInt 0,"i",SymVar Int "n" [])],
+  loopCountersBounds = [(SymInt 0,(Int,"i"),SymVar Int "n" [])],
   loopBoundStabilityFacts = [(SymVar Int "n" [],ReadOnly)],
   loopDecreasesCandidate = [SBin (SymVar Int "n" []) Sub (SymVar Int "i" [])],
   loopExitFacts = [LoopExitFactValue "i" (SymVar Int "n" [])]
@@ -51,7 +51,7 @@ idByLoopStride3 = [LoopSummary {
   dynamicallyAccessedArrays = [],
   loopAssignments = ["i"],
   loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 3))],
-  loopCountersBounds = [(SymInt 0,"i",SBin (SymVar Int "n" []) Add (SymInt 2))],
+  loopCountersBounds = [(SymInt 0,(Int,"i"),SBin (SymVar Int "n" []) Add (SymInt 2))],
   loopBoundStabilityFacts = [(SymVar Int "n" [],ReadOnly),(SBin (SymVar Int "n" []) Add (SymInt 2),ReadOnly)],
   loopDecreasesCandidate = [SBin (SBin (SymVar Int "n" []) Add (SymInt 2)) Sub (SymVar Int "i" [])],
   loopExitFacts = [LoopExitFactRange "i" (SymVar Int "n" []) (SBin (SymVar Int "n" []) Add (SymInt 2))]
@@ -79,7 +79,7 @@ idByLoop2 = [LoopSummary {
   loopAssignments = ["i"],
   loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
   loopExitFacts = [LoopExitFactValue "i" (SymVar Int "n" [])],
-  loopCountersBounds = [(SymInt 0,"i",SymVar Int "n" [])],
+  loopCountersBounds = [(SymInt 0,(Int,"i"),SymVar Int "n" [])],
   loopBoundStabilityFacts = [(SymVar Int "n" [],ReadOnly)],
   loopDecreasesCandidate = [SBin (SymVar Int "n" []) Sub (SymVar Int "i" [])]
 }]
@@ -106,8 +106,8 @@ halving = [LoopSummary {
     LoopExitFactRange "i" (SymVar Int "n" [])
                           (SBin (SymVar Int "n" []) Add (SymInt 1))],
   loopCountersBounds = [
-    (SymInt 0,"i",SymVar Int "n" []),
-    (SymVar Int "i" [],"n",SymPreScope (SR {branchStart = 2, branchEnd = 5}) (Int,"n"))],
+    (SymInt 0,(Int,"i"),SymVar Int "n" []),
+    (SymVar Int "i" [],(Int,"n"),SymPreScope (SR {branchStart = 2, branchEnd = 5}) (Int,"n"))],
   loopBoundStabilityFacts = [
     (SymVar Int "n" [],Decreasing (SymInt 1)),
     (SymVar Int "i" [],Increasing (SymInt 1))],
@@ -139,7 +139,7 @@ contains = [LoopSummary {
   loopExitFacts = [
     LoopExitFactValue "i" (SObjAcc ["a","length"]),
     LoopExitFactArrayAccessValue "a" (SymVar Int "i" []) (SymVar Int "x" [])],
-  loopCountersBounds = [(SymInt 0,"i",SObjAcc ["a","length"])],
+  loopCountersBounds = [(SymInt 0,(Int,"i"),SObjAcc ["a","length"])],
   loopBoundStabilityFacts = [(SObjAcc ["a","length"],ReadOnly)],
   loopDecreasesCandidate = [SBin (SObjAcc ["a","length"]) Sub (SymVar Int "i" [])]
 }]

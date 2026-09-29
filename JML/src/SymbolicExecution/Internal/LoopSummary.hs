@@ -598,7 +598,7 @@ getLoopFrameTargetsDevelopmentTrajectory loopFrameTargets (forBody_forStep_path,
 3) loopCountersDevelopmentTrajectory: [("i",Increasing (SymInt 1))]
  -}
 -- [(SymInt 0,"i",SymVar Int "n")]
-getLoopCountersBounds :: [(String,SymExpr)] -> [String] -> (Maybe SymExpr,[SymExpr]) -> [(String,SymExprDevelopmentTrajectory)] -> [String] -> SymbolicExecutionMonad [(SymExpr,String,SymExpr)]
+getLoopCountersBounds :: [(String,SymExpr)] -> [String] -> (Maybe SymExpr,[SymExpr]) -> [(String,SymExprDevelopmentTrajectory)] -> [String] -> SymbolicExecutionMonad [(SymExpr,(SymType,String),SymExpr)]
 getLoopCountersBounds
   loopInitFacts loopCounters (loopGuard,loopExitingConditions)
   loopFrameTargetsDevelopmentTrajectory loopReadOnlyVars = do
@@ -616,8 +616,8 @@ getLoopCountersBounds
         | condition <- loopExitingConditions
         , counterName `existsIn` condition
         ]
-  let toReturn :: [(SymExpr,String,SymExpr)]
-      toReturn = [(newInitVal,counterName,newLastVal)
+  let toReturn :: [(SymExpr,(SymType,String),SymExpr)]
+      toReturn = [(newInitVal,(counterType,counterName),newLastVal)
         | counterName <- loopCounters
 --        , maybe False (counterName `existsIn`) loopGuard
         , let initVal = case lookup counterName loopInitFacts of
@@ -638,6 +638,11 @@ getLoopCountersBounds
                 _   -> error $ constructErrorMsg loc "won't happen3" $ logContents ++ [
                   ("counterName",counterName),
                   ("boundsWithCounter",show boundsWithCounter)]
+        , let counterType = case trajectory of
+                Increasing step -> toSymType2 step
+                Decreasing step -> toSymType2 step
+                Mixed symExpr   -> toSymType2 symExpr
+                _               -> error $ constructErrorMsg loc "TODO" [("trajectory",show trajectory)]
         -- I decided to filter out some trajectories
         , case trajectory of
             Increasing _ -> True
@@ -723,7 +728,7 @@ getLoopCountersBounds
 --------------------
 --------------------
 
-getLoopBoundStabilityFacts :: ([CFGT.Node],SymStateEnv,SymStateEnv) -> [(SymExpr, String, SymExpr)] -> [String] -> SymbolicExecutionMonad [(SymExpr, SymExprDevelopmentTrajectory)]
+getLoopBoundStabilityFacts :: ([CFGT.Node],SymStateEnv,SymStateEnv) -> [(SymExpr, (SymType,String), SymExpr)] -> [String] -> SymbolicExecutionMonad [(SymExpr, SymExprDevelopmentTrajectory)]
 getLoopBoundStabilityFacts
   (forBody_forStep_path,orig_env,new_env) loopCounterBounds loopFrameTargets = do
   let loc = "SymbolicExecution.Internal.LoopSummary.getLoopBoundStabilityFacts"
@@ -935,7 +940,7 @@ observe `loopCountersDevelopmentTrajectory` and `loopBoundStabilityFacts`
  -}
 getLoopDecreasesCandidate ::
   [(String,SymExprDevelopmentTrajectory)] ->
-  [(SymExpr,String,SymExpr)] ->
+  [(SymExpr,(SymType,String),SymExpr)] ->
   [(SymExpr,SymExprDevelopmentTrajectory)] ->
   SymbolicExecutionMonad [SymExpr]
 getLoopDecreasesCandidate
@@ -956,7 +961,7 @@ getLoopDecreasesCandidate
    -}
   let toStudy :: [(CounterInfos,BoundInfos)]
       toStudy = concat [zip_counter_bounds--((counter,counterTrajectory),boundsStabilities)
-        | (lowerBound,counter,upperBound) <- loopCountersBounds
+        | (lowerBound,(_,counter),upperBound) <- loopCountersBounds
         , let whichBounds :: [(BoundPosition,SymExpr)]
               whichBounds = getNonConstantBound (lowerBound,upperBound)
               

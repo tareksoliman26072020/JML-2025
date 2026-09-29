@@ -4955,7 +4955,7 @@ idByLoop = Map.fromList [
                dynamicallyAccessedArrays = [],
                loopAssignments = ["i"],
                loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
-               loopCountersBounds = [(SymInt 0,"i",SymVar SYT.Int "n" [])],
+               loopCountersBounds = [(SymInt 0,(SYT.Int,"i"),SymVar SYT.Int "n" [])],
                loopBoundStabilityFacts = [(SymVar SYT.Int "n" [],ReadOnly)],
                loopDecreasesCandidate = [SBin (SymVar SYT.Int "n" []) SYT.Sub (SymVar SYT.Int "i" [])],
                loopExitFacts = [LoopExitFactValue "i" (SymVar SYT.Int "n" [])]}))
@@ -5011,7 +5011,7 @@ idByLoopStride3 = Map.fromList [
              dynamicallyAccessedArrays = [],
              loopAssignments = ["i"],
              loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 3))],
-             loopCountersBounds = [(SymInt 0,"i",SBin (SymVar SYT.Int "n" []) SYT.Add (SymInt 2))],
+             loopCountersBounds = [(SymInt 0,(SYT.Int,"i"),SBin (SymVar SYT.Int "n" []) SYT.Add (SymInt 2))],
              loopBoundStabilityFacts = [(SymVar SYT.Int "n" [],ReadOnly),(SBin (SymVar SYT.Int "n" []) SYT.Add (SymInt 2),ReadOnly)],
              loopDecreasesCandidate = [SBin (SBin (SymVar SYT.Int "n" []) SYT.Add (SymInt 2)) SYT.Sub (SymVar SYT.Int "i" [])],
              loopExitFacts = [LoopExitFactRange "i" (SymVar SYT.Int "n" []) (SBin (SymVar SYT.Int "n" []) SYT.Add (SymInt 2))]}))
@@ -5072,7 +5072,7 @@ idByLoop2 = Map.fromList [
              loopAssignments = ["i"],
              loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
              loopExitFacts = [LoopExitFactValue "i" (SymVar SYT.Int "n" [])],
-             loopCountersBounds = [(SymInt 0,"i",SymVar SYT.Int "n" [])],
+             loopCountersBounds = [(SymInt 0,(SYT.Int,"i"),SymVar SYT.Int "n" [])],
              loopBoundStabilityFacts = [(SymVar SYT.Int "n" [],ReadOnly)],
              loopDecreasesCandidate = [SBin (SymVar SYT.Int "n" []) SYT.Sub (SymVar SYT.Int "i" [])]}))
          [(CounterPattern (CountingUp "i"),
@@ -5132,7 +5132,7 @@ halving = Map.fromList [
              loopAssignments = ["n","i"],
              loopFrameTargetsDevelopmentTrajectory = [("n",Decreasing (SymInt 1)),("i",Increasing (SymInt 1))],
              loopExitFacts = [LoopExitFactRange "n" (SBin (SymVar SYT.Int "i" []) SYT.Sub (SymInt 1)) (SymVar SYT.Int "i" []),LoopExitFactRange "i" (SymVar SYT.Int "n" []) (SBin (SymVar SYT.Int "n" []) SYT.Add (SymInt 1))],
-             loopCountersBounds = [(SymInt 0,"i",SymVar SYT.Int "n" []),(SymVar SYT.Int "i" [],"n",SymPreScope (SR {branchStart = 2, branchEnd = 5}) (SYT.Int,"n"))],
+             loopCountersBounds = [(SymInt 0,(SYT.Int,"i"),SymVar SYT.Int "n" []),(SymVar SYT.Int "i" [],(SYT.Int,"n"),SymPreScope (SR {branchStart = 2, branchEnd = 5}) (SYT.Int,"n"))],
              loopBoundStabilityFacts = [(SymVar SYT.Int "n" [],Decreasing (SymInt 1)),(SymVar SYT.Int "i" [],Increasing (SymInt 1))],
              loopDecreasesCandidate = [SBin (SymVar SYT.Int "n" []) SYT.Sub (SymVar SYT.Int "i" [])]}))
          [(CounterPattern (CountingUp "i"),
@@ -5196,7 +5196,7 @@ contains = Map.fromList [
              loopExitFacts = [
                LoopExitFactValue "i" (SObjAcc ["a","length"]),
                LoopExitFactArrayAccessValue "a" (SymVar SYT.Int "i" []) (SymVar SYT.Int "x" [])],
-             loopCountersBounds = [(SymInt 0,"i",SObjAcc ["a","length"])],
+             loopCountersBounds = [(SymInt 0,(SYT.Int,"i"),SObjAcc ["a","length"])],
              loopBoundStabilityFacts = [(SObjAcc ["a","length"],ReadOnly)],
              loopDecreasesCandidate = [SBin (SObjAcc ["a","length"]) SYT.Sub (SymVar SYT.Int "i" [])]})) 
          [(CounterPattern (CountingUp "i"),

@@ -2271,7 +2271,7 @@ createLoopSummary theLoopSyntax m_Acc
   ---------------------
   -- loopCountersBounds
   ---------------------
-  theLoopCountersBounds :: [(SymExpr,String,SymExpr)] <- do
+  theLoopCountersBounds :: [(SymExpr,(SymType,String),SymExpr)] <- do
     incrementLogEnumeration
     incrementLogDepth *>
       getLoopCountersBounds

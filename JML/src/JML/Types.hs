@@ -74,12 +74,29 @@ data Maintaining_LoopInvariantTemplate
       String  -- counter
       Expr    -- stride
       Expr    -- residue
+{-
+//@ maintaining
+//@   (\forall int k;
+//       counterInitFact <= k
+           && k < counter
+           && k < counterUpperBound
+           && k % counterTrajectoryStride == counterLowerBound;
+//       metPredicate);
+
+if Stride == 1, then drop
+  1) `&& k < counterUpperBound`
+  2) `&& k % counterTrajectoryStride == counterLowerBound`
+ -}
   | SearchExclusionTemplate
-      Int         -- counterLowerBound
-      String      -- counter
-      SYT.SymExprDevelopmentTrajectory  -- counterTrajectoryStride
+      (String     -- quantified variable name
+      ,JMLType)   -- type of the quantified variable
+      Expr        -- counterLowerBound
+      (String     -- counter name
+      ,Expr)      -- counter initial value
+      Expr        -- counterTrajectoryStride
       Expr        -- counterUpperBound
       Expr        -- metPredicate
+      Bool        -- whether the stride is 1
   | MovingBoundRelationTemplate String Expr
   | CounterLowerBoundTemplate Expr String
   | GuardedInvariantTemplate Expr Expr

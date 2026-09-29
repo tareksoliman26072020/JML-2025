@@ -741,9 +741,9 @@ getVarName symExpr = let
            (Just n,Nothing) -> n
            (Nothing,Just n) -> n
            (Just x,Just y) -> error
-             $ constructErrorMsg loc "TODO" [("symExpr",show symExpr)]
+             $ constructErrorMsg loc "TODO1" [("symExpr",show symExpr)]
     SObjAcc [arrName,"length"] -> arrName
-    _ -> error $ constructErrorMsg loc "won't happen2" [("symExpr",show symExpr)]
+    _ -> error $ constructErrorMsg loc "TODO2" [("symExpr",show symExpr)]
 
 getAccessedArraysNamesViaNamedIndexes :: [String] -> SymExpr -> [(SymType,String)]
 getAccessedArraysNamesViaNamedIndexes indexes symExpr = let
@@ -1625,7 +1625,7 @@ loopGuardHasCounter counterName summary = case loopGuard summary of
 
 loopCounterBoundsHasCounter :: String -> LoopSummary -> Bool
 loopCounterBoundsHasCounter counterName summary =
-  any (\(_,name,_) -> name == counterName)
+  any (\(_,(_,name),_) -> name == counterName)
       (loopCountersBounds summary)
 
 loopDecreasesCandidatesHasCounter :: String -> LoopSummary -> Bool

@@ -150,6 +150,13 @@ ppOp op = case op of
   Or -> "||"
   _ -> error $ printf "JML.PrettyPrint.ppOp: TODO: %s" (show op)
 
+ppJMLType :: JMLType -> String
+ppJMLType jmlType = let
+  loc = "JML.PrettyPrint.ppJMLType"
+  logContents = [("jmlType",show jmlType)] in case jmlType of
+  Int_Type -> "int"
+  _ -> error $ printf "TODO in %s: JMLType: %s" loc (show jmlType)
+
 ppBehaviors :: [Behavior] -> String
 ppBehaviors behaviors = 
   let res = intercalate "\n  @ also\n  " $ map ppBehavior behaviors
@@ -168,6 +175,35 @@ ppLoopInvariantTemplate template = let
     Maintaining (StridedCounterTemplate counter stride residue) -> printf
       "maintaining %s %% %s == %s"
       counter (ppExpr stride) (ppExpr residue)
+  --SearchExclusionTemplate
+    Maintaining (SearchExclusionTemplate
+      (quantified_variable_name,quantified_variable_type)
+      counterLowerBound
+      (counter,counterInitFact)
+      counterTrajectory
+      counterUpperBound
+      predicate
+      isStrideOne)
+        | isStrideOne -> printf
+            "maintaining (\\forall %s %s; %s <= %s && %s < %s; %s)"
+            (ppJMLType quantified_variable_type) quantified_variable_name
+            (ppExpr counterInitFact) quantified_variable_name
+            quantified_variable_name counter
+            (ppExpr predicate)
+        | otherwise -> printf
+            "maintaining\n\
+            \    (\\forall %s %s;\n\
+            \        %s <= %s &&\n\
+            \        %s < %s &&\n\
+            \        %s < %s &&\n\
+            \        %s %% %s == %s;\n\
+            \          %s)"
+            (ppJMLType quantified_variable_type) quantified_variable_name
+            (ppExpr counterInitFact) quantified_variable_name
+            quantified_variable_name counter
+            quantified_variable_name (ppExpr counterUpperBound)
+            quantified_variable_name (ppExpr counterTrajectory) (ppExpr counterLowerBound)
+            (ppExpr predicate)
   --LoopFrameTemplate [String]
     LoopAssigns (LoopFrameTemplate vars) -> "loop_assigns " ++ (intercalate ", " vars)
   --DecreasesTemplate Expr
@@ -241,11 +277,24 @@ pp_CFG_JML cfg jmlSpecifications = let
         in (newIndent,new_maybe_last_node,else_ids ++ else_id,newAcc)
       ---
     CFGT.End _ _ _ -> let
+      nextIds = dropWhile (\(id2,_) -> id2<=CFGT.id node) $ CFGT.edges cfg
       newIndent = indent - 2
       ppNode = CFG.ppNode node
       semicolon = case ppNode of
         "" -> ""
         _ -> ";"
-      newAcc = acc ++ replicate indent ' ' ++ ppNode ++ semicolon ++ "\n" ++ replicate newIndent ' ' ++ "}\n"
+      closeParentheses = case nextIds of
+        [] -> replicate newIndent ' ' ++ "}\n"
+        _  -> ""
+      newAcc = acc ++ replicate indent ' ' ++ ppNode ++ semicolon ++ "\n" ++ closeParentheses
       in (indent,Just node,else_ids,newAcc)
+      {-case nextIds of
+        -- end of method
+        [] -> let
+          
+        -- a return statement happened to exit in the scope of an if or loop
+        -- in this case there's nothing to be done here
+        _ -> let
+          newAcc = acc ++ 
+          in (indent,Just node,else_ids,acc)-}
     _ -> error $ printf "TODO2 in %s:\n  %s\n  %s" innerLoc (show cfg) (show jmlSpecifications)

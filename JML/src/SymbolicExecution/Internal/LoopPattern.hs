@@ -228,12 +228,12 @@ inferStableBoundPatterns loopSummary = do
       ,("loopCountersBounds",show theLoopCountersBounds)]
   let toReturn = concatMap checkBound theLoopCountersBounds
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn where
-  checkBound :: (SymExpr, String, SymExpr) -> [(LoopPattern, [LoopSummaryTag])]
-  checkBound (_, counterName, upperBound)
+  checkBound :: (SymExpr, (SymType,String), SymExpr) -> [(LoopPattern, [LoopSummaryTag])]
+  checkBound (_, (_,counterName), upperBound)
     | isLoopCounterIncreasing counterName loopSummary
       && isReadOnlyBoundViaStabilityFacts upperBound loopSummary
       = [(BoundPattern $ StableBound upperBound, stableBoundTags loopSummary upperBound)]
-  checkBound (lowerBound, counterName, _)
+  checkBound (lowerBound, (_,counterName), _)
     | isLoopCounterDecreasing counterName loopSummary
       && isReadOnlyBoundViaStabilityFacts lowerBound loopSummary
       = [(BoundPattern $ StableBound lowerBound, stableBoundTags loopSummary lowerBound)]

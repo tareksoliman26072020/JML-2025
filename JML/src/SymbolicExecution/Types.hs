@@ -262,7 +262,7 @@ data LoopSummary = LoopSummary {
   -- inferring how the loopFrameTargets end up looking like when the loop is exited
   , loopExitFacts :: [LoopExitFact]
   -- Lower and upper bounds for each counter.
-  , loopCountersBounds :: [(SymExpr,String,SymExpr)]
+  , loopCountersBounds :: [(SymExpr,(SymType,String),SymExpr)]
   -- how the loop bound changes during the loop
   , loopBoundStabilityFacts :: [(SymExpr,SymExprDevelopmentTrajectory)]
   -- Candidate termination variant

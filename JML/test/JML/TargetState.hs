@@ -149,7 +149,8 @@ allTargets = [
   ("idByLoop", idByLoop),
   ("idByLoopStride3", idByLoopStride3),
   ("idByLoop2", idByLoop2),
-  ("halving", halving)
+  ("halving", halving),
+  ("contains", contains)
   ]
 
 -----------------------------
@@ -5770,5 +5771,44 @@ halving = Method {
               JMLInt 0
       ]
     }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+contains :: Method
+contains = Method {
+  name = "contains",
+  jmlSpecifications = [
+    LoopSpecification (
+      LoopInvariants {
+        loopScopeRange = SR {branchStart = 2, branchEnd = 7},
+        loopClauses = [
+          Maintaining $ CounterBoundsTemplate (JMLInt 0) "i" (JMLObjAcc ["a","length"]),
+          Maintaining $ SearchExclusionTemplate ("k",Int_Type) (JMLInt 0) ("i",JMLInt 0) (JMLInt 1) (JMLObjAcc ["a","length"]) (JMLBin (JMLArrayIndexAccess (Array_Type Int_Type) "a" (JMLVar Int_Type "k")) Neq (JMLVar Int_Type "x")) True,
+          LoopAssigns $ LoopFrameTemplate ["i"],
+          DecreasesTemplate $ JMLBin (JMLObjAcc ["a","length"]) Sub (JMLVar Int_Type "i")
+        ]
+      }
+    ),
+    MethodSpecification (
+      NormalBehavior {
+        behaviorScopeRange = Nothing,
+        requires = Nothing,
+        assignable = [],
+        vars = [
+          JMLVar Int_Type "i"
+            `JMLEquals`
+              (JMLBin (JMLBin (JMLInt 0) Lt (JMLObjAcc ["a","length"])) And (JMLBin (JMLArrayIndexAccess (Array_Type Int_Type) "a" (JMLInt 0)) Neq (JMLVar Int_Type "x")) `JMLImplies` JMLObjAcc ["a","length"]),
+          JMLVar Int_Type "i"
+            `JMLEquals`
+              (JMLBin (JMLBin (JMLInt 0) Ge (JMLObjAcc ["a","length"])) Or (JMLBin (JMLArrayIndexAccess (Array_Type Int_Type) "a" (JMLInt 0)) Eq (JMLVar Int_Type "x")) `JMLImplies` JMLInt 0)
+        ],
+        hasSideEffect = False,
+        ensures = [JMLResult $ JMLBool False]
+      }
+    )
   ]
 }
