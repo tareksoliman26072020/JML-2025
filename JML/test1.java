@@ -6974,6 +6974,13 @@ public void boo34(String input){
   }
 }
 
+public boolean isEven(int n) {
+  if (n%2==0) {
+    return true;
+  }
+  return false;
+}
+
 //DONE
 //JavaMethod
 /*

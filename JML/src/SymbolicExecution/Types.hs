@@ -40,6 +40,7 @@ type SymbolicExecutionValue = SymExpr
 
 data SymState = SymState
  { env :: SymStateEnv
+ , executionResults :: [ExecutionResult]
  , logHeader :: Log.Header
  }
  deriving (Eq,Show)
@@ -102,6 +103,12 @@ visitSymExpr ==> SymInt: ER_SymStateMapEntry
 
 data ExecutionResult =
     ER_Expr SymExpr
+  | ER_Entry
+      SymType -- method type
+      String  -- method name
+  | ER_MethodParameter
+      String  -- parameter name
+      SymExpr -- value of the parameter
   | ER_IfExpr CFGT.ScopeRange
               (SymExpr,          -- if condition before substitution of variables
                SymExpr)          -- if condition after substitution of variables
@@ -129,6 +136,9 @@ data ExecutionResult =
   | ER_Continue
   | ER_Break
   | ER_Return (Maybe SymExpr)
+  | ER_ReturnSymUnknown SymExpr -- this comes in handy when the return value is ambigious
+                                -- due to the presence of previous return statement
+                                -- in a scope or more
   | ER_ActualParameterDetected String SymExpr
   deriving (Show,Eq)
 

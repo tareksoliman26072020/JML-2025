@@ -540,6 +540,7 @@ incrementLogEnumeration = do
         let newCounter = counter ++ [1]
         modify $ \symState -> SymState {
           env = env symState,
+          executionResults = executionResults symState,
           logHeader = Log.Header depth newCounter
         }
         --tellingIt (depth,oldCounterStr) (depth,logNum newCounter)
@@ -548,6 +549,7 @@ incrementLogEnumeration = do
         let newCounter = take (depth-1) counter ++ [(counter !! (depth-1)) + 1]
         modify $ \symState -> SymState {
           env = env symState,
+          executionResults = executionResults symState,
           logHeader = Log.Header depth newCounter
         }
         --tellingIt (depth,oldCounterStr) (depth,logNum newCounter)
@@ -559,6 +561,7 @@ incrementLogDepth = do
   Log.Header depth counter <- logHeader <$> get
   modify $ \symState -> SymState {
     env = env symState,
+    executionResults = executionResults symState,
     logHeader = Log.Header (depth+1) counter
   }
   --tell [Log.Log "?" $ Log.IncrementLogDepth depth (depth+1)]
@@ -568,6 +571,7 @@ decrementLogDepth = do
   Log.Header depth counter <- logHeader <$> get
   modify $ \symState -> SymState {
     env = env symState,
+    executionResults = executionResults symState,
     logHeader = Log.Header (depth-1) counter
   }
   --tell [Log.Log "?" $ Log.DecrementLogDepth depth (depth-1)]
@@ -716,6 +720,7 @@ er: ER_SymStateMapEntry (VarName "y") (SymVar UnknownNumSymType "y")
             -- modify the state accordingly
             modify $ \symState -> SymState {
               env = ma3,
+              executionResults = executionResults symState,
               logHeader = logHeader symState
             }
             return ma3
@@ -1412,6 +1417,7 @@ runMonad :: SymbolicExecutionMonad a -> (String,Either String a)
 runMonad runner = let
   initialSymState = SymState
     { env = Map.empty
+    , executionResults = []
     , logHeader = Log.Header
         { Log.logScopeDepth = 1
         , Log.logCounter = []
