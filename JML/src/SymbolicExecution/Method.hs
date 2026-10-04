@@ -532,7 +532,7 @@ instance CFGVisitor MethodProcessor where
                             $ map toSymType2 (v : symExprs_)
                       in cast newType v
                   _ -> v,
-                executionResults = executionResults symState ++ [toReturn],
+                executionResults = executionResults symState ++ [ER_Summary newVarCoor toReturn],
                 logHeader = logHeader symState
               }
               return toReturn
@@ -689,7 +689,7 @@ visitStmt maybeNodeCoor (AST.ReturnStmt (Just expr)) = do
   modify $ \symState ->
     SymState {
       env = Map.insert Return symExpr (env symState),
-      executionResults = executionResults symState ++ [er],
+      executionResults = executionResults symState ++ [ER_Summary (fromJust maybeNodeCoor) er],
       logHeader = logHeader symState
     }
 
@@ -727,7 +727,7 @@ visitStmt maybeNodeCoor stmt@(AST.FunCallStmt expr) = case expr of
     modify $ \symState ->
       SymState {
         env = env symState,
-        executionResults = executionResults symState ++ [toReturn],
+        executionResults = executionResults symState ++ [ER_Summary (fromJust maybeNodeCoor) toReturn],
         logHeader = logHeader symState
       }
     tellNextLog (Log.Return "visitStmt -> FunCallStmt" (show toReturn)) $> toReturn
@@ -742,7 +742,7 @@ visitStmt maybeNodeCoor AST.ContinueStmt = do
   modify $ \symState ->
     SymState {
       env = Map.insert Continue SymContinue (env symState),
-      executionResults = executionResults symState ++ [toReturn],
+      executionResults = executionResults symState ++ [ER_Summary (fromJust maybeNodeCoor) toReturn],
       logHeader = logHeader symState
     }
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn
@@ -754,7 +754,7 @@ visitStmt maybeNodeCoor AST.BreakStmt = do
   modify $ \symState ->
     SymState {
       env = Map.insert Break SymBreak (env symState),
-      executionResults = [toReturn],
+      executionResults = executionResults symState ++ [ER_Summary (fromJust maybeNodeCoor) toReturn],
       logHeader = logHeader symState
     }
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn
@@ -1057,19 +1057,21 @@ visitExpr maybeNodeCoor (expr@AST.FunCallExpr{}) = do
             then return ()
             else do
               tellNextLog $ Log.ModifyState (loc ++ " -> inheriting actualParms") ("ActualParms",show inherit_actualParms)
-              modify $ \symState -> SymState
-                (Map.union inherit_actualParms (env symState))
-                (executionResults symState)
-                (logHeader symState)
+              modify $ \symState -> SymState {
+                env = Map.union inherit_actualParms (env symState),
+                executionResults = executionResults symState,
+                logHeader = logHeader symState
+              }
           ----------
           if Map.null inherit_scopeRanges
             then return ()
             else do
               tellNextLog $ Log.ModifyState (loc ++ " -> inheriting ScopeRanges") ("ScopeRanges",show inherit_scopeRanges)
-              modify $ \symState -> SymState
-                (Map.union inherit_scopeRanges (env symState))
-                (executionResults symState)
-                (logHeader symState)
+              modify $ \symState -> SymState {
+                env = Map.union inherit_scopeRanges (env symState),
+                executionResults = executionResults symState,
+                logHeader = logHeader symState
+              }
           ----------
           tellNextLog $ Log.RunSymStateActualMethodCall (show funCallSymState2Env)
           let toReturn = ER_FunCall funCallSymState2Env
@@ -1296,7 +1298,7 @@ two_newVal = SymArray (Just (Array Int)) (Just 2) [SymNull Int,SymNull Int]
   modify $ \symState ->
     SymState {
       env = Map.insert one_svn two_newVal (env symState),
-      executionResults = executionResults symState ++ [toReturn],
+      executionResults = executionResults symState ++ [ER_Summary (fromJust maybeNodeCoor) toReturn],
       logHeader = logHeader symState
     }
   
@@ -1350,7 +1352,7 @@ visitExpr maybeNodeCoor expr@AST.VarExpr{} = do
               modify $ \symState -> SymState {
                 env = Map.insert (VarName varName_) symExpr
                       $ recordGlobalVar varName_ (env symState),
-                executionResults = executionResults symState ++ [toReturn],
+                executionResults = executionResults symState ++ [ER_Summary (fromJust maybeNodeCoor) toReturn],
                 logHeader = logHeader symState
               }
               tellNextLog (Log.Return "visitExpr -> VarExpr -> Recording Global Variable" (show toReturn)) $> toReturn
@@ -1372,7 +1374,7 @@ visitExpr maybeNodeCoor expr@AST.VarExpr{} = do
               modify $ \symState ->
                 SymState {
                   env = Map.insert (VarName varName_) sExpr (env symState),
-                  executionResults = executionResults symState ++ [toReturn],
+                  executionResults = executionResults symState ++ [ER_Summary (fromJust maybeNodeCoor) toReturn],
                   logHeader = logHeader symState
                 }
               tellNextLog (Log.Return "visitExpr -> VarExpr -> Declaring Local Variable" (show toReturn)) $> toReturn
@@ -1660,7 +1662,7 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
         Nothing -> return ()
       _ -> return ()
     
-    visitUnregisteredLoop theLoopSyntax cfg m_Acc
+    visitUnregisteredLoop theLoopSyntax (nodeCoor,cfg) m_Acc
       (mForCondExpr,forCondExpr_visited_expr)
       (forBody_forStep_path,loopState,forBody_forStep_ers)
       branchRange
@@ -1805,7 +1807,7 @@ visitRegisteredLoop theLoopSyntax loopCounter (env_Before_Acc,executionResults_B
             tellNextLog $ Log.ModifyState "visitRegisteredLoop" ("Undo SymState to before the loop",show env_Before_Acc)
             modify $ \symState -> SymState env_Before_Acc executionResults_Before_Acc (logHeader symState)
         
-          visitUnregisteredLoop theLoopSyntax cfg m_Acc
+          visitUnregisteredLoop theLoopSyntax (nodeCoor,cfg) m_Acc
             (mForCondExpr,forCondExpr_visited_expr)
             (forBody_forStep_path,loopState,forBody_forStep_ers)
             branchRange
@@ -1908,11 +1910,11 @@ createLoopCondition nodeCoor expr = do
 
 ------------------------------
 
-visitUnregisteredLoop :: LoopSyntax -> CFGT.CFG -> Maybe CFGT.Node
+visitUnregisteredLoop :: LoopSyntax -> (CFGT.Node_Coor,CFGT.CFG) -> Maybe CFGT.Node
   -> (Maybe AST.Expression,SymExpr)
   -> ([CFGT.Node],SymState,[ExecutionResult])
   -> CFGT.ScopeRange -> SymbolicExecutionMonad ExecutionResult
-visitUnregisteredLoop theLoopSyntax cfg m_Acc
+visitUnregisteredLoop theLoopSyntax (nodeCoor,cfg) m_Acc
   (mForCondExpr,forCondExpr_visited_expr)
   (forBody_forStep_path,loopState,forBody_forStep_ers)
   branchRange = do
@@ -2102,7 +2104,7 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
   tellNextLog $ Log.ModifyState "visitUnregisteredLoop" (show branchRange,show symExpr)
   modify $ \symState -> SymState {
     env = Map.insert (ScopeRange branchRange) symExpr map_withVarNames,
-    executionResults = executionResults symState ++ [toReturn],
+    executionResults = executionResults symState ++ [ER_Summary nodeCoor toReturn],
     logHeader = logHeader symState
     }
   tellNextLog (Log.Return "visitUnregisteredLoop" (show toReturn)) $> toReturn
