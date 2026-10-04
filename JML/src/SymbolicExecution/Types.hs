@@ -102,13 +102,15 @@ visitSymExpr ==> SymInt: ER_SymStateMapEntry
 -}
 
 data ExecutionResult =
-    ER_Expr SymExpr
+    ER_Summary CFGT.Node_Coor ExecutionResult
   | ER_Entry
       SymType -- method type
-      String  -- method name
+      String  -- method name  
   | ER_MethodParameter
       String  -- parameter name
       SymExpr -- value of the parameter
+
+  | ER_Expr SymExpr
   | ER_IfExpr CFGT.ScopeRange
               (SymExpr,          -- if condition before substitution of variables
                SymExpr)          -- if condition after substitution of variables
