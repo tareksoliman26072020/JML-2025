@@ -30,6 +30,18 @@ instance CFGVisitor MethodProcessor where
   visitNode node = MethodProcessor $ tellNextLog (Log.HorizontalLine "visitNode") >> case node of
     CFGT.Entry t mn args -> do
       let loc = "SymbolicExecution.Method.visitNode.Entry"
+      nodeCoor <- do
+        (_,cfgs) <- ask
+        let cfg = case CFG.findCFGByName mn cfgs of
+              -- CFG not found
+              Nothing   -> error $ printf "%s ==> %s does not exist" loc mn
+              -- CFG found
+              Just cfg0 -> cfg0
+        return $ CFGT.Node_Coor {
+            CFGT.varDeclAt = 0,
+            CFGT.varFrame =
+              CFGT.SR 0 $ CFG.getBranchEnd 0 cfg
+        }
       tellNextLog $ Log.MethodStart mn loc
       let (methodHandleKey,methodHandleValue@(SMethodHandle methodType methodName)) =
               (MethodHandle,
@@ -47,7 +59,7 @@ instance CFGVisitor MethodProcessor where
           tellNextLog $ Log.MethodFormalParams (show args) (loc ++ " ==> method with args")
           mapM_ (\arg -> do
             incrementLogEnumeration
-            argVisited <- incrementLogDepth *> visitExpr Nothing arg
+            argVisited <- incrementLogDepth *> visitExpr nodeCoor arg
             case argVisited of
               ER_SymStateMapEntry (VarName name) val@(SymVar _ _ _) -> do
                 alreadyExist <- env <$> get >>= return . Map.lookup (VarName name)
@@ -72,7 +84,7 @@ instance CFGVisitor MethodProcessor where
     n@CFGT.End{} -> do
       let loc = "SymbolicExecution.Method.visitNode.End"
       tellNextLog $ Log.MethodEnd loc
-      (_,cfgs) <- ask      
+      (_,cfgs) <- ask
       nodeCoor <- do
         -- get fun name. It'll be used to find the cfg of the function
         funName <- do
@@ -118,7 +130,7 @@ instance CFGVisitor MethodProcessor where
             _ -> return ER_Void
         a@(Just expr) -> do
           tellNextLog $ Log.ReturnStatement (show expr) "visitNode -> End -> return something"
-          toReturn0 <- visitStmt (Just nodeCoor) (AST.ReturnStmt a)
+          toReturn0 <- visitStmt nodeCoor (AST.ReturnStmt a)
           -- 1) if `torReturn0` is of `ER_Return`
           -- 2) and if at least an internal scope also has an `ER_Return`
           -- 3) then a SymUnknown needs to denote the ambiguity of the overall return value
@@ -158,7 +170,7 @@ instance CFGVisitor MethodProcessor where
 
 
           incrementLogDepth
-          toReturn0 <- visitStmt (Just newVarCoor) stmt
+          toReturn0 <- visitStmt newVarCoor stmt
           decrementLogDepth
 
           env <$> get >>= \theEnv -> do
@@ -239,7 +251,7 @@ instance CFGVisitor MethodProcessor where
             incrementLogEnumeration
             incrementLogDepth
             re <- censor (map $ \(Log.Log num tag) -> Log.Log num $ Log.Nested "if condition" tag)
-                     (visitExpr (Just newVarCoor) expr)
+                     (visitExpr newVarCoor expr)
             decrementLogDepth
             return $ case re of
               ER_Expr expr2 -> expr2
@@ -587,7 +599,7 @@ instance CFGVisitor MethodProcessor where
         CFGT.ForStep mStmt -> do
           let loc = "SymbolicExecution.Method.visitNode.Node.ForStep"
           tellNextLog $ Log.MethodStatementForStep (printf "%s ==> Node num: %d" loc (CFGT.id n)) (show mStmt)
-          case fmap (visitStmt (Just newVarCoor)) mStmt of
+          case fmap (visitStmt newVarCoor) mStmt of
             Nothing -> do
               tellNextLog $ Log.Skip loc "there exists no ForStep"
               return ER_Void
@@ -661,12 +673,12 @@ getFunHandle = do
     Just (SMethodHandle methodType methodName) -> return
       $ ER_FunHandle methodType methodName
 
-visitStmt :: Maybe CFGT.Node_Coor -> AST.Statement -> SymbolicExecutionMonad ExecutionResult
+visitStmt :: CFGT.Node_Coor -> AST.Statement -> SymbolicExecutionMonad ExecutionResult
 --ReturnStmt {returnS :: Maybe Expression}
-visitStmt maybeNodeCoor (AST.ReturnStmt (Just expr)) = do
+visitStmt nodeCoor (AST.ReturnStmt (Just expr)) = do
   let loc = "SymbolicExecution.Method.visitStmt.ReturnStmt"
   tellNextLog $ Log.ReturnStatement (show expr) loc
-  er <- incrementLogDepth *> visitExpr maybeNodeCoor expr <* decrementLogDepth
+  er <- incrementLogDepth *> visitExpr nodeCoor expr <* decrementLogDepth
   
   -- get fun type
   (t,funName) <- do
@@ -689,7 +701,7 @@ visitStmt maybeNodeCoor (AST.ReturnStmt (Just expr)) = do
   modify $ \symState ->
     SymState {
       env = Map.insert Return symExpr (env symState),
-      executionResults = executionResults symState ++ [ER_Summary (fromJust maybeNodeCoor) er],
+      executionResults = executionResults symState ++ [ER_Summary nodeCoor er],
       logHeader = logHeader symState
     }
 
@@ -699,17 +711,17 @@ visitStmt maybeNodeCoor (AST.ReturnStmt (Just expr)) = do
   tellNextLog (Log.Return "visitStmt -> ReturnStmt" (show toReturn)) $> toReturn
 
 -- AssignStmt {varModifier :: [Modifier], assign :: Expression}
-visitStmt maybeNodeCoor stmt@AST.AssignStmt{} = do
+visitStmt nodeCoor stmt@AST.AssignStmt{} = do
   tellNextLog $ Log.AssignStatement (show $ AST.assign stmt) "visitStmt -> pattern matching: AssignStmt"
-  mapEntry <- visitExpr maybeNodeCoor $ AST.assign stmt
+  mapEntry <- visitExpr nodeCoor $ AST.assign stmt
   tellNextLog (Log.Return "visitStmt -> AssignStmt" (show mapEntry)) $> mapEntry
 -- VarStmt {var :: Expression}
-visitStmt maybeNodeCoor stmt@AST.VarStmt{} = do
-  d <- visitExpr maybeNodeCoor $ AST.var stmt
+visitStmt nodeCoor stmt@AST.VarStmt{} = do
+  d <- visitExpr nodeCoor $ AST.var stmt
   tellNextLog (Log.Return "visitStmt -> VarStmt" (show d)) $> d
-visitStmt maybeNodeCoor stmt@(AST.FunCallStmt expr) = case expr of
+visitStmt nodeCoor stmt@(AST.FunCallStmt expr) = case expr of
   AST.FunCallExpr{} -> do
-    toReturn <- visitExpr maybeNodeCoor expr
+    toReturn <- visitExpr nodeCoor expr
     case toReturn of
       ER_PredefinedFunCall symExpr -> do
         tellNextLog (Log.ModifyState "visitStmt -> FunCallStmt" ("SActions",show symExpr))
@@ -727,14 +739,14 @@ visitStmt maybeNodeCoor stmt@(AST.FunCallStmt expr) = case expr of
     modify $ \symState ->
       SymState {
         env = env symState,
-        executionResults = executionResults symState ++ [ER_Summary (fromJust maybeNodeCoor) toReturn],
+        executionResults = executionResults symState ++ [ER_Summary nodeCoor toReturn],
         logHeader = logHeader symState
       }
     tellNextLog (Log.Return "visitStmt -> FunCallStmt" (show toReturn)) $> toReturn
     -- MEOW: before: if toReturn == ER_FunCall
     --                 then return ER_Void
   _ -> throwError $ "visitStmt ==> FunCallStmt ==> won't happen 2: " ++ show expr
-visitStmt maybeNodeCoor AST.ContinueStmt = do
+visitStmt nodeCoor AST.ContinueStmt = do
   let loc = "SymbolicExecution.Method.visitStmt.ContinueStmt"
   tellNextLog $ Log.ContinueStatement loc
   let toReturn = ER_Continue
@@ -742,11 +754,11 @@ visitStmt maybeNodeCoor AST.ContinueStmt = do
   modify $ \symState ->
     SymState {
       env = Map.insert Continue SymContinue (env symState),
-      executionResults = executionResults symState ++ [ER_Summary (fromJust maybeNodeCoor) toReturn],
+      executionResults = executionResults symState ++ [ER_Summary nodeCoor toReturn],
       logHeader = logHeader symState
     }
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn
-visitStmt maybeNodeCoor AST.BreakStmt = do
+visitStmt nodeCoor AST.BreakStmt = do
   let loc = "SymbolicExecution.Method.visitStmt.ContinueStmt"
   tellNextLog $ Log.BreakStatement loc
   let toReturn = ER_Break
@@ -754,29 +766,29 @@ visitStmt maybeNodeCoor AST.BreakStmt = do
   modify $ \symState ->
     SymState {
       env = Map.insert Break SymBreak (env symState),
-      executionResults = executionResults symState ++ [ER_Summary (fromJust maybeNodeCoor) toReturn],
+      executionResults = executionResults symState ++ [ER_Summary nodeCoor toReturn],
       logHeader = logHeader symState
     }
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn
 
-visitStmt maybeNodeCoor stmt = throwError $ constructErrorMsg "visitStmt" "TODO" [
-  ("maybeNodeCoor",show maybeNodeCoor),
+visitStmt nodeCoor stmt = throwError $ constructErrorMsg "visitStmt" "TODO" [
+  ("nodeCoor",show nodeCoor),
   ("stmt",show stmt)
   ]
 
-visitExpr :: Maybe CFGT.Node_Coor -> AST.Expression -> SymbolicExecutionMonad ExecutionResult
-visitExpr maybeNodeCoor expr@(AST.NumberLiteral float) = do
+visitExpr :: CFGT.Node_Coor -> AST.Expression -> SymbolicExecutionMonad ExecutionResult
+visitExpr nodeCoor expr@(AST.NumberLiteral float) = do
   tellNextLog $ Log.Expression_2_Handle (show expr) "visitExpr -> NumberLiteral"
   let toReturn = ER_Expr (SymNum float)
   tellNextLog (Log.Return "visitExpr -> NumberLiteral" (show toReturn)) $> toReturn
 -- StringLiteral String
-visitExpr maybeNodeCoor expr@(AST.StringLiteral str) = do
+visitExpr nodeCoor expr@(AST.StringLiteral str) = do
   tellNextLog $ Log.Expression_2_Handle (show expr) "visitExpr -> StringLiteral"
   let toReturn = ER_Expr (SymString str)
   tellNextLog (Log.Return "visitExpr -> StringLiteral" (show toReturn)) $> toReturn
 
 -- FunCallExpr {funName :: Expression, funArgs :: [Expression]}
-visitExpr maybeNodeCoor (expr@AST.FunCallExpr{}) = do
+visitExpr nodeCoor (expr@AST.FunCallExpr{}) = do
   let loc = "SymbolicExecution.Method.visitExpr.FunCallExpr"
   tellNextLog $ Log.Expression_2_Handle (show expr) "visitExpr -> FunCallExpr"
   (_,cfgs) <- ask
@@ -805,7 +817,7 @@ visitExpr maybeNodeCoor (expr@AST.FunCallExpr{}) = do
                     Log.Log innerCounterStr $ foldl' (\tag str ->
                       Log.Nested str tag) logTag newLogTagStrs)
               censor prependLogs $ do
-                er <- incrementLogDepth *> visitExpr maybeNodeCoor actualParm_exp <* decrementLogDepth
+                er <- incrementLogDepth *> visitExpr nodeCoor actualParm_exp <* decrementLogDepth
                 return er
                 
           -- `actualParms1` keeps track of where actual parameters come from
@@ -1081,7 +1093,7 @@ visitExpr maybeNodeCoor (expr@AST.FunCallExpr{}) = do
       | funCallName `elem` predefinedFuns -> do
           tellNextLog $ Log.ProcessPredefinedFunCall "visitExpr ==> FunCallExpr" (show $ AST.funName expr) (show $ AST.funArgs expr)
           -- get SymExprs of args
-          ers <- mapM (visitExpr maybeNodeCoor) (AST.funArgs expr)
+          ers <- mapM (visitExpr nodeCoor) (AST.funArgs expr)
 
           let funArgsExprs = flip map ers $ \er -> let Just e = getSymExpr er in e
           -- funArgsExprs = [SBin (SymInt 1) Add (SymVar Int "n")]
@@ -1094,20 +1106,20 @@ visitExpr maybeNodeCoor (expr@AST.FunCallExpr{}) = do
           tellNextLog (Log.Return "visitExpr ==> FunCallExpr ==> 2" (show toReturn)) $> toReturn
       | otherwise -> throwError $ "visitExpr => FunCallExpr: Method " ++ funCallName ++ " does not exist"
 --BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
-visitExpr maybeNodeCoor expr@AST.BinOpExpr{} = do
+visitExpr nodeCoor expr@AST.BinOpExpr{} = do
   tellNextLog $ Log.Expression_2_Handle (show expr) "visitExpr -> BinOpExpr"
   er_one <- do
     incrementLogEnumeration
     incrementLogDepth *>
       censor (map $ \(Log.Log num tag) -> Log.Log num $ Log.Nested "Left operand" tag)
-             (visitExpr maybeNodeCoor (AST.expr1 expr))
+             (visitExpr nodeCoor (AST.expr1 expr))
         <* decrementLogDepth
   
   er_two <- do
     incrementLogEnumeration
     incrementLogDepth *>
       censor (map $ \(Log.Log num tag) -> Log.Log num $ Log.Nested "Right operand" tag)
-             (visitExpr maybeNodeCoor (AST.expr2 expr)) <* decrementLogDepth
+             (visitExpr nodeCoor (AST.expr2 expr)) <* decrementLogDepth
 
   let mOne = getSymExpr er_one
       mTwo = getSymExpr er_two
@@ -1136,9 +1148,9 @@ visitExpr maybeNodeCoor expr@AST.BinOpExpr{} = do
            ) $> toReturn
     _ -> throwError $ printf "visitExpr -> BinOpExpr -> won't happen -> (%s,%s)" (show mOne) (show mTwo)
 -- UnOpExpr {unOp :: UnOp, expr :: Expression}
-visitExpr maybeNodeCoor expr@AST.UnOpExpr{} = throwError "visitExpr ==> UnOpExpr ==> TODO"
+visitExpr nodeCoor expr@AST.UnOpExpr{} = throwError "visitExpr ==> UnOpExpr ==> TODO"
 -- AssignExpr {assEleft :: Expression, assEright :: Expression}
-visitExpr maybeNodeCoor expr@AST.AssignExpr{} = do
+visitExpr nodeCoor expr@AST.AssignExpr{} = do
   let loc = "SymbolicExecution.Method.visitExpr.AssignExpr"
   tellNextLog $ Log.Expression_2_Handle (show expr) loc
 
@@ -1146,14 +1158,14 @@ visitExpr maybeNodeCoor expr@AST.AssignExpr{} = do
     incrementLogEnumeration
     incrementLogDepth *>
       censor (map $ \(Log.Log num tag) -> Log.Log num $ Log.Nested "Left Operand" tag)
-             (visitExpr maybeNodeCoor (AST.assEleft expr))
+             (visitExpr nodeCoor (AST.assEleft expr))
         <* decrementLogDepth
 
   two <- do
     incrementLogEnumeration
     incrementLogDepth *>
       censor (map $ \(Log.Log num tag) -> Log.Log num $ Log.Nested "Right Operand" tag)
-             (visitExpr maybeNodeCoor (AST.assEright expr))
+             (visitExpr nodeCoor (AST.assEright expr))
         <* decrementLogDepth
 
   let logContents = [
@@ -1298,7 +1310,7 @@ two_newVal = SymArray (Just (Array Int)) (Just 2) [SymNull Int,SymNull Int]
   modify $ \symState ->
     SymState {
       env = Map.insert one_svn two_newVal (env symState),
-      executionResults = executionResults symState ++ [ER_Summary (fromJust maybeNodeCoor) toReturn],
+      executionResults = executionResults symState ++ [ER_Summary nodeCoor toReturn],
       logHeader = logHeader symState
     }
   
@@ -1330,7 +1342,7 @@ two_newVal = SymArray (Just (Array Int)) (Just 2) [SymNull Int,SymNull Int]
        leftOpKeyStr rightOpValStr)) $> toReturn
 
 -- VarExpr {varType :: Maybe (Type Types), varObj :: [String], varName :: String}
-visitExpr maybeNodeCoor expr@AST.VarExpr{} = do
+visitExpr nodeCoor expr@AST.VarExpr{} = do
   let loc = "SymbolicExecution.Method.visitExpr ==> VarExpr"
   tellNextLog $ Log.Expression_2_Handle (show expr) loc
   case AST.varObj expr of
@@ -1352,7 +1364,7 @@ visitExpr maybeNodeCoor expr@AST.VarExpr{} = do
               modify $ \symState -> SymState {
                 env = Map.insert (VarName varName_) symExpr
                       $ recordGlobalVar varName_ (env symState),
-                executionResults = executionResults symState ++ [ER_Summary (fromJust maybeNodeCoor) toReturn],
+                executionResults = executionResults symState ++ [ER_Summary nodeCoor toReturn],
                 logHeader = logHeader symState
               }
               tellNextLog (Log.Return "visitExpr -> VarExpr -> Recording Global Variable" (show toReturn)) $> toReturn
@@ -1374,7 +1386,7 @@ visitExpr maybeNodeCoor expr@AST.VarExpr{} = do
               modify $ \symState ->
                 SymState {
                   env = Map.insert (VarName varName_) sExpr (env symState),
-                  executionResults = executionResults symState ++ [ER_Summary (fromJust maybeNodeCoor) toReturn],
+                  executionResults = executionResults symState ++ [ER_Summary nodeCoor toReturn],
                   logHeader = logHeader symState
                 }
               tellNextLog (Log.Return "visitExpr -> VarExpr -> Declaring Local Variable" (show toReturn)) $> toReturn
@@ -1391,7 +1403,7 @@ ArrayCallExpr {
   index = Just (VarExpr {varType = Nothing, varObj = [], varName = "pos"})
 }
 -}
-visitExpr maybeNodeCoor expr@AST.ArrayCallExpr{} = do
+visitExpr nodeCoor expr@AST.ArrayCallExpr{} = do
   let loc = "SymbolicExecution.Method.visitExpr.ArrayCallExpr"
   tellNextLog
     $ Log.Expression_2_Handle (show expr) loc
@@ -1400,7 +1412,7 @@ visitExpr maybeNodeCoor expr@AST.ArrayCallExpr{} = do
     visited <- incrementLogEnumeration >>
       incrementLogDepth *>
         censor (map $ \(Log.Log str tag) -> Log.Log str $ Log.Nested ("calling array " ++ AST.getVarName expr) tag)
-           (visitExpr maybeNodeCoor $ AST.arrName expr)
+           (visitExpr nodeCoor $ AST.arrName expr)
         <* decrementLogDepth
     return $ case visited of
           ER_SymStateMapEntry (VarName arrName) _ -> arrName
@@ -1413,7 +1425,7 @@ visitExpr maybeNodeCoor expr@AST.ArrayCallExpr{} = do
         incrementLogDepth *>
           censor (map $ \(Log.Log str tag) -> Log.Log str
               $ Log.Nested ("at pos " ++ AST.ppExpr_no_type expr_) tag)
-                 (visitExpr maybeNodeCoor expr_)
+                 (visitExpr nodeCoor expr_)
             <* decrementLogDepth
       return $ case indexExpr of
         ER_SymStateMapEntry _ indexExpr2 -> indexExpr2
@@ -1431,12 +1443,12 @@ visitExpr maybeNodeCoor expr@AST.ArrayCallExpr{} = do
   let toReturn = ER_ArrayCallExpr symExprCall symExprVal
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn
 
-visitExpr maybeNodeCoor expr@(AST.BoolLiteral b) = do
+visitExpr nodeCoor expr@(AST.BoolLiteral b) = do
   tellNextLog $ Log.Expression_2_Handle (show expr) "visitExpr -> BoolLiteral"
   let toReturn = ER_Expr (SBool b)
   tellNextLog (Log.Return "visitExpr -> BoolLiteral" (show toReturn)) $> toReturn
 --ExcpExpr {excpName :: Exception, excpmsg :: Maybe String}
-visitExpr maybeNodeCoor expr@AST.ExcpExpr{} = do
+visitExpr nodeCoor expr@AST.ExcpExpr{} = do
   let loc = "SymbolicExecution.Method.visitExpr.ExcpExpr"
   tellNextLog $ Log.Expression_2_Handle (show expr) loc
   tellNextLog $ Log.ModifyState loc ("Exception",show expr)
@@ -1456,7 +1468,7 @@ visitExpr maybeNodeCoor expr@AST.ExcpExpr{} = do
   let toReturn = ER_Expr symExpr
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn
 
-visitExpr maybeNodeCoor expr@AST.ArrayInstantiationExpr{} = do
+visitExpr nodeCoor expr@AST.ArrayInstantiationExpr{} = do
   tellNextLog $ Log.Expression_2_Handle (show expr) "visitExpr -> ArrayInstantiationExpr"
   let mArrType = fmap toSymType1 $ AST.arrType expr
   -- process elements in the array, if they exist
@@ -1466,7 +1478,7 @@ visitExpr maybeNodeCoor expr@AST.ArrayInstantiationExpr{} = do
       er <- incrementLogDepth *>
               censor (map $ \(Log.Log num tag) ->
                 Log.Log num $ Log.Nested (printf "<arr>[%d]" i) tag)
-                (visitExpr maybeNodeCoor ex)
+                (visitExpr nodeCoor ex)
                               <* decrementLogDepth
       case (er,mArrType) of
         (ER_Expr expr2,Nothing) -> return $ expr2
@@ -1479,7 +1491,7 @@ visitExpr maybeNodeCoor expr@AST.ArrayInstantiationExpr{} = do
           | l > 0 -> return $ Just $ SymInt $ fromIntegral l
           | otherwise -> do
               er <- do incrementLogEnumeration
-                       incrementLogDepth *> visitExpr maybeNodeCoor ex <* decrementLogDepth
+                       incrementLogDepth *> visitExpr nodeCoor ex <* decrementLogDepth
               case er of
                 ER_Expr (SymNum num) -> return $ Just $ SymInt (round num)
                 ER_Expr expr@(SBin _ _ _) -> return $ Just expr
@@ -1503,7 +1515,7 @@ visitExpr maybeNodeCoor expr@AST.ArrayInstantiationExpr{} = do
   let toReturn = ER_Expr symExpr
   tellNextLog (Log.Return "SymbolicExecution.Method.visitExpr.ArrayInstantiationExpr" (show toReturn)) $> toReturn
 
-visitExpr maybeNodeCoor expr@AST.Null = do
+visitExpr nodeCoor expr@AST.Null = do
   let loc = "SymbolicExecution.Method.visitExpr"
   tellNextLog $ Log.Expression_2_Handle (show expr) loc
   let toReturn = ER_Expr $ SymNull UnknownGlobalVarSymType
@@ -1540,7 +1552,7 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
          then incrementLogEnumeration $> ()
          else return ()
        re <- incrementLogDepth *>
-         censor (prependLogs "For Loop Condition") (visitExpr (Just nodeCoor) forCondExpr)
+         censor (prependLogs "For Loop Condition") (visitExpr nodeCoor forCondExpr)
                           <* decrementLogDepth
        return $ (,,) True (Just re) $ case re of
          ER_Expr forCondExpr_visited -> forCondExpr_visited
@@ -1736,7 +1748,7 @@ visitRegisteredLoop theLoopSyntax loopCounter (env_Before_Acc,executionResults_B
       incrementLogDepth
       res <- censor (map $ \(Log.Log num tag) ->
                Log.Log num $ Log.Nested "For Loop Condition" tag)
-                    (visitExpr (Just nodeCoor) forCondExpr)
+                    (visitExpr nodeCoor forCondExpr)
       decrementLogDepth
       return $ case res of
         ER_Expr forCondExpr_visited -> forCondExpr_visited
@@ -1898,7 +1910,7 @@ createLoopCondition nodeCoor expr = do
           -- And we need to restore the state in case it was edited, therefore `put origState`
           er <- do
             origState <- get
-            censor (filter $ const False) (visitExpr (Just nodeCoor) expr) <* put origState
+            censor (filter $ const False) (visitExpr nodeCoor expr) <* put origState
           case er of
             ER_VarExprObjAccess name value -> return
               $ Map.singleton name value
