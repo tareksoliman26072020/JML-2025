@@ -173,6 +173,32 @@ getPath startId cfg =
                   Nothing -> []
                   Just nextNodeId -> getPath nextNodeId cfg
 
+------------------
+
+-- gives me the kind of the scope in which the `nodeCoor` exists
+findKind_via_nodeCoor :: CFG -> Node_Coor -> Maybe Kind
+findKind_via_nodeCoor cfg nodeCoor = let
+  loc = "CFG.Internal.findKind_via_nodeCoor"
+  scopeStart = varDeclAt nodeCoor
+  logContents = [
+    ("cfg",show cfg),
+    ("nodeCoor",show nodeCoor),
+    ("scopeStart",show scopeStart)
+    ]
+  maybeNodeData = case [nodeData
+    | Node nodeId nodeData _ <- nodes cfg
+    , scopeStart == nodeId
+    ] of
+    [] -> Nothing
+    [nodeData] -> Just nodeData
+    nodeDatas -> error $ constructErrorMsg loc "won't happen1" $ logContents
+      ++ [("nodeDatas",show nodeDatas)] in
+  flip fmap maybeNodeData $ \case
+    BooleanExpression kind _ -> kind
+    _ -> error $ constructErrorMsg loc "won't happen2" $ logContents
+      ++ [("maybeNodeData",show maybeNodeData)]
+  
+
 {-
   Entry wrongSum3: method type: Int, args: (Int n)
 ----------

@@ -445,12 +445,36 @@ getReturnSymExpr = Map.lookup Return
 hasReturn :: SymStateEnv -> Bool
 hasReturn = Map.member Return
 
+is_ER_Return :: ExecutionResult -> Bool
+is_ER_Return = \case
+  ER_Return _ -> True
+  _           -> False
+
 hasReturn2 :: [ExecutionResult] -> Bool
-hasReturn2 = any $ \case
+hasReturn2 = any hasReturn3
+
+hasReturn3 :: ExecutionResult -> Bool
+hasReturn3 = \case
   ER_Return _ -> True
   ER_ReturnVoid -> True
-  ER_IfExpr _ _ (_,ifErs) (_,elseErs) -> hasReturn2 $ ifErs ++ elseErs
+  ER_IfExpr _ _ (_,ifErs) (_,elseErs) -> any hasReturn3 (ifErs ++ elseErs)
+  ER_Summary _ er -> hasReturn3 er
   _ -> False
+
+get_inner_ers :: ExecutionResult -> [ExecutionResult]
+get_inner_ers er = let
+  loc = "SymbolicExecution.Internal.Internal.get_inner_ers"
+  logContents = [("er",show er)] in case er of
+  ER_IfExpr _ _ (_,if_Ers) (_,else_Ers) -> if_Ers ++ else_Ers
+  _ -> []
+
+-- a list of ER_Summary is passed
+-- and the coordinates of the ER_Return is returned
+getReturnsCoors :: [ExecutionResult] -> [CFGT.Node_Coor]
+getReturnsCoors ers = [coor
+  | ER_Summary coor er <- ers
+  , hasReturn3 er
+  ]
 
 hasBreak :: SymStateEnv -> Bool
 hasBreak = Map.member Break
@@ -500,6 +524,7 @@ getSymExpr = \case
   ER_ArrayCallExpr _ symExpr -> Just symExpr
   ER_PredefinedFunCall symExpr -> Just symExpr
   ER_VarExprObjAccess _ symExpr -> Just symExpr
+  ER_Return maybeSymExpr -> maybeSymExpr
   er -> error $ "SymbolicExecution.Internal.Internal.getSymExpr ~~> TODO: " ++ show er
 
 -- if the input is SymVar, then the return is SymVar

@@ -69,7 +69,7 @@ instance CFGVisitor MethodProcessor where
                     tellNextLog $ Log.ModifyState (loc ++ " ==> arg") (name,show val)
                     modify $ \symState -> SymState {
                         env = recordFormalParm name $ Map.insert (VarName name) val (env symState),
-                        executionResults = executionResults symState ++ [ER_MethodParameter name val],
+                        executionResults = init (executionResults symState) ++ [ER_MethodParameter name val],
                         logHeader = logHeader symState
                     }
                   Just _ -> return ()
@@ -85,7 +85,7 @@ instance CFGVisitor MethodProcessor where
       let loc = "SymbolicExecution.Method.visitNode.End"
       tellNextLog $ Log.MethodEnd loc
       (_,cfgs) <- ask
-      nodeCoor <- do
+      (nodeCoor,cfg) <- do
         -- get fun name. It'll be used to find the cfg of the function
         funName <- do
           visited <- getFunHandle
@@ -98,12 +98,12 @@ instance CFGVisitor MethodProcessor where
               Nothing   -> error $ printf "%s ==> %s does not exist" loc funName
               -- CFG found
               Just cfg0 -> cfg0
-        return $ CFGT.Node_Coor {
+        return $ (,) CFGT.Node_Coor {
               CFGT.varDeclAt = CFGT.id n,
               CFGT.varFrame =
                 let bStart = CFGT.parent n
                 in CFGT.SR bStart $ CFG.getBranchEnd bStart cfg
-            }
+            } cfg
       case CFGT.mExpr n of
         Nothing       -> do
           -- is it a void method or not?
@@ -131,11 +131,36 @@ instance CFGVisitor MethodProcessor where
         a@(Just expr) -> do
           tellNextLog $ Log.ReturnStatement (show expr) "visitNode -> End -> return something"
           toReturn0 <- visitStmt nodeCoor (AST.ReturnStmt a)
+          let symExpr = case getSymExpr toReturn0 of
+                Just s -> s
+                Nothing -> error $ constructErrorMsg loc "TODO1" [("toReturn0",show toReturn0)]
           -- 1) if `torReturn0` is of `ER_Return`
           -- 2) and if at least an internal scope also has an `ER_Return`
           -- 3) then a SymUnknown needs to denote the ambiguity of the overall return value
           -- otherwise, toReturn = toReturn0
-          toReturn <- return toReturn0
+          toReturn <- do
+            x <- executionResults <$> get
+            newestReturn <- (last . executionResults) <$> get
+            returns_coors :: [CFGT.Node_Coor]
+              <- (getReturnsCoors . init . executionResults) <$> get
+            let symReason = flip map returns_coors $ \coor -> let
+                  scopeStart = CFGT.varDeclAt coor in
+                  (,)
+                      (fromJust $ CFG.findKind_via_nodeCoor cfg coor)
+                      (CFGT.SR scopeStart $ CFG.getBranchEnd scopeStart cfg)
+            case symReason of
+              -- if empty, then there's no previous return statement
+              [] -> return toReturn0
+              _  -> do
+                let new_er = ER_Return (Just $ SymUnknown ("",symExpr) [(symReason,CFGT.varDeclAt nodeCoor)])
+                modify $ \symState -> SymState {
+                  env = env symState,
+                  executionResults = init (executionResults symState) ++ [ER_Summary nodeCoor new_er],
+                  logHeader = logHeader symState
+                }
+                ers <- executionResults <$> get
+                --throwError $ constructErrorMsg loc "WWWWWW" [("ers",show ers)]
+                return $ new_er
           tellNextLog (Log.Return "visitNode -> End -> method returns" (show toReturn)) $> toReturn
     ----------------------------------------
     ----------------------------------------
@@ -698,16 +723,16 @@ visitStmt nodeCoor (AST.ReturnStmt (Just expr)) = do
     incrementLogDepth *> inferGlobalVarType t er <* decrementLogDepth
 
   tellNextLog $ Log.ModifyState "visitStmt -> ReturnStmt -> method with args" ("return",show symExpr)
-  modify $ \symState ->
-    SymState {
-      env = Map.insert Return symExpr (env symState),
-      executionResults = executionResults symState ++ [ER_Summary nodeCoor er],
-      logHeader = logHeader symState
-    }
-
   let toReturn = case getSymExpr er of
         Just expr -> ER_Return $ Just expr
         Nothing -> error $ constructErrorMsg loc "TODO" [("er",show er)]
+  modify $ \symState ->
+    SymState {
+      env = Map.insert Return symExpr (env symState),
+      executionResults = executionResults symState ++ [ER_Summary nodeCoor toReturn],
+      logHeader = logHeader symState
+    }
+
   tellNextLog (Log.Return "visitStmt -> ReturnStmt" (show toReturn)) $> toReturn
 
 -- AssignStmt {varModifier :: [Modifier], assign :: Expression}
@@ -743,8 +768,6 @@ visitStmt nodeCoor stmt@(AST.FunCallStmt expr) = case expr of
         logHeader = logHeader symState
       }
     tellNextLog (Log.Return "visitStmt -> FunCallStmt" (show toReturn)) $> toReturn
-    -- MEOW: before: if toReturn == ER_FunCall
-    --                 then return ER_Void
   _ -> throwError $ "visitStmt ==> FunCallStmt ==> won't happen 2: " ++ show expr
 visitStmt nodeCoor AST.ContinueStmt = do
   let loc = "SymbolicExecution.Method.visitStmt.ContinueStmt"
