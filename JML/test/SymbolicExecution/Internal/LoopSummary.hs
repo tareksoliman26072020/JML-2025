@@ -57,6 +57,7 @@ idByLoopStride3 = [LoopSummary {
   loopExitFacts = [LoopExitFactRange "i" (SymVar Int "n" []) (SBin (SymVar Int "n" []) Add (SymInt 2))]
 }]
 
+
 idByLoop2 :: [LoopSummary]
 idByLoop2 = [LoopSummary {
   loopSyntax = WhileSyntax,

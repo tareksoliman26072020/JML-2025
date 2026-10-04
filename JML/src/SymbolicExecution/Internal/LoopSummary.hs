@@ -229,6 +229,7 @@ getLoopExitingConditions loopGuard (breaksEnv,breaks_ers) (returnsEnv,returns_er
     flip concatMap ers $ \er -> case er of
       ER_ReturnVoid -> [[SBool True]]
       ER_Return _ -> [[SBool True]]
+      ER_Summary _ er -> study_returns_ER_IfExpr sr [er]
       ER_IfExpr sr2 (ifCond,_) (_,ifErs) (_,elseErs)
         | sr == sr2 -> let
             ifErsStudy
@@ -261,6 +262,7 @@ getLoopExitingConditions loopGuard (breaksEnv,breaks_ers) (returnsEnv,returns_er
     loc = globalLoc ++ ".getLoopExitingConditions.study_breaks_ER_IfExpr" in
     flip concatMap ers $ \er -> case er of
       ER_Break -> [[SBool True]]
+      ER_Summary _ er -> study_breaks_ER_IfExpr sr [er]
       ER_IfExpr sr2 (ifCond,_) (_,ifErs) (_,elseErs)
         | sr == sr2 -> let
             ifErsStudy
@@ -307,6 +309,7 @@ getLoopExitViaBreakFacts forBody_forStep_ers = do
   study :: [ExecutionResult] -> [StateChangingConditions]
   study = concatMap $ \case
     ER_Break -> [[(Nothing,Condition $ SBool True)]]
+    ER_Summary _ er -> study [er]
     ER_IfExpr _ (ifCond,_) (ifCoor,ifErs) (maybeElseCoor,elseErs) -> let
       negated = negate ifCond
       fromIf = [res
@@ -354,6 +357,7 @@ getLoopExitViaReturnFacts forBody_forStep_ers = do
   study ers = let
     loc = globalLoc ++ ".getLoopExitViaReturnFacts.study" in flip concatMap ers $ \case
     ER_Return mExpr -> [([],mExpr)]
+    ER_Summary _ er -> study [er]
     ER_IfExpr _ (ifCond,_) (ifCoor,ifErs) (maybeElseCoor,elseErs) -> let
       fromIf = [(one,mReturnSymExpr)
         | (stateChangingConditions,mReturnSymExpr) <- study ifErs
@@ -371,7 +375,6 @@ getLoopExitViaReturnFacts forBody_forStep_ers = do
         ]
       in fromIf ++ fromElse
     _ -> []
-    er -> error $ constructErrorMsg loc "TODO" [("er",show er)]
 
 --------------------
 --------------------
@@ -439,6 +442,7 @@ getDynamicallyAccessedArrays loopCounters loop_ers = do
     ER_Return mSymExpr -> maybe [] studySymExpr mSymExpr
     ER_ActualParameterDetected _ _ -> err "TODO2" er
     ER_Break -> []
+    ER_Summary _ er -> study_loop_ers [er]
     _ -> err "TODO3" er
   studySymExpr :: SymExpr -> [(SymExpr,[String])]
   studySymExpr symExpr = case studySymExprHelper symExpr of

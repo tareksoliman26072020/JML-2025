@@ -482,11 +482,9 @@ hasBreak = Map.member Break
 hasBreak2 :: [ExecutionResult] -> Bool
 hasBreak2 = any $ \case
   ER_Break -> True
+  ER_Summary _ er -> hasBreak2 [er]
   ER_IfExpr _ _ (_,ifErs) (_,elseErs) -> hasBreak2 $ ifErs ++ elseErs
   _ -> False
-
-hasBreak3 :: [ExecutionResult] -> Bool
-hasBreak3 = (ER_Break `elem`)
 
 conjunctConditions :: [SymExpr] -> SymExpr
 conjunctConditions conds = let
@@ -653,6 +651,9 @@ getBreaks2 ers = let
     ER_Expr SymBreak -> error $ constructErrorMsg loc "TODO1" $ errContents er
     ER_Expr _ -> False
     ER_Return _ -> False
+    ER_Summary _ er -> case getBreaks2 [er] of
+      [] -> False
+      _  -> True
     _ -> error $ constructErrorMsg loc "TODO2" $ errContents er
 
 getReturns :: SymStateEnv -> SymStateEnv
@@ -676,6 +677,7 @@ getReturns2 ers = let
   loc = "SymbolicExecution.Internal.Internal.getReturns2"
   errContents er = [("er",show er),("ers",show ers)] in
   flip filter ers $ \er -> case er of
+    ER_Return _ -> True
     ER_SymStateMapEntry _ _ -> False
     ER_Break -> False
     ER_IfExpr _ _ (_,if_ers) (_,else_ers) -> case (getReturns2 if_ers,getReturns2 else_ers) of
@@ -683,8 +685,12 @@ getReturns2 ers = let
       _ -> True
     ER_Void -> False
     ER_Expr _ -> False
-    ER_Return _ -> True
     ER_ForLoopDone -> False
+    ER_Entry _ _ -> False
+    ER_MethodParameter _ _ -> False
+    ER_Summary _ er -> case getReturns2 [er] of
+      [] -> False
+      _  -> True
     _ -> error $ constructErrorMsg loc "TODO1" $ errContents er
 
 -- alters the type of a global variable based on the expression and the scope it exists in

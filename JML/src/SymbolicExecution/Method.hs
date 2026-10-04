@@ -2504,5 +2504,5 @@ runCFG cfgs cfg mPath mSymState =
   --in either (const undefined) ({-id-}\r -> error $ constructErrorMsg loc "MEOW" [("r",show r)]) er
   in (either id (const "") er
      ,logs
-     ,either (const []) id er
+     ,either (const []) {-id-}(const $ executionResults s) er
      ,env s)
