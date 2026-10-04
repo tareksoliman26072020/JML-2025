@@ -726,6 +726,7 @@ equalsNullIn arrName expr = let
   JMLNull _ -> False
   JMLObjAcc _ -> False
   JMLArrayIndexAccess _ _ _ -> False
+  JMLVarUnknown _ _ _ expr -> equalsNullIn arrName expr
   _ -> error $ printf "TODO1 in %s ==> %s" loc (show expr)
 
 isJMLVarUnknown :: Expr -> Bool
@@ -1263,7 +1264,7 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
     gettingSideEffect = HasSideEffect `elem` values
     gettingEnsures = [expr | Ensures expr <- values]
     newPreCondition = combinePreconditions (requires behavior) And thePreCondition
-    processing = processJMLVarUnknown_behavior $ case behavior of
+    behavior2process = case behavior of
       NormalBehavior{} -> NormalBehavior {
         behaviorScopeRange = theScopeRange,
         requires = newPreCondition,
@@ -1280,8 +1281,15 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
         vars = vars behavior ++ gettingVars,
         hasSideEffect = hasSideEffect behavior || gettingSideEffect,
         ensures = ensures behavior ++ gettingEnsures
-      } in
-    processing
+      } -- `until` applies `f` repeatedly
+        -- until `p` is met
+        -- the idea is that there may be nested number of JMLVarUnknown
+        -- which need processing
+        -- and `until` deal with it until processing the behavior yields no new output.
+        in fst $ until 
+      {- p -}(\(old,new) -> old == new)
+      {- f -}(\(old,new) -> (new,processJMLVarUnknown_behavior new))
+             (behavior2process,processJMLVarUnknown_behavior behavior2process)
   --
   check_if_assignables_missing :: [String] -> Clause -> [(JMLType,String,Expr)]
   check_if_assignables_missing allGlobalVars (Requires _ clauseValues) = let

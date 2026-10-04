@@ -1198,7 +1198,7 @@ boo28 = Map.fromList [
               (VarName "x",SymInt 2),
               (Return,SymVar SYT.Int "i" [])])
           Nothing),
-    (Return,SymInt 5)
+    (Return,SymUnknown ("",SymInt 5) [([(If,SR {branchStart = 2, branchEnd = 5})],4)])
   ]
 
 -----------------------------
@@ -1286,7 +1286,7 @@ boo28_2 = Map.fromList [
               (VarName "y",SymInt 0),
               (Return,SymVar SYT.Int "i" [])])
           Nothing),
-    (Return,SymInt 5)
+    (Return,SymUnknown ("",SymInt 5) [([(If,SR {branchStart = 2, branchEnd = 6})],5)])
   ]
 
 -----------------------------
@@ -1347,7 +1347,7 @@ boo28_4 = Map.fromList [
                   ("x",(SymInt 2,Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),
               (VarName "i",SymVar SYT.Int "i" []),
               (VarName "x",SymInt 2)]))),
-    (Return,SymInt 5)
+    (Return,SymUnknown ("",SymInt 5) [([(If,SR {branchStart = 2, branchEnd = 6})],4)])
   ]
 
 -----------------------------
@@ -1450,7 +1450,7 @@ boo28_5 = Map.fromList [
                   ("x",(SymInt 2,Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 2, branchEnd = 7}}))]),
               (VarName "i",SymVar SYT.Int "i" []),
               (VarName "x",SymInt 2)]))),
-    (Return,SymInt 5)
+    (Return,SymUnknown ("",SymInt 5) [([(If,SR {branchStart = 2, branchEnd = 7})],5)])
   ]
 
 -----------------------------
@@ -1498,7 +1498,7 @@ boo28_6 = Map.fromList [
                   ("x",(SymInt 2,Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 2, branchEnd = 7}}))]),
               (VarName "i",SymVar SYT.Int "i" []),
               (VarName "x",SymInt 2)]))),
-    (Return,SymInt 7)
+    (Return,SymUnknown ("",SymInt 7) [([(If,SR {branchStart = 2, branchEnd = 7})],5)])
   ]
 
 -----------------------------
@@ -1624,7 +1624,7 @@ boo28_6_6 = Map.fromList [
               (VarAssignments,SVarAssignments [("x",(SymInt 1,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 5}})),("x",(SymInt 2,Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 2, branchEnd = 7}}))]),
               (VarName "i",SymVar SYT.Int "i" []),
               (VarName "x",SymInt 2)]))),
-    (Return,SymUnknown ("x",SymInt 1) [([(If,SR {branchStart = 2, branchEnd = 7})],6)])
+    (Return,SymUnknown ("",SymUnknown ("x",SymInt 1) [([(If,SR {branchStart = 2, branchEnd = 7})],6)]) [([(If,SR {branchStart = 2, branchEnd = 7})],5)])
   ]
 
 -----------------------------
@@ -1745,7 +1745,7 @@ boo28_6_6_4 = Map.fromList [
               (VarName "i",SymVar SYT.Int "i" []),
               (VarName "x",SymInt 2),
               (VarName "z",SymInt 9)]))),
-    (Return,SymUnknown ("x",SymInt 1) [([(If,SR {branchStart = 2, branchEnd = 8})],7)])
+    (Return,SymUnknown ("",SymUnknown ("x",SymInt 1) [([(If,SR {branchStart = 2, branchEnd = 8})],7)]) [([(If,SR {branchStart = 2, branchEnd = 8})],5)])
   ]
 
 -----------------------------
@@ -1791,7 +1791,7 @@ boo28_6_7 = Map.fromList [
                   ("x",(SymInt 2,Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 2, branchEnd = 7}}))]),
               (VarName "i",SymVar SYT.Int "i" []),
               (VarName "x",SymInt 2)]))),
-    (Return,SymInt 5)
+    (Return,SymUnknown ("",SymInt 5) [([(If,SR {branchStart = 2, branchEnd = 7})],5)])
   ]
 
 -----------------------------
@@ -2054,7 +2054,7 @@ elemAt = Map.fromList [
                (Return,SException SYT.Int "Exception" "not found")
              ])
           Nothing),
-    (Return,SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymVar SYT.Int "pos" []))
+    (Return,SymUnknown ("",SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymVar SYT.Int "pos" [])) [([(If,SR {branchStart = 1, branchEnd = 3})],2)])
   ]
 
 -----------------------------
@@ -2095,7 +2095,7 @@ elemAt2 = Map.fromList [
                (Return,SException SYT.Int "Exception" "not found")
              ])
           Nothing),
-    (Return,SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymVar SYT.Int "pos" []))
+    (Return,SymUnknown ("",SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymVar SYT.Int "pos" [])) [([(If,SR {branchStart = 2, branchEnd = 4})],3)])
   ]
 
 -----------------------------
@@ -2143,7 +2143,7 @@ elemAt3 = Map.fromList [
               (ScopeRange (SR {branchStart = 4, branchEnd = 2}),
                SIte (SBin (SymInt 5) SYT.Le (SymVar SYT.Int "pos" []))
                     (Map.fromList [(MethodHandle,SMethodHandle SYT.Int "elemAt3"),(FormalParms,SFormalParms ["pos"]),(VarBindings,SVarBindings (Map.fromList [("arr",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 8}})])),(VarAssignments,SVarAssignments [("arr",(SymArray (Just SYT.Int) (Just (SymInt 5)) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8],Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 8}}))]),(VarName "arr",SymArray (Just SYT.Int) (Just (SymInt 5)) [SymInt 6,SymInt 5,SymInt 4,SymInt 7,SymInt 8]),(VarName "pos",SymVar SYT.Int "pos" []),(Return,SException SYT.Int "Exception" "not found")]) Nothing),
-              (Return,SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymVar SYT.Int "pos" []))])
+              (Return,SymUnknown ("",SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymVar SYT.Int "pos" [])) [([(If,SR {branchStart = 1, branchEnd = 8}),(If,SR {branchStart = 4, branchEnd = 6})],5)])])
           )
     )
   ]

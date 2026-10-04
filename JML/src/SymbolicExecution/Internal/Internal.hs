@@ -447,8 +447,9 @@ hasReturn = Map.member Return
 
 is_ER_Return :: ExecutionResult -> Bool
 is_ER_Return = \case
-  ER_Return _ -> True
-  _           -> False
+  ER_Return _   -> True
+  ER_ReturnVoid -> True
+  _             -> False
 
 hasReturn2 :: [ExecutionResult] -> Bool
 hasReturn2 = any hasReturn3
@@ -470,11 +471,40 @@ get_inner_ers er = let
 
 -- a list of ER_Summary is passed
 -- and the coordinates of the ER_Return is returned
-getReturnsCoors :: [ExecutionResult] -> [CFGT.Node_Coor]
-getReturnsCoors ers = [coor
-  | ER_Summary coor er <- ers
-  , hasReturn3 er
-  ]
+getReturnsCoors :: [ExecutionResult] -> [[CFGT.Node_Coor]]
+getReturnsCoors ers = case ers of
+  [] -> []
+  (er : rest) -> case er of
+    ER_Summary coor er
+      | is_ER_Return er -> [[coor]]
+    ER_Summary _ inner_er
+      | hasReturn3 inner_er ->
+          getReturnsCoors [inner_er] ++ getReturnsCoors rest
+      | otherwise -> getReturnsCoors rest
+    ER_IfExpr _ _ (_,ifErs) (_,elseErs) -> case (any hasReturn3 ifErs,any hasReturn3 elseErs) of
+      (True,True)   -> getReturnsCoors ifErs ++ getReturnsCoors elseErs ++ getReturnsCoors rest
+      (True,False)  -> getReturnsCoors ifErs ++ getReturnsCoors rest
+      (False,True)  -> getReturnsCoors elseErs ++ getReturnsCoors rest
+      (False,False) -> getReturnsCoors rest
+    _ -> getReturnsCoors rest
+    
+{-
+getReturnsCoors :: [ExecutionResult] -> [[CFGT.Node_Coor]]
+getReturnsCoors ers = case ers of
+  [] -> []
+  (er : rest) -> case er of
+    ER_Summary coor inner_er
+      | hasReturn3 inner_er -> case getReturnsCoors [inner_er] of
+          [] -> [[coor]] ++ getReturnsCoors rest
+          li -> (map (coor :) li) ++ getReturnsCoors rest
+      | otherwise -> getReturnsCoors rest
+    ER_IfExpr _ _ (_,ifErs) (_,elseErs) -> case (any hasReturn3 ifErs,any hasReturn3 elseErs) of
+      (True,True)   -> getReturnsCoors ifErs ++ getReturnsCoors elseErs ++ getReturnsCoors rest
+      (True,False)  -> getReturnsCoors ifErs ++ getReturnsCoors rest
+      (False,True)  -> getReturnsCoors elseErs ++ getReturnsCoors rest
+      (False,False) -> getReturnsCoors rest
+    _ -> getReturnsCoors rest
+-}
 
 hasBreak :: SymStateEnv -> Bool
 hasBreak = Map.member Break

@@ -130,7 +130,11 @@ instance CFGVisitor MethodProcessor where
             _ -> return ER_Void
         a@(Just expr) -> do
           tellNextLog $ Log.ReturnStatement (show expr) "visitNode -> End -> return something"
-          toReturn0 <- visitStmt nodeCoor (AST.ReturnStmt a)
+          toReturn0 <- do
+            incrementLogEnumeration
+            incrementLogDepth *>
+              visitStmt nodeCoor (AST.ReturnStmt a)
+                <* decrementLogDepth
           let symExpr = case getSymExpr toReturn0 of
                 Just s -> s
                 Nothing -> error $ constructErrorMsg loc "TODO1" [("toReturn0",show toReturn0)]
@@ -139,28 +143,35 @@ instance CFGVisitor MethodProcessor where
           -- 3) then a SymUnknown needs to denote the ambiguity of the overall return value
           -- otherwise, toReturn = toReturn0
           toReturn <- do
-            x <- executionResults <$> get
             newestReturn <- (last . executionResults) <$> get
-            returns_coors :: [CFGT.Node_Coor]
-              <- (getReturnsCoors . init . executionResults) <$> get
-            let symReason = flip map returns_coors $ \coor -> let
-                  scopeStart = CFGT.varDeclAt coor in
-                  (,)
-                      (fromJust $ CFG.findKind_via_nodeCoor cfg coor)
-                      (CFGT.SR scopeStart $ CFG.getBranchEnd scopeStart cfg)
+            old_ers <- (init . executionResults) <$> get
+            let returns_coors :: [[CFGT.Node_Coor]]
+                returns_coors = getReturnsCoors old_ers
+            let symReason = createSymReason (CFGT.Method,CFGT.varFrame nodeCoor) cfg
+                  $ map last returns_coors
+            
+            let newSymExpr = SymUnknown ("",symExpr) symReason
+                new_er = ER_Return (Just newSymExpr)
             case symReason of
               -- if empty, then there's no previous return statement
               [] -> return toReturn0
+              -- otherwise, SymUnknown
               _  -> do
-                let new_er = ER_Return (Just $ SymUnknown ("",symExpr) [(symReason,CFGT.varDeclAt nodeCoor)])
+                constructLog loc "Summary" [
+                     ("nodeCoor",show nodeCoor),
+                     ("toReturn0",show toReturn0),
+                     ("newestReturn",show newestReturn),
+                     ("old_ers",show old_ers),
+                     ("returns_coors",show returns_coors),
+                     ("symReason",show symReason),
+                     ("newSymExpr",show newSymExpr),
+                     ("new_er",show new_er)]
                 modify $ \symState -> SymState {
-                  env = env symState,
+                  env = Map.insert Return newSymExpr (env symState),
                   executionResults = init (executionResults symState) ++ [ER_Summary nodeCoor new_er],
                   logHeader = logHeader symState
                 }
-                ers <- executionResults <$> get
-                --throwError $ constructErrorMsg loc "WWWWWW" [("ers",show ers)]
-                return $ new_er
+                return new_er
           tellNextLog (Log.Return "visitNode -> End -> method returns" (show toReturn)) $> toReturn
     ----------------------------------------
     ----------------------------------------
@@ -724,7 +735,7 @@ visitStmt nodeCoor (AST.ReturnStmt (Just expr)) = do
 
   tellNextLog $ Log.ModifyState "visitStmt -> ReturnStmt -> method with args" ("return",show symExpr)
   let toReturn = case getSymExpr er of
-        Just expr -> ER_Return $ Just expr
+        Just expr -> ER_Return $ Just $ cast t expr
         Nothing -> error $ constructErrorMsg loc "TODO" [("er",show er)]
   modify $ \symState ->
     SymState {
@@ -2504,5 +2515,5 @@ runCFG cfgs cfg mPath mSymState =
   --in either (const undefined) ({-id-}\r -> error $ constructErrorMsg loc "MEOW" [("r",show r)]) er
   in (either id (const "") er
      ,logs
-     ,either (const []) {-id-}(const $ executionResults s) er
+     ,either (const []) (const $ executionResults s) er
      ,env s)
