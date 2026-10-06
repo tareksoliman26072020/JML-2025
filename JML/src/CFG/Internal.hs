@@ -287,10 +287,34 @@ getPathToScope br cfg = helper (branchStart br) where
           | isForStartNode theNode =
              let endNodeId = getEndForNode cfg theNode
              in [(For, SR nodeId (getNodeId endNodeId))]
+          | isWhileCondNode theNode =
+             let endNodeId = getEndWhileNode cfg theNode
+             in [(While, SR nodeId (getNodeId endNodeId))]
           | otherwise = []
     in (++ recordCoor) $ case stepBack nodeId (edges cfg) of
          Nothing -> error "getPathToScope ==> won't happen"
          Just (nextNodeId,_) -> helper nextNodeId
+
+getPathToCoor :: Node_Coor -> CFG -> [Node_Coor]
+getPathToCoor nodeCoor cfg = [scopeRange_2_nodeCoor sr
+  | (_,sr) <- getPathToScope (varFrame nodeCoor) cfg
+  ]
+{-
+data Node_Coor = Node_Coor
+  { varDeclAt :: Int
+  , varFrame  :: ScopeRange
+  } deriving (Eq,Show)
+
+data ScopeRange = SR
+  { branchStart :: Int
+  , branchEnd :: Int
+  } deriving (Eq,Ord,Show)
+ -}
+scopeRange_2_nodeCoor :: ScopeRange -> Node_Coor
+scopeRange_2_nodeCoor sr = Node_Coor {
+  varDeclAt = branchStart sr,
+  varFrame  = sr
+}
 
 {-
   Entry wrongSum3: method type: Int, args: (Int n)

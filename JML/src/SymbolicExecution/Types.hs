@@ -250,7 +250,7 @@ data LoopSummary = LoopSummary {
   -- The initial loop guard which should be met so that the loop gets iterated
   , loopEnteringCondition :: Maybe SymExpr
   , loopSkipCondition :: Maybe SymExpr
-  , loopExitingConditions :: [({-[CFGT.Node_Coor],-}SymExpr)]
+  , loopExitingConditions :: [([CFGT.Node_Coor],SymExpr)]
   , loopExitViaBreakFacts :: [StateChangingConditions]
   , loopExitViaReturnFacts :: [(StateChangingConditions,Maybe SymExpr)]
   -- The variables that function as loop counters or induction variables.

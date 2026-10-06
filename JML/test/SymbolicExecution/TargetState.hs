@@ -4851,29 +4851,16 @@ quickSort = Map.fromList [
         ("stack",(SymArray (Just SYT.Int) (Just (SBin (SObjAcc ["arr","length"]) SYT.Mul (SymInt 2))) [SArrayIndexAccess (SYT.Array SYT.Int) "stack" (SymInt 0),SBin (SObjAcc ["arr","length"]) SYT.Sub (SymInt 1)],Node_Coor {varDeclAt = 18, varFrame = SR {branchStart = 16, branchEnd = 2}})),
         ("top",(SymInt 1,Node_Coor {varDeclAt = 19, varFrame = SR {branchStart = 16, branchEnd = 2}})),
         ("stack",(SymArray (Just SYT.Int) (Just (SBin (SObjAcc ["arr","length"]) SYT.Mul (SymInt 2))) [SArrayIndexAccess (SYT.Array SYT.Int) "stack" (SymInt 0),SymUnknown ("i",SBin (SArrayIndexAccess (SYT.Array SYT.Int) "stack" (SymInt 0)) SYT.Sub (SymInt 1)) [([(For,SR {branchStart = 3, branchEnd = 10}),(If,SR {branchStart = 5, branchEnd = 8})],6)]],Node_Coor {varDeclAt = 20, varFrame = SR {branchStart = 16, branchEnd = 2}})),
-        ("top",(SBin (SymUnknown ("top",SymInt (-1)) [([(If,SR {branchStart = 16, branchEnd = 21})],17),([(If,SR {branchStart = 16, branchEnd = 21})],19)]) SYT.Add (SymInt 1),Node_Coor {varDeclAt = 23, varFrame = SR {branchStart = 22, branchEnd = 2}})),
-        ("stack",(SymUnknown ("stack",SymArray (Just SYT.Int) (Just (SBin (SObjAcc ["arr","length"]) SYT.Mul (SymInt 2))) [SymInt 0,SBin (SObjAcc ["arr","length"]) SYT.Sub (SymInt 1)]) [([(If,SR {branchStart = 16, branchEnd = 21})],18),([(If,SR {branchStart = 16, branchEnd = 21})],20)],Node_Coor {varDeclAt = 24, varFrame = SR {branchStart = 22, branchEnd = 2}})),
-        ("top",(SBin (SymUnknown ("top",SymInt (-1)) [([(If,SR {branchStart = 16, branchEnd = 21})],17),([(If,SR {branchStart = 16, branchEnd = 21})],19)]) SYT.Add (SymInt 2),Node_Coor {varDeclAt = 25, varFrame = SR {branchStart = 22, branchEnd = 2}})),
-        ("stack",(SymUnknown ("stack",SymArray (Just SYT.Int) (Just (SBin (SObjAcc ["arr","length"]) SYT.Mul (SymInt 2))) [SymInt 0,SBin (SObjAcc ["arr","length"]) SYT.Sub (SymInt 1)]) [([(If,SR {branchStart = 16, branchEnd = 21})],18),([(If,SR {branchStart = 16, branchEnd = 21})],20)],Node_Coor {varDeclAt = 26, varFrame = SR {branchStart = 22, branchEnd = 2}}))]),
+        ("top",(SBin (SymUnknown ("top",SymInt (-1)) [([(While,SR {branchStart = 10, branchEnd = 28}),(If,SR {branchStart = 16, branchEnd = 21})],17),([(While,SR {branchStart = 10, branchEnd = 28}),(If,SR {branchStart = 16, branchEnd = 21})],19)]) SYT.Add (SymInt 1),Node_Coor {varDeclAt = 23, varFrame = SR {branchStart = 22, branchEnd = 2}})),
+        ("stack",(SymUnknown ("stack",SymArray (Just SYT.Int) (Just (SBin (SObjAcc ["arr","length"]) SYT.Mul (SymInt 2))) [SymInt 0,SBin (SObjAcc ["arr","length"]) SYT.Sub (SymInt 1)]) [([(While,SR {branchStart = 10, branchEnd = 28}),(If,SR {branchStart = 16, branchEnd = 21})],18),([(While,SR {branchStart = 10, branchEnd = 28}),(If,SR {branchStart = 16, branchEnd = 21})],20)],Node_Coor {varDeclAt = 24, varFrame = SR {branchStart = 22, branchEnd = 2}})),
+        ("top",(SBin (SymUnknown ("top",SymInt (-1)) [([(While,SR {branchStart = 10, branchEnd = 28}),(If,SR {branchStart = 16, branchEnd = 21})],17),([(While,SR {branchStart = 10, branchEnd = 28}),(If,SR {branchStart = 16, branchEnd = 21})],19)]) SYT.Add (SymInt 2),Node_Coor {varDeclAt = 25, varFrame = SR {branchStart = 22, branchEnd = 2}})),
+        ("stack",(SymUnknown ("stack",SymArray (Just SYT.Int) (Just (SBin (SObjAcc ["arr","length"]) SYT.Mul (SymInt 2))) [SymInt 0,SBin (SObjAcc ["arr","length"]) SYT.Sub (SymInt 1)]) [([(While,SR {branchStart = 10, branchEnd = 28}),(If,SR {branchStart = 16, branchEnd = 21})],18),([(While,SR {branchStart = 10, branchEnd = 28}),(If,SR {branchStart = 16, branchEnd = 21})],20)],Node_Coor {varDeclAt = 26, varFrame = SR {branchStart = 22, branchEnd = 2}}))]),
     (VarName "arr",SymVar (SYT.Array SYT.Int) "arr" []),
-    (VarName "stack",SymUnknown ("stack",SymArray (Just SYT.Int) (Just (SBin (SObjAcc ["arr","length"]) SYT.Mul (SymInt 2))) [SymInt 0,SBin (SObjAcc ["arr","length"]) SYT.Sub (SymInt 1)]) [([(If,SR {branchStart = 16, branchEnd = 21})],18),([(If,SR {branchStart = 16, branchEnd = 21})],20),([(If,SR {branchStart = 16, branchEnd = 21}),(If,SR {branchStart = 22, branchEnd = 27})],24),([(If,SR {branchStart = 16, branchEnd = 21}),(If,SR {branchStart = 22, branchEnd = 27})],26)]),
-    (VarName "top",SymUnknown ("top",SymInt 1) [([],12),([],14),([(If,SR {branchStart = 16, branchEnd = 21})],17),([(If,SR {branchStart = 16, branchEnd = 21})],19),([(If,SR {branchStart = 16, branchEnd = 21}),(If,SR {branchStart = 22, branchEnd = 27})],23),([(If,SR {branchStart = 16, branchEnd = 21}),(If,SR {branchStart = 22, branchEnd = 27})],25)]),
-    (ScopeRange (SR {branchStart = 1, branchEnd = 3}),
-     SIte (SBin (SBin (SymVar (SYT.Array SYT.Int) "arr" []) SYT.Eq (SymNull (SYT.Array SYT.Int))) SYT.Or (SBin (SObjAcc ["arr","length"]) SYT.Le (SymInt 1)))
-          (Map.fromList [
-              (MethodHandle,SMethodHandle SYT.Void "quickSort"),
-              (FormalParms,SFormalParms ["arr"]),
-              (VarName "arr",SymVar (SYT.Array SYT.Int) "arr" []),
-              (Return,SymReturnVoid)])
-          Nothing),
-    (ScopeRange (SR {branchStart = 10, branchEnd = 28}),
-     SLoop Nothing
-           (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "top"}, binOp = GreaterEq, expr2 = NumberLiteral 1.0}))
-           [Node {id = 11, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "high"}, assEright = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "stack"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "top"})}}}), parent = 10},Node {id = 12, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "top"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "top"}, binOp = Minus, expr2 = NumberLiteral 1.0}}}), parent = 10},Node {id = 13, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "low"}, assEright = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "stack"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "top"})}}}), parent = 10},Node {id = 14, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "top"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "top"}, binOp = Minus, expr2 = NumberLiteral 1.0}}}), parent = 10},Node {id = 15, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "pivotIndex"}, assEright = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "partition"}, funArgs = [VarExpr {varType = Nothing, varObj = [], varName = "arr"},VarExpr {varType = Nothing, varObj = [], varName = "low"},VarExpr {varType = Nothing, varObj = [], varName = "high"}]}}}), parent = 10},Node {id = 16, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "pivotIndex"}, binOp = Minus, expr2 = NumberLiteral 1.0}, binOp = Greater, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "low"}})), parent = 10},Node {id = 22, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "pivotIndex"}, binOp = Plus, expr2 = NumberLiteral 1.0}, binOp = Less, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "high"}})), parent = 10}]
-           Nothing
-           []),
-    (Return,SymReturnVoid)
-  ]
+    (VarName "stack",SymUnknown ("stack",SymArray (Just SYT.Int) (Just (SBin (SObjAcc ["arr","length"]) SYT.Mul (SymInt 2))) [SymInt 0,SBin (SObjAcc ["arr","length"]) SYT.Sub (SymInt 1)]) [([(While,SR {branchStart = 10, branchEnd = 28}),(If,SR {branchStart = 16, branchEnd = 21})],18),([(While,SR {branchStart = 10, branchEnd = 28}),(If,SR {branchStart = 16, branchEnd = 21})],20),([(While,SR {branchStart = 10, branchEnd = 28}),(If,SR {branchStart = 16, branchEnd = 21}),(If,SR {branchStart = 22, branchEnd = 27})],24),([(While,SR {branchStart = 10, branchEnd = 28}),(If,SR {branchStart = 16, branchEnd = 21}),(If,SR {branchStart = 22, branchEnd = 27})],26)]),
+    (VarName "top",SymUnknown ("top",SymInt 1) [([(While,SR {branchStart = 10, branchEnd = 28})],12),([(While,SR {branchStart = 10, branchEnd = 28})],14),([(While,SR {branchStart = 10, branchEnd = 28}),(If,SR {branchStart = 16, branchEnd = 21})],17),([(While,SR {branchStart = 10, branchEnd = 28}),(If,SR {branchStart = 16, branchEnd = 21})],19),([(While,SR {branchStart = 10, branchEnd = 28}),(If,SR {branchStart = 16, branchEnd = 21}),(If,SR {branchStart = 22, branchEnd = 27})],23),([(While,SR {branchStart = 10, branchEnd = 28}),(If,SR {branchStart = 16, branchEnd = 21}),(If,SR {branchStart = 22, branchEnd = 27})],25)]),
+    (ScopeRange (SR {branchStart = 1, branchEnd = 3}),SIte (SBin (SBin (SymVar (SYT.Array SYT.Int) "arr" []) SYT.Eq (SymNull (SYT.Array SYT.Int))) SYT.Or (SBin (SObjAcc ["arr","length"]) SYT.Le (SymInt 1))) (Map.fromList [(MethodHandle,SMethodHandle SYT.Void "quickSort"),(FormalParms,SFormalParms ["arr"]),(VarName "arr",SymVar (SYT.Array SYT.Int) "arr" []),(Return,SymReturnVoid)]) Nothing),
+    (ScopeRange (SR {branchStart = 10, branchEnd = 28}),SLoop Nothing (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "top"}, binOp = GreaterEq, expr2 = NumberLiteral 1.0})) [Node {id = 11, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "high"}, assEright = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "stack"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "top"})}}}), parent = 10},Node {id = 12, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "top"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "top"}, binOp = Minus, expr2 = NumberLiteral 1.0}}}), parent = 10},Node {id = 13, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "low"}, assEright = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "stack"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "top"})}}}), parent = 10},Node {id = 14, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "top"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "top"}, binOp = Minus, expr2 = NumberLiteral 1.0}}}), parent = 10},Node {id = 15, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "pivotIndex"}, assEright = FunCallExpr {funName = VarExpr {varType = Nothing, varObj = [], varName = "partition"}, funArgs = [VarExpr {varType = Nothing, varObj = [], varName = "arr"},VarExpr {varType = Nothing, varObj = [], varName = "low"},VarExpr {varType = Nothing, varObj = [], varName = "high"}]}}}), parent = 10},Node {id = 16, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "pivotIndex"}, binOp = Minus, expr2 = NumberLiteral 1.0}, binOp = Greater, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "low"}})), parent = 10},Node {id = 22, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "pivotIndex"}, binOp = Plus, expr2 = NumberLiteral 1.0}, binOp = Less, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "high"}})), parent = 10}] Nothing []),
+    (Return,SymReturnVoid)]
 
 -----------------------------
 -----------------------------
@@ -4948,7 +4935,7 @@ idByLoop = Map.fromList [
                loopGuard = Just $ SBin (SymVar SYT.Int "i" []) SYT.Lt (SymVar SYT.Int "n" []),
                loopEnteringCondition = Just (SBin (SymInt 0) SYT.Lt (SymVar SYT.Int "n" [])),
                loopSkipCondition = Just (SBin (SymInt 0) SYT.Ge (SymVar SYT.Int "n" [])),
-               loopExitingConditions = [SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" [])],
+               loopExitingConditions = [([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}],SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" []))],
                loopExitViaBreakFacts = [],
                loopExitViaReturnFacts = [],
                loopCounters = ["i"],
@@ -5004,7 +4991,7 @@ idByLoopStride3 = Map.fromList [
              loopGuard = Just $ SBin (SymVar SYT.Int "i" []) SYT.Lt (SymVar SYT.Int "n" []),
              loopEnteringCondition = Just (SBin (SymInt 0) SYT.Lt (SymVar SYT.Int "n" [])),
              loopSkipCondition = Just (SBin (SymInt 0) SYT.Ge (SymVar SYT.Int "n" [])),
-             loopExitingConditions = [SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" [])],
+             loopExitingConditions = [([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}],SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" []))],
              loopExitViaBreakFacts = [],
              loopExitViaReturnFacts = [],
              loopCounters = ["i"],
@@ -5059,7 +5046,7 @@ idByLoop2 = Map.fromList [
              loopGuard = Just (SBool True),
              loopEnteringCondition = Just (SBool True),
              loopSkipCondition = Just (SBool False),
-             loopExitingConditions = [SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" [])],
+             loopExitingConditions = [([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 2, branchEnd = 7}},Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}}],SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" []))],
              loopExitViaBreakFacts = [
                [
                  (Just $ Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},
@@ -5124,7 +5111,7 @@ halving = Map.fromList [
              loopGuard = Just (SBin (SymVar SYT.Int "i" []) SYT.Lt (SymVar SYT.Int "n" [])),
              loopEnteringCondition = Just (SBin (SymInt 0) SYT.Lt (SymPreScope (SR {branchStart = 2, branchEnd = 5}) (SYT.Int,"n"))),
              loopSkipCondition = Just (SBin (SymInt 0) SYT.Ge (SymPreScope (SR {branchStart = 2, branchEnd = 5}) (SYT.Int,"n"))),
-             loopExitingConditions = [SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" [])],
+             loopExitingConditions = [([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 6}}],SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" []))],
              loopExitViaBreakFacts = [],
              loopExitViaReturnFacts = [],
              loopCounters = ["i","n"],
@@ -5181,12 +5168,11 @@ contains = Map.fromList [
              loopEnteringCondition = Just (SBin (SymInt 0) SYT.Lt (SObjAcc ["a","length"])),
              loopSkipCondition = Just (SBin (SymInt 0) SYT.Ge (SObjAcc ["a","length"])),
              loopExitingConditions = [
-               SBin (SymVar SYT.Int "i" [])
-                    SYT.Ge
-                    (SObjAcc ["a","length"]),
-               SBin (SArrayIndexAccess (SYT.Array SYT.Int) "a" (SymVar SYT.Int "i" []))
-                    SYT.Eq
-                    (SymVar SYT.Int "x" [])],
+               ([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}}],
+                SBin (SymVar SYT.Int "i" []) SYT.Ge (SObjAcc ["a","length"])),
+               ([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 2, branchEnd = 7}},
+                 Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}}],
+                SBin (SArrayIndexAccess (SYT.Array SYT.Int) "a" (SymVar SYT.Int "i" [])) SYT.Eq (SymVar SYT.Int "x" []))],
              loopExitViaBreakFacts = [],
              loopExitViaReturnFacts = [([(Just $ Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},ElemInArray "a" (SymVar SYT.Int "i" []) (SymVar SYT.Int "x" []))],Just (SBool True))],
              loopCounters = ["i"],

@@ -1889,10 +1889,7 @@ visitRegisteredLoop theLoopSyntax loopCounter (env_Before_Acc,executionResults_B
              decrementLogDepth
              return x
 
-           do (the_Ers,theEnv) <- (\s -> (executionResults s,env s)) <$> get
-              let find_break = flip filter the_Ers $ \case
-                    ER_Summary _ ER_Break -> True
-                    _ -> False
+           do theEnv <- env <$> get
               if
                 -- if a continue statement was just detected
                 | hasContinue theEnv -> do
@@ -2136,11 +2133,10 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
                  ) (VarName vn) ma
           ) map_withVarAssignments forBody_Some_VarNames
 
-  let condExprNodeCoor = undefined -- MEOW
   loopSummary <- do
     incrementLogEnumeration
     incrementLogDepth *>
-      createLoopSummary theLoopSyntax m_Acc
+      createLoopSummary cfg theLoopSyntax m_Acc
         (nodeCoor,mForCondExpr,forCondExpr_visited_expr)
         ((forBody_forStep_path,map_withVarNames),(loopState,forBody_forStep_ers))
         branchRange
@@ -2162,12 +2158,12 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
 
 ------------------------------
 
-createLoopSummary :: LoopSyntax -> Maybe CFGT.Node
+createLoopSummary :: CFGT.CFG -> LoopSyntax -> Maybe CFGT.Node
   -> (CFGT.Node_Coor,Maybe AST.Expression,SymExpr)
   -> (([CFGT.Node],Map.Map SymStateKey SymExpr),(SymState,[ExecutionResult]))
   -> CFGT.ScopeRange
   -> SymbolicExecutionMonad LoopSummary
-createLoopSummary theLoopSyntax m_Acc
+createLoopSummary cfg theLoopSyntax m_Acc
   (loopCondExprNodeCoor,mForCondExpr,forCondExpr_visited_expr)
   ((forBody_forStep_path,forBody_forStep_path_visited0),(loopState,forBody_forStep_ers))
   branchRange = do
@@ -2316,10 +2312,10 @@ createLoopSummary theLoopSyntax m_Acc
   ---------------------
   -- loopExitingConditions
   ---------------------
-  theLoopExitingConditions :: [SymExpr] <- do
+  theLoopExitingConditions :: [([CFGT.Node_Coor],SymExpr)] <- do
     incrementLogEnumeration
     incrementLogDepth *>
-      getLoopExitingConditions
+      getLoopExitingConditions cfg
         (loopCondExprNodeCoor,theLoopGuard)
         (getBreaks_StateEnv  $ env forBody_forStep_path_visited,
          getBreaks_ers       $ forBody_forStep_path_visited_ers)

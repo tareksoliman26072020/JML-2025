@@ -451,8 +451,8 @@ is_ER_Return = \case
   ER_ReturnVoid -> True
   _             -> False
 
-hasReturn2 :: [ExecutionResult] -> Bool
-hasReturn2 = any hasReturn3
+hasReturn_ers :: [ExecutionResult] -> Bool
+hasReturn_ers = any hasReturn3
 
 hasReturn3 :: ExecutionResult -> Bool
 hasReturn3 = \case
@@ -509,11 +509,11 @@ getReturnsCoors ers = case ers of
 hasBreak :: SymStateEnv -> Bool
 hasBreak = Map.member Break
 
-hasBreak2 :: [ExecutionResult] -> Bool
-hasBreak2 = any $ \case
+hasBreak_ers :: [ExecutionResult] -> Bool
+hasBreak_ers = any $ \case
   ER_Break -> True
-  ER_Summary _ er -> hasBreak2 [er]
-  ER_IfExpr _ _ (_,ifErs) (_,elseErs) -> hasBreak2 $ ifErs ++ elseErs
+  ER_Summary _ er -> hasBreak_ers [er]
+  ER_IfExpr _ _ (_,ifErs) (_,elseErs) -> hasBreak_ers $ ifErs ++ elseErs
   _ -> False
 
 conjunctConditions :: [SymExpr] -> SymExpr
@@ -523,6 +523,28 @@ conjunctConditions conds = let
   case conds of
     [] -> error $ constructErrorMsg loc "won't happen" logContents
     (cond : rest) -> foldl' (\acc r -> SBin acc And r) cond rest
+
+normalizeConditions2 :: SymExpr -> SymExpr
+normalizeConditions2 cond = let
+  loc = "SymbolicExecution.Internal.Internal.normalizeConditions2"
+  logContents = [("cond",show cond)] in
+  case cond of
+    SBin expr1 And expr2 -> case (expr1,expr2) of
+      (SBool True,_)  -> normalizeConditions2 expr2
+      (_,SBool True)  -> normalizeConditions2 expr1
+      (SBool False,_) -> expr1
+      (_,SBool False) -> expr2
+      _               -> SBin (normalizeConditions2 expr1) And (normalizeConditions2 expr2)
+    SBin expr1 Or expr2  -> case (expr1,expr2) of
+      (SBool True,_)  -> expr1
+      (_,SBool True)  -> expr2
+      (SBool False,_) -> normalizeConditions2 expr2
+      (_,SBool False) -> normalizeConditions2 expr1
+      _               -> SBin (normalizeConditions2 expr1) Or (normalizeConditions2 expr2)
+    SBin expr1 op expr2
+      | op `elem` [Eq,Neq] -> SBin (normalizeConditions2 expr1) op (normalizeConditions2 expr2)
+      | otherwise          -> cond
+    _ -> cond
 
 -- this function removes SBool True
 -- because an expression such as „y == j && True“ equals „y == j“
@@ -684,6 +706,11 @@ getBreaks_ers ers = let
     ER_Summary _ er -> case getBreaks_ers [er] of
       [] -> False
       _  -> True
+    ER_State _ -> False
+    ER_Continue -> False
+    ER_Entry _ _ -> False
+    ER_MethodParameter _ _ -> False
+    ER_FunCall _ -> False
     _ -> error $ constructErrorMsg loc "TODO2" $ errContents er
 
 getReturns_StateEnv :: SymStateEnv -> SymStateEnv
@@ -721,6 +748,9 @@ getReturns_ers ers = let
     ER_Summary _ er -> case getReturns_ers [er] of
       [] -> False
       _  -> True
+    ER_State _ -> False
+    ER_Continue -> False
+    ER_FunCall _ -> False
     _ -> error $ constructErrorMsg loc "TODO1" $ errContents er
 
 -- alters the type of a global variable based on the expression and the scope it exists in

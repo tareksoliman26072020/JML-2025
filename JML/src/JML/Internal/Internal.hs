@@ -19,7 +19,7 @@ import JML.PrettyPrint (ppBehavior, ppBehaviors, ppColoredClause)
 import qualified JML.Logs.Log as Log
 import Data.Maybe (isJust,catMaybes,fromJust,mapMaybe)
 
-import qualified CFG.Types as CFGT (ScopeRange, ScopeRange(SR))
+import qualified CFG.Types as CFGT (ScopeRange, ScopeRange(SR), Node_Coor(..))
 
 import qualified SymbolicExecution.Types as SYT
 import qualified SymbolicExecution.Internal.Internal as SY.Internal
@@ -491,7 +491,7 @@ mutateDefaultClause newPrecondition = do
 
 processJMLVarUnknown_via_loopExitFacts :: CFGT.ScopeRange ->
   [(String,SYT.SymbolicExecutionValue)] ->
-  (Maybe SYT.SymbolicExecutionValue,[SYT.SymbolicExecutionValue]) ->
+  (Maybe SYT.SymbolicExecutionValue,[([CFGT.Node_Coor],SYT.SymbolicExecutionValue)]) ->
   Maybe SYT.SymbolicExecutionValue ->
   [SYT.LoopExitFact]
   -> JMLMonad ()
@@ -581,8 +581,9 @@ processJMLVarUnknown_via_loopExitFacts scopeRange
         toReturn = [clauseValue]
         in (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
       Just fact -> do
-        let loopExitingConditions_negated :: [SYT.SymbolicExecutionValue]
-            loopExitingConditions_negated = map SY.Internal.negate loopExitingConditions
+        let loopExitingConditions2 = map snd loopExitingConditions
+            loopExitingConditions_negated :: [SYT.SymbolicExecutionValue]
+            loopExitingConditions_negated = map SY.Internal.negate loopExitingConditions2
             combining :: SYT.SymBinOp -> [SYT.SymbolicExecutionValue] -> SYT.SymbolicExecutionValue
             combining op (x:xs) = foldl' (\l r -> SYT.SBin l op r) x xs
             fact_studied = studyFact fact expr
@@ -600,7 +601,7 @@ processJMLVarUnknown_via_loopExitFacts scopeRange
                 (symExprToExpr2 $ combining SYT.And
                                 $ map (SY.Internal.Calculator.substitute loopInitFacts) conds)
                 (VarAssignment (t,vn,new_expr))
-            newVal2 = case loopExitingConditions of
+            newVal2 = case loopExitingConditions2 of
               [] -> err loc expr fact 2
               conds -> case lookup vn loopInitFacts of
                 Just init_expr -> Implication
@@ -621,7 +622,7 @@ processJMLVarUnknown_via_loopExitFacts scopeRange
                 (symExprToExpr2 $ combining SYT.And
                                 $ map (SY.Internal.Calculator.substitute loopInitFacts) conds)
                 (VarInRange (t,vn,(from_expr,to_expr)))
-            newVal2 = case loopExitingConditions of
+            newVal2 = case loopExitingConditions2 of
               [] -> err loc expr fact 5
               conds -> case lookup vn loopInitFacts of
                 Just init_expr -> Implication
@@ -634,41 +635,6 @@ processJMLVarUnknown_via_loopExitFacts scopeRange
                     ("newVal1",show newVal1),
                     ("newVal2",show newVal2)]
                   return [newVal1,newVal2]
-          {-
-          [new_expr] -> let
-            newVal1 = case loopEnteringCondition of
-              Nothing -> err loc expr fact 1
-              Just cond -> Implication (symExprToExpr2 cond) $
-                VarAssignment (t,vn,new_expr)
-            newVal2 = case loopSkipCondition of
-              Nothing -> err loc expr fact 2
-              Just cond -> case lookup vn loopInitFacts of
-                Just init_expr -> Implication (symExprToExpr2 cond) $
-                  VarAssignment (t,vn,symExprToExpr2 init_expr)
-                Nothing -> err loc expr fact 3
-            in do constructLog loc "fact creates new value" [
-                    ("new_expr",show new_expr),
-                    ("newVal1",show newVal1),
-                    ("newVal2",show newVal2)]
-                  return [newVal1,newVal2]
-          ---
-          [from_expr,to_expr] -> let
-            newVal1 = case loopEnteringCondition of
-              Nothing -> err loc expr fact 4
-              Just cond -> Implication (symExprToExpr2 cond) $
-                VarInRange (t,vn,(from_expr,to_expr))
-            newVal2 = case loopSkipCondition of
-              Nothing -> err loc expr fact 5
-              Just cond -> case lookup vn loopInitFacts of
-                Just init_expr -> Implication (symExprToExpr2 cond) $
-                  VarAssignment (t,vn,symExprToExpr2 init_expr)
-            in do constructLog loc "fact creates range" [
-                    ("from_expr",show from_expr),
-                    ("to_expr",show to_expr),
-                    ("newVal1",show newVal1),
-                    ("newVal2",show newVal2)]
-                  return [newVal1,newVal2]
-        -}
         decrementLogDepth
         (tellNextLog $ Log.Return loc (show res)) $> res
 

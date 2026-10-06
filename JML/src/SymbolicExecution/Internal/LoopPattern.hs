@@ -275,9 +275,9 @@ inferGuardlessWithInternalExitBoundPatterns loopSummary = do
   -- if there are guards in `loopExitingConditions` which are not derived from `loopGuard`
   -- then these conditions are to be processed
   let relevant_loopExitingConditions :: [SymExpr]
-      relevant_loopExitingConditions = maybe (loopExitingConditions loopSummary)
+      relevant_loopExitingConditions = maybe (map snd (loopExitingConditions loopSummary))
         (\theLoopGuard -> [condition
-          | condition <- loopExitingConditions loopSummary
+          | condition <- map snd (loopExitingConditions loopSummary)
           , negate condition /= theLoopGuard
           ]
         ) (loopGuard loopSummary)
