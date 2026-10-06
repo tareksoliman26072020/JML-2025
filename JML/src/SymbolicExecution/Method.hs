@@ -795,12 +795,13 @@ visitStmt nodeCoor AST.ContinueStmt = do
 visitStmt nodeCoor AST.BreakStmt = do
   let loc = "SymbolicExecution.Method.visitStmt.ContinueStmt"
   tellNextLog $ Log.BreakStatement loc
-  let toReturn = ER_Break
+  --let toReturn = ER_Break
+  let toReturn = ER_Summary nodeCoor ER_Break
   tellNextLog (Log.ModifyState loc ("Break","SymBreak"))
   modify $ \symState ->
     SymState {
       env = Map.insert Break SymBreak (env symState),
-      executionResults = executionResults symState ++ [ER_Summary nodeCoor toReturn],
+      executionResults = executionResults symState ++ [toReturn],
       logHeader = logHeader symState
     }
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn
@@ -1888,7 +1889,10 @@ visitRegisteredLoop theLoopSyntax loopCounter (env_Before_Acc,executionResults_B
              decrementLogDepth
              return x
 
-           do theEnv <- env <$> get
+           do (the_Ers,theEnv) <- (\s -> (executionResults s,env s)) <$> get
+              let find_break = flip filter the_Ers $ \case
+                    ER_Summary _ ER_Break -> True
+                    _ -> False
               if
                 -- if a continue statement was just detected
                 | hasContinue theEnv -> do
@@ -2132,11 +2136,12 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
                  ) (VarName vn) ma
           ) map_withVarAssignments forBody_Some_VarNames
 
+  let condExprNodeCoor = undefined -- MEOW
   loopSummary <- do
     incrementLogEnumeration
     incrementLogDepth *>
       createLoopSummary theLoopSyntax m_Acc
-        (mForCondExpr,forCondExpr_visited_expr)
+        (nodeCoor,mForCondExpr,forCondExpr_visited_expr)
         ((forBody_forStep_path,map_withVarNames),(loopState,forBody_forStep_ers))
         branchRange
         <* decrementLogDepth
@@ -2158,12 +2163,12 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
 ------------------------------
 
 createLoopSummary :: LoopSyntax -> Maybe CFGT.Node
-  -> (Maybe AST.Expression,SymExpr)
+  -> (CFGT.Node_Coor,Maybe AST.Expression,SymExpr)
   -> (([CFGT.Node],Map.Map SymStateKey SymExpr),(SymState,[ExecutionResult]))
   -> CFGT.ScopeRange
   -> SymbolicExecutionMonad LoopSummary
 createLoopSummary theLoopSyntax m_Acc
-  (mForCondExpr,forCondExpr_visited_expr)
+  (loopCondExprNodeCoor,mForCondExpr,forCondExpr_visited_expr)
   ((forBody_forStep_path,forBody_forStep_path_visited0),(loopState,forBody_forStep_ers))
   branchRange = do
   -- forCondExpr_visited_expr, loopState, forBody_forStep_ers
@@ -2173,6 +2178,7 @@ createLoopSummary theLoopSyntax m_Acc
          ("branchRange",show branchRange)
         ,("theLoopSyntax",show theLoopSyntax)
         ,("m_Acc",show m_Acc)
+        ,("loopCondExprNodeCoor",show loopCondExprNodeCoor)
         ,("mForCondExpr",show mForCondExpr)
         ,("forCondExpr_visited_expr",show forCondExpr_visited_expr)
         ,("loopState",show loopState)
@@ -2314,11 +2320,11 @@ createLoopSummary theLoopSyntax m_Acc
     incrementLogEnumeration
     incrementLogDepth *>
       getLoopExitingConditions
-        theLoopGuard
-        (getBreaks   $ env forBody_forStep_path_visited,
-         getBreaks2  $ forBody_forStep_path_visited_ers)
-        (getReturns  $ env forBody_forStep_path_visited,
-         getReturns2 $ forBody_forStep_path_visited_ers)
+        (loopCondExprNodeCoor,theLoopGuard)
+        (getBreaks_StateEnv  $ env forBody_forStep_path_visited,
+         getBreaks_ers       $ forBody_forStep_path_visited_ers)
+        (getReturns_StateEnv $ env forBody_forStep_path_visited,
+         getReturns_ers      $ forBody_forStep_path_visited_ers)
       <* decrementLogDepth
   -----------------------------
   -- LoopExitViaBreakFacts

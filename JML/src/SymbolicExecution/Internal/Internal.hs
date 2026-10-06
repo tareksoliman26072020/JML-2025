@@ -652,13 +652,13 @@ constructErrorMsg = constructLogMsg
 hasContinue :: SymStateEnv -> Bool
 hasContinue = Map.member Continue
 
-getBreaks :: SymStateEnv -> SymStateEnv
-getBreaks env = let
-  loc = "SymbolicExecution.Internal.Internal.getBreaks"
+getBreaks_StateEnv :: SymStateEnv -> SymStateEnv
+getBreaks_StateEnv env = let
+  loc = "SymbolicExecution.Internal.Internal.getBreaks_StateEnv"
   in flip Map.filter env $ \symExpr -> case symExpr of
     SIte _ ifEnv maybe_elseEnv -> let
-      if_rec = getBreaks ifEnv
-      maybe_else_rec = getBreaks <$> maybe_elseEnv
+      if_rec = getBreaks_StateEnv ifEnv
+      maybe_else_rec = getBreaks_StateEnv <$> maybe_elseEnv
       if_has_no_break = Map.null if_rec
       if_has_break = not if_has_no_break
       else_has_no_break = maybe True Map.null maybe_else_rec
@@ -667,34 +667,34 @@ getBreaks env = let
     SymBreak -> True
     _ -> False
 
-getBreaks2 :: [ExecutionResult] -> [ExecutionResult]
-getBreaks2 ers = let
-  loc = "SymbolicExecution.Internal.Internal.getBreaks2"
+getBreaks_ers :: [ExecutionResult] -> [ExecutionResult]
+getBreaks_ers ers = let
+  loc = "SymbolicExecution.Internal.Internal.getBreaks_ers"
   errContents er = [("er",show er),("ers",show ers)] in
   flip filter ers $ \er -> case er of
     ER_SymStateMapEntry _ _ -> False
     ER_Break -> True
-    ER_IfExpr _ _ (_,if_ers) (_,else_ers) -> case (getBreaks2 if_ers,getBreaks2 else_ers) of
+    ER_IfExpr _ _ (_,if_ers) (_,else_ers) -> case (getBreaks_ers if_ers,getBreaks_ers else_ers) of
       ([],[]) -> False
       _ -> True
     ER_Void -> False
     ER_Expr SymBreak -> error $ constructErrorMsg loc "TODO1" $ errContents er
     ER_Expr _ -> False
     ER_Return _ -> False
-    ER_Summary _ er -> case getBreaks2 [er] of
+    ER_Summary _ er -> case getBreaks_ers [er] of
       [] -> False
       _  -> True
     _ -> error $ constructErrorMsg loc "TODO2" $ errContents er
 
-getReturns :: SymStateEnv -> SymStateEnv
-getReturns env = let
-  loc = "SymbolicExecution.Internal.Internal.getReturns"
+getReturns_StateEnv :: SymStateEnv -> SymStateEnv
+getReturns_StateEnv env = let
+  loc = "SymbolicExecution.Internal.Internal.getReturns_StateEnv"
   in flip Map.filterWithKey env $ \case
     Return -> const True
     _ -> \case
       SIte _ ifEnv maybe_elseEnv -> let
-        if_rec = getReturns ifEnv
-        maybe_else_rec = getReturns <$> maybe_elseEnv
+        if_rec = getReturns_StateEnv ifEnv
+        maybe_else_rec = getReturns_StateEnv <$> maybe_elseEnv
         if_has_no_return = Map.null if_rec
         if_has_return = not if_has_no_return
         else_has_no_return = maybe True Map.null maybe_else_rec
@@ -702,15 +702,15 @@ getReturns env = let
         in if_has_return || else_has_return
       _ -> False
 
-getReturns2 :: [ExecutionResult] -> [ExecutionResult]
-getReturns2 ers = let
-  loc = "SymbolicExecution.Internal.Internal.getReturns2"
+getReturns_ers :: [ExecutionResult] -> [ExecutionResult]
+getReturns_ers ers = let
+  loc = "SymbolicExecution.Internal.Internal.getReturns_ers"
   errContents er = [("er",show er),("ers",show ers)] in
   flip filter ers $ \er -> case er of
     ER_Return _ -> True
     ER_SymStateMapEntry _ _ -> False
     ER_Break -> False
-    ER_IfExpr _ _ (_,if_ers) (_,else_ers) -> case (getReturns2 if_ers,getReturns2 else_ers) of
+    ER_IfExpr _ _ (_,if_ers) (_,else_ers) -> case (getReturns_ers if_ers,getReturns_ers else_ers) of
       ([],[]) -> False
       _ -> True
     ER_Void -> False
@@ -718,7 +718,7 @@ getReturns2 ers = let
     ER_ForLoopDone -> False
     ER_Entry _ _ -> False
     ER_MethodParameter _ _ -> False
-    ER_Summary _ er -> case getReturns2 [er] of
+    ER_Summary _ er -> case getReturns_ers [er] of
       [] -> False
       _  -> True
     _ -> error $ constructErrorMsg loc "TODO1" $ errContents er

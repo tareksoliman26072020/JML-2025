@@ -250,7 +250,7 @@ data LoopSummary = LoopSummary {
   -- The initial loop guard which should be met so that the loop gets iterated
   , loopEnteringCondition :: Maybe SymExpr
   , loopSkipCondition :: Maybe SymExpr
-  , loopExitingConditions :: [SymExpr]
+  , loopExitingConditions :: [({-[CFGT.Node_Coor],-}SymExpr)]
   , loopExitViaBreakFacts :: [StateChangingConditions]
   , loopExitViaReturnFacts :: [(StateChangingConditions,Maybe SymExpr)]
   -- The variables that function as loop counters or induction variables.
@@ -293,11 +293,15 @@ data StateChangingCondition =
 
 data LoopExitFact =
     LoopExitFactRange String SymExpr SymExpr
-  | LoopExitFactValue String SymExpr
+  | LoopExitFactValue String SymExpr{-
+  | LoopReturnExit
+      LoopExitFact -- loopReturnCondition
+      SymExpr      -- return value
+-}
   | LoopExitFactArrayAccessValue
-      String -- Array name
-      SymExpr -- Element index
-      SymExpr -- value
+      String       -- Array name
+      SymExpr      -- Element index
+      SymExpr      -- value
   deriving (Show,Eq)
 
 data SymExprDevelopmentTrajectory =
