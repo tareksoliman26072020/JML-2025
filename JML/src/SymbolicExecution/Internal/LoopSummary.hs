@@ -136,11 +136,9 @@ getLoopExitingConditions cfg (loopCondExprNodeCoor,loopGuard) (breaksEnv,breaks_
       unconditionalBreaks = flip concatMap breaks_ers $ \case
         ER_Summary coor ER_Break -> [([coor],SBool True)]
         _ -> []
-      {-breaksConditions :: [SymExpr]
-      breaksConditions = Map.foldMapWithKey studyBreakSymExpr breaksEnv-}
-      breaksConditions2 :: [([CFGT.Node_Coor],SymExpr)]
-      breaksConditions2 = let
-        one = foldl' studyBreakSymExpr2 [] breaks_ers in [
+      breaksConditions :: [([CFGT.Node_Coor],SymExpr)]
+      breaksConditions = let
+        one = foldl' studyBreakSymExpr [] breaks_ers in [
           (coors2,normalizeConditions2 symExpr)
           | (coors,symExpr) <- one
           , let coors2 = studyCoors cfg coors
@@ -149,11 +147,9 @@ getLoopExitingConditions cfg (loopCondExprNodeCoor,loopGuard) (breaksEnv,breaks_
       unconditionalReturns = flip concatMap returns_ers $ \case
         ER_Summary coor (ER_Return _) -> [([coor],SBool True)]
         _ -> []
-      {-returnsConditions :: [SymExpr]
-      returnsConditions = Map.foldMapWithKey studyreturnSymExpr returnsEnv-}
-      returnsConditions2 :: [([CFGT.Node_Coor],SymExpr)]
-      returnsConditions2 = let
-        one = foldl' studyreturnSymExpr2 [] returns_ers in [
+      returnsConditions :: [([CFGT.Node_Coor],SymExpr)]
+      returnsConditions = let
+        one = foldl' studyreturnSymExpr [] returns_ers in [
           (coors2,normalizeConditions2 symExpr)
           | (coors,symExpr) <- one
           , let coors2 = studyCoors cfg coors
@@ -168,19 +164,14 @@ getLoopExitingConditions cfg (loopCondExprNodeCoor,loopGuard) (breaksEnv,breaks_
         Nothing -> []
       summary = [
         ("unconditionalBreaks",show unconditionalBreaks),
-        ("breaksConditions2",show breaksConditions2),
+        ("breaksConditions",show breaksConditions),
         ("unconditionalReturns",show unconditionalReturns),
-        ("returnsConditions2",show returnsConditions2)]
+        ("returnsConditions",show returnsConditions)]
   constructLog loc "summary" summary
-  let toReturn :: [([CFGT.Node_Coor],SymExpr)] = {-
-                 pickLoopGuards
-                   ++ unconditionalBreaks ++ breaksConditions
-                   ++ unconditionalReturns ++ returnsConditions-}
+  let toReturn :: [([CFGT.Node_Coor],SymExpr)] =
                  loopCondition ++
-                 breaksConditions2 ++ returnsConditions2
-                 
-  {-throwError $ constructErrorMsg loc "MEOW" $
-    logContents ++ summary ++ [("toReturn",show toReturn)]-}
+                 breaksConditions ++ returnsConditions
+
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
   --
   studyCoors :: CFGT.CFG -> [CFGT.Node_Coor] -> [CFGT.Node_Coor]
@@ -190,47 +181,29 @@ getLoopExitingConditions cfg (loopCondExprNodeCoor,loopGuard) (breaksEnv,breaks_
     case coors of
       [] -> error $ constructErrorMsg loc "won't happen" logContents
       _  -> CFG.getPathToCoor (last coors) cfg
-  -- if a `SymExpr` provides a break statement,
-  -- then extract the path condition which makes it occur
-  studyBreakSymExpr :: SymStateKey -> SymExpr -> [SymExpr]
-  studyBreakSymExpr k v = let
-    loc = globalLoc ++ ".getLoopExitingConditions.studyBreakSymExpr" in
-    case (k,v) of
-      (Break,SymBreak) -> [SBool True]
-      (ScopeRange sr,SIte _ ifEnv maybe_elseEnv) -> [
-        conjunctConditions $ normalizeConditions conds
-          | conds <- study_breaks_ER_IfExpr sr breaks_ers
-        ]
-      (MethodHandle,_) -> []
-      (GlobalVars,_) -> []
-      (FormalParms,_) -> []
-      (VarBindings,_) -> []
-      (VarAssignments,_) -> []
-      (VarName _,_) -> []
-      _ -> error $ constructErrorMsg loc "TODO1" [("k",show k),("v",show v)]
   --
-  studyBreakSymExpr2 :: [([CFGT.Node_Coor],SymExpr)] -> ExecutionResult -> [([CFGT.Node_Coor],SymExpr)]
-  studyBreakSymExpr2 acc er = let
-    loc = globalLoc ++ ".getLoopExitingConditions.studyBreakSymExpr2" in
+  studyBreakSymExpr :: [([CFGT.Node_Coor],SymExpr)] -> ExecutionResult -> [([CFGT.Node_Coor],SymExpr)]
+  studyBreakSymExpr acc er = let
+    loc = globalLoc ++ ".getLoopExitingConditions.studyBreakSymExpr" in
     case er of
       ER_Break -> error $ constructErrorMsg loc "won't happen" []
       ER_Summary coor ER_Break -> acc ++ [([],SBool True)]
       ER_Summary coor er
         | hasBreak_ers [er] -> [(coor : li,symExpr)
-            | (li,symExpr) <- studyBreakSymExpr2 acc er
+            | (li,symExpr) <- studyBreakSymExpr acc er
             ]
         | otherwise -> acc
       ER_IfExpr sr (ifCond,_) (ifCoor,ifErs) (maybeElseCoor,elseErs) -> let
         negated = negate ifCond
         ifRec = [(ifCoor : coors,SBin ifCond And conds)
-          | (coors,conds) <- foldl' studyBreakSymExpr2 [] ifErs
+          | (coors,conds) <- foldl' studyBreakSymExpr [] ifErs
           ]
         elseRec = [(fromJust maybeElseCoor : coors,SBin negated And conds)
-          | (coors,conds) <- foldl' studyBreakSymExpr2 [] elseErs
+          | (coors,conds) <- foldl' studyBreakSymExpr [] elseErs
           ]
         in acc ++ ifRec ++ elseRec
       _ -> error $ constructErrorMsg loc "TODO1" [("acc",show acc),("er",show er)]
-
+  --
   addCond :: SymExpr -> [SymExpr] -> [SymExpr]
   addCond cond li = [res
     | symExpr <- li
@@ -238,136 +211,30 @@ getLoopExitingConditions cfg (loopCondExprNodeCoor,loopGuard) (breaksEnv,breaks_
             SBool True -> cond
             _ -> symExpr
     ]
-  studyreturnSymExpr :: SymStateKey -> SymExpr -> [SymExpr]
-  studyreturnSymExpr k v = let
-    loc = globalLoc ++ ".getLoopExitingConditions.studyreturnSymExpr" in
-    case (k,v) of
-      (Break,SymBreak) -> []
-      (Return,_) -> [SBool True]
-      (ScopeRange sr,SIte _ _ _) -> [
-        conjunctConditions $ normalizeConditions conds
-          | conds <- study_returns_ER_IfExpr sr returns_ers
-        ]
-      (MethodHandle,_) -> []
-      (GlobalVars,_) -> []
-      (FormalParms,_) -> []
-      (VarBindings,_) -> []
-      (VarAssignments,_) -> []
-      (VarName _,_) -> []
-      _ -> error $ constructErrorMsg loc "TODO1" [("k",show k),("v",show v)]
   --
-  studyreturnSymExpr2 :: [([CFGT.Node_Coor],SymExpr)] -> ExecutionResult -> [([CFGT.Node_Coor],SymExpr)]
-  studyreturnSymExpr2 acc er = let
-    loc = globalLoc ++ ".getLoopExitingConditions.studyreturnSymExpr2" in
+  studyreturnSymExpr :: [([CFGT.Node_Coor],SymExpr)] -> ExecutionResult -> [([CFGT.Node_Coor],SymExpr)]
+  studyreturnSymExpr acc er = let
+    loc = globalLoc ++ ".getLoopExitingConditions.studyreturnSymExpr" in
     case er of
       ER_Return _ -> error $ constructErrorMsg loc "won't happen" []
       ER_Summary coor (ER_Return _) -> acc ++ [([],SBool True)]
       ER_Summary coor er
         | hasReturn_ers [er] -> [(coor : li,symExpr)
-            | (li,symExpr) <- studyreturnSymExpr2 acc er
+            | (li,symExpr) <- studyreturnSymExpr acc er
             ]
         | otherwise -> acc
       ER_IfExpr sr (ifCond,_) (ifCoor,ifErs) (maybeElseCoor,elseErs) -> let
         negated = negate ifCond
         ifRec = [(ifCoor : coors,SBin ifCond And conds)
-          | (coors,conds) <- foldl' studyreturnSymExpr2 [] ifErs
+          | (coors,conds) <- foldl' studyreturnSymExpr [] ifErs
           ]
         elseRec = [(fromJust maybeElseCoor : coors,SBin negated And conds)
-          | (coors,conds) <- foldl' studyreturnSymExpr2 [] elseErs
+          | (coors,conds) <- foldl' studyreturnSymExpr [] elseErs
           ]
         in acc ++ ifRec ++ elseRec
       ER_Entry _ _ -> acc
       ER_MethodParameter _ _ -> acc
       _ -> error $ constructErrorMsg loc "TODO1" [("acc",show acc),("er",show er)]
-      
-  -- this function collects (the condition which lead to a return statement).
-  -- each inner list represents a concatenation of conditions which lead to a return statement.
-  -- Example:
-  {-
-  public static int sqrt(int y) throws Exception{
-    for(int i=0; i<=y; i=i+1){
-      int j = i*i;
-      if(j==y){
-        return i;
-      }
-      else{
-        if(i==y){
-	  throw new Exception("not found");
-        }
-      }
-    }
-  }
-  [[j==y]
-  ,[j/=y,i==y]
-  ]
-   -}
-  study_returns_ER_IfExpr :: CFGT.ScopeRange -> [ExecutionResult] -> [[SymExpr]]
-  study_returns_ER_IfExpr sr ers = let
-    loc = globalLoc ++ ".getLoopExitingConditions.study_returns_ER_IfExpr" in
-    flip concatMap ers $ \er -> case er of
-      ER_ReturnVoid -> [[SBool True]]
-      ER_Return _ -> [[SBool True]]
-      ER_Summary _ er -> study_returns_ER_IfExpr sr [er]
-      ER_IfExpr sr2 (ifCond,_) (_,ifErs) (_,elseErs)
-        | sr == sr2 -> let
-            ifErsStudy
-              | hasReturn_ers ifErs = [ ifCond : li
-                  | li <- study_returns_ER_IfExpr sr ifErs
-                  ]
-              | otherwise = []
-            negated = negate ifCond
-            elseErsStudy
-              | hasReturn_ers elseErs = [ negated : li
-                  | li <- study_returns_ER_IfExpr sr elseErs
-                  ]
-              | otherwise = []
-            in ifErsStudy ++ elseErsStudy
-      ER_IfExpr _ (ifCond,_) (_,ifErs) (_,elseErs) -> let
-        ifRec = study_returns_ER_IfExpr sr ifErs
-        elseRec = study_returns_ER_IfExpr sr elseErs
-        ifRecStudy
-          | null ifRec = []
-          | otherwise  = map (ifCond :) ifRec
-        elseRecStudy
-          | null elseRec = []
-          | otherwise    = let
-              negated = negate ifCond
-              in map (negated :) elseRec in
-        ifRecStudy ++ elseRecStudy
-      _ -> []
-  study_breaks_ER_IfExpr :: CFGT.ScopeRange -> [ExecutionResult] -> [[SymExpr]]
-  study_breaks_ER_IfExpr sr ers = let
-    loc = globalLoc ++ ".getLoopExitingConditions.study_breaks_ER_IfExpr" in
-    flip concatMap ers $ \er -> case er of
-      ER_Break -> [[SBool True]]
-      ER_Summary _ er -> study_breaks_ER_IfExpr sr [er]
-      ER_IfExpr sr2 (ifCond,_) (_,ifErs) (_,elseErs)
-        | sr == sr2 -> let
-            ifErsStudy
-              | hasBreak_ers ifErs = [ ifCond : li
-                  | li <- study_breaks_ER_IfExpr sr ifErs
-                  ]
-              | otherwise = []
-            negated = negate ifCond
-            elseErsStudy
-              | hasBreak_ers elseErs = [ negated : li
-                  | li <- study_breaks_ER_IfExpr sr elseErs
-                  ]
-              | otherwise = []
-            in ifErsStudy ++ elseErsStudy
-      ER_IfExpr _ (ifCond,_) (_,ifErs) (_,elseErs) -> let
-        ifRec = study_breaks_ER_IfExpr sr ifErs
-        elseRec = study_breaks_ER_IfExpr sr elseErs
-        ifRecStudy
-          | null ifRec = []
-          | otherwise  = map (ifCond :) ifRec
-        elseRecStudy
-          | null elseRec = []
-          | otherwise    = let
-              negated = negate ifCond
-              in map (negated :) elseRec in
-        ifRecStudy ++ elseRecStudy
-      _ -> []
 
 --------------------
 --------------------
