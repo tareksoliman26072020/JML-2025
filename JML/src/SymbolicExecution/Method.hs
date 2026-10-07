@@ -117,13 +117,13 @@ instance CFGVisitor MethodProcessor where
             Void -> do
               tellNextLog
                 $ Log.Void $ printf "%s -> return nothing" loc
-              let toReturn = ER_ReturnVoid
+              let toReturn = ER_Summary nodeCoor ER_ReturnVoid
               tellNextLog
                 $ Log.ModifyState (printf "%s ==> returning void" loc)
                                   ("Return","SymReturnVoid")
               modify $ \symState -> SymState {
                 env = Map.insert Return SymReturnVoid (env symState),
-                executionResults = executionResults symState,
+                executionResults = executionResults symState ++ [toReturn],
                 logHeader = logHeader symState
               }
               tellNextLog (Log.Return "visitNode -> End -> void method" (show toReturn)) $> toReturn
@@ -151,7 +151,7 @@ instance CFGVisitor MethodProcessor where
                   $ map last returns_coors
             
             let newSymExpr = SymUnknown ("",symExpr) symReason
-                new_er = ER_Return (Just newSymExpr)
+                new_er = ER_Summary nodeCoor $ ER_Return (Just newSymExpr)
             case symReason of
               -- if empty, then there's no previous return statement
               [] -> return toReturn0
@@ -735,12 +735,12 @@ visitStmt nodeCoor (AST.ReturnStmt (Just expr)) = do
 
   tellNextLog $ Log.ModifyState "visitStmt -> ReturnStmt -> method with args" ("return",show symExpr)
   let toReturn = case getSymExpr er of
-        Just expr -> ER_Return $ Just $ cast t expr
+        Just expr -> ER_Summary nodeCoor $ ER_Return $ Just $ cast t expr
         Nothing -> error $ constructErrorMsg loc "TODO" [("er",show er)]
   modify $ \symState ->
     SymState {
       env = Map.insert Return symExpr (env symState),
-      executionResults = executionResults symState ++ [ER_Summary nodeCoor toReturn],
+      executionResults = executionResults symState ++ [toReturn],
       logHeader = logHeader symState
     }
 

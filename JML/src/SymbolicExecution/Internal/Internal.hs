@@ -449,6 +449,7 @@ is_ER_Return :: ExecutionResult -> Bool
 is_ER_Return = \case
   ER_Return _   -> True
   ER_ReturnVoid -> True
+  ER_Summary _ er -> is_ER_Return er
   _             -> False
 
 hasReturn_ers :: [ExecutionResult] -> Bool
@@ -575,6 +576,7 @@ getSymExpr = \case
   ER_PredefinedFunCall symExpr -> Just symExpr
   ER_VarExprObjAccess _ symExpr -> Just symExpr
   ER_Return maybeSymExpr -> maybeSymExpr
+  ER_Summary _ er -> getSymExpr er
   er -> error $ "SymbolicExecution.Internal.Internal.getSymExpr ~~> TODO: " ++ show er
 
 -- if the input is SymVar, then the return is SymVar

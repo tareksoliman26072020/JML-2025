@@ -62,6 +62,7 @@ public static boolean contains(int[] a, int x) {
 
 ////////////////////
 
+// termination of loop is independant from loop guard
 public static boolean contains2(int[] a, int x) {
   int i = 0;
   while (true) {
@@ -73,6 +74,19 @@ public static boolean contains2(int[] a, int x) {
       return false;
     }
   }
+}
+
+////////////////////
+
+public static boolean containsGreaterThan(int[] a, int x) {
+  int i = 0;
+  while (i < a.length) {
+    if (a[i] > x) {
+      return true;
+    }
+    i++;
+  }
+  return false;
 }
 
 ////////////////////
