@@ -18,6 +18,7 @@ import Prelude hiding (negate)
 import Data.List (nub,find,foldl',intercalate)
 import Control.Monad (forM_, foldM_)
 import Data.Functor (($>))
+import Data.Maybe (catMaybes)
 
 ------------------------------
 ------------------------------
@@ -468,6 +469,7 @@ get_inner_ers er = let
   loc = "SymbolicExecution.Internal.Internal.get_inner_ers"
   logContents = [("er",show er)] in case er of
   ER_IfExpr _ _ (_,if_Ers) (_,else_Ers) -> if_Ers ++ else_Ers
+  ER_Summary _ innerEr -> get_inner_ers innerEr
   _ -> []
 
 -- a list of ER_Summary is passed
@@ -488,24 +490,6 @@ getReturnsCoors ers = case ers of
       (False,True)  -> getReturnsCoors elseErs ++ getReturnsCoors rest
       (False,False) -> getReturnsCoors rest
     _ -> getReturnsCoors rest
-    
-{-
-getReturnsCoors :: [ExecutionResult] -> [[CFGT.Node_Coor]]
-getReturnsCoors ers = case ers of
-  [] -> []
-  (er : rest) -> case er of
-    ER_Summary coor inner_er
-      | hasReturn3 inner_er -> case getReturnsCoors [inner_er] of
-          [] -> [[coor]] ++ getReturnsCoors rest
-          li -> (map (coor :) li) ++ getReturnsCoors rest
-      | otherwise -> getReturnsCoors rest
-    ER_IfExpr _ _ (_,ifErs) (_,elseErs) -> case (any hasReturn3 ifErs,any hasReturn3 elseErs) of
-      (True,True)   -> getReturnsCoors ifErs ++ getReturnsCoors elseErs ++ getReturnsCoors rest
-      (True,False)  -> getReturnsCoors ifErs ++ getReturnsCoors rest
-      (False,True)  -> getReturnsCoors elseErs ++ getReturnsCoors rest
-      (False,False) -> getReturnsCoors rest
-    _ -> getReturnsCoors rest
--}
 
 hasBreak :: SymStateEnv -> Bool
 hasBreak = Map.member Break
@@ -1410,7 +1394,13 @@ getVarAssignments :: SymStateEnv -> [(String,(SymExpr,CFGT.Node_Coor))]
 getVarAssignments = maybe [] (\(SVarAssignments li) -> li) . Map.lookup VarAssignments
 
 get_ER_IfExprs :: [ExecutionResult] -> [ExecutionResult]
-get_ER_IfExprs ers = [er | er@(ER_IfExpr _ _ _ _) <- ers]
+get_ER_IfExprs ers = catMaybes [res
+  | er <- ers
+  , let res = case er of
+          ER_IfExpr _ _ _ _ -> Just er
+          ER_Summary _ (ER_IfExpr _ _ _ _) -> Just er
+          _ -> Nothing
+  ]
 
 isReassigned :: String -> SymStateEnv -> Bool
 isReassigned vn sy = case find (\(vn2,_) -> vn2 == vn) (getVarAssignments sy) of

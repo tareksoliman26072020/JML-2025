@@ -567,7 +567,7 @@ instance CFGVisitor MethodProcessor where
                              bStart = CFGT.id n
                              in CFGT.SR bStart (CFG.getBranchEnd bStart cfg)
                          }
-                  toReturn = ER_IfExpr condBranchRange (expr_before_substitution,newNodeValue)
+                  toReturn = ER_Summary newVarCoor $ ER_IfExpr condBranchRange (expr_before_substitution,newNodeValue)
                      (ifCoor,if_ers) (maybeElseCoor,else_ers)
               modify $ \symState -> SymState {
                 env = flip Map.mapWithKey (env symState) $ \k v -> case k of
@@ -580,7 +580,7 @@ instance CFGVisitor MethodProcessor where
                             $ map toSymType2 (v : symExprs_)
                       in cast newType v
                   _ -> v,
-                executionResults = executionResults symState ++ [ER_Summary newVarCoor toReturn],
+                executionResults = executionResults symState ++ [toReturn],
                 logHeader = logHeader symState
               }
               return toReturn
@@ -1653,9 +1653,9 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
           ("forCondExpr_visited_expr",show forCondExpr_visited_expr)]
     constructLog loc "studyLoop" logContents
     let if_conds = flip map (get_ER_IfExprs forBody_forStep_visited)
-          $ \(ER_IfExpr _ (_,(SIte cond _ _)) _ _) -> cond
+          $ \(ER_Summary _(ER_IfExpr _ (_,(SIte cond _ _)) _ _)) -> cond
         if_else_ers = flip concatMap (get_ER_IfExprs forBody_forStep_visited)
-          $ \(ER_IfExpr _ _ (_,if_ers) (_,else_ers)) -> if_ers ++ else_ers
+          $ \(ER_Summary _(ER_IfExpr _ _ (_,if_ers) (_,else_ers))) -> if_ers ++ else_ers
         anyHasSymVar = [vn
           | ER_SymStateMapEntry (VarName vn) expr <- forBody_forStep_visited ++ if_else_ers   
           , hasSymVar expr || hasSymUnknown expr
