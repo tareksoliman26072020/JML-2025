@@ -60,7 +60,7 @@ instance CFGVisitor MethodProcessor where
           mapM_ (\arg -> do
             incrementLogEnumeration
             argVisited <- incrementLogDepth *> visitExpr nodeCoor arg
-            case argVisited of
+            case getSummarized_er argVisited of
               ER_SymStateMapEntry (VarName name) val@(SymVar _ _ _) -> do
                 alreadyExist <- env <$> get >>= return . Map.lookup (VarName name)
                 case alreadyExist of
@@ -641,7 +641,7 @@ instance CFGVisitor MethodProcessor where
               return ER_Void
             Just symbolicExecutionMonadValue -> do
               er <- symbolicExecutionMonadValue
-              case er of
+              case getSummarized_er er of
                 ER_SymStateMapEntry _ _ -> return er
                 _ -> throwError $ printf "%s ==> TODO: %s" loc (show er)
         ----------------------------------------
@@ -878,8 +878,8 @@ visitExpr nodeCoor (expr@AST.FunCallExpr{}) = do
            -}
           let actualParms1 :: [(Maybe SymStateKey,(SymStateKey,SymExpr))]
               actualParms1 = zipWith (\fParm act ->
-                let originalVarName = case act of
-                      ER_SymStateMapEntry key symExpr -> Just key
+                let originalVarName = case getSummarized_er act of
+                      ER_SymStateMapEntry key _ -> Just key
                       ER_Expr (SymNum _) -> Nothing
                       ER_Expr (SymArray _ _ _) -> Nothing
                       ER_Expr (SymInt _) -> Nothing
@@ -917,7 +917,7 @@ visitExpr nodeCoor (expr@AST.FunCallExpr{}) = do
           actualParms = [ER_SymStateMapEntry (VarName "x") (SymNum 3.0)]
           actualParms1 = [(VarName "x",(VarName "n",SymInt 3))]
            -}
-          zipWithM_ (\er (_,symExpr1) -> case er of
+          zipWithM_ (\er (_,symExpr1) -> case getSummarized_er er of
             ER_SymStateMapEntry vn@(VarName _) symExpr2 ->
               inferGlobalVarType
                 (pick_known_symType2
@@ -1252,7 +1252,7 @@ visitExpr nodeCoor expr@AST.AssignExpr{} = do
      constructLog loc logTag [("one",show one),("two",show two),("newElem",show newElem)]
   -- one_val's sole purpose is its type
   -- one_svn is important to find key in the map
-  let (one_svn,one_val,(leftOpKeyStr,leftOpValStr)) = case one of
+  let (one_svn,one_val,(leftOpKeyStr,leftOpValStr)) = case getSummarized_er one of
        ER_SymStateMapEntry svn val ->
          let theStr = case svn of
                VarName s -> (s,ppSymExpr_no_symType val)
@@ -1266,33 +1266,33 @@ visitExpr nodeCoor expr@AST.AssignExpr{} = do
            (show expr) (show ex) (show $ AST.assEleft expr)
        _ -> error $ printf "TODO4: %s: %s" loc (show one)
 
-  let two_val = case two of
-          ER_Expr e2_@(SymArray mType1 mSize1 elms1) -> case one_val of
-            SymVar (Array type2) _ _ ->
-              let newType = pick_known_symType2
-                    $ maybe UnknownGlobalVarSymType id mType1
-                    : map toSymType2 elms1
-                    ++ [type2]
-              in cast (Array newType) e2_
-            _ -> error $ printf "TODO5: %s ==> e2 ==> %s" loc (show one_val)
-          ER_Expr e2_ -> cast (toSymType2 one_val) e2_
-          ER_FunCall funCallStateEnv ->
-            case getReturnSymExpr funCallStateEnv of
-              Nothing -> error $ printf "%s ~~> won't happen" loc
-              Just e2_ -> e2_
-          ER_SymStateMapEntry _ e2_ -> e2_
-          ER_PredefinedFunCall e2_ -> cast (toSymType2 one_val) e2_
-          {-
-          ER_ArrayCallExpr {
-            arrayIndexCall = SArrayIndexAccess (Array Int) "arr" (SymInt 0),
-            arrayIndexCallValue = SArrayIndexAccess (Array Int) "arr" (SymInt 0)
-          }
-           -}
-          ER_ArrayCallExpr _ arrayCallVal ->
-            let t = pick_known_symType (toSymType2 arrayCallVal, toSymType2 one_val)
-            in cast t arrayCallVal
-          ER_VarExprObjAccess _ e2_ -> e2_
-          _ -> error $ printf "TODO6: %s ==> e2 ==> %s" loc (show two)
+  let two_val = case getSummarized_er two of
+        ER_Expr e2_@(SymArray mType1 mSize1 elms1) -> case one_val of
+          SymVar (Array type2) _ _ ->
+            let newType = pick_known_symType2
+                  $ maybe UnknownGlobalVarSymType id mType1
+                  : map toSymType2 elms1
+                  ++ [type2]
+            in cast (Array newType) e2_
+          _ -> error $ printf "TODO5: %s ==> e2 ==> %s" loc (show one_val)
+        ER_Expr e2_ -> cast (toSymType2 one_val) e2_
+        ER_FunCall funCallStateEnv ->
+          case getReturnSymExpr funCallStateEnv of
+            Nothing -> error $ printf "%s ~~> won't happen" loc
+            Just e2_ -> e2_
+        ER_SymStateMapEntry _ e2_ -> e2_
+        ER_PredefinedFunCall e2_ -> cast (toSymType2 one_val) e2_
+        {-
+        ER_ArrayCallExpr {
+          arrayIndexCall = SArrayIndexAccess (Array Int) "arr" (SymInt 0),
+          arrayIndexCallValue = SArrayIndexAccess (Array Int) "arr" (SymInt 0)
+        }
+         -}
+        ER_ArrayCallExpr _ arrayCallVal ->
+          let t = pick_known_symType (toSymType2 arrayCallVal, toSymType2 one_val)
+          in cast t arrayCallVal
+        ER_VarExprObjAccess _ e2_ -> e2_
+        _ -> error $ printf "TODO6: %s ==> e2 ==> %s" loc (show two)
 
   tellNextLog $ Log.Affected loc [show one, show two]
   -- newVal is a transformation of two_val. it's the new value
@@ -1341,11 +1341,11 @@ two_newVal = SymArray (Just (Array Int)) (Just 2) [SymNull Int,SymNull Int]
           return ()
   -- inserting new value in map
   tellNextLog $ Log.ModifyState "visitExpr ==> AssignExpr" (leftOpKeyStr,rightOpValStr)
-  let toReturn = ER_SymStateMapEntry one_svn two_val
+  let toReturn = ER_Summary nodeCoor $ ER_SymStateMapEntry one_svn two_val
   modify $ \symState ->
     SymState {
       env = Map.insert one_svn two_newVal (env symState),
-      executionResults = executionResults symState ++ [ER_Summary nodeCoor toReturn],
+      executionResults = executionResults symState ++ [toReturn],
       logHeader = logHeader symState
     }
   
@@ -1389,17 +1389,17 @@ visitExpr nodeCoor expr@AST.VarExpr{} = do
           case mVal of
             Just val -> do
               tellNextLog $ Log.LookUpEnvTable varName_ (show val) "visitExpr -> VarExpr"
-              let toReturn = ER_SymStateMapEntry (VarName varName_) val
+              let toReturn = ER_Summary nodeCoor $ ER_SymStateMapEntry (VarName varName_) val
               tellNextLog (Log.Return "visitExpr -> VarExpr -> Updating" (show toReturn)) $> toReturn
             Nothing -> do
               tellNextLog $ Log.GlobalVar varName_ "visitExpr -> VarExpr"
               let symExpr = SymVar UnknownGlobalVarSymType varName_ []
-                  toReturn = ER_SymStateMapEntry (VarName varName_) symExpr
+                  toReturn = ER_Summary nodeCoor $ ER_SymStateMapEntry (VarName varName_) symExpr
               tellNextLog $ Log.ModifyState "visitExpr -> VarExpr" (varName_,show symExpr)
               modify $ \symState -> SymState {
                 env = Map.insert (VarName varName_) symExpr
                       $ recordGlobalVar varName_ (env symState),
-                executionResults = executionResults symState ++ [ER_Summary nodeCoor toReturn],
+                executionResults = executionResults symState ++ [toReturn],
                 logHeader = logHeader symState
               }
               tellNextLog (Log.Return "visitExpr -> VarExpr -> Recording Global Variable" (show toReturn)) $> toReturn
@@ -1417,11 +1417,11 @@ visitExpr nodeCoor expr@AST.VarExpr{} = do
               tellNextLog $ Log.NewVariable (show t) varName_ "visitExpr -> VarExpr"
               let sExpr = SymVar(toSymType1 t) varName_ []
               tellNextLog $ Log.ModifyState "visitExpr -> VarExpr" (varName_,show sExpr)
-              let toReturn = ER_SymStateMapEntry (VarName varName_) sExpr
+              let toReturn = ER_Summary nodeCoor $ ER_SymStateMapEntry (VarName varName_) sExpr
               modify $ \symState ->
                 SymState {
                   env = Map.insert (VarName varName_) sExpr (env symState),
-                  executionResults = executionResults symState ++ [ER_Summary nodeCoor toReturn],
+                  executionResults = executionResults symState ++ [toReturn],
                   logHeader = logHeader symState
                 }
               tellNextLog (Log.Return "visitExpr -> VarExpr -> Declaring Local Variable" (show toReturn)) $> toReturn
@@ -1449,9 +1449,9 @@ visitExpr nodeCoor expr@AST.ArrayCallExpr{} = do
         censor (map $ \(Log.Log str tag) -> Log.Log str $ Log.Nested ("calling array " ++ AST.getVarName expr) tag)
            (visitExpr nodeCoor $ AST.arrName expr)
         <* decrementLogDepth
-    return $ case visited of
-          ER_SymStateMapEntry (VarName arrName) _ -> arrName
-          _ -> error $ printf "won't happen1: %s ==> %s" loc (show visited)
+    return $ case getSummarized_er visited of
+      ER_SymStateMapEntry (VarName arrName) _ -> arrName
+      _ -> error $ printf "won't happen1: %s ==> %s" loc (show visited)
   index_er <- case AST.index expr of
     Nothing -> throwError $ "won't happen2 ==> " ++ loc
     Just expr_ -> do
@@ -1462,7 +1462,7 @@ visitExpr nodeCoor expr@AST.ArrayCallExpr{} = do
               $ Log.Nested ("at pos " ++ AST.ppExpr_no_type expr_) tag)
                  (visitExpr nodeCoor expr_)
             <* decrementLogDepth
-      return $ case indexExpr of
+      return $ case getSummarized_er indexExpr of
         ER_SymStateMapEntry _ indexExpr2 -> indexExpr2
         ER_Expr indexExpr2 -> cast Int indexExpr2
         ER_VarExprObjAccess _ symExpr -> cast Int symExpr
@@ -1527,7 +1527,7 @@ visitExpr nodeCoor expr@AST.ArrayInstantiationExpr{} = do
           | otherwise -> do
               er <- do incrementLogEnumeration
                        incrementLogDepth *> visitExpr nodeCoor ex <* decrementLogDepth
-              case er of
+              case getSummarized_er er of
                 ER_Expr (SymNum num) -> return $ Just $ SymInt (round num)
                 ER_Expr expr@(SBin _ _ _) -> return $ Just expr
                 ER_Expr s@(SymInt _) -> return $ Just s
@@ -1657,8 +1657,14 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
         if_else_ers = flip concatMap (get_ER_IfExprs forBody_forStep_visited)
           $ \(ER_Summary _(ER_IfExpr _ _ (_,if_ers) (_,else_ers))) -> if_ers ++ else_ers
         anyHasSymVar = [vn
-          | ER_SymStateMapEntry (VarName vn) expr <- forBody_forStep_visited ++ if_else_ers   
-          , hasSymVar expr || hasSymUnknown expr
+          | er <- forBody_forStep_visited ++ if_else_ers  
+          , let maybe_vn_expr :: Maybe (String,SymExpr) = case getSummarized_er er of
+                  ER_SymStateMapEntry (VarName vn) expr -> Just (vn,expr)
+                  _ -> Nothing
+          , case maybe_vn_expr of
+              Nothing -> False
+              Just (vn,expr) -> hasSymVar expr || hasSymUnknown expr
+          , let vn = fst $ fromJust maybe_vn_expr
           ]
         toReturn = foldr (\r acc -> case acc of
           2 -> acc
@@ -1690,7 +1696,7 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
        modify $ \symState -> SymState env_Before_Acc executionResults_Before_Acc (logHeader symState)
        -- add a varAssignment about the counter of the for loop
        case theLoopSyntax of
-         ForSyntax -> case maybe_acc_er of
+         ForSyntax -> case fmap getSummarized_er maybe_acc_er of
            Just (ER_SymStateMapEntry (VarName vn) symExpr) -> let
              forAccNodeCoor = CFGT.Node_Coor (CFGT.branchStart branchRange) branchRange
              symExpr2 = SymVar (toSymType2 symExpr) vn [ForAccumulator branchRange symExpr]
@@ -2147,11 +2153,11 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
       inferLoopPatterns loopSummary
       <* decrementLogDepth
   let symExpr = SLoop m_Acc mForCondExpr forBody_forStep_path (Just loopSummary) loopPatterns
-      toReturn = ER_SymStateMapEntry (ScopeRange branchRange) symExpr
+      toReturn = ER_Summary nodeCoor $ ER_SymStateMapEntry (ScopeRange branchRange) symExpr
   tellNextLog $ Log.ModifyState "visitUnregisteredLoop" (show branchRange,show symExpr)
   modify $ \symState -> SymState {
     env = Map.insert (ScopeRange branchRange) symExpr map_withVarNames,
-    executionResults = executionResults symState ++ [ER_Summary nodeCoor toReturn],
+    executionResults = executionResults symState ++ [toReturn],
     logHeader = logHeader symState
     }
   tellNextLog (Log.Return "visitUnregisteredLoop" (show toReturn)) $> toReturn

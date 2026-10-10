@@ -103,6 +103,7 @@ visitSymExpr ==> SymInt: ER_SymStateMapEntry
 
 data ExecutionResult =
     ER_Summary CFGT.Node_Coor ExecutionResult
+  | ER_SymTypeInferred String SymType
   | ER_Entry
       SymType -- method type
       String  -- method name  

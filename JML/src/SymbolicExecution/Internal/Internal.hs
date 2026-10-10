@@ -467,9 +467,8 @@ hasReturn3 = \case
 get_inner_ers :: ExecutionResult -> [ExecutionResult]
 get_inner_ers er = let
   loc = "SymbolicExecution.Internal.Internal.get_inner_ers"
-  logContents = [("er",show er)] in case er of
+  logContents = [("er",show er)] in case getSummarized_er er of
   ER_IfExpr _ _ (_,if_Ers) (_,else_Ers) -> if_Ers ++ else_Ers
-  ER_Summary _ innerEr -> get_inner_ers innerEr
   _ -> []
 
 -- a list of ER_Summary is passed
@@ -679,9 +678,10 @@ getBreaks_ers :: [ExecutionResult] -> [ExecutionResult]
 getBreaks_ers ers = let
   loc = "SymbolicExecution.Internal.Internal.getBreaks_ers"
   errContents er = [("er",show er),("ers",show ers)] in
-  flip filter ers $ \er -> case er of
+  flip filter ers $ \er -> case getSummarized_er er of
     ER_SymStateMapEntry _ _ -> False
     ER_Break -> True
+    ER_SymTypeInferred _ _ -> False
     ER_IfExpr _ _ (_,if_ers) (_,else_ers) -> case (getBreaks_ers if_ers,getBreaks_ers else_ers) of
       ([],[]) -> False
       _ -> True
@@ -689,9 +689,6 @@ getBreaks_ers ers = let
     ER_Expr SymBreak -> error $ constructErrorMsg loc "TODO1" $ errContents er
     ER_Expr _ -> False
     ER_Return _ -> False
-    ER_Summary _ er -> case getBreaks_ers [er] of
-      [] -> False
-      _  -> True
     ER_State _ -> False
     ER_Continue -> False
     ER_Entry _ _ -> False
@@ -719,7 +716,7 @@ getReturns_ers :: [ExecutionResult] -> [ExecutionResult]
 getReturns_ers ers = let
   loc = "SymbolicExecution.Internal.Internal.getReturns_ers"
   errContents er = [("er",show er),("ers",show ers)] in
-  flip filter ers $ \er -> case er of
+  flip filter ers $ \er -> case getSummarized_er er of
     ER_Return _ -> True
     ER_SymStateMapEntry _ _ -> False
     ER_Break -> False
@@ -731,9 +728,6 @@ getReturns_ers ers = let
     ER_ForLoopDone -> False
     ER_Entry _ _ -> False
     ER_MethodParameter _ _ -> False
-    ER_Summary _ er -> case getReturns_ers [er] of
-      [] -> False
-      _  -> True
     ER_State _ -> False
     ER_Continue -> False
     ER_FunCall _ -> False
@@ -757,7 +751,8 @@ er: ER_SymStateMapEntry (VarName "y") (SymVar UnknownNumSymType "y")
  -}
   let loc = "SymbolicExecution.Internal.inferGlobalVarType"
   tellNextLog $ Log.Affected loc ["SymType: " ++ show newType , "ExecutionResult: " ++ show er]
-  case er of
+  case getSummarized_er er of
+    ER_Summary _ innerIr -> inferGlobalVarType newType innerIr
     ER_SymStateMapEntry (VarName key) val -> do
       theEnv <- env <$> get
       logH <- logHeader <$> get
@@ -794,15 +789,99 @@ er: ER_SymStateMapEntry (VarName "y") (SymVar UnknownNumSymType "y")
                     newType2 = pick_known_symType2
                       $ maybe [] (: []) mNewVarType ++ (map toSymType2 innerSymExprs) 
                     in cast2 vn newType2 (k,symExpr)
+            let -- extract the inferred type of vn from ma3
+                maybe_newConcreteType = Map.foldlWithKey' (\acc k v -> case (k,v) of
+                  (VarName _,_) -> acc
+                  (_,symExpr) -> case (acc,getSymType2 vn symExpr) of
+                    (Nothing,x) -> x
+                    (Just _,Nothing) -> acc
+                    (Just type1,Just type2) -> Just $ pick_known_symType (type1,type2)
+                  ) Nothing ma3
             -- modify the state accordingly
             modify $ \symState -> SymState {
               env = ma3,
-              executionResults = executionResults symState,
+              executionResults = let
+                old = executionResults symState in
+                case maybe_newConcreteType of
+                  Nothing -> old
+                  Just t -> old ++ [ER_SymTypeInferred vn t],
               logHeader = logHeader symState
             }
             return ma3
             ) theEnv vns
     _ -> tellNextLog (Log.Skip loc "Nothing to infer") $> ()
+
+getSymType2 :: String -> SymExpr -> Maybe SymType
+getSymType2 vn symExpr = let
+  loc = "SymbolicExecution.Internal.Internal.getSymType2"
+  f :: (Maybe SymType,Maybe SymType) -> Maybe SymType
+  f (one,two) = case (one,two) of
+    (Nothing,Nothing) -> Nothing
+    (Just t,Nothing)  -> Just t
+    (Just t1,Just t2) -> Just $ pick_known_symType (t1,t2)
+    (Nothing,Just t)  -> Just t
+  logContents = [
+    ("vn",vn),
+    ("symExpr",show symExpr)] in case symExpr of
+    SMethodHandle _ _ -> Nothing
+    SGlobalVars _ -> Nothing
+    SVarBindings _ -> Nothing
+    SVarAssignments li {-:: [(String,(SymExpr,CFGT.Node_Coor))] -}-> foldl'
+      (\acc (vn2,(expr,_)) -> if
+        | vn == vn2 -> case acc of
+            Nothing -> Just $ toSymType2 expr
+            Just t  -> Just $ pick_known_symType (t,toSymType2 expr)
+        | otherwise -> acc
+      ) Nothing li
+    SFormalParms _ -> Nothing
+    SLoopConditions li -> foldl' (\acc ma -> let
+      study = Map.foldlWithKey' (\acc k v -> if
+        | k == vn -> f (acc,Just $ toSymType2 v)
+        | otherwise -> acc) Nothing ma
+      in f (study,acc)) Nothing li
+    SymVar t vn2 _
+      | vn == vn2 -> Just t
+      | otherwise -> Nothing
+    SymNum _ -> Nothing
+    SymInt _ -> Nothing
+    SymDouble _ -> Nothing
+    SymFloat _ -> Nothing
+    SBool _ -> Nothing
+    SymString _ -> Nothing
+    SObjAcc _ -> Nothing
+    SymArrayAccess li -> foldl' (\acc (one,_,three) -> let
+      f ei = case ei of
+        Left _ -> Nothing
+        Right (t,vn2,_)
+          | vn == vn2 -> Just t
+          | otherwise -> Nothing
+      li2 = catMaybes [f one,acc,f three] in
+      case li of
+        [] -> Nothing
+        _  -> Just $ pick_known_symType2 li2) Nothing li
+    SBin expr1 op expr2 -> let
+      tu = (getSymType2 vn expr1,getSymType2 vn expr2) in if
+      | op `elem` [Eq,Neq,Lt,Le,Gt,Ge,And,Or] -> case tu of
+          (Nothing,Nothing) -> Nothing
+          _ -> Just Bool
+      | op `elem` [Add,Sub,Mul,Div,Mod] -> case tu of
+          (Nothing,Nothing) -> Nothing
+          (Just t1,Nothing) -> Just $ pick_known_symType (t1,UnknownNumSymType)
+          (Nothing,Just t2) -> Just $ pick_known_symType (UnknownNumSymType,t2)
+          (Just t1,Just t2) -> Just $ pick_known_symType2 [t1,t2,UnknownNumSymType]
+    SNot expr -> fmap (const Bool) $ getSymType2 vn expr
+    SymNull _ -> Nothing
+    SymUnknown (vn2,expr) _
+      | vn == vn2 -> Just $ toSymType2 expr
+      | otherwise -> Nothing
+    --SIte    SymExpr SymStateEnv (Maybe SymStateEnv)
+    SIte ifCond ifState maybeElseState -> undefined
+    _ -> error $ constructErrorMsg loc "TODO" logContents
+
+getSummarized_er :: ExecutionResult -> ExecutionResult
+getSummarized_er = \case
+  ER_Summary _ er -> getSummarized_er er
+  er -> er
 
 ------------------------------
 ------------------------------
@@ -1396,9 +1475,8 @@ getVarAssignments = maybe [] (\(SVarAssignments li) -> li) . Map.lookup VarAssig
 get_ER_IfExprs :: [ExecutionResult] -> [ExecutionResult]
 get_ER_IfExprs ers = catMaybes [res
   | er <- ers
-  , let res = case er of
+  , let res = case getSummarized_er er of
           ER_IfExpr _ _ _ _ -> Just er
-          ER_Summary _ (ER_IfExpr _ _ _ _) -> Just er
           _ -> Nothing
   ]
 
