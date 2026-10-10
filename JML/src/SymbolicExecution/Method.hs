@@ -1687,32 +1687,32 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
     (forCondExpr_visited_expr :: SymExpr,
      loopState :: SymState,
      forBody_forStep_ers :: [ExecutionResult]) = do
-    modify $ \symState -> SymState env_Before_Acc executionResults_Before_Acc (logHeader symState)
-    -- add a varAssignment about the counter of the for loop
-    case theLoopSyntax of
-      ForSyntax -> case maybe_acc_er of
-        Just (ER_SymStateMapEntry (VarName vn) symExpr) -> let
-          forAccNodeCoor = CFGT.Node_Coor (CFGT.branchStart branchRange) branchRange
-          symExpr2 = SymVar (toSymType2 symExpr) vn [ForAccumulator branchRange symExpr]
-          varAssignment :: (String,(SymExpr,CFGT.Node_Coor))
-          varAssignment = (vn,(symExpr2,forAccNodeCoor))
-          in modify $ \symState -> SymState {
-               env = Map.alter (\case
-                 Just (SVarAssignments li) -> Just $ SVarAssignments $ li ++ [varAssignment]
-                 Nothing -> Just $ SVarAssignments [varAssignment]
-                 ) VarAssignments (env symState),
-               executionResults = executionResults symState,
-               logHeader = logHeader symState
-             }
-        Just er -> throwError $ constructErrorMsg loc "TODO" [("er",show er)]
-        -- there is no counter
-        Nothing -> return ()
-      _ -> return ()
+       modify $ \symState -> SymState env_Before_Acc executionResults_Before_Acc (logHeader symState)
+       -- add a varAssignment about the counter of the for loop
+       case theLoopSyntax of
+         ForSyntax -> case maybe_acc_er of
+           Just (ER_SymStateMapEntry (VarName vn) symExpr) -> let
+             forAccNodeCoor = CFGT.Node_Coor (CFGT.branchStart branchRange) branchRange
+             symExpr2 = SymVar (toSymType2 symExpr) vn [ForAccumulator branchRange symExpr]
+             varAssignment :: (String,(SymExpr,CFGT.Node_Coor))
+             varAssignment = (vn,(symExpr2,forAccNodeCoor))
+             in modify $ \symState -> SymState {
+                  env = Map.alter (\case
+                    Just (SVarAssignments li) -> Just $ SVarAssignments $ li ++ [varAssignment]
+                    Nothing -> Just $ SVarAssignments [varAssignment]
+                    ) VarAssignments (env symState),
+                  executionResults = executionResults symState,
+                  logHeader = logHeader symState
+                }
+           Just er -> throwError $ constructErrorMsg loc "TODO" [("er",show er)]
+           -- there is no counter
+           Nothing -> return ()
+         _ -> return ()
     
-    visitUnregisteredLoop theLoopSyntax (nodeCoor,cfg) m_Acc
-      (mForCondExpr,forCondExpr_visited_expr)
-      (forBody_forStep_path,loopState,forBody_forStep_ers)
-      branchRange
+       visitUnregisteredLoop theLoopSyntax (nodeCoor,cfg) m_Acc
+         (mForCondExpr,forCondExpr_visited_expr)
+         (forBody_forStep_path,loopState,forBody_forStep_ers)
+         branchRange
   ----------
   callRegisteredLoop loc (env_Before_Acc,executionResults_Before_Acc)
     (forCondExpr_visited_expr :: SymExpr,

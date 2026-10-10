@@ -357,7 +357,7 @@ getLoopCounters (branchRange,origEnv,newEnv)
 --------------------
 --------------------
 
-getDynamicallyAccessedArrays :: [String] -> [ExecutionResult] -> SymbolicExecutionMonad [(SymType,String,[String])]
+getDynamicallyAccessedArrays :: [String] -> [ExecutionResult] -> SymbolicExecutionMonad [(SymType,String,[String{-([CFGT.Node_Coor],String)-}])]
 getDynamicallyAccessedArrays loopCounters loop_ers = do
   let loc = "SymbolicExecution.Internal.LoopSummary.getDynamicallyAccessedArrays"
       logContents = [
@@ -365,8 +365,10 @@ getDynamicallyAccessedArrays loopCounters loop_ers = do
         ("loop_ers",show loop_ers)]
       relevantSymExprs :: [(SymExpr,[String])]
       relevantSymExprs = study_loop_ers loop_ers
+  {-throwError $ constructErrorMsg loc "MEOW" $ logContents ++ [
+    ("relevantSymExprs",show relevantSymExprs)]-}
       --symExpr = SBin (SArrayIndexAccess (Array Int) "a" (SymVar Int "i" [])) Eq (SymVar Int "x" [])
-      toReturn = [(arrType,arrName,vns)
+  let toReturn :: [(SymType,String,[String])] = [(arrType,arrName,vns)
         | (symExpr,vns) <- relevantSymExprs
         , (arrType,arrName) <- getAccessedArraysNamesViaNamedIndexes loopCounters symExpr
         ]
