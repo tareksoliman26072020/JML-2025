@@ -272,7 +272,7 @@ data LoopSummary = LoopSummary {
   -- Records whether a effected vars increases, decreases, moves conditionally, or does not really change, and how much the var changes per iteration.
   , loopFrameTargetsDevelopmentTrajectory :: [(String,SymExprDevelopmentTrajectory)]
   -- inferring how the loopFrameTargets end up looking like when the loop is exited
-  , loopExitFacts :: [LoopExitFact]
+  , loopExitFacts :: [([CFGT.Node_Coor],LoopExitFact)]
   -- Lower and upper bounds for each counter.
   , loopCountersBounds :: [(SymExpr,(SymType,String),SymExpr)]
   -- how the loop bound changes during the loop

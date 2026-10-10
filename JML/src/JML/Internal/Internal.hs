@@ -1094,7 +1094,7 @@ addBehavior sy er = do
              (SYT.loopInitFacts loopSummary)
              (SYT.loopEnteringCondition loopSummary,SYT.loopExitingConditions loopSummary)
              (SYT.loopSkipCondition loopSummary)
-             (SYT.loopExitFacts loopSummary)
+             (map snd $ SYT.loopExitFacts loopSummary)
              <* decrementLogDepth
       tellingReportTheState innerLoc
       return ()

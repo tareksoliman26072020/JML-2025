@@ -1178,7 +1178,7 @@ getLoopSkipCondition loopEnteringCondition = do
 --------------------
 --------------------
 
-getLoopExitFacts :: (Maybe SymExpr,[([CFGT.Node_Coor],SymExpr)]) -> [(String,SymExprDevelopmentTrajectory)] -> SymbolicExecutionMonad [LoopExitFact]
+getLoopExitFacts :: (Maybe SymExpr,[([CFGT.Node_Coor],SymExpr)]) -> [(String,SymExprDevelopmentTrajectory)] -> SymbolicExecutionMonad [([CFGT.Node_Coor],LoopExitFact)]
 getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTrajectory = do
   let loc = globalLoc ++ ".getLoopExitFacts"
       logContents = [
@@ -1187,24 +1187,24 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
         ,("loopFrameTargetsDevelopmentTrajectory",show loopFrameTargetsDevelopmentTrajectory)
         ]
   constructLog loc "getLoopExitFacts" logContents
-  let loopExitingConditions2 = map snd loopExitingConditions
+  let --loopExitingConditions2 = map snd loopExitingConditions
       -- collecting variables names of the conditions
       --   found in `loopExitingConditions` and in `loopGuard`
       vns = let
-        exitConds_vns = concatMap getVarNames3 loopExitingConditions2
+        exitConds_vns = concatMap (getVarNames3 . snd) loopExitingConditions
         in maybe exitConds_vns (\lg -> getVarNames3 lg ++ exitConds_vns) loopGuard
-      -- negate all guards in `loopExitingConditions2`
-      guards = map negate loopExitingConditions2
+      -- negate all guards in `loopExitingConditions`
+      guards = map (\(coors,cond) -> (coors,negate cond)) loopExitingConditions
       -- trajectories that are relevant to the collected variables in `vns`
       relevant_trajectories = [tu | tu@(vn,_) <- loopFrameTargetsDevelopmentTrajectory, vn `elem` vns]
   constructLog loc "Summary" [
     ("vns",show vns),
     ("guards",show guards),
     ("relevant_trajectories",show relevant_trajectories)]
-  let toReturn :: [LoopExitFact]
+  let toReturn :: [([CFGT.Node_Coor],LoopExitFact)]
       toReturn = let
-        in flip concatMap guards $ \guard -> case relevant_trajectories of
-            _ -> [res
+        in flip concatMap guards $ \(coors,guard) -> case relevant_trajectories of
+            _ -> [(coors,res)
               | (vn,trajectory) <- relevant_trajectories
               , let maybe_Res = symExprNextStep vn (isolate_vr vn guard) trajectory
               , let res = case maybe_Res of
