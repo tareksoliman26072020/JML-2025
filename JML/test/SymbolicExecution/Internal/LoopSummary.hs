@@ -149,7 +149,7 @@ contains = [LoopSummary {
     ([(Just $ Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},ElemInArray "a" (SymVar Int "i" []) (SymVar Int "x" []))],
      Just (SBool True))],
   loopCounters = ["i"],
-  dynamicallyAccessedArrays = [(Array Int,"a",["i"])],
+  dynamicallyAccessedArrays = [(Array Int,"a",[([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 2, branchEnd = 7}}],"i")])],
   loopAssignments = ["i"],
   loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
   loopExitFacts = [

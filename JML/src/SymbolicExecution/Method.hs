@@ -2358,10 +2358,10 @@ createLoopSummary cfg theLoopSyntax m_Acc
   ----------------------------
   -- dynamicallyAccessedArrays
   ----------------------------
-  theDynamicallyAccessedArrays :: [(SymType,String,[String])] <- do
+  theDynamicallyAccessedArrays :: [(SymType,String,[([CFGT.Node_Coor],String)])] <- do
     incrementLogEnumeration
     incrementLogDepth *>
-      getDynamicallyAccessedArrays
+      getDynamicallyAccessedArrays cfg
         theLoopCounters
         forBody_forStep_path_visited_ers
         <* decrementLogDepth

@@ -357,47 +357,54 @@ getLoopCounters (branchRange,origEnv,newEnv)
 --------------------
 --------------------
 
-getDynamicallyAccessedArrays :: [String] -> [ExecutionResult] -> SymbolicExecutionMonad [(SymType,String,[String{-([CFGT.Node_Coor],String)-}])]
-getDynamicallyAccessedArrays loopCounters loop_ers = do
+getDynamicallyAccessedArrays :: CFGT.CFG -> [String] -> [ExecutionResult] -> SymbolicExecutionMonad [(SymType,String,[([CFGT.Node_Coor],String)])]
+getDynamicallyAccessedArrays cfg loopCounters loop_ers = do
   let loc = "SymbolicExecution.Internal.LoopSummary.getDynamicallyAccessedArrays"
       logContents = [
+        ("cfg",show cfg),
         ("loopCounters",show loopCounters),
         ("loop_ers",show loop_ers)]
-      relevantSymExprs :: [(SymExpr,[String])]
+      relevantSymExprs :: [(SymExpr,[([CFGT.Node_Coor],String)])]
       relevantSymExprs = study_loop_ers loop_ers
-  {-throwError $ constructErrorMsg loc "MEOW" $ logContents ++ [
-    ("relevantSymExprs",show relevantSymExprs)]-}
       --symExpr = SBin (SArrayIndexAccess (Array Int) "a" (SymVar Int "i" [])) Eq (SymVar Int "x" [])
-  let toReturn :: [(SymType,String,[String])] = [(arrType,arrName,vns)
+  let toReturn :: [(SymType,String,[([CFGT.Node_Coor],String)])] = [(arrType,arrName,vns)
         | (symExpr,vns) <- relevantSymExprs
         , (arrType,arrName) <- getAccessedArraysNamesViaNamedIndexes loopCounters symExpr
         ]
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
+  err loc msg er = error $ constructErrorMsg loc msg [("er",show er)]
   -- checks `loop_ers` and returns all expressions of form `SArrayIndexAccess`
   -- which involve `loopCounters`
-  study_loop_ers :: [ExecutionResult] -> [(SymExpr,[String])]
+  study_loop_ers :: [ExecutionResult] -> [(SymExpr,[([CFGT.Node_Coor],String)])]
   study_loop_ers ers = let
     loc = "SymbolicExecution.Internal.LoopSummary.getDynamicallyAccessedArrays.study_loop_ers"
-    err msg er = error $ constructErrorMsg loc msg [("er",show er)]
     in flip concatMap ers $ \er -> case er of
-    ER_IfExpr _ (ifCond,_) (_,ifErs) (_,elseErs) ->
-      studySymExpr ifCond ++ study_loop_ers ifErs ++ study_loop_ers elseErs
-    ER_SymStateMapEntry _ symExpr -> studySymExpr symExpr
-    ER_Expr symExpr -> studySymExpr symExpr
-    ER_ArrayCallExpr{} -> err "TODO1" er
-    ER_IfCond symExpr -> studySymExpr symExpr
-    ER_PredefinedFunCall symExpr -> studySymExpr symExpr
-    ER_Return mSymExpr -> maybe [] studySymExpr mSymExpr
-    ER_ActualParameterDetected _ _ -> err "TODO2" er
-    ER_Break -> []
-    ER_Summary _ er -> study_loop_ers [er]
-    ER_SymTypeInferred _ _ -> []
-    ER_FunCall _ -> []
-    _ -> err "TODO3" er
-  studySymExpr :: SymExpr -> [(SymExpr,[String])]
-  studySymExpr symExpr = case studySymExprHelper symExpr of
+    ER_Summary coor er -> study_er_summary coor er
+    _ -> err loc "TODO3" er
+  study_er_summary :: CFGT.Node_Coor -> ExecutionResult -> [(SymExpr,[([CFGT.Node_Coor],String)])]
+  study_er_summary coor er = let
+    loc = "SymbolicExecution.Internal.LoopSummary.getDynamicallyAccessedArrays.study_er_summary"
+    logContents = [
+      ("coor",show coor),
+      ("er",show er)] in case er of
+      ER_IfExpr _ (ifCond,_) (_,ifErs) (_,elseErs) ->
+        studySymExpr coor ifCond ++ study_loop_ers ifErs ++ study_loop_ers elseErs
+      ER_SymStateMapEntry _ symExpr -> studySymExpr coor symExpr
+      ER_Expr symExpr -> studySymExpr coor symExpr
+      ER_ArrayCallExpr{} -> err loc "TODO1" er
+      ER_IfCond symExpr -> studySymExpr coor symExpr
+      ER_PredefinedFunCall symExpr -> studySymExpr coor symExpr
+      ER_Return mSymExpr -> maybe [] (studySymExpr coor) mSymExpr
+      ER_ActualParameterDetected _ _ -> err loc "TODO2" er
+      ER_Break -> []
+      ER_SymTypeInferred _ _ -> []
+      ER_FunCall _ -> []
+  studySymExpr :: CFGT.Node_Coor -> SymExpr -> [(SymExpr,[([CFGT.Node_Coor],String)])]
+  studySymExpr nodeCoor symExpr = case studySymExprHelper symExpr of
     [] -> []
-    vns -> [(symExpr,vns)]
+    vns -> let
+      coors = CFG.getPathToCoor nodeCoor cfg
+      in [(symExpr,map ((,) coors) vns)]
   -- returns True is SymExpr has an accessed array (SArrayIndexAccess),
   -- and the index is a loop counter (a frame target)
   studySymExprHelper :: SymExpr -> [String]
@@ -409,8 +416,8 @@ getDynamicallyAccessedArrays loopCounters loop_ers = do
     case symExpr of
       SBin expr1 _ expr2 -> concatMap studySymExprHelper [expr1,expr2]
       SNot expr -> studySymExprHelper expr
-      SIte _ _ _ -> err "TODO1"
-      SLoop _ _ _ _ _ -> err "TODO2"
+      SIte _ _ _ -> err loc "TODO1"
+      SLoop _ _ _ _ _ -> err loc "TODO2"
       SArrayIndexAccess _ _ index -> study_array_index index
       SymVar _ _ _ -> []
       SBool _ -> []
@@ -419,7 +426,7 @@ getDynamicallyAccessedArrays loopCounters loop_ers = do
       SymDouble _ -> []
       SymFloat _ -> []
       SObjAcc _ -> []
-      _ -> err "TODO3"
+      _ -> err loc "TODO3"
   -- checks if the index has a loop counter
   study_array_index :: SymExpr -> [String]
   study_array_index index = let

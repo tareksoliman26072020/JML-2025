@@ -307,10 +307,10 @@ inferArrayScanPatterns loopSummary = do
     , and check which of them have monotonic trajectory, and then return them.
    -}
   let toReturn = [ (one,two)
-        | (arrType,arrName,vns) <- theDynamicallyAccessedArrays
+        | (arrType,arrName,coors_vn) <- theDynamicallyAccessedArrays
         , let vns2 = catMaybes [
                 studyTrajectory vn theLoopFrameTargetsDevelopmentTrajectory
-                | vn <- vns]
+                | (_,vn) <- coors_vn]
               one = TraversalPattern $ ArrayScan (arrName,vns2)
               two = arrayScanPatternsTags
         ]
@@ -346,7 +346,7 @@ inferLinearSearchPatterns loopSummary = do
               two = linearSearchPatternsTags
         ]
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
-  studyReturnsFacts :: [(StateChangingConditions, Maybe SymExpr)] -> [(SymType,String,[String])] -> [(StateChangingConditions,Maybe SymExpr)]
+  studyReturnsFacts :: [(StateChangingConditions, Maybe SymExpr)] -> [(SymType,String,[([CFGT.Node_Coor],String)])] -> [(StateChangingConditions,Maybe SymExpr)]
   studyReturnsFacts loopExitViaReturnFacts dynamicallyAccessedArrays = [(li,mReturnVal)
     | (li,mReturnVal) <- loopExitViaReturnFacts
     -- at least one cond has to have an array which is dynamically accessed
