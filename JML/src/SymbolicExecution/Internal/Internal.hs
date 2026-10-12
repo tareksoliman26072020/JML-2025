@@ -719,6 +719,7 @@ getReturns_ers ers = let
   flip filter ers $ \er -> case getSummarized_er er of
     ER_Return _ -> True
     ER_SymStateMapEntry _ _ -> False
+    ER_SymTypeInferred _ _ -> False
     ER_Break -> False
     ER_IfExpr _ _ (_,if_ers) (_,else_ers) -> case (getReturns_ers if_ers,getReturns_ers else_ers) of
       ([],[]) -> False
@@ -811,18 +812,29 @@ er: ER_SymStateMapEntry (VarName "y") (SymVar UnknownNumSymType "y")
             ) theEnv vns
     _ -> tellNextLog (Log.Skip loc "Nothing to infer") $> ()
 
+getSymType1 :: String -> SymStateEnv -> Maybe SymType
+getSymType1 vn = Map.foldlWithKey' (\acc k v -> case k of
+  VarName vn2
+    | vn == vn2 -> pick_known_symType3 (Just $ toSymType2 v,acc)
+  _ -> pick_known_symType3 (acc,getSymType2 vn v)) Nothing
+
+pick_known_symType3 :: (Maybe SymType,Maybe SymType) -> Maybe SymType
+pick_known_symType3 (one,two) = case (one,two) of
+  (Nothing,Nothing) -> Nothing
+  (Just t,Nothing)  -> Just t
+  (Just t1,Just t2) -> Just $ pick_known_symType (t1,t2)
+  (Nothing,Just t)  -> Just t
+
+pick_known_symType4 :: [Maybe SymType] -> Maybe SymType
+pick_known_symType4 = foldl' (\acc elm -> pick_known_symType3 (acc,elm)) Nothing
+
 getSymType2 :: String -> SymExpr -> Maybe SymType
 getSymType2 vn symExpr = let
   loc = "SymbolicExecution.Internal.Internal.getSymType2"
-  f :: (Maybe SymType,Maybe SymType) -> Maybe SymType
-  f (one,two) = case (one,two) of
-    (Nothing,Nothing) -> Nothing
-    (Just t,Nothing)  -> Just t
-    (Just t1,Just t2) -> Just $ pick_known_symType (t1,t2)
-    (Nothing,Just t)  -> Just t
   logContents = [
     ("vn",vn),
     ("symExpr",show symExpr)] in case symExpr of
+    SActions _ -> Nothing
     SMethodHandle _ _ -> Nothing
     SGlobalVars _ -> Nothing
     SVarBindings _ -> Nothing
@@ -836,9 +848,9 @@ getSymType2 vn symExpr = let
     SFormalParms _ -> Nothing
     SLoopConditions li -> foldl' (\acc ma -> let
       study = Map.foldlWithKey' (\acc k v -> if
-        | k == vn -> f (acc,Just $ toSymType2 v)
+        | k == vn -> pick_known_symType3 (acc,Just $ toSymType2 v)
         | otherwise -> acc) Nothing ma
-      in f (study,acc)) Nothing li
+      in pick_known_symType3 (study,acc)) Nothing li
     SymVar t vn2 _
       | vn == vn2 -> Just t
       | otherwise -> Nothing
@@ -874,9 +886,15 @@ getSymType2 vn symExpr = let
     SymUnknown (vn2,expr) _
       | vn == vn2 -> Just $ toSymType2 expr
       | otherwise -> Nothing
-    --SIte    SymExpr SymStateEnv (Maybe SymStateEnv)
-    SIte ifCond ifState maybeElseState -> undefined
-    _ -> error $ constructErrorMsg loc "TODO" logContents
+    --SIte SymExpr SymStateEnv (Maybe SymStateEnv)
+    SIte ifCond ifState maybeElseState -> let
+      one   = getSymType2 vn ifCond
+      two   = getSymType1 vn ifState
+      three = case getSymType1 vn <$> maybeElseState of
+        Just x -> x
+        Nothing -> Nothing
+      in pick_known_symType4 [one,two,three]
+    _ -> error $ constructErrorMsg loc "TODO" logContents where
 
 getSummarized_er :: ExecutionResult -> ExecutionResult
 getSummarized_er = \case
