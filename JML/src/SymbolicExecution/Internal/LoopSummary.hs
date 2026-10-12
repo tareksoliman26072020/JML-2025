@@ -391,6 +391,8 @@ getDynamicallyAccessedArrays loopCounters loop_ers = do
     ER_ActualParameterDetected _ _ -> err "TODO2" er
     ER_Break -> []
     ER_Summary _ er -> study_loop_ers [er]
+    ER_SymTypeInferred _ _ -> []
+    ER_FunCall _ -> []
     _ -> err "TODO3" er
   studySymExpr :: SymExpr -> [(SymExpr,[String])]
   studySymExpr symExpr = case studySymExprHelper symExpr of
@@ -429,6 +431,12 @@ getDynamicallyAccessedArrays loopCounters loop_ers = do
     SymVar _ vn _
       | vn `elem` loopCounters -> [vn]
       | otherwise -> []
+    SymInt _ -> []
+    SymDouble _ -> []
+    SymString _ -> []
+    SymFloat _ -> []
+    SBool _ -> []
+    SObjAcc _ -> []
     _ -> error $ constructErrorMsg loc "TODO" [("index",show index)]
 
 --------------------
@@ -1206,17 +1214,15 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
   let toReturn :: [([CFGT.Node_Coor],LoopExitFact)]
       toReturn = let
         in flip concatMap guards $ \(coors,guard) -> case relevant_trajectories of
-            _ -> [(coors,res)
+            _ -> catMaybes [fmap (\res -> (coors,res)) maybe_Res
               | (vn,trajectory) <- relevant_trajectories
               , let maybe_Res = symExprNextStep vn (isolate_vr vn guard) trajectory
-              , let res = case maybe_Res of
-                      Nothing -> error $ constructErrorMsg loc "TODO1" $ logContents ++
+              , let res = maybe_Res
+                      {-if maybe_Res == Nothing then error $ constructErrorMsg loc "TODO1" $ logContents ++
                         [("vn",vn)
                         ,("guard",show guard)
-                        ,("trajectory",show trajectory)]
-                      Just loopExitFact -> loopExitFact 
+                        ,("trajectory",show trajectory)]-}
               ]
-            --_ -> error $ constructErrorMsg loc "TODO1" $ logContents ++ [("relevant_trajectories",show relevant_trajectories)]
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn where
   -- isolate `vr` in `guard`
   isolate_vr :: String -> SymExpr -> SymExpr
@@ -1356,4 +1362,5 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
       (_,SBin expr1 Neq (SArrayIndexAccess _ arrName index@(SymVar _ vn2 [])))
         | vn == vn2 -> Just $ LoopExitFactArrayAccessValue arrName index expr1
       ----------
+      (Complicated _ _,_) -> Nothing
       _ -> error $ constructErrorMsg loc "TODO6" logContents

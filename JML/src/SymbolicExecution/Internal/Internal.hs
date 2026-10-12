@@ -18,7 +18,7 @@ import Prelude hiding (negate)
 import Data.List (nub,find,foldl',intercalate)
 import Control.Monad (forM_, foldM_)
 import Data.Functor (($>))
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes,isNothing)
 
 ------------------------------
 ------------------------------
@@ -438,6 +438,7 @@ toSymExpr theType expr = let
       Just index -> case arrName_symExpr of
         SymVar _ arrName _ -> SArrayIndexAccess arrType arrName (toSymExpr theType index)
         _ -> fun_error 3
+  AST.Null -> SymNull theType
   _ -> fun_error 4
 
 getReturnSymExpr :: SymStateEnv -> Maybe SymExpr
@@ -787,8 +788,13 @@ er: ER_SymStateMapEntry (VarName "y") (SymVar UnknownNumSymType "y")
                   (VarName _,_) -> v
                   (_,symExpr) -> let
                     innerSymExprs = lookupPartialSymExprs vn (k,symExpr)
-                    newType2 = pick_known_symType2
-                      $ maybe [] (: []) mNewVarType ++ (map toSymType2 innerSymExprs) 
+                    newType2 = let
+                      li = maybe [] (: []) mNewVarType ++ (map toSymType2 innerSymExprs)
+                      in case li of
+                           [] -> error $ constructErrorMsg loc "TODO" [--MEOW
+                            ("symExpr",show symExpr),
+                            ("innerSymExprs",show innerSymExprs)]
+                           _ -> pick_known_symType2 li 
                     in cast2 vn newType2 (k,symExpr)
             let -- extract the inferred type of vn from ma3
                 maybe_newConcreteType = Map.foldlWithKey' (\acc k v -> case (k,v) of
@@ -894,6 +900,8 @@ getSymType2 vn symExpr = let
         Just x -> x
         Nothing -> Nothing
       in pick_known_symType4 [one,two,three]
+    SLoop _ _ _ _ _ -> Nothing
+    SymReturnVoid -> Nothing
     _ -> error $ constructErrorMsg loc "TODO" logContents where
 
 getSummarized_er :: ExecutionResult -> ExecutionResult
