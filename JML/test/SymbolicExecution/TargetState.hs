@@ -5199,7 +5199,7 @@ contains = Map.fromList [
                ([(Just $ Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},ElemInArray "a" (SymVar SYT.Int "i" []) (SymVar SYT.Int "x" []))],
                 Just (SBool True))],
              loopCounters = ["i"],
-             dynamicallyAccessedArrays = [(SYT.Array SYT.Int,"a",[([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 2, branchEnd = 7}}],"i")])],
+             dynamicallyAccessedArrays = [(SYT.Array SYT.Int,"a",[(Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 7}},"i")])],
              loopAssignments = ["i"],
              loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
              loopExitFacts = [

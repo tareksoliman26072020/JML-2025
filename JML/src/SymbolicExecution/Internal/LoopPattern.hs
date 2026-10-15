@@ -346,7 +346,7 @@ inferLinearSearchPatterns loopSummary = do
               two = linearSearchPatternsTags
         ]
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
-  studyReturnsFacts :: [(StateChangingConditions, Maybe SymExpr)] -> [(SymType,String,[([CFGT.Node_Coor],String)])] -> [(StateChangingConditions,Maybe SymExpr)]
+  studyReturnsFacts :: [(StateChangingConditions, Maybe SymExpr)] -> [(SymType,String,[(CFGT.Node_Coor,String)])] -> [(StateChangingConditions,Maybe SymExpr)]
   studyReturnsFacts loopExitViaReturnFacts dynamicallyAccessedArrays = [(li,mReturnVal)
     | (li,mReturnVal) <- loopExitViaReturnFacts
     -- at least one cond has to have an array which is dynamically accessed

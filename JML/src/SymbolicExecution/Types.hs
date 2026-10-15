@@ -266,7 +266,7 @@ data LoopSummary = LoopSummary {
   , dynamicallyAccessedArrays :: [
       (SymType,  -- array type
        String,   -- array name
-       [([CFGT.Node_Coor],String)]) -- loop counters used to access the array
+       [(CFGT.Node_Coor,String)]) -- loop counters used to access the array
       ]
   -- Local variables assigned inside the loop
   , loopAssignments :: [String]

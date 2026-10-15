@@ -128,19 +128,6 @@ halving = [LoopSummary {
     (SymVar Int "i" [],Increasing (SymInt 1))],
   loopDecreasesCandidate = [SBin (SymVar Int "n" []) Sub (SymVar Int "i" [])]
 }]
-{-
-LoopSummary {
-  loopExitViaBreakFacts = [],
-  loopExitViaReturnFacts = [([(Just (Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}}),ElemInArray "a" (SymVar Int "i" []) (SymVar Int "x" []))],Just (SBool True))],
-  loopCounters = ["i"],
-  dynamicallyAccessedArrays = [(Array Int,"a",[([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 2, branchEnd = 7}}],"i")])],
-  loopAssignments = ["i"],
-  loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
-  loopExitFacts = [([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}}],LoopExitFactValue "i" (SObjAcc ["a","length"])),([Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}}],LoopExitFactArrayAccessValue "a" (SymVar Int "i" []) (SymVar Int "x" []))],
-  loopCountersBounds = [(SymInt 0,(Int,"i"),SObjAcc ["a","length"])],
-  loopBoundStabilityFacts = [(SObjAcc ["a","length"],ReadOnly)],
-  loopDecreasesCandidate = [SBin (SObjAcc ["a","length"]) Sub (SymVar Int "i" [])]
-}-}
 
 contains :: [LoopSummary]
 contains = [LoopSummary {
@@ -161,7 +148,7 @@ contains = [LoopSummary {
     ([(Just $ Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},ElemInArray "a" (SymVar Int "i" []) (SymVar Int "x" []))],
      Just (SBool True))],
   loopCounters = ["i"],
-  dynamicallyAccessedArrays = [(Array Int,"a",[([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 2, branchEnd = 7}}],"i")])],
+  dynamicallyAccessedArrays = [(Array Int,"a",[(Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 7}},"i")])],
   loopAssignments = ["i"],
   loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
   loopExitFacts = [

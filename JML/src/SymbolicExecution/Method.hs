@@ -2358,7 +2358,7 @@ createLoopSummary cfg theLoopSyntax m_Acc
   ----------------------------
   -- dynamicallyAccessedArrays
   ----------------------------
-  theDynamicallyAccessedArrays :: [(SymType,String,[([CFGT.Node_Coor],String)])] <- do
+  theDynamicallyAccessedArrays :: [(SymType,String,[(CFGT.Node_Coor,String)])] <- do
     incrementLogEnumeration
     incrementLogDepth *>
       getDynamicallyAccessedArrays cfg
