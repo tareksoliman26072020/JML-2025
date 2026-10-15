@@ -4943,7 +4943,7 @@ idByLoop = Map.fromList [
              loopGuard = Just $ SBin (SymVar SYT.Int "i" []) SYT.Lt (SymVar SYT.Int "n" []),
              loopEnteringCondition = Just (SBin (SymInt 0) SYT.Lt (SymVar SYT.Int "n" [])),
              loopSkipCondition = Just (SBin (SymInt 0) SYT.Ge (SymVar SYT.Int "n" [])),
-             loopExitingConditions = [([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}],SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" []))],
+             loopExitingConditions = [(Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}},SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" []))],
              loopExitViaBreakFacts = [],
              loopExitViaReturnFacts = [],
              loopCounters = ["i"],
@@ -5001,7 +5001,7 @@ idByLoopStride3 = Map.fromList [
              loopGuard = Just $ SBin (SymVar SYT.Int "i" []) SYT.Lt (SymVar SYT.Int "n" []),
              loopEnteringCondition = Just (SBin (SymInt 0) SYT.Lt (SymVar SYT.Int "n" [])),
              loopSkipCondition = Just (SBin (SymInt 0) SYT.Ge (SymVar SYT.Int "n" [])),
-             loopExitingConditions = [([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}],SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" []))],
+             loopExitingConditions = [(Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}},SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" []))],
              loopExitViaBreakFacts = [],
              loopExitViaReturnFacts = [],
              loopCounters = ["i"],
@@ -5059,7 +5059,7 @@ idByLoop2 = Map.fromList [
              loopEnteringCondition = Just (SBool True),
              loopSkipCondition = Just (SBool False),
              loopExitingConditions = [
-               ([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 2, branchEnd = 7}},Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}}],
+               (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}},
                 SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" []))],
              loopExitViaBreakFacts = [
                [
@@ -5073,7 +5073,7 @@ idByLoop2 = Map.fromList [
              loopAssignments = ["i"],
              loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
              loopExitFacts = [
-               ([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 2, branchEnd = 7}},Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}}],
+               ([Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}}],
                 LoopExitFactValue "i" (SymVar SYT.Int "n" []))],
              loopCountersBounds = [(SymInt 0,(SYT.Int,"i"),SymVar SYT.Int "n" [])],
              loopBoundStabilityFacts = [(SymVar SYT.Int "n" [],ReadOnly)],
@@ -5127,7 +5127,7 @@ halving = Map.fromList [
              loopGuard = Just (SBin (SymVar SYT.Int "i" []) SYT.Lt (SymVar SYT.Int "n" [])),
              loopEnteringCondition = Just (SBin (SymInt 0) SYT.Lt (SymPreScope (SR {branchStart = 2, branchEnd = 5}) (SYT.Int,"n"))),
              loopSkipCondition = Just (SBin (SymInt 0) SYT.Ge (SymPreScope (SR {branchStart = 2, branchEnd = 5}) (SYT.Int,"n"))),
-             loopExitingConditions = [([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 6}}],SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" []))],
+             loopExitingConditions = [(Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 6}},SBin (SymVar SYT.Int "i" []) SYT.Ge (SymVar SYT.Int "n" []))],
              loopExitViaBreakFacts = [],
              loopExitViaReturnFacts = [],
              loopCounters = ["i","n"],
@@ -5190,13 +5190,14 @@ contains = Map.fromList [
              loopEnteringCondition = Just (SBin (SymInt 0) SYT.Lt (SObjAcc ["a","length"])),
              loopSkipCondition = Just (SBin (SymInt 0) SYT.Ge (SObjAcc ["a","length"])),
              loopExitingConditions = [
-               ([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}}],
+               (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}},
                 SBin (SymVar SYT.Int "i" []) SYT.Ge (SObjAcc ["a","length"])),
-               ([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 2, branchEnd = 7}},
-                 Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}}],
+               (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}},
                 SBin (SArrayIndexAccess (SYT.Array SYT.Int) "a" (SymVar SYT.Int "i" [])) SYT.Eq (SymVar SYT.Int "x" []))],
              loopExitViaBreakFacts = [],
-             loopExitViaReturnFacts = [([(Just $ Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},ElemInArray "a" (SymVar SYT.Int "i" []) (SymVar SYT.Int "x" []))],Just (SBool True))],
+             loopExitViaReturnFacts = [
+               ([(Just $ Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},ElemInArray "a" (SymVar SYT.Int "i" []) (SymVar SYT.Int "x" []))],
+                Just (SBool True))],
              loopCounters = ["i"],
              dynamicallyAccessedArrays = [(SYT.Array SYT.Int,"a",[([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 2, branchEnd = 7}}],"i")])],
              loopAssignments = ["i"],
@@ -5204,8 +5205,7 @@ contains = Map.fromList [
              loopExitFacts = [
                ([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}}],
                 LoopExitFactValue "i" (SObjAcc ["a","length"])),
-               ([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 2, branchEnd = 7}},
-                 Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}}],
+               ([Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}}],
                 LoopExitFactArrayAccessValue "a" (SymVar SYT.Int "i" []) (SymVar SYT.Int "x" []))],
              loopCountersBounds = [(SymInt 0,(SYT.Int,"i"),SObjAcc ["a","length"])],
              loopBoundStabilityFacts = [(SObjAcc ["a","length"],ReadOnly)],

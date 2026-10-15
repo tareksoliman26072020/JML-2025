@@ -2318,7 +2318,7 @@ createLoopSummary cfg theLoopSyntax m_Acc
   ---------------------
   -- loopExitingConditions
   ---------------------
-  theLoopExitingConditions :: [([CFGT.Node_Coor],SymExpr)] <- do
+  theLoopExitingConditions :: [(CFGT.Node_Coor,SymExpr)] <- do
     incrementLogEnumeration
     incrementLogDepth *>
       getLoopExitingConditions cfg

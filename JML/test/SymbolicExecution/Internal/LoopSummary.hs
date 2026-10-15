@@ -22,7 +22,7 @@ idByLoop = [LoopSummary {
   loopGuard = Just $ SBin (SymVar Int "i" []) Lt (SymVar Int "n" []),
   loopEnteringCondition = Just $ SBin (SymInt 0) Lt (SymVar Int "n" []),
   loopSkipCondition = Just (SBin (SymInt 0) Ge (SymVar Int "n" [])),
-  loopExitingConditions = [([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}],SBin (SymVar Int "i" []) Ge (SymVar Int "n" []))],
+  loopExitingConditions = [(Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}},SBin (SymVar Int "i" []) Ge (SymVar Int "n" []))],
   loopExitViaBreakFacts = [],
   loopExitViaReturnFacts = [],
   loopCounters = ["i"],
@@ -47,7 +47,7 @@ idByLoopStride3 = [LoopSummary {
   loopEnteringCondition = Just (SBin (SymInt 0) Lt (SymVar Int "n" [])),
   loopSkipCondition = Just (SBin (SymInt 0) Ge (SymVar Int "n" [])),
   loopExitingConditions = [
-    ([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}],
+    (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}},
      SBin (SymVar Int "i" []) Ge (SymVar Int "n" []))],
   loopExitViaBreakFacts = [],
   loopExitViaReturnFacts = [],
@@ -74,7 +74,7 @@ idByLoop2 = [LoopSummary {
   loopEnteringCondition = Just (SBool True),
   loopSkipCondition = Just (SBool False),
   loopExitingConditions = [
-    ([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 2, branchEnd = 7}},Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}}],
+    (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}},
      SBin (SymVar Int "i" []) Ge (SymVar Int "n" []))],
   loopExitViaBreakFacts = [
     [
@@ -88,7 +88,7 @@ idByLoop2 = [LoopSummary {
   loopAssignments = ["i"],
   loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
   loopExitFacts = [
-    ([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 2, branchEnd = 7}},Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}}],
+    ([Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}}],
      LoopExitFactValue "i" (SymVar Int "n" []))],
   loopCountersBounds = [(SymInt 0,(Int,"i"),SymVar Int "n" [])],
   loopBoundStabilityFacts = [(SymVar Int "n" [],ReadOnly)],
@@ -105,7 +105,7 @@ halving = [LoopSummary {
   loopEnteringCondition = Just (SBin (SymInt 0) Lt (SymPreScope (SR {branchStart = 2, branchEnd = 5}) (Int,"n"))),
   loopSkipCondition = Just (SBin (SymInt 0) Ge (SymPreScope (SR {branchStart = 2, branchEnd = 5}) (Int,"n"))),
   loopExitingConditions = [
-    ([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 6}}],
+    (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 6}},
      SBin (SymVar Int "i" []) Ge (SymVar Int "n" []))],
   loopExitViaBreakFacts = [],
   loopExitViaReturnFacts = [],
@@ -128,6 +128,19 @@ halving = [LoopSummary {
     (SymVar Int "i" [],Increasing (SymInt 1))],
   loopDecreasesCandidate = [SBin (SymVar Int "n" []) Sub (SymVar Int "i" [])]
 }]
+{-
+LoopSummary {
+  loopExitViaBreakFacts = [],
+  loopExitViaReturnFacts = [([(Just (Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}}),ElemInArray "a" (SymVar Int "i" []) (SymVar Int "x" []))],Just (SBool True))],
+  loopCounters = ["i"],
+  dynamicallyAccessedArrays = [(Array Int,"a",[([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 2, branchEnd = 7}}],"i")])],
+  loopAssignments = ["i"],
+  loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
+  loopExitFacts = [([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}}],LoopExitFactValue "i" (SObjAcc ["a","length"])),([Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}}],LoopExitFactArrayAccessValue "a" (SymVar Int "i" []) (SymVar Int "x" []))],
+  loopCountersBounds = [(SymInt 0,(Int,"i"),SObjAcc ["a","length"])],
+  loopBoundStabilityFacts = [(SObjAcc ["a","length"],ReadOnly)],
+  loopDecreasesCandidate = [SBin (SObjAcc ["a","length"]) Sub (SymVar Int "i" [])]
+}-}
 
 contains :: [LoopSummary]
 contains = [LoopSummary {
@@ -139,10 +152,9 @@ contains = [LoopSummary {
   loopEnteringCondition = Just (SBin (SymInt 0) Lt (SObjAcc ["a","length"])),
   loopSkipCondition = Just (SBin (SymInt 0) Ge (SObjAcc ["a","length"])),
   loopExitingConditions = [
-    ([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}}],
+    (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}},
      SBin (SymVar Int "i" []) Ge (SObjAcc ["a","length"])),
-    ([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 2, branchEnd = 7}},
-      Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}}],
+    (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}},
      SBin (SArrayIndexAccess (Array Int) "a" (SymVar Int "i" [])) Eq (SymVar Int "x" []))],
   loopExitViaBreakFacts = [],
   loopExitViaReturnFacts = [
@@ -155,8 +167,7 @@ contains = [LoopSummary {
   loopExitFacts = [
     ([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}}],
      LoopExitFactValue "i" (SObjAcc ["a","length"])),
-    ([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 2, branchEnd = 7}},
-      Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}}],
+    ([Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}}],
      LoopExitFactArrayAccessValue "a" (SymVar Int "i" []) (SymVar Int "x" []))],
   loopCountersBounds = [(SymInt 0,(Int,"i"),SObjAcc ["a","length"])],
   loopBoundStabilityFacts = [(SObjAcc ["a","length"],ReadOnly)],

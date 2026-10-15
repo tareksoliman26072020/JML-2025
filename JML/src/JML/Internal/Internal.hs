@@ -491,7 +491,7 @@ mutateDefaultClause newPrecondition = do
 
 processJMLVarUnknown_via_loopExitFacts :: CFGT.ScopeRange ->
   [(String,SYT.SymbolicExecutionValue)] ->
-  (Maybe SYT.SymbolicExecutionValue,[([CFGT.Node_Coor],SYT.SymbolicExecutionValue)]) ->
+  (Maybe SYT.SymbolicExecutionValue,[(CFGT.Node_Coor,SYT.SymbolicExecutionValue)]) ->
   Maybe SYT.SymbolicExecutionValue ->
   [SYT.LoopExitFact]
   -> JMLMonad ()
