@@ -1171,7 +1171,7 @@ getLoopSkipCondition loopEnteringCondition = do
 --------------------
 --------------------
 
-getLoopExitFacts :: (Maybe SymExpr,[(CFGT.Node_Coor,SymExpr)]) -> [(String,SymExprDevelopmentTrajectory)] -> SymbolicExecutionMonad [([CFGT.Node_Coor],LoopExitFact)]
+getLoopExitFacts :: (Maybe SymExpr,[(CFGT.Node_Coor,SymExpr)]) -> [(String,SymExprDevelopmentTrajectory)] -> SymbolicExecutionMonad [(CFGT.Node_Coor,LoopExitFact)]
 getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTrajectory = do
   let loc = globalLoc ++ ".getLoopExitFacts"
       logContents = [
@@ -1186,17 +1186,16 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
         exitConds_vns = concatMap (getVarNames3 . snd) loopExitingConditions
         in maybe exitConds_vns (\lg -> getVarNames3 lg ++ exitConds_vns) loopGuard
       -- negate all guards in `loopExitingConditions`
-      guards = map (\(coor,cond) -> ([coor],negate cond)) loopExitingConditions
+      guards = map (\(coor,cond) -> (coor,negate cond)) loopExitingConditions
       -- trajectories that are relevant to the collected variables in `vns`
       relevant_trajectories = [tu | tu@(vn,_) <- loopFrameTargetsDevelopmentTrajectory, vn `elem` vns]
   constructLog loc "Summary" [
     ("vns",show vns),
     ("guards",show guards),
     ("relevant_trajectories",show relevant_trajectories)]
-  let toReturn :: [([CFGT.Node_Coor],LoopExitFact)]
-      toReturn = let
-        in flip concatMap guards $ \(coors,guard) -> case relevant_trajectories of
-            _ -> catMaybes [fmap (\res -> (coors,res)) maybe_Res
+  let toReturn = let
+        in flip concatMap guards $ \(coor,guard) -> case relevant_trajectories of
+            _ -> catMaybes [fmap (\res -> (coor,res)) maybe_Res
               | (vn,trajectory) <- relevant_trajectories
               , let maybe_Res = symExprNextStep vn (isolate_vr vn guard) trajectory
               , let res = maybe_Res

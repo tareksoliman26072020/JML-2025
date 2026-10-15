@@ -2386,7 +2386,7 @@ createLoopSummary cfg theLoopSyntax m_Acc
   ----------------
   -- loopExitFacts
   ----------------
-  theLoopExitFacts :: [([CFGT.Node_Coor],LoopExitFact)] <- do
+  theLoopExitFacts :: [(CFGT.Node_Coor,LoopExitFact)] <- do
     incrementLogEnumeration
     incrementLogDepth *>
       getLoopExitFacts

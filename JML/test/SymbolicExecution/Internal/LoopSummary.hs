@@ -33,7 +33,7 @@ idByLoop = [LoopSummary {
   loopBoundStabilityFacts = [(SymVar Int "n" [],ReadOnly)],
   loopDecreasesCandidate = [SBin (SymVar Int "n" []) Sub (SymVar Int "i" [])],
   loopExitFacts = [
-    ([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}],
+    (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}},
      LoopExitFactValue "i" (SymVar Int "n" []))]
 }]
 
@@ -59,7 +59,7 @@ idByLoopStride3 = [LoopSummary {
   loopBoundStabilityFacts = [(SymVar Int "n" [],ReadOnly),(SBin (SymVar Int "n" []) Add (SymInt 2),ReadOnly)],
   loopDecreasesCandidate = [SBin (SBin (SymVar Int "n" []) Add (SymInt 2)) Sub (SymVar Int "i" [])],
   loopExitFacts = [
-    ([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}}],
+    (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}},
      LoopExitFactRange "i" (SymVar Int "n" []) (SBin (SymVar Int "n" []) Add (SymInt 2)))]
 }]
 
@@ -88,7 +88,7 @@ idByLoop2 = [LoopSummary {
   loopAssignments = ["i"],
   loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
   loopExitFacts = [
-    ([Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}}],
+    (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}},
      LoopExitFactValue "i" (SymVar Int "n" []))],
   loopCountersBounds = [(SymInt 0,(Int,"i"),SymVar Int "n" [])],
   loopBoundStabilityFacts = [(SymVar Int "n" [],ReadOnly)],
@@ -114,10 +114,10 @@ halving = [LoopSummary {
   loopAssignments = ["n","i"],
   loopFrameTargetsDevelopmentTrajectory = [("n",Decreasing (SymInt 1)),("i",Increasing (SymInt 1))],
   loopExitFacts = [
-    ([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 6}}],
+    (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 6}},
      LoopExitFactRange "n" (SBin (SymVar Int "i" []) Sub (SymInt 1))
                            (SymVar Int "i" [])),
-    ([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 6}}],
+    (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 6}},
      LoopExitFactRange "i" (SymVar Int "n" [])
                            (SBin (SymVar Int "n" []) Add (SymInt 1)))],
   loopCountersBounds = [
@@ -152,9 +152,9 @@ contains = [LoopSummary {
   loopAssignments = ["i"],
   loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
   loopExitFacts = [
-    ([Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}}],
+    (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}},
      LoopExitFactValue "i" (SObjAcc ["a","length"])),
-    ([Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}}],
+    (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}},
      LoopExitFactArrayAccessValue "a" (SymVar Int "i" []) (SymVar Int "x" []))],
   loopCountersBounds = [(SymInt 0,(Int,"i"),SObjAcc ["a","length"])],
   loopBoundStabilityFacts = [(SObjAcc ["a","length"],ReadOnly)],
