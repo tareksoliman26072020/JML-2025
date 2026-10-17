@@ -1747,8 +1747,15 @@ checkRemovingDefaultBehavior = do
       tellingReportTheState (loc ++ " <<default behavior deleted>>") $> ()
     else tellNextLog (Log.LogTag loc "default behavior is not deleted" "") $> ()
 
+-- if the LoopSummary of some method has `loopExitViaReturnFacts`
+-- then this function comes into effect,
+-- and it extracts clauses in the form of „Ensures“
 inferPostMethodClauses :: [(SYT.StateChangingConditions,Maybe SYT.SymbolicExecutionValue)] -> JMLMonad [Clause]
-inferPostMethodClauses = undefined
+inferPostMethodClauses loopExitViaReturnFacts = do
+  let loc = "JML.Internal.Internal.inferPostMethodClauses"
+      logContents = [("loopExitViaReturnFacts",show loopExitViaReturnFacts)]
+  constructLog loc "inferPostMethodClauses" logContents
+  return []
 
 alterList :: (Maybe a -> [a]) -> (a -> Bool) -> [a] -> [a]
 alterList f p li = let

@@ -62,7 +62,8 @@ data Behavior =
 
 ------------------------------------------------
 
-data LoopInvariantTemplate
+--type LoopInvariantTemplate = (CFGT.Node_Coor,LoopInvariantTemplateValue)
+data LoopInvariantTemplate--Value
   = Maintaining Maintaining_LoopInvariantTemplate
   | LoopAssigns LoopAssigns_LoopInvariantTemplate
   | DecreasesTemplate Expr

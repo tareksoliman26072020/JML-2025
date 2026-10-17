@@ -844,7 +844,7 @@ getSymType2 vn symExpr = let
     SMethodHandle _ _ -> Nothing
     SGlobalVars _ -> Nothing
     SVarBindings _ -> Nothing
-    SVarAssignments li {-:: [(String,(SymExpr,CFGT.Node_Coor))] -}-> foldl'
+    SVarAssignments li -> foldl'
       (\acc (vn2,(expr,_)) -> if
         | vn == vn2 -> case acc of
             Nothing -> Just $ toSymType2 expr
@@ -903,6 +903,26 @@ getSymType2 vn symExpr = let
     SLoop _ _ _ _ _ -> Nothing
     SymReturnVoid -> Nothing
     _ -> error $ constructErrorMsg loc "TODO" logContents where
+
+-- get the SymType of the array mentioned in the condition
+-- So far this is being used only in `JML.Internal.LoopInvariants.inferSearchExclusionTemplates`
+get_StateChangingCondition_arraySymType :: [(SymType, String, [(CFGT.Node_Coor,String)])] -> StateChangingCondition -> SymType
+get_StateChangingCondition_arraySymType dynamicallyAccessedArrays cond = let
+  loc = "SymbolicExecution.Internal.Internal.get_StateChangingCondition_arraySymType"
+  logContents = [
+    ("dynamicallyAccessedArrays",show dynamicallyAccessedArrays),
+    ("cond",show cond)] in
+  case cond of
+    -- you get array type from LoopSummary: `dynamicallyAccessedArrays`
+    ElemInArray arrName _ _ -> let
+      finding = flip find dynamicallyAccessedArrays
+        $ \(_,arrName2,_) -> arrName == arrName2 in
+      case finding of
+        Just (arrType,_,_) -> arrType
+        _ -> error $ constructErrorMsg loc "TODO1" logContents
+    _ -> error $ constructErrorMsg loc "TODO2" $ logContents
+           ++ [("logContents",show logContents)
+               ,("cond",show cond)]
 
 getSummarized_er :: ExecutionResult -> ExecutionResult
 getSummarized_er = \case

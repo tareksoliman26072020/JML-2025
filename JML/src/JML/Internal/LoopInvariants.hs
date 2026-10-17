@@ -210,7 +210,7 @@ inferSearchExclusionTemplates loopSummary loopPatternsInfos = do
         | (conds,_) <- from_loopPatterns
         , let res :: [SYT.SymbolicExecutionValue] = concat [res
                 | (_,cond) <- conds
-                , let condSymType = studyCondSymType cond
+                , let condSymType = SY.Internal.get_StateChangingCondition_arraySymType (SYT.dynamicallyAccessedArrays loopSummary) cond
                 , let res = SY.Internal.stateChangingCondition_2_symExprs condSymType cond
                 ]
         ]
@@ -240,28 +240,11 @@ inferSearchExclusionTemplates loopSummary loopPatternsInfos = do
                         $ \trajectory -> (lower,(vnType,vn,trajectory),upper)
                 ]
         ]
-  let toReturn = studyInfos infos
-  (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
-  {-throwError $ constructErrorMsg loc "MEOW:Summary" $ logContents ++ [
-    ("from_loopPatterns",show from_loopPatterns),
+  constructLog loc "Summary" [
     ("symExprs",show symExprs),
-    ("infos",show infos)] -}where
-  -- get the SymType of the array mentioned in the condition
-  studyCondSymType :: SYT.StateChangingCondition -> SYT.SymType
-  studyCondSymType cond = let
-    loc = globalLoc ++ ".inferSearchExclusionTemplates.studyCondSymType"
-    logContents = [("cond",show cond)] in
-    case cond of
-      -- you get array type from LoopSummary: `dynamicallyAccessedArrays`
-      SYT.ElemInArray arrName _ _ -> let
-        finding = flip find (SYT.dynamicallyAccessedArrays loopSummary)
-          $ \(_,arrName2,_) -> arrName == arrName2 in
-        case finding of
-          Just (arrType,_,_) -> arrType
-          _ -> error $ constructErrorMsg loc "TODO1" logContents
-      _ -> error $ constructErrorMsg loc "TODO2" $ logContents
-             ++ [("logContents",show logContents)
-                 ,("cond",show cond)]
+    ("infos",show infos)]
+  let toReturn = studyInfos infos
+  (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn where
   --
   studyInfos :: [([(SYT.SymbolicExecutionValue,(SYT.SymType,String,SYT.SymExprDevelopmentTrajectory),SYT.SymbolicExecutionValue)]
                  ,SYT.SymbolicExecutionValue)] -> [LoopInvariantTemplate] = \infos -> let
