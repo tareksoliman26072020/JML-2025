@@ -118,17 +118,17 @@ data JMLSpecification =
   | LoopSpecification LoopInvariants
   deriving (Show,Eq)
 
-data Clause = Requires (Maybe CFGT.ScopeRange,Maybe Expr) [ClauseValue]
+data Clauses = Requires (Maybe CFGT.ScopeRange,Maybe Expr) [Clause]
             deriving (Show,Eq)
 
-data ClauseValue =
+data Clause =
     Ensures Expr
   | LoopInvariant Expr
   | Signals String Expr
   | Assignable [String]
   | VarAssignment (JMLType,String,Expr)
   | VarInRange (JMLType,String,(Expr,Expr))
-  | Implication Expr ClauseValue
+  | Implication Expr Clause
   | HasSideEffect
   deriving (Show,Eq)
 
@@ -140,7 +140,7 @@ data Method = Method {
 
 data JMLState = JMLState {
   method    :: Method,
-  jmlStack  :: [Clause],
+  jmlStack  :: [Clauses],
   logHeader :: Log.Header,
   formalParms :: [String],
   localVars :: [String],
@@ -180,5 +180,8 @@ data ExecutionResult =
       ,Maybe (SYT.SymType,String,SYT.SymbolicExecutionValue)
       ,Either SYT.SymbolicExecutionValue (SYT.SymType,String,SYT.SymbolicExecutionValue)
       )]
-  | ER_LoopSummary CFGT.ScopeRange [LoopInvariantTemplate] SYT.LoopSummary
+  | ER_LoopSummary CFGT.ScopeRange
+                   [LoopInvariantTemplate] -- inferred loop invariant templates
+                   [Clause]                -- method post conditions derived from `loopExitViaReturnFacts`
+                   SYT.LoopSummary
   deriving (Show,Eq)

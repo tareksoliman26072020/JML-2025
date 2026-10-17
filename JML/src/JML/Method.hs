@@ -9,7 +9,7 @@ import JML.Internal.LoopInvariants (inferLoopInvariantTemplates)
 import qualified JML.Logs.Log as Log
 import JML.PrettyPrint (ppBehavior, ppBehaviors)
 import qualified SymbolicExecution.Types as SYT (
-  SymStateKey(..), SymExpr(..),
+  SymStateKey(..), SymExpr(..), LoopSummary(loopExitViaReturnFacts),
   SymbolicExecution, SymbolicExecutionKey, SymbolicExecutionValue)
 import qualified SymbolicExecution.Internal.Internal as SY (
   getFunName, isGlobalVariable2, hasReturn, isLocalVar, hasFormalParameter,
@@ -157,7 +157,10 @@ instance SymbolicExecutionVisitor MethodProcessor where
       invariantTemplates <- incrementLogDepth *>
         inferLoopInvariantTemplates loopSummary loopPatterns
           <* decrementLogDepth
-      let toReturn = ER_LoopSummary scopeRange invariantTemplates loopSummary
+      {-postMethodClauses <- incrementLogDepth *>
+        inferPostMethodClauses (SYT.loopExitViaReturnFacts loopSummary)
+          <* decrementLogDepth-}
+      let toReturn = ER_LoopSummary scopeRange invariantTemplates [] loopSummary
       tellingThenReturning loc toReturn
     -----------------------------
     _ ->

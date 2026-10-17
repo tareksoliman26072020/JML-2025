@@ -1927,3 +1927,4 @@ getSimilar_linearSearch_earlyReturn loopPatternsInfos = case loopPatternsInfos o
         ]
       in tuple : getSimilar_linearSearch_earlyReturn newRest
   (_ : rest) -> getSimilar_linearSearch_earlyReturn rest
+

@@ -15,7 +15,7 @@ import Data.Traversable (forM)
 import qualified Data.Map as Map
 
 import JML.Types
-import JML.PrettyPrint (ppBehavior, ppBehaviors, ppColoredClause)
+import JML.PrettyPrint (ppBehavior, ppBehaviors, ppColoredClauses)
 import qualified JML.Logs.Log as Log
 import Data.Maybe (isJust,catMaybes,fromJust,mapMaybe)
 
@@ -297,7 +297,7 @@ inferJMLType expr = let
     SymFun ToString _ -> String_Type
     _ -> error $ printf "%s: TODO: %s" loc (show expr)
 
-convertImplication :: ClauseValue -> Expr
+convertImplication :: Clause -> Expr
 convertImplication val = let
   loc = "JML.Internal.Internal.convertImplication" in
   case val of
@@ -358,8 +358,8 @@ hasReturn ers = case flip find ers (\case
   Just _ -> True
   Nothing -> False
 
-clauseValueHasJMLVarUnknown :: ClauseValue -> Bool
-clauseValueHasJMLVarUnknown clauseValue = case clauseValue of
+clauseHasJMLVarUnknown :: Clause -> Bool
+clauseHasJMLVarUnknown clause = case clause of
   Ensures expr -> hasJMLVarUnknown0 expr
   LoopInvariant expr -> hasJMLVarUnknown0 expr
   Signals _ expr -> hasJMLVarUnknown0 expr
@@ -441,15 +441,15 @@ getArrayAccessIndex arrName expr = let
       | arrName == arrName2 -> resExpr
     _ -> error $ constructErrorMsg loc "TODO" [("expr",show expr)]
 
-addToDefaultClause :: ClauseValue -> JMLMonad ()
-addToDefaultClause clauseValue = do
+addToDefaultClause :: Clause -> JMLMonad ()
+addToDefaultClause clause = do
   let loc = "JML.Internal.Internal.addToDefaultClause"
-  tellNextLog $ Log.Location loc (show clauseValue)
+  tellNextLog $ Log.Location loc (show clause)
   modify $ \(JMLState jmlMethod stack jmlLogHeader formal local global reAss pathNum) -> JMLState {
     method = jmlMethod,
     jmlStack = [res
       | Requires (a,b) values <- stack
-      , let res = Requires (a,b) $ values ++ [clauseValue]],
+      , let res = Requires (a,b) $ values ++ [clause]],
     logHeader = jmlLogHeader,
     formalParms = formal,
     localVars = local,
@@ -511,26 +511,26 @@ processJMLVarUnknown_via_loopExitFacts scopeRange
   constructLog loc "processJMLVarUnknown_via_loopExitFacts" logContents
   clauses <- jmlStack <$> get
   newClauses <- forM clauses $ \(Requires tu vals) -> do
-    newVals <- forM vals $ \clauseValue -> case clauseValue of
+    newVals <- forM vals $ \clause -> case clause of
       Ensures ((JMLVar _ vn) `JMLEquals` expr) -> case get_fact vn of
-        Nothing -> return [clauseValue]
+        Nothing -> return [clause]
         Just fact -> err loc expr fact 1
       Ensures ((JMLVar _ vn) `JMLNotEquals` expr) -> case get_fact vn of
-        Nothing -> return [clauseValue]
+        Nothing -> return [clause]
         Just fact -> err loc expr fact 2
-      LoopInvariant _ -> return [clauseValue]
+      LoopInvariant _ -> return [clause]
       Signals vn expr -> case get_fact vn of
-        Nothing -> return [clauseValue]
+        Nothing -> return [clause]
         Just fact -> err loc expr fact 3
-      Assignable _ -> return [clauseValue]
+      Assignable _ -> return [clause]
       VarAssignment _ -> do
-        newClauseValue <- processVarAssignment clauseValue
+        newClause <- processVarAssignment clause
         constructLog loc "Summary" [
-          ("old clause value",show clauseValue),
-          ("new clause value",show newClauseValue)
+          ("old clause value",show clause),
+          ("new clause value",show newClause)
           ]
-        return newClauseValue
-      HasSideEffect -> return [clauseValue]
+        return newClause
+      HasSideEffect -> return [clause]
     return $ Requires tu (concat newVals)
   tellingReportTheStack loc "<new clauses>" newClauses
   modify $ \jmlState -> JMLState {
@@ -566,19 +566,19 @@ processJMLVarUnknown_via_loopExitFacts scopeRange
   get_fact :: String -> Maybe SYT.LoopExitFact
   get_fact = SY.Internal.getFactAbout loopExitFacts
   ----------
-  processVarAssignment :: ClauseValue -> JMLMonad [ClauseValue]
-  processVarAssignment clauseValue@(VarAssignment (t,vn,expr)) = do
+  processVarAssignment :: Clause -> JMLMonad [Clause]
+  processVarAssignment clause@(VarAssignment (t,vn,expr)) = do
     let loc = "JML.Internal.Internal\
               \.processJMLVarUnknown_via_loopExitFacts.processVarAssignment"
         logContents = [
-          ("clauseValue",show clauseValue),
+          ("clause",show clause),
           ("loopEnteringCondition",show loopEnteringCondition),
           ("loopExitingConditions",show loopExitingConditions)
           ]
     constructLog loc "processVarAssignment" logContents
     case get_fact vn of
       Nothing -> let
-        toReturn = [clauseValue]
+        toReturn = [clause]
         in (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
       Just fact -> do
         let loopExitingConditions2 = map snd loopExitingConditions
@@ -770,18 +770,18 @@ addBehavior sy er = do
          (jmlStack <$> get) >>= tellingReportTheStack loc
            "<<before adding new clause value to default Clause>>"
       expr <- flip symExprToExpr symExpr <$> get
-      let newClauseValue1 = VarAssignment (
+      let newClause1 = VarAssignment (
             toJMLType $ SY.Internal.toSymType2 symExpr,
             vn,
             expr)
       -- add to default clause
       do incrementLogEnumeration
          incrementLogDepth
-         addToDefaultClause newClauseValue1
+         addToDefaultClause newClause1
          decrementLogDepth
       -- logging
       constructLog innerLoc "new Clause Value added to default Clause"
-        [("newClauseValue1",show newClauseValue1)]
+        [("newClause1",show newClause1)]
       -- logging
       do tellingReportTheState (loc ++ " <<after adding new clause value to default Clause>>")
          (jmlStack <$> get) >>= tellingReportTheStack loc
@@ -840,7 +840,7 @@ addBehavior sy er = do
             (first : rest) -> foldl'
               (\l r -> combinePreconditions l And (Just r))
               (Just first) rest
-      let arrAssignable :: ClauseValue
+      let arrAssignable :: Clause
           arrAssignable = Assignable
             [res | (Right (_,arrName,SYT.SymVar _ indexName _),_,_) <- li
                  , let res = printf "%s[%s]" arrName indexName]
@@ -858,7 +858,7 @@ addBehavior sy er = do
             `JMLEquals`
               JMLOld (JMLArrayIndexAccess (Array_Type Int_Type) "arr" (JMLVar Int_Type "i"))]
        -}
-      let arrIndexesEnsures :: [ClauseValue]
+      let arrIndexesEnsures :: [Clause]
           arrIndexesEnsures = [Ensures expr
             | (Right (arrType1,arrName1,arrIndexSymExpr1),_,rightSide) <- li
             , let f (arrType2,arrName2,arrIndexSymExpr2) = symExprToExpr jmlState
@@ -1062,7 +1062,7 @@ addBehavior sy er = do
       tellingReportTheState innerLoc
       return ()
     -- 
-    ER_LoopSummary scopeRange invariantTemplates loopSummary -> do
+    ER_LoopSummary scopeRange invariantTemplates postMethodClauses loopSummary -> do
       let innerLoc = printf "%s ==> ER_LoopSummary" loc :: String
           logContents = [
              ("scopeRange",show scopeRange),
@@ -1086,7 +1086,7 @@ addBehavior sy er = do
         pathCreationEnumeration = pathCreationEnumeration jmlState
       }
       constructLog innerLoc "new loop specification added" [("newLoopSpecification",show newLoopSpecification)]
-      -- check if there are JMLUnknownVars among the ClauseValues
+      -- check if there are JMLUnknownVars among the Clauses
       -- which can be solved with help of loopExitFacts
       do incrementLogEnumeration
          incrementLogDepth *>
@@ -1219,7 +1219,7 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
     }
     return newBehavior
   -- adding clause to behavior
-  addClauseToBehavior :: Behavior -> Clause -> Behavior
+  addClauseToBehavior :: Behavior -> Clauses -> Behavior
   addClauseToBehavior behavior clause@(Requires (theScopeRange,thePreCondition) values) = let
     loc = "JML.Internal.Internal.addBehavior.addClauseToBehavior"
     gettingAssignable = concat [li | Assignable li <- values]
@@ -1257,11 +1257,11 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
       {- f -}(\(old,new) -> (new,processJMLVarUnknown_behavior new))
              (behavior2process,processJMLVarUnknown_behavior behavior2process)
   --
-  check_if_assignables_missing :: [String] -> Clause -> [(JMLType,String,Expr)]
-  check_if_assignables_missing allGlobalVars (Requires _ clauseValues) = let
+  check_if_assignables_missing :: [String] -> Clauses -> [(JMLType,String,Expr)]
+  check_if_assignables_missing allGlobalVars (Requires _ clauses) = let
     loc = "JML.Internal.Internal.addBehavior.check_if_assignables_missing"
     clause_globalVars_exprs = [(t,vn,expr)
-      | VarAssignment (t,vn,expr) <- clauseValues
+      | VarAssignment (t,vn,expr) <- clauses
       , vn `elem` allGlobalVars
       , let isReassigned = \case
               JMLOld ex -> isReassigned ex
@@ -1269,14 +1269,14 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
               JMLString _ -> False
               ex -> error $ printf "TODO in %s: %s" loc (show ex)
       , isReassigned expr]
-    clause_assignables = concat [li | Assignable li <- clauseValues]
+    clause_assignables = concat [li | Assignable li <- clauses]
     to_be_assignable = [(t,v,expr) | (t,v,expr) <- clause_globalVars_exprs, v `notElem` clause_assignables]
     in to_be_assignable
   --
   -- if a defaut clause exists, it gets replaced
   -- otherwise, a new clause is created
   -- this was first used in ER_IfThenElse
-  createClause :: [Clause] -> Clause -> JMLMonad ()
+  createClause :: [Clauses] -> Clauses -> JMLMonad ()
   createClause originalClauses cl@(Requires (mSR,mPreCondition) newValues) = do
     let loc = "JML.Internal.Internal.addBehavior.createClause"
     tellNextLog $ Log.Location loc $ printf
@@ -1288,13 +1288,13 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
       \*) %s:\n\
       \%s"
       (yellow "original Clauses")
-      (intercalate "\n------\n" $ map ppColoredClause originalClauses)
+      (intercalate "\n------\n" $ map ppColoredClauses originalClauses)
       (yellow "New Clause")
-      (ppColoredClause cl)
+      (ppColoredClauses cl)
     -- tell state
     tellingReportTheState (loc ++ " <<before creating the clause>>")
     num <- getPathEnumeration
-    let defaultClauseVals :: [ClauseValue]
+    let defaultClauseVals :: [Clause]
         defaultClauseVals = case (num,originalClauses) of
           (1,[Requires (Nothing,Nothing) vals]) -> vals
           _     -> []
@@ -1303,7 +1303,7 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
           $ defaultClauseVals ++ newValues
     tellNextLog
       $ Log.LogTag loc "new clause <unprocessed>"
-      $ ppColoredClause new_unprocessed_Clause
+      $ ppColoredClauses new_unprocessed_Clause
     -- new clause <<processed>>
     new_processed_Clause <- do
       let processed = nubClause $ processJMLVarUnknown_clause new_unprocessed_Clause
@@ -1323,7 +1323,7 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
                  $ zip [1::Int ..] globalVars_to_add
                tellNextLog
                  $ Log.LogTag loc "new clause <semi processed>"
-                 $ ppColoredClause processed
+                 $ ppColoredClauses processed
                let Requires tu vals = processed
                let gs = map (\(_,vn,_) -> vn) globalVars_to_add
                return $ Requires tu
@@ -1346,7 +1346,7 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
          else return processed
     tellNextLog
       $ Log.LogTag loc "new clause <processed>"
-      $ ppColoredClause new_processed_Clause
+      $ ppColoredClauses new_processed_Clause
     -- add new clause
     modify $ \jmlState -> JMLState {
       method    = method jmlState,
@@ -1370,17 +1370,17 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
     tellingReportTheState loc
     return ()
   --
-  isDefaultClause :: Clause -> Bool
-  isDefaultClause = \case
+  isDefaultClauses :: Clauses -> Bool
+  isDefaultClauses = \case
     Requires (Nothing,Nothing) _ -> True
     _ -> False
   {-
-  alterDefaultClausesPreCondition :: [Clause] -> Maybe Expr -> String -> JMLMonad ()
+  alterDefaultClausesPreCondition :: [Clauses] -> Maybe Expr -> String -> JMLMonad ()
   alterDefaultClausesPreCondition originalStack new_mPreCondition nestedMsg = do
     
     inheritClausesFromInnerState originalStack [] (Nothing,new_mPreCondition) nestedMsg
   -}
-  inheritClausesFromInnerState :: [Clause] -> [Clause] -> (CFGT.ScopeRange,Maybe Expr) -> String -> JMLMonad ()
+  inheritClausesFromInnerState :: [Clauses] -> [Clauses] -> (CFGT.ScopeRange,Maybe Expr) -> String -> JMLMonad ()
   inheritClausesFromInnerState originalStack innerStateClauses (new_scopeRange,new_mPreCondition) nestedMsg = do
     let loc = "JML.Internal.Internal.addBehavior.inheritClausesFromInnerState"
     tellNextLog $ Log.Location loc $ printf
@@ -1397,8 +1397,8 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
       \======\n\
       \======\n\
       \** %s: %s"
-      (yellow "original stack") (intercalate "\n------\n" $ map ppColoredClause originalStack)
-      (yellow "Inner State Clauses") (intercalate "\n------\n" $ map ppColoredClause innerStateClauses)
+      (yellow "original stack") (intercalate "\n------\n" $ map ppColoredClauses originalStack)
+      (yellow "Inner State Clauses") (intercalate "\n------\n" $ map ppColoredClauses innerStateClauses)
       (yellow "new scope Range") (show new_scopeRange)
       (yellow "new mPreCondition") (show new_mPreCondition)
     let helper (_,old_mPreCondition) vals nestedMsg = let
@@ -1416,10 +1416,10 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
           decrementLogDepth
     if -- no clauses ==> createClause with no clauses + new pre condition
        | null innerStateClauses -> case originalStack of
-           [clause]
-             | isDefaultClause clause -> do
+           [clauses]
+             | isDefaultClauses clauses -> do
                  tellNextLog $ Log.LogTag loc
-                   "no innerstateClauses, originalStack is default clause" ""
+                   "no innerstateClauses, originalStack is default clauses" ""
                  helper (Nothing,Nothing) [] nestedMsg
            _ -> let
              len = length originalStack in do
@@ -1491,7 +1491,7 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
            vn
            (show behavior)
            (show vars)
-  processJMLVarUnknown_clause :: Clause -> Clause
+  processJMLVarUnknown_clause :: Clauses -> Clauses
   processJMLVarUnknown_clause (Requires tu vals) = let
     loc = "JML.Internal.Internal.addBehavior.processJMLVarUnknown_clause"
     helper originalExpr = \case
@@ -1548,7 +1548,7 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
     in flip map vars $ \(JMLVar t vn `JMLEquals` exprVal) ->
          JMLVar t vn `JMLEquals` helper exprVal
   -- look up var in clause values
-  lookUpVar_clause :: String -> [ClauseValue] -> Maybe Expr
+  lookUpVar_clause :: String -> [Clause] -> Maybe Expr
   lookUpVar_clause vn vals = let
     -- helper1
     helper1 = \case
@@ -1589,7 +1589,7 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
         \  3) expr2 = %s" loc
         name (show expr1) (show expr2)
   -- nub, but for clause
-  nubClause :: Clause -> Clause
+  nubClause :: Clauses -> Clauses
   nubClause (Requires tu vals) = let
     helper [] = []
     helper [val] = [val]
@@ -1695,7 +1695,7 @@ tellingReportTheState loc = do
     (show $ formalParms s) (show $ localVars s) (show $ globalVars s)
     (ppBehaviors [b | MethodSpecification b <- jmlSpecifications $ method s])
 
-tellingReportTheStack :: String -> String -> [Clause] -> JMLMonad String
+tellingReportTheStack :: String -> String -> [Clauses] -> JMLMonad String
 tellingReportTheStack loc tag clauses =
   tellNextLog $ Log.ReportTheStack loc tag
   $ map (\(Requires one two) -> (show one,map show two)) clauses
@@ -1746,6 +1746,9 @@ checkRemovingDefaultBehavior = do
       }
       tellingReportTheState (loc ++ " <<default behavior deleted>>") $> ()
     else tellNextLog (Log.LogTag loc "default behavior is not deleted" "") $> ()
+
+inferPostMethodClauses :: [(SYT.StateChangingConditions,Maybe SYT.SymbolicExecutionValue)] -> JMLMonad [Clause]
+inferPostMethodClauses = undefined
 
 alterList :: (Maybe a -> [a]) -> (a -> Bool) -> [a] -> [a]
 alterList f p li = let

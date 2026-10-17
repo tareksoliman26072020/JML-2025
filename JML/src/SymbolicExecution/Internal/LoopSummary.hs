@@ -1189,10 +1189,6 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
       guards = map (\(coor,cond) -> (coor,negate cond)) loopExitingConditions
       -- trajectories that are relevant to the collected variables in `vns`
       relevant_trajectories = [tu | tu@(vn,_) <- loopFrameTargetsDevelopmentTrajectory, vn `elem` vns]
-  constructLog loc "Summary" [
-    ("vns",show vns),
-    ("guards",show guards),
-    ("relevant_trajectories",show relevant_trajectories)]
   let toReturn = let
         in flip concatMap guards $ \(coor,guard) -> case relevant_trajectories of
             _ -> catMaybes [fmap (\res -> (coor,res)) maybe_Res
@@ -1200,6 +1196,11 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
               , let maybe_Res = symExprNextStep vn (isolate_vr vn guard) trajectory
               , let res = maybe_Res
               ]
+  {-throwError $ constructErrorMsg{-constructLog-} loc "Summary" $ logContents ++ [
+    ("vns",show vns),
+    ("guards",show guards),
+    ("relevant_trajectories",show relevant_trajectories),
+    ("toReturn",show toReturn)]-}
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn where
   -- isolate `vr` in `guard`
   isolate_vr :: String -> SymExpr -> SymExpr

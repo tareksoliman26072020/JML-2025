@@ -78,8 +78,8 @@ NormalBehavior {requires = Nothing, assignable = [], ensures = Just (Int 5)}
          ]
        _ -> ""--error $ "JML.PrettyPrint.ppBehavior ==> TODO: " ++ show behavior
 
-ppColoredClause :: Clause -> String
-ppColoredClause (Requires (one,two) three) = printf
+ppColoredClauses :: Clauses -> String
+ppColoredClauses (Requires (one,two) three) = printf
   "%s: %s\n\
   \%s: %s\n\
   \%s:\n\
