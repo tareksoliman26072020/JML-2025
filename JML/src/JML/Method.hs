@@ -157,9 +157,9 @@ instance SymbolicExecutionVisitor MethodProcessor where
       invariantTemplates <- incrementLogDepth *>
         inferLoopInvariantTemplates loopSummary loopPatterns
           <* decrementLogDepth
-      postMethodClauses <- incrementLogDepth *>
+      {-postMethodClauses <- incrementLogDepth *>
         inferPostMethodClauses (SYT.loopExitViaReturnFacts loopSummary)
-          <* decrementLogDepth
+          <* decrementLogDepth-}
       let toReturn = ER_LoopSummary scopeRange invariantTemplates [] loopSummary
       tellingThenReturning loc toReturn
     -----------------------------

@@ -62,8 +62,7 @@ data Behavior =
 
 ------------------------------------------------
 
---type LoopInvariantTemplate = (CFGT.Node_Coor,LoopInvariantTemplateValue)
-data LoopInvariantTemplate--Value
+data LoopInvariantTemplate
   = Maintaining Maintaining_LoopInvariantTemplate
   | LoopAssigns LoopAssigns_LoopInvariantTemplate
   | DecreasesTemplate Expr
@@ -182,7 +181,8 @@ data ExecutionResult =
       ,Either SYT.SymbolicExecutionValue (SYT.SymType,String,SYT.SymbolicExecutionValue)
       )]
   | ER_LoopSummary CFGT.ScopeRange
-                   [LoopInvariantTemplate] -- inferred loop invariant templates
-                   [Clause]                -- method post conditions derived from `loopExitViaReturnFacts`
+                                  -- inferred loop invariant templates
+                   [LoopInvariantTemplate]--[(CFGT.Node_Coor,LoopInvariantTemplate)]
+                   [Clause]       -- method post conditions derived from `loopExitViaReturnFacts`
                    SYT.LoopSummary
   deriving (Show,Eq)
