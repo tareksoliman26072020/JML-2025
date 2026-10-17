@@ -5197,7 +5197,7 @@ contains = Map.fromList [
              loopExitViaBreakFacts = [],
              loopExitViaReturnFacts = [
                ([(Just $ Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},ElemInArray "a" (SymVar SYT.Int "i" []) (SymVar SYT.Int "x" []))],
-                Just (SBool True))],
+                (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}},Just (SBool True)))],
              loopCounters = ["i"],
              dynamicallyAccessedArrays = [(SYT.Array SYT.Int,"a",[(Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 7}},"i")])],
              loopAssignments = ["i"],
@@ -5229,12 +5229,12 @@ contains = Map.fromList [
            ,LoopFrameTargetsDevelopmentTrajectory
            ]
           ),
-          (SearchPattern $ LinearSearch ([(Just $ Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},ElemInArray "a" (SymVar SYT.Int "i" []) (SymVar SYT.Int "x" []))],Just (SBool True)),
+          (SearchPattern $ LinearSearch ([(Just $ Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},ElemInArray "a" (SymVar SYT.Int "i" []) (SymVar SYT.Int "x" []))],(Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}},Just (SBool True))),
            [DynamicallyAccessedArrays
            ,LoopExitViaBreakFacts
            ,LoopExitViaReturnFacts
            ]),
-          (ControlFlowPattern $ EarlyReturn ([(Just $ Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},ElemInArray "a" (SymVar SYT.Int "i" []) (SymVar SYT.Int "x" []))],Just (SBool True)),
+          (ControlFlowPattern $ EarlyReturn ([(Just $ Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},ElemInArray "a" (SymVar SYT.Int "i" []) (SymVar SYT.Int "x" []))],(Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}},Just (SBool True))),
            [LoopExitViaReturnFacts]
           )
          ]),

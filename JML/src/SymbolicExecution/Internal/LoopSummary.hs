@@ -266,21 +266,22 @@ getLoopExitViaBreakFacts forBody_forStep_ers = do
 --------------------
 --------------------
 -- [([ElemInArray "a" (SymVar Int "i" []) (SymVar Int "x" [])],Just (SBool True))]
-getLoopExitViaReturnFacts :: [ExecutionResult] -> SymbolicExecutionMonad [(StateChangingConditions,Maybe SymExpr)]
+getLoopExitViaReturnFacts :: [ExecutionResult] -> SymbolicExecutionMonad [(StateChangingConditions,(CFGT.Node_Coor,Maybe SymExpr))]
 getLoopExitViaReturnFacts forBody_forStep_ers = do
   let loc = globalLoc ++ ".getLoopExitViaReturnFacts"
   let logContents = [
         ("forBody_forStep_ers",show forBody_forStep_ers)]
   constructLog loc "getLoopExitViaReturnFacts" logContents
   let toReturn = study forBody_forStep_ers
+  --throwError $ constructErrorMsg loc "MEOW" $ logContents ++ [("toReturn",show toReturn)]
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
   -- each tuple has two elements:
   --   1) the concatenation of conditions which lead to the return statement
   --   2) the expression which is returned
-  study :: [ExecutionResult] -> [(StateChangingConditions,Maybe SymExpr)]
+  study :: [ExecutionResult] -> [(StateChangingConditions,(CFGT.Node_Coor,Maybe SymExpr))]
   study ers = let
     loc = globalLoc ++ ".getLoopExitViaReturnFacts.study" in flip concatMap ers $ \case
-    ER_Return mExpr -> [([],mExpr)]
+    ER_Summary coor (ER_Return mExpr) -> [([],(coor,mExpr))]
     ER_Summary _ er -> study [er]
     ER_IfExpr _ (ifCond,_) (ifCoor,ifErs) (maybeElseCoor,elseErs) -> let
       fromIf = [(one,mReturnSymExpr)

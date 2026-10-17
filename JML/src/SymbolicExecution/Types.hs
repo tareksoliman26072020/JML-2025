@@ -253,7 +253,7 @@ data LoopSummary = LoopSummary {
   , loopSkipCondition :: Maybe SymExpr
   , loopExitingConditions :: [(CFGT.Node_Coor,SymExpr)]
   , loopExitViaBreakFacts :: [StateChangingConditions]
-  , loopExitViaReturnFacts :: [(StateChangingConditions,Maybe SymExpr)]
+  , loopExitViaReturnFacts :: [(StateChangingConditions,(CFGT.Node_Coor,Maybe SymExpr))]
   -- The variables that function as loop counters or induction variables.
   -- A loopCounter is a variable whose value represents loop progress.
   -- Usually it is an induction variable:
@@ -378,7 +378,7 @@ data AccumulatorPattern
   deriving (Eq, Show)
 
 data SearchPattern
-  = LinearSearch (StateChangingConditions,Maybe SymExpr)
+  = LinearSearch (StateChangingConditions,(CFGT.Node_Coor,Maybe SymExpr))
                           -- LinearSearch == An element in an array is being tested against a search predicate at a time.
                           -- because there's an array access, which is dynamically accessed
                           --   that is present in a condition,
@@ -396,7 +396,7 @@ data SearchPattern
   deriving (Eq, Show)
 
 data ControlFlowPattern
-  = EarlyReturn (StateChangingConditions,Maybe SymExpr)
+  = EarlyReturn (StateChangingConditions,(CFGT.Node_Coor,Maybe SymExpr))
                             -- EarlyReturn == When the search predicate succeeds, the execution of the loop does not continue to the next iteration.
   | BreakExit SymExpr
   | ContinuePath

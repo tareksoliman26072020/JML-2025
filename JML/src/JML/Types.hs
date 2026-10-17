@@ -95,8 +95,14 @@ if Stride == 1, then drop
       ,Expr)      -- counter initial value
       Expr        -- counterTrajectoryStride
       Expr        -- counterUpperBound
-      Expr        -- metPredicate
+      Expr{-
+      (Expr       -- metPredicate
+      ,[CFGT.Node_Coor]) -- coordinates of the predicate
+      -}
       Bool        -- whether the stride is 1
+      {-(Expr       -- means of terminating
+      ,CFGT.Node_Coor) -- its coordinates
+      -}
   | MovingBoundRelationTemplate String Expr
   | CounterLowerBoundTemplate Expr String
   | GuardedInvariantTemplate Expr Expr

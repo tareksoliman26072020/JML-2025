@@ -1925,7 +1925,7 @@ filterLoopPatterns loopPatternPredicate templateTagPredicate loopPatternsInfos =
 --   in order to 1) decide if a SearchExclusionTemplate is in effect,
 --               2) and to get the informations needed to build the invariant.
 getSimilar_linearSearch_earlyReturn ::
-  [(LoopPattern,[LoopSummaryTag])] -> [(StateChangingConditions,Maybe SymExpr)]
+  [(LoopPattern,[LoopSummaryTag])] -> [(StateChangingConditions,(CFGT.Node_Coor,Maybe SymExpr))]
 getSimilar_linearSearch_earlyReturn loopPatternsInfos = case loopPatternsInfos of
   [] -> []
   ((SearchPattern (LinearSearch tuple),_) : rest) -> case lookup (ControlFlowPattern $ EarlyReturn tuple) loopPatternsInfos of

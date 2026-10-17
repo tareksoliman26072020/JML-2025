@@ -14,7 +14,7 @@ import JML.Types
 import JML.Internal.Internal
 import qualified JML.Logs.Log as Log
 
-import qualified CFG.Types as CFGT (ScopeRange)
+import qualified CFG.Types as CFGT (ScopeRange, Node_Coor)
 
 import qualified SymbolicExecution.Types as SYT
 import qualified SymbolicExecution.Internal.Internal as SY.Internal
@@ -202,7 +202,7 @@ inferSearchExclusionTemplates loopSummary loopPatternsInfos = do
   let loc = globalLoc ++ ".inferSearchExclusionTemplates"
       logContents = [("loopPatternsInfos",show loopPatternsInfos)]
   constructLog loc "inferSearchExclusionTemplates" logContents
-  let from_loopPatterns :: [(SYT.StateChangingConditions,Maybe SYT.SymbolicExecutionValue)]
+  let from_loopPatterns :: [(SYT.StateChangingConditions,(CFGT.Node_Coor,Maybe SYT.SymbolicExecutionValue))]
       from_loopPatterns = SY.Internal.getSimilar_linearSearch_earlyReturn loopPatternsInfos
       -- convert the conditions in `from_loopPatterns` to SymExprs
       symExprs :: [SYT.SymbolicExecutionValue]
@@ -217,7 +217,7 @@ inferSearchExclusionTemplates loopSummary loopPatternsInfos = do
       {-
       [(
         [(SymInt 0,("i",Increasing (SymInt 1)),SObjAcc ["a","length"])]
-       ,SBin (SArrayIndexAccess (Array Int) "a" (SymVar Int "i" [])) Eq (SymVar Int "x" [])
+        ,SBin (SArrayIndexAccess (Array Int) "a" (SymVar Int "i" [])) Eq (SymVar Int "x" [])
        )
       ]
        -}

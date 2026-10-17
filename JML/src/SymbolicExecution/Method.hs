@@ -2339,7 +2339,7 @@ createLoopSummary cfg theLoopSyntax m_Acc
   -------------------------
   -- loopExitViaReturnFacts
   -------------------------
-  theLoopExitViaReturnFacts :: [(StateChangingConditions,Maybe SymExpr)] <- do
+  theLoopExitViaReturnFacts :: [(StateChangingConditions,(CFGT.Node_Coor,Maybe SymExpr))] <- do
     incrementLogEnumeration
     incrementLogDepth *>
       getLoopExitViaReturnFacts forBody_forStep_path_visited_ers
