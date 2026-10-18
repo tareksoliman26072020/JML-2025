@@ -4,6 +4,7 @@ module JML.PrettyPrint where
 import JML.Types
 import Data.List (intercalate, foldl',(\\))
 import Text.Printf (printf)
+import qualified SymbolicExecution.Types as SYT (SymExprDevelopmentTrajectory(..))
 import qualified CFG.Types as CFGT (CFG(..), Node(..), NodeData(..), Kind(..), ScopeRange(..))
 import qualified CFG.Internal as CFG (ppNode,getEdge)
 
@@ -176,7 +177,83 @@ ppLoopInvariantTemplate template = let
       "maintaining %s %% %s == %s"
       counter (ppExpr stride) (ppExpr residue)
   --SearchExclusionTemplate
-    Maintaining (SearchExclusionTemplate
+  {- SearchExclusionTemplate
+      [(String     -- quantified variable name
+       ,JMLType)]  -- type of the quantified variable
+      [(Expr,  -- lower bound
+        (JMLType, -- counter type
+         String,  -- counter
+         Expr,    -- counter init value
+         (SYT.SymExprDevelopmentTrajectory, -- counter trajectory Stride
+          Bool)),  -- whether the stride is 1
+        Expr)]     -- counterUpperBound
+      (CFGT.Node_Coor -- coordinate of the predicate
+      ,Expr)          -- metPredicate
+      (CFGT.Node_Coor -- means of terminating
+      ,Maybe Expr)    -- its coordinates
+   -}
+   {-
+counters_infos :: [(Expr,  -- lower bound
+                   (JMLType, -- counter type
+                    String,  -- counter
+                    Expr,    -- counter init value
+                    (SYT.SymExprDevelopmentTrajectory, -- counter trajectory Stride
+                     Bool)),  -- whether the stride is 1
+                    Expr)]
+    -}
+    {-
+    \forall int k; 0 <= k && k < i; a[k] != x
+     -}
+    {-
+//@ maintaining
+//@   (\forall int k;
+//       counterInitFact <= k
+           && k < counter
+           && k < counterUpperBound
+           && k % counterTrajectoryStride == counterLowerBound;
+//       metPredicate);
+
+if Stride == 1, then drop `&& k % counterTrajectoryStride == counterLowerBound`
+     -}
+    Maintaining (SearchExclusionTemplate quantified_vars counters_infos (predicate_coor,predicate) (return_coor,maybe_return_val)) -> printf
+      "maintaining\n\
+      \        (\\forall %s;\n\
+      \           %s;\n\
+      \             %s)"
+      declareQuantifiers ppCounters (ppExpr predicate) where
+      declareQuantifiers :: String = intercalate ", " [res
+        | (var,varType) <- quantified_vars :: [(String,JMLType)]
+        , let res = printf "%s %s" (ppJMLType varType) var
+        ]
+      {-
+      [(Expr,  -- lower bound
+        (JMLType, -- counter type
+         String,  -- counter
+         Expr,    -- counter init value
+         (SYT.SymExprDevelopmentTrajectory, -- counter trajectory Stride
+          Bool)),  -- whether the stride is 1
+        Expr)]     -- counterUpperBound
+       -}
+      ppCounters :: String = intercalate " &&\n           " [res
+        | (k,(lowerBound,(counterType,counter,init,(trajectory,isStrideOne)),upperBound))
+            <- zip (map fst quantified_vars) counters_infos ::
+                   [(String,
+                     (Expr,
+                      (JMLType,String,Expr,(Expr,Bool)),
+                      Expr))]
+        , let res = printf "%s <= %s && \
+                           \%s < %s && \
+                           \%s < %s%s"
+                           (ppExpr init) k
+                           k counter
+                           k (ppExpr upperBound)
+                           (if isStrideOne
+                              then ""
+                              else printf " && %s % %s == %s"
+                                          k (ppExpr trajectory) (ppExpr upperBound))
+        ]
+      
+    {-Maintaining (SearchExclusionTemplate
       (quantified_variable_name,quantified_variable_type)
       counterLowerBound
       (counter,counterInitFact)
@@ -203,7 +280,7 @@ ppLoopInvariantTemplate template = let
             quantified_variable_name counter
             quantified_variable_name (ppExpr counterUpperBound)
             quantified_variable_name (ppExpr counterTrajectory) (ppExpr counterLowerBound)
-            (ppExpr predicate)
+            (ppExpr predicate)-}
   --LoopFrameTemplate [String]
     LoopAssigns (LoopFrameTemplate vars) -> "loop_assigns " ++ (intercalate ", " vars)
   --DecreasesTemplate Expr

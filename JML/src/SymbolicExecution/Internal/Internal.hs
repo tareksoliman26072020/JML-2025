@@ -1787,11 +1787,11 @@ createStateChangingConditions cond = let
        -----
        _ -> (:[]) $ Condition cond
 
-stateChangingCondition_2_symExprs :: SymType -> StateChangingCondition -> [SymExpr]
+stateChangingCondition_2_symExprs :: SymType -> StateChangingCondition -> SymExpr
 stateChangingCondition_2_symExprs symType = \case
-  ElemInArray arrayName counterSymExpr value_2_exclude -> (:[]) $
+  ElemInArray arrayName counterSymExpr value_2_exclude ->
     SBin (SArrayIndexAccess symType arrayName counterSymExpr) Eq value_2_exclude
-  Condition symExpr -> [symExpr]
+  Condition symExpr -> symExpr
 
 -------------------
 -------------------

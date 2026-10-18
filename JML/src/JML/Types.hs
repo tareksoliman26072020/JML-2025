@@ -87,7 +87,7 @@ if Stride == 1, then drop
   1) `&& k < counterUpperBound`
   2) `&& k % counterTrajectoryStride == counterLowerBound`
  -}
-  | SearchExclusionTemplate
+  {-| SearchExclusionTemplate
       (String     -- quantified variable name
       ,JMLType)   -- type of the quantified variable
       Expr        -- counterLowerBound
@@ -95,14 +95,22 @@ if Stride == 1, then drop
       ,Expr)      -- counter initial value
       Expr        -- counterTrajectoryStride
       Expr        -- counterUpperBound
-      Expr{-
-      (Expr       -- metPredicate
-      ,[CFGT.Node_Coor]) -- coordinates of the predicate
-      -}
-      Bool        -- whether the stride is 1
-      {-(Expr       -- means of terminating
-      ,CFGT.Node_Coor) -- its coordinates
-      -}
+      Expr
+      Bool        -- whether the stride is 1-}
+  | SearchExclusionTemplate
+      [(String     -- quantified variable name
+       ,JMLType)]  -- type of the quantified variable
+      [(Expr,  -- lower bound
+        (JMLType, -- counter type
+         String,  -- counter
+         Expr,    -- counter init value
+         (Expr, -- counter trajectory Stride
+          Bool)),  -- whether the stride is 1
+        Expr)]     -- counterUpperBound
+      (CFGT.Node_Coor -- coordinate of the predicate
+      ,Expr)          -- metPredicate
+      (CFGT.Node_Coor -- means of terminating
+      ,Maybe Expr)    -- its coordinates
   | MovingBoundRelationTemplate String Expr
   | CounterLowerBoundTemplate Expr String
   | GuardedInvariantTemplate Expr Expr

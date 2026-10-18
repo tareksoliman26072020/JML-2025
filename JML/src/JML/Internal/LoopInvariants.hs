@@ -208,7 +208,7 @@ inferSearchExclusionTemplates loopSummary loopPatternsInfos = do
       symExprs :: [SYT.SymbolicExecutionValue]
       symExprs = concat [res
         | (conds,_) <- from_loopPatterns
-        , let res :: [SYT.SymbolicExecutionValue] = concat [res
+        , let res :: [SYT.SymbolicExecutionValue] = [res
                 | (_,cond) <- conds
                 , let condSymType = SY.Internal.get_StateChangingCondition_arraySymType (SYT.dynamicallyAccessedArrays loopSummary) cond
                 , let res = SY.Internal.stateChangingCondition_2_symExprs condSymType cond
@@ -221,7 +221,59 @@ inferSearchExclusionTemplates loopSummary loopPatternsInfos = do
        )
       ]
        -}
-      infos :: [([(SYT.SymbolicExecutionValue,(SYT.SymType,String,SYT.SymExprDevelopmentTrajectory),SYT.SymbolicExecutionValue)]
+      infos :: [
+        ([(Expr,  -- lower bound
+          (JMLType,String,Expr,(Expr,Bool)), -- (counter type,counter,initValue,trajectory)
+          Expr)]  -- upper bound
+        ,(CFGT.Node_Coor,               -- coor of the condition
+          Expr)   -- condition
+        ,(CFGT.Node_Coor,               -- coor of the return
+          Maybe Expr))  -- value of the return
+        ] = [(with_bounds,
+              (conditionCoor,negate $ symExprToExpr2 condition),
+              (returnCoor,symExprToExpr2 <$> returnExpr))
+        | (coordinatedStateChangingConds,(returnCoor,returnExpr)) <- from_loopPatterns
+        , let condition :: SYT.SymbolicExecutionValue
+              condition = SY.Internal.conjunctConditions [res
+                | (_,cond) <- coordinatedStateChangingConds
+                , let condSymType = SY.Internal.get_StateChangingCondition_arraySymType (SYT.dynamicallyAccessedArrays loopSummary) cond
+                , let res = SY.Internal.stateChangingCondition_2_symExprs condSymType cond
+                ]
+        , let conditionCoor :: CFGT.Node_Coor = case coordinatedStateChangingConds of
+                [] -> error $ constructErrorMsg loc "TODO1" []
+                li -> case fst (last li) of
+                  Just coor -> coor
+                  Nothing -> error $ constructErrorMsg loc "TODO2" []
+        , let vns = SY.Internal.getVarNames3 condition
+        , let relevant_vns_trajectories :: [(String,SYT.SymExprDevelopmentTrajectory)]
+              relevant_vns_trajectories = [a
+                | a@(vn,_) <- SYT.loopFrameTargetsDevelopmentTrajectory loopSummary
+                , vn `elem` vns
+                ]
+        , let with_bounds :: [(Expr
+                             ,(JMLType,String,Expr,(Expr,Bool))
+                             ,Expr)]
+              with_bounds = catMaybes [res
+                | (lower,(vnType,vn),upper) <- SYT.loopCountersBounds loopSummary
+                , let res = flip fmap (lookup vn relevant_vns_trajectories)
+                        $ \trajectory -> let
+                          init = case lookup vn (SYT.loopInitFacts loopSummary) of
+                            Just counterInitFact -> symExprToExpr2 counterInitFact
+                            Nothing -> error $ constructErrorMsg loc "TODO3" logContents
+                          (ppTrajectory,isStrideOne) = case trajectory of
+                            SYT.Increasing symExpr -> (,)
+                              (symExprToExpr2 symExpr)
+                              (SY.Internal.isOne symExpr)
+                            SYT.Decreasing symExpr -> (,)
+                              (symExprToExpr2 symExpr)
+                              (SY.Internal.isOne symExpr)
+                            _ -> error $ constructErrorMsg loc "TODO4" logContents
+                          in (symExprToExpr2 lower,
+                              (toJMLType vnType,vn,init,(ppTrajectory,isStrideOne)),
+                              symExprToExpr2 upper)
+                ]
+        ]
+      {-infos :: [([(SYT.SymbolicExecutionValue,(SYT.SymType,String,SYT.SymExprDevelopmentTrajectory),SYT.SymbolicExecutionValue)]
                 ,SYT.SymbolicExecutionValue)]
       infos = [(with_bounds,symExpr)
         | symExpr <- symExprs
@@ -232,21 +284,62 @@ inferSearchExclusionTemplates loopSummary loopPatternsInfos = do
                 , vn `elem` vns
                 ]
         , let with_bounds :: [(SYT.SymbolicExecutionValue
-                             ,(SYT.SymType,String,SYT.SymExprDevelopmentTrajectory)
+                             ,(SYT.SymType,String,Expr)
                              ,SYT.SymbolicExecutionValue)]
               with_bounds = catMaybes [res
                 | (lower,(vnType,vn),upper) <- SYT.loopCountersBounds loopSummary
                 , let res = flip fmap (lookup vn relevant_vns_trajectories)
                         $ \trajectory -> (lower,(vnType,vn,trajectory),upper)
                 ]
-        ]
+        ]-}
   constructLog loc "Summary" [
+    ("from_loopPatterns",show from_loopPatterns),
     ("symExprs",show symExprs),
     ("infos",show infos)]
+  --let toReturn0 = studyInfos0 infos0
   let toReturn = studyInfos infos
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn where
   --
-  studyInfos :: [([(SYT.SymbolicExecutionValue,(SYT.SymType,String,SYT.SymExprDevelopmentTrajectory),SYT.SymbolicExecutionValue)]
+  {- infos :: [
+        ([(Expr,  -- lower bound
+          (JMLType,String,Expr,(Expr,Bool)), -- (counter type,counter,initValue,trajectory)
+          Expr)]  -- upper bound
+        ,(CFGT.Node_Coor,               -- coor of the condition
+          Expr)   -- condition
+        ,(CFGT.Node_Coor,               -- coor of the return
+          Maybe Expr))  -- value of the return
+        ]
+   -}
+  studyInfos infos = let
+    loc = globalLoc ++ ".inferSearchExclusionTemplates.studyInfos" in [Maintaining res
+      | (counters_infos,b@(predicate_coor,predicate),c@(return_coor,maybe_return_val)) <- infos
+{-
+SearchExclusionTemplate0
+{- 1 -}[(String     -- quantified variable name
+{- 2 -} ,JMLType)]  -- type of the quantified variable
+{- 3 -}[(Expr,  -- lower bound
+{- 4 -} (JMLType, -- counter type
+{- 5 -}  String,  -- counter
+{- 6 -}  Expr,    -- counter init value
+{- 7 -}  (SYT.SymExprDevelopmentTrajectory, -- counter trajectory Stride
+{- 8 -}   Bool)),  -- whether the stride is 1
+{- 9 -} Expr)]    -- counterUpperBound
+{- 10-}(CFGT.Node_Coor -- metPredicate
+{- 11-},Expr)          -- coordinates of the predicate
+{- 12-}(CFGT.Node_Coor -- means of terminating
+{- 13-},Maybe Expr)    -- its coordinates
+ -}
+      , let one_two :: [(String,JMLType)] = [(printf "k%d" num,counterType)
+              | (num,(_,(counterType,_,_,_),_)) <- zip [1::Int ..] counters_infos]
+            three_2_nine :: [(Expr, (JMLType, String, Expr, (Expr, Bool)), Expr)] = counters_infos
+            --(SY.Calculator.substitute [(counterName,SYT.SymVar counterType one [])] predicate)
+            ten_eleven :: (CFGT.Node_Coor,Expr) = b
+            twelve_thirteen :: (CFGT.Node_Coor,Maybe Expr) = c
+      , let res :: Maintaining_LoopInvariantTemplate = SearchExclusionTemplate
+              one_two three_2_nine ten_eleven twelve_thirteen
+      ]
+  --
+  {-studyInfos :: [([(SYT.SymbolicExecutionValue,(SYT.SymType,String,SYT.SymExprDevelopmentTrajectory),SYT.SymbolicExecutionValue)]
                  ,SYT.SymbolicExecutionValue)] -> [LoopInvariantTemplate] = \infos -> let
     loc = globalLoc ++ ".inferSearchExclusionTemplates.studyInfos" in [Maintaining res
     | (predicateInformations,predicate) <- infos
@@ -257,17 +350,6 @@ inferSearchExclusionTemplates loopSummary loopPatternsInfos = do
             ("counterName",counterName),
             ("counterTrajectory",show counterTrajectory),
             ("upperBoundSymExpr",show upperBoundSymExpr)]
-    {-
-      SearchExclusionTemplate
-      1)  (String     -- quantified variable name
-      2)  ,JMLType)   -- type of quantified variable
-      3)  Expr        -- counterLowerBound
-      4)  (String     -- counter
-      5)  ,SymExpr)   -- counter init fact
-      6)  Expr        -- counterTrajectoryStride
-      7)  Expr        -- counterUpperBound
-      8)  Expr        -- metPredicate
-   -}
     , let one   :: String = "k"
           two   :: JMLType = toJMLType counterType
           three :: Expr = symExprToExpr2 lowerBoundSymExpr
@@ -287,7 +369,7 @@ inferSearchExclusionTemplates loopSummary loopPatternsInfos = do
             SYT.Decreasing symExpr -> SY.Internal.isOne symExpr
             _ -> error $ constructErrorMsg loc "TODO3" logContents
           res = SearchExclusionTemplate (one,two) three (counterName,five) six seven eight nine
-    ]
+    ]-}
 
 -- CounterPattern ==> LoopFrameTargets ==> LoopFrameTemplate
 inferLoopFrameTemplates :: SYT.LoopSummary -> JMLMonad [LoopInvariantTemplate]
