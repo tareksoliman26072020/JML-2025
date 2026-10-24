@@ -84,7 +84,13 @@ instance SymbolicExecutionVisitor MethodProcessor where
     (SYT.Return,symExpr) -> do
       let loc = globalLoc ++ ".visitSymExpr.Return " ++ show symExpr
       tellNextLog $ Log.Location loc (show tu)
-      let toReturn = ER_Return symExpr
+      ers <- executionResults <$> get
+      let earlyReturnInvariantTemplates = [res
+            | ER_LoopSummary _ loopInvariantTemplates _ _ <- ers
+            , let res = [al
+                    | al@(Maintaining (SearchExclusionTemplate _ _)) <- loopInvariantTemplates]
+            ]
+      let toReturn = ER_Return symExpr earlyReturnInvariantTemplates
       tellingThenReturning loc toReturn
     -----------------------------
     -- a global variable `vn` has been re-assigned

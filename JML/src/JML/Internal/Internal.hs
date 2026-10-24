@@ -368,7 +368,7 @@ symBinOpToOp symBinOp = case symBinOp of
 hasReturn :: [ExecutionResult] -> Bool
 hasReturn ers = case flip find ers (\case
   ER_ReturnException _ -> True
-  ER_Return _ -> True
+  ER_Return _ _ -> True
   ER_ReturnVoid -> True
   _ -> False) of
   Just _ -> True
@@ -778,7 +778,7 @@ addBehavior sy er = do
     ER_Actions _ -> recordExecutionResult er *> do
       incrementLogEnumeration
       incrementLogDepth *> addToDefaultClause HasSideEffect <* decrementLogDepth
-    ER_Return _ -> recordExecutionResult er *> addBehaviorViaReturn er
+    ER_Return _ _ -> recordExecutionResult er *> addBehaviorViaReturn er
     --
     ER_VarName_Global_Reassigned vn symExpr mSR -> recordExecutionResult er *> do
       let innerLoc = printf "%s ==> ER_VarName_Global_Reassigned" loc
@@ -1170,7 +1170,7 @@ addBehavior sy er = do
     -- `symExec` is used to figure out the type of the array
     -- that is accessed
     (theJMLResult,maybeArrAccessed) <- case er of
-      ER_Return symExpr -> do
+      ER_Return symExpr earlyReturnInvariantTemplates -> do
         jmlState <- get
         symExec <- getSymbolicExecution
         let expr = symExprToExpr jmlState symExpr
@@ -1209,18 +1209,9 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
         -- early returns in previous loops effect the „ensures“ clause.
         -- therefore `studyEarlyReturnsLoopInvariants` is the conversion of the previous loop invariants to clauses
         -- the loop invariants that are relevant are `SearchExclusionTemplate`
-        earlyReturnsExprs :: [Expr] <- do
-          ers <- executionResults <$> get
-          let previous_loopInvariants :: [[LoopInvariantTemplate]]
-              previous_loopInvariants = [loopInvariantTemplates
-                | ER_LoopSummary _ loopInvariantTemplates _ _ <- ers]
-          return $ do
-            loopInvariantTemplate <- previous_loopInvariants
-            concatMap (inferPostMethodClausesViaLoopInvariants2 loopInvariantTemplate) normalizeExpr{-
-          return
-            $ flip concatMap previous_loopInvariants
-            $ \loopInvariantTemplate ->
-                 concatMap (inferPostMethodClausesViaLoopInvariants2 loopInvariantTemplate) normalizeExpr-}
+        let earlyReturnsExprs :: [Expr] = do
+              loopInvariantTemplate <- earlyReturnInvariantTemplates
+              concatMap (inferPostMethodClausesViaLoopInvariants2 loopInvariantTemplate) normalizeExpr
         let combineEarlyReturnsExprs :: [Expr] -> Expr
             combineEarlyReturnsExprs (expr : rest) = foldl' combineExprs expr rest
         constructLog loc "inferring JMLResult" [
@@ -1238,7 +1229,7 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
       ER_ReturnVoid -> return $ (,) [JMLResult JMLVoid] Nothing
       ER_ReturnException exceptionName -> return $ (,) [] Nothing
     let noRequireBehavior = case er of
-          ER_Return symExpr -> NormalBehavior {
+          ER_Return symExpr _ -> NormalBehavior {
             behaviorScopeRange = Nothing,
             requires = maybeArrAccessed,
             assignable = [],
