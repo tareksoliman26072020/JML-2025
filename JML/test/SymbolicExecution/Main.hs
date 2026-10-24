@@ -109,8 +109,8 @@ main :: IO ()
 main = defaultMain
   $ testGroup "All tests" [
       isolatorTests,
+      javaMethodTests 1,javaMethodTests 2,javaMethodTests 3,
       loopSummaryTests,
-      loopPatternTests,
-      javaMethodTests 1,javaMethodTests 2,javaMethodTests 3
+      loopPatternTests
     ]
 

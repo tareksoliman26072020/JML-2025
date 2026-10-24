@@ -40,6 +40,7 @@ type SymbolicExecutionValue = SymExpr
 
 data SymState = SymState
  { env :: SymStateEnv
+ , executionResults :: [ExecutionResult]
  , logHeader :: Log.Header
  }
  deriving (Eq,Show)
@@ -101,14 +102,23 @@ visitSymExpr ==> SymInt: ER_SymStateMapEntry
 -}
 
 data ExecutionResult =
-    ER_Expr SymExpr
+    ER_Summary CFGT.Node_Coor ExecutionResult
+  | ER_SymTypeInferred String SymType
+  | ER_Entry
+      SymType -- method type
+      String  -- method name  
+  | ER_MethodParameter
+      String  -- parameter name
+      SymExpr -- value of the parameter
+
+  | ER_Expr SymExpr
   | ER_IfExpr CFGT.ScopeRange
               (SymExpr,          -- if condition before substitution of variables
                SymExpr)          -- if condition after substitution of variables
-      [ExecutionResult]          -- of if body
-      [ExecutionResult]          -- of else body
-  | ER_Continue
-  | ER_Break
+      (CFGT.Node_Coor,             -- coordinates of the if statement
+       [ExecutionResult])          -- of if body
+      (Maybe CFGT.Node_Coor,       -- coordinates of the if statement
+       [ExecutionResult])          -- of else body
   | ER_Node {er_Node_id :: CFGT.NodeID, nodeName :: String}
   | ER_SymStateMapEntry SymStateKey SymExpr
   | ER_VarExprObjAccess {-object access name-}String {-object access value-}SymExpr
@@ -126,6 +136,12 @@ data ExecutionResult =
   | ER_ForLoopDoneViaBreakStmt
   | ER_Void
   | ER_ReturnVoid
+  | ER_Continue
+  | ER_Break
+  | ER_Return (Maybe SymExpr)
+  | ER_ReturnSymUnknown SymExpr -- this comes in handy when the return value is ambigious
+                                -- due to the presence of previous return statement
+                                -- in a scope or more
   | ER_ActualParameterDetected String SymExpr
   deriving (Show,Eq)
 
@@ -201,7 +217,8 @@ type SymReason = ([(CFGT.Kind,CFGT.ScopeRange)],Int)
 
 data SymType = Int | Double | Float | Bool | Void | Array SymType | String 
              | UnknownGlobalVarSymType
-             | UnknownNumSymType deriving (Show,Eq,Ord)
+             | UnknownNumSymType
+             deriving (Show,Eq,Ord)
 
 predefinedFuns :: [String]
 predefinedFuns = ["toString","print","println"]
@@ -234,8 +251,9 @@ data LoopSummary = LoopSummary {
   -- The initial loop guard which should be met so that the loop gets iterated
   , loopEnteringCondition :: Maybe SymExpr
   , loopSkipCondition :: Maybe SymExpr
-  , loopExitingConditions :: [SymExpr]
-  , loopExitViaBreakConditions :: [SymExpr]
+  , loopExitingConditions :: [(CFGT.Node_Coor,SymExpr)]
+  , loopExitViaBreakFacts :: [StateChangingConditions]
+  , loopExitViaReturnFacts :: [(StateChangingConditions,(CFGT.Node_Coor,Maybe SymExpr))]
   -- The variables that function as loop counters or induction variables.
   -- A loopCounter is a variable whose value represents loop progress.
   -- Usually it is an induction variable:
@@ -244,23 +262,47 @@ data LoopSummary = LoopSummary {
   --   3) updated predictably in the loop,
   --   4) and used to define bounds, processed ranges, or termination.
   , loopCounters :: [String]
+  -- arrays that are accessed via loop counters
+  , dynamicallyAccessedArrays :: [
+      (SymType,  -- array type
+       String,   -- array name
+       [(CFGT.Node_Coor,String)]) -- loop counters used to access the array
+      ]
   -- Local variables assigned inside the loop
   , loopAssignments :: [String]
   -- Records whether a effected vars increases, decreases, moves conditionally, or does not really change, and how much the var changes per iteration.
   , loopFrameTargetsDevelopmentTrajectory :: [(String,SymExprDevelopmentTrajectory)]
   -- inferring how the loopFrameTargets end up looking like when the loop is exited
-  , loopExitFacts :: [LoopExitFact]
+  , loopExitFacts :: [(CFGT.Node_Coor,LoopExitFact)]
   -- Lower and upper bounds for each counter.
-  , loopCountersBounds :: [(SymExpr,String,SymExpr)]
+  , loopCountersBounds :: [(SymExpr,(SymType,String),SymExpr)]
   -- how the loop bound changes during the loop
   , loopBoundStabilityFacts :: [(SymExpr,SymExprDevelopmentTrajectory)]
   -- Candidate termination variant
   , loopDecreasesCandidate :: [SymExpr]
 } deriving (Show,Eq)
 
+type StateChangingConditions = [(Maybe CFGT.Node_Coor,StateChangingCondition)]  -- Conditions represent a conjunction of conditions
+
+data StateChangingCondition =
+   ElemInArray
+     String                -- array
+     SymExpr               -- counter
+     SymExpr               -- value to exclude
+ | Condition SymExpr     -- a singular condition
+ deriving (Show,Eq)
+
 data LoopExitFact =
     LoopExitFactRange String SymExpr SymExpr
-  | LoopExitFactValue String SymExpr
+  | LoopExitFactValue String SymExpr{-
+  | LoopReturnExit
+      LoopExitFact -- loopReturnCondition
+      SymExpr      -- return value
+-}
+  | LoopExitFactArrayAccessValue
+      String       -- Array name
+      SymExpr      -- Element index
+      SymExpr      -- value
   deriving (Show,Eq)
 
 data SymExprDevelopmentTrajectory =
@@ -307,7 +349,15 @@ data BoundPattern
   deriving (Eq, Show)
 
 data TraversalPattern
-  = ArrayScan
+  = ArrayScan (String,[String])
+                      -- ArrayScan == There is a sequence of elements that being visited.
+                      --   1) because there is an array access expression
+                      --      via a dynamically changeable expression (a loop counter).
+                      --   2) because the counters which allow dynamic access to an array (i.e. "i") increase or decrease monotonically.
+                      --   3) and because The guard or another proven invariant
+                      --      keeps the index within a logical array range
+                      --      , typically: i < a.length
+                      -- indicators: loopFrameTargetsDevelopmentTrajectory, dynamicallyAccessedArrays
   | PrefixProperty
   | SourceUnchanged
   deriving (Eq, Show)
@@ -328,14 +378,26 @@ data AccumulatorPattern
   deriving (Eq, Show)
 
 data SearchPattern
-  = LinearSearch
+  = LinearSearch (StateChangingConditions,(CFGT.Node_Coor,Maybe SymExpr))
+                          -- LinearSearch == An element in an array is being tested against a search predicate at a time.
+                          -- because there's an array access, which is dynamically accessed
+                          --   that is present in a condition,
+                          --   which lead to the termination of the loop
+                          -- Linearsearch =
+                          --   1) ArrayScan
+                          --      +
+                          --   2) loopExitViaReturnFacts (due to the array that is scanned)
+                          -- indicators: dynamicallyAccessedArrays, loopExitViaBreakFacts, loopExitViaReturnFacts
+                          --   Because the arrays that is dynamically getting accessed
+                          --           is the reason why the loop is terminated
   | FirstIndexSearch
   | BooleanPredicateScan
   | BinarySearch
   deriving (Eq, Show)
 
 data ControlFlowPattern
-  = EarlyReturn
+  = EarlyReturn (StateChangingConditions,(CFGT.Node_Coor,Maybe SymExpr))
+                            -- EarlyReturn == When the search predicate succeeds, the execution of the loop does not continue to the next iteration.
   | BreakExit SymExpr
   | ContinuePath
   | ThrowExit
@@ -345,6 +407,7 @@ data LoopSummaryTag =
    LoopInitFacts
  | LoopGuard
  | LoopCounters
+ | DynamicallyAccessedArrays
  | LoopCountersBounds
  | LoopFrameTargetsDevelopmentTrajectory
  | LoopBoundStabilityFacts
@@ -355,6 +418,7 @@ data LoopSummaryTag =
  | LoopEnteringCondition
  | LoopSkipCondition
  | LoopExitingConditions
- | LoopExitViaBreakConditions
+ | LoopExitViaBreakFacts
+ | LoopExitViaReturnFacts
  | LoopExitFact
  deriving (Show,Eq)

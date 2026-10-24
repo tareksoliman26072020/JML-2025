@@ -76,7 +76,7 @@ showNodeData (Meet kind) = "Meet: " ++ show kind
 
 ------------------------------
 
-data Kind = If | While | For
+data Kind = If | While | For | Method
           deriving (Eq,Show)
 
 data Node_Coor = Node_Coor

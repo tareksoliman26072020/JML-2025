@@ -1,8 +1,8 @@
 module TargetState (target) where
 
-import CFG.Types (ScopeRange(..))
+import CFG.Types (ScopeRange(..), Node_Coor(..))
 import JML.Types (
-  Method(..), Behavior(..), Expr(..), Op(..), JMLType(..), DefinedFun(..),
+  Method(..), Behavior(..), Expr(..), Op(..), JMLType(..), DefinedFun(..), Quantifier(..),
   LoopInvariantTemplate(..), JMLSpecification(..), LoopInvariants(..),
   Maintaining_LoopInvariantTemplate(..),
   LoopAssigns_LoopInvariantTemplate(..))
@@ -149,7 +149,8 @@ allTargets = [
   ("idByLoop", idByLoop),
   ("idByLoopStride3", idByLoopStride3),
   ("idByLoop2", idByLoop2),
-  ("halving", halving)
+  ("halving", halving),
+  ("contains", contains)
   ]
 
 -----------------------------
@@ -5770,5 +5771,57 @@ halving = Method {
               JMLInt 0
       ]
     }
+  ]
+}
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+contains :: Method
+contains = Method {
+  name = "contains",
+  jmlSpecifications = [
+    LoopSpecification (
+      LoopInvariants {
+        loopScopeRange = SR {branchStart = 2, branchEnd = 7},
+        loopClauses = [
+          Maintaining $ CounterBoundsTemplate (JMLInt 0) "i" (JMLObjAcc ["a","length"]),
+          Maintaining $ SearchExclusionTemplate
+            (Universal,
+             [("k1",(JMLInt 0,(Int_Type,"i",JMLInt 0,(JMLInt 1,True)),JMLObjAcc ["a","length"]))],
+             (Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},
+              JMLBin (JMLArrayIndexAccess (Array_Type Int_Type) "a" (JMLVar Int_Type "k1"))
+                     Neq
+                     (JMLVar Int_Type "x")))
+            (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}},
+             Just (JMLBool True)),
+          LoopAssigns $ LoopFrameTemplate ["i"],
+          DecreasesTemplate $ JMLBin (JMLObjAcc ["a","length"]) Sub (JMLVar Int_Type "i")
+        ]
+      }
+    ),
+    MethodSpecification (
+      NormalBehavior {
+        behaviorScopeRange = Nothing,
+        requires = Nothing,
+        assignable = [],
+        vars = [
+          JMLVar Int_Type "i"
+            `JMLEquals`
+              (JMLBin (JMLBin (JMLInt 0) Lt (JMLObjAcc ["a","length"])) And (JMLBin (JMLArrayIndexAccess (Array_Type Int_Type) "a" (JMLInt 0)) Neq (JMLVar Int_Type "x")) `JMLImplies` JMLObjAcc ["a","length"]),
+          JMLVar Int_Type "i"
+            `JMLEquals`
+              (JMLBin (JMLBin (JMLInt 0) Ge (JMLObjAcc ["a","length"])) Or (JMLBin (JMLArrayIndexAccess (Array_Type Int_Type) "a" (JMLInt 0)) Eq (JMLVar Int_Type "x")) `JMLImplies` JMLInt 0)
+        ],
+        hasSideEffect = False,
+        ensures = [
+          ExistentialQuantification (Universal,[("k1",(JMLInt 0,(Int_Type,"i",JMLInt 0,(JMLInt 1,True)),JMLObjAcc ["a","length"]))],(Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},JMLBin (JMLArrayIndexAccess (Array_Type Int_Type) "a" (JMLVar Int_Type "k1")) Neq (JMLVar Int_Type "x")))
+            `JMLImplies` JMLResult (JMLBool False),
+          ExistentialQuantification (Existential,[("k1",(JMLInt 0,(Int_Type,"i",JMLInt 0,(JMLInt 1,True)),JMLObjAcc ["a","length"]))],(Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},JMLBin (JMLArrayIndexAccess (Array_Type Int_Type) "a" (JMLVar Int_Type "k1")) Eq (JMLVar Int_Type "x")))
+            `JMLImplies` JMLResult (JMLBool True)
+        ]
+      }
+    )
   ]
 }

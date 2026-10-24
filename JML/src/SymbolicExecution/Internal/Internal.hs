@@ -18,6 +18,7 @@ import Prelude hiding (negate)
 import Data.List (nub,find,foldl',intercalate)
 import Control.Monad (forM_, foldM_)
 import Data.Functor (($>))
+import Data.Maybe (catMaybes,isNothing)
 
 ------------------------------
 ------------------------------
@@ -311,7 +312,7 @@ isVar = \case
   SymUnknown _ _ -> True
   SObjAcc _ -> True
   SymFun _ symExpr -> isVar symExpr
-  SArrayIndexAccess _ _ _ -> False
+  SArrayIndexAccess _ _ _ -> True
   expr -> error $ "TODO: isVar: " ++ show expr
 
 isArray :: SymExpr -> Bool
@@ -437,6 +438,7 @@ toSymExpr theType expr = let
       Just index -> case arrName_symExpr of
         SymVar _ arrName _ -> SArrayIndexAccess arrType arrName (toSymExpr theType index)
         _ -> fun_error 3
+  AST.Null -> SymNull theType
   _ -> fun_error 4
 
 getReturnSymExpr :: SymStateEnv -> Maybe SymExpr
@@ -444,6 +446,100 @@ getReturnSymExpr = Map.lookup Return
 
 hasReturn :: SymStateEnv -> Bool
 hasReturn = Map.member Return
+
+is_ER_Return :: ExecutionResult -> Bool
+is_ER_Return = \case
+  ER_Return _   -> True
+  ER_ReturnVoid -> True
+  ER_Summary _ er -> is_ER_Return er
+  _             -> False
+
+hasReturn_ers :: [ExecutionResult] -> Bool
+hasReturn_ers = any hasReturn3
+
+hasReturn3 :: ExecutionResult -> Bool
+hasReturn3 = \case
+  ER_Return _ -> True
+  ER_ReturnVoid -> True
+  ER_IfExpr _ _ (_,ifErs) (_,elseErs) -> any hasReturn3 (ifErs ++ elseErs)
+  ER_Summary _ er -> hasReturn3 er
+  _ -> False
+
+get_inner_ers :: ExecutionResult -> [ExecutionResult]
+get_inner_ers er = let
+  loc = "SymbolicExecution.Internal.Internal.get_inner_ers"
+  logContents = [("er",show er)] in case getSummarized_er er of
+  ER_IfExpr _ _ (_,if_Ers) (_,else_Ers) -> if_Ers ++ else_Ers
+  _ -> []
+
+-- a list of ER_Summary is passed
+-- and the coordinates of the ER_Return is returned
+getReturnsCoors :: [ExecutionResult] -> [[CFGT.Node_Coor]]
+getReturnsCoors ers = case ers of
+  [] -> []
+  (er : rest) -> case er of
+    ER_Summary coor er
+      | is_ER_Return er -> [[coor]]
+    ER_Summary _ inner_er
+      | hasReturn3 inner_er ->
+          getReturnsCoors [inner_er] ++ getReturnsCoors rest
+      | otherwise -> getReturnsCoors rest
+    ER_IfExpr _ _ (_,ifErs) (_,elseErs) -> case (any hasReturn3 ifErs,any hasReturn3 elseErs) of
+      (True,True)   -> getReturnsCoors ifErs ++ getReturnsCoors elseErs ++ getReturnsCoors rest
+      (True,False)  -> getReturnsCoors ifErs ++ getReturnsCoors rest
+      (False,True)  -> getReturnsCoors elseErs ++ getReturnsCoors rest
+      (False,False) -> getReturnsCoors rest
+    _ -> getReturnsCoors rest
+
+hasBreak :: SymStateEnv -> Bool
+hasBreak = Map.member Break
+
+hasBreak_ers :: [ExecutionResult] -> Bool
+hasBreak_ers = any $ \case
+  ER_Break -> True
+  ER_Summary _ er -> hasBreak_ers [er]
+  ER_IfExpr _ _ (_,ifErs) (_,elseErs) -> hasBreak_ers $ ifErs ++ elseErs
+  _ -> False
+
+conjunctConditions :: [SymExpr] -> SymExpr
+conjunctConditions conds = let
+  loc = "SymbolicExecution.Internal.Internal.conjunctConditions"
+  logContents = [("conds",show conds)] in
+  case conds of
+    [] -> error $ constructErrorMsg loc "won't happen" logContents
+    (cond : rest) -> foldl' (\acc r -> SBin acc And r) cond rest
+
+normalizeConditions2 :: SymExpr -> SymExpr
+normalizeConditions2 cond = let
+  loc = "SymbolicExecution.Internal.Internal.normalizeConditions2"
+  logContents = [("cond",show cond)] in
+  case cond of
+    SBin expr1 And expr2 -> case (expr1,expr2) of
+      (SBool True,_)  -> normalizeConditions2 expr2
+      (_,SBool True)  -> normalizeConditions2 expr1
+      (SBool False,_) -> expr1
+      (_,SBool False) -> expr2
+      _               -> SBin (normalizeConditions2 expr1) And (normalizeConditions2 expr2)
+    SBin expr1 Or expr2  -> case (expr1,expr2) of
+      (SBool True,_)  -> expr1
+      (_,SBool True)  -> expr2
+      (SBool False,_) -> normalizeConditions2 expr2
+      (_,SBool False) -> normalizeConditions2 expr1
+      _               -> SBin (normalizeConditions2 expr1) Or (normalizeConditions2 expr2)
+    SBin expr1 op expr2
+      | op `elem` [Eq,Neq] -> SBin (normalizeConditions2 expr1) op (normalizeConditions2 expr2)
+      | otherwise          -> cond
+    _ -> cond
+
+-- this function removes SBool True
+-- because an expression such as „y == j && True“ equals „y == j“
+normalizeConditions :: [SymExpr] -> [SymExpr]
+normalizeConditions conds = let
+  noTrues = filter (/= SBool True) in case conds of
+  [SBool True] -> conds
+  _ | any (== SBool False) conds -> [SBool False]
+  (SBool True : rest) -> SBool True : noTrues rest
+  _ -> noTrues conds
 
 modifyVoidMethod :: SymStateEnv -> SymStateEnv
 modifyVoidMethod sy
@@ -463,6 +559,8 @@ getSymExpr = \case
   ER_ArrayCallExpr _ symExpr -> Just symExpr
   ER_PredefinedFunCall symExpr -> Just symExpr
   ER_VarExprObjAccess _ symExpr -> Just symExpr
+  ER_Return maybeSymExpr -> maybeSymExpr
+  ER_Summary _ er -> getSymExpr er
   er -> error $ "SymbolicExecution.Internal.Internal.getSymExpr ~~> TODO: " ++ show er
 
 -- if the input is SymVar, then the return is SymVar
@@ -503,6 +601,7 @@ incrementLogEnumeration = do
         let newCounter = counter ++ [1]
         modify $ \symState -> SymState {
           env = env symState,
+          executionResults = executionResults symState,
           logHeader = Log.Header depth newCounter
         }
         --tellingIt (depth,oldCounterStr) (depth,logNum newCounter)
@@ -511,6 +610,7 @@ incrementLogEnumeration = do
         let newCounter = take (depth-1) counter ++ [(counter !! (depth-1)) + 1]
         modify $ \symState -> SymState {
           env = env symState,
+          executionResults = executionResults symState,
           logHeader = Log.Header depth newCounter
         }
         --tellingIt (depth,oldCounterStr) (depth,logNum newCounter)
@@ -522,6 +622,7 @@ incrementLogDepth = do
   Log.Header depth counter <- logHeader <$> get
   modify $ \symState -> SymState {
     env = env symState,
+    executionResults = executionResults symState,
     logHeader = Log.Header (depth+1) counter
   }
   --tell [Log.Log "?" $ Log.IncrementLogDepth depth (depth+1)]
@@ -531,6 +632,7 @@ decrementLogDepth = do
   Log.Header depth counter <- logHeader <$> get
   modify $ \symState -> SymState {
     env = env symState,
+    executionResults = executionResults symState,
     logHeader = Log.Header (depth-1) counter
   }
   --tell [Log.Log "?" $ Log.DecrementLogDepth depth (depth-1)]
@@ -558,16 +660,13 @@ constructErrorMsg = constructLogMsg
 hasContinue :: SymStateEnv -> Bool
 hasContinue = Map.member Continue
 
-hasBreak :: SymStateEnv -> Bool
-hasBreak = Map.member Break
-
-getBreaks :: SymStateEnv -> SymStateEnv
-getBreaks env = let
-  loc = "SymbolicExecution.Internal.Internal.getBreaks"
+getBreaks_StateEnv :: SymStateEnv -> SymStateEnv
+getBreaks_StateEnv env = let
+  loc = "SymbolicExecution.Internal.Internal.getBreaks_StateEnv"
   in flip Map.filter env $ \symExpr -> case symExpr of
     SIte _ ifEnv maybe_elseEnv -> let
-      if_rec = getBreaks ifEnv
-      maybe_else_rec = getBreaks <$> maybe_elseEnv
+      if_rec = getBreaks_StateEnv ifEnv
+      maybe_else_rec = getBreaks_StateEnv <$> maybe_elseEnv
       if_has_no_break = Map.null if_rec
       if_has_break = not if_has_no_break
       else_has_no_break = maybe True Map.null maybe_else_rec
@@ -576,18 +675,65 @@ getBreaks env = let
     SymBreak -> True
     _ -> False
 
-getBreaks2 :: [ExecutionResult] -> [ExecutionResult]
-getBreaks2 ers = let
-  loc = "SymbolicExecution.Internal.Internal.getBreaks2" in
-  flip filter ers $ \er -> case er of
+getBreaks_ers :: [ExecutionResult] -> [ExecutionResult]
+getBreaks_ers ers = let
+  loc = "SymbolicExecution.Internal.Internal.getBreaks_ers"
+  errContents er = [("er",show er),("ers",show ers)] in
+  flip filter ers $ \er -> case getSummarized_er er of
     ER_SymStateMapEntry _ _ -> False
     ER_Break -> True
-    ER_IfExpr _ _ if_ers else_ers -> case (getBreaks2 if_ers,getBreaks2 else_ers) of
+    ER_SymTypeInferred _ _ -> False
+    ER_IfExpr _ _ (_,if_ers) (_,else_ers) -> case (getBreaks_ers if_ers,getBreaks_ers else_ers) of
       ([],[]) -> False
       _ -> True
     ER_Void -> False
-    _ -> error $ constructErrorMsg loc "TODO" [
-      ("er",show er),("ers",show ers)]
+    ER_Expr SymBreak -> error $ constructErrorMsg loc "TODO1" $ errContents er
+    ER_Expr _ -> False
+    ER_Return _ -> False
+    ER_State _ -> False
+    ER_Continue -> False
+    ER_Entry _ _ -> False
+    ER_MethodParameter _ _ -> False
+    ER_FunCall _ -> False
+    _ -> error $ constructErrorMsg loc "TODO2" $ errContents er
+
+getReturns_StateEnv :: SymStateEnv -> SymStateEnv
+getReturns_StateEnv env = let
+  loc = "SymbolicExecution.Internal.Internal.getReturns_StateEnv"
+  in flip Map.filterWithKey env $ \case
+    Return -> const True
+    _ -> \case
+      SIte _ ifEnv maybe_elseEnv -> let
+        if_rec = getReturns_StateEnv ifEnv
+        maybe_else_rec = getReturns_StateEnv <$> maybe_elseEnv
+        if_has_no_return = Map.null if_rec
+        if_has_return = not if_has_no_return
+        else_has_no_return = maybe True Map.null maybe_else_rec
+        else_has_return = not else_has_no_return
+        in if_has_return || else_has_return
+      _ -> False
+
+getReturns_ers :: [ExecutionResult] -> [ExecutionResult]
+getReturns_ers ers = let
+  loc = "SymbolicExecution.Internal.Internal.getReturns_ers"
+  errContents er = [("er",show er),("ers",show ers)] in
+  flip filter ers $ \er -> case getSummarized_er er of
+    ER_Return _ -> True
+    ER_SymStateMapEntry _ _ -> False
+    ER_SymTypeInferred _ _ -> False
+    ER_Break -> False
+    ER_IfExpr _ _ (_,if_ers) (_,else_ers) -> case (getReturns_ers if_ers,getReturns_ers else_ers) of
+      ([],[]) -> False
+      _ -> True
+    ER_Void -> False
+    ER_Expr _ -> False
+    ER_ForLoopDone -> False
+    ER_Entry _ _ -> False
+    ER_MethodParameter _ _ -> False
+    ER_State _ -> False
+    ER_Continue -> False
+    ER_FunCall _ -> False
+    _ -> error $ constructErrorMsg loc "TODO1" $ errContents er
 
 -- alters the type of a global variable based on the expression and the scope it exists in
 -- It is used in visitExpr ==> AssignExpr / ==> BinOpExpr
@@ -607,7 +753,8 @@ er: ER_SymStateMapEntry (VarName "y") (SymVar UnknownNumSymType "y")
  -}
   let loc = "SymbolicExecution.Internal.inferGlobalVarType"
   tellNextLog $ Log.Affected loc ["SymType: " ++ show newType , "ExecutionResult: " ++ show er]
-  case er of
+  case getSummarized_er er of
+    ER_Summary _ innerIr -> inferGlobalVarType newType innerIr
     ER_SymStateMapEntry (VarName key) val -> do
       theEnv <- env <$> get
       logH <- logHeader <$> get
@@ -641,17 +788,146 @@ er: ER_SymStateMapEntry (VarName "y") (SymVar UnknownNumSymType "y")
                   (VarName _,_) -> v
                   (_,symExpr) -> let
                     innerSymExprs = lookupPartialSymExprs vn (k,symExpr)
-                    newType2 = pick_known_symType2
-                      $ maybe [] (: []) mNewVarType ++ (map toSymType2 innerSymExprs) 
+                    newType2 = let
+                      li = maybe [] (: []) mNewVarType ++ (map toSymType2 innerSymExprs)
+                      in case li of
+                           [] -> error $ constructErrorMsg loc "TODO" [--MEOW
+                            ("symExpr",show symExpr),
+                            ("innerSymExprs",show innerSymExprs)]
+                           _ -> pick_known_symType2 li 
                     in cast2 vn newType2 (k,symExpr)
+            let -- extract the inferred type of vn from ma3
+                maybe_newConcreteType = Map.foldlWithKey' (\acc k v -> case (k,v) of
+                  (VarName _,_) -> acc
+                  (_,symExpr) -> case (acc,getSymType2 vn symExpr) of
+                    (Nothing,x) -> x
+                    (Just _,Nothing) -> acc
+                    (Just type1,Just type2) -> Just $ pick_known_symType (type1,type2)
+                  ) Nothing ma3
             -- modify the state accordingly
             modify $ \symState -> SymState {
               env = ma3,
+              executionResults = let
+                old = executionResults symState in
+                case maybe_newConcreteType of
+                  Nothing -> old
+                  Just t -> old ++ [ER_SymTypeInferred vn t],
               logHeader = logHeader symState
             }
             return ma3
             ) theEnv vns
     _ -> tellNextLog (Log.Skip loc "Nothing to infer") $> ()
+
+getSymType1 :: String -> SymStateEnv -> Maybe SymType
+getSymType1 vn = Map.foldlWithKey' (\acc k v -> case k of
+  VarName vn2
+    | vn == vn2 -> pick_known_symType3 (Just $ toSymType2 v,acc)
+  _ -> pick_known_symType3 (acc,getSymType2 vn v)) Nothing
+
+pick_known_symType3 :: (Maybe SymType,Maybe SymType) -> Maybe SymType
+pick_known_symType3 (one,two) = case (one,two) of
+  (Nothing,Nothing) -> Nothing
+  (Just t,Nothing)  -> Just t
+  (Just t1,Just t2) -> Just $ pick_known_symType (t1,t2)
+  (Nothing,Just t)  -> Just t
+
+pick_known_symType4 :: [Maybe SymType] -> Maybe SymType
+pick_known_symType4 = foldl' (\acc elm -> pick_known_symType3 (acc,elm)) Nothing
+
+getSymType2 :: String -> SymExpr -> Maybe SymType
+getSymType2 vn symExpr = let
+  loc = "SymbolicExecution.Internal.Internal.getSymType2"
+  logContents = [
+    ("vn",vn),
+    ("symExpr",show symExpr)] in case symExpr of
+    SActions _ -> Nothing
+    SMethodHandle _ _ -> Nothing
+    SGlobalVars _ -> Nothing
+    SVarBindings _ -> Nothing
+    SVarAssignments li -> foldl'
+      (\acc (vn2,(expr,_)) -> if
+        | vn == vn2 -> case acc of
+            Nothing -> Just $ toSymType2 expr
+            Just t  -> Just $ pick_known_symType (t,toSymType2 expr)
+        | otherwise -> acc
+      ) Nothing li
+    SFormalParms _ -> Nothing
+    SLoopConditions li -> foldl' (\acc ma -> let
+      study = Map.foldlWithKey' (\acc k v -> if
+        | k == vn -> pick_known_symType3 (acc,Just $ toSymType2 v)
+        | otherwise -> acc) Nothing ma
+      in pick_known_symType3 (study,acc)) Nothing li
+    SymVar t vn2 _
+      | vn == vn2 -> Just t
+      | otherwise -> Nothing
+    SymNum _ -> Nothing
+    SymInt _ -> Nothing
+    SymDouble _ -> Nothing
+    SymFloat _ -> Nothing
+    SBool _ -> Nothing
+    SymString _ -> Nothing
+    SObjAcc _ -> Nothing
+    SymArrayAccess li -> foldl' (\acc (one,_,three) -> let
+      f ei = case ei of
+        Left _ -> Nothing
+        Right (t,vn2,_)
+          | vn == vn2 -> Just t
+          | otherwise -> Nothing
+      li2 = catMaybes [f one,acc,f three] in
+      case li of
+        [] -> Nothing
+        _  -> Just $ pick_known_symType2 li2) Nothing li
+    SBin expr1 op expr2 -> let
+      tu = (getSymType2 vn expr1,getSymType2 vn expr2) in if
+      | op `elem` [Eq,Neq,Lt,Le,Gt,Ge,And,Or] -> case tu of
+          (Nothing,Nothing) -> Nothing
+          _ -> Just Bool
+      | op `elem` [Add,Sub,Mul,Div,Mod] -> case tu of
+          (Nothing,Nothing) -> Nothing
+          (Just t1,Nothing) -> Just $ pick_known_symType (t1,UnknownNumSymType)
+          (Nothing,Just t2) -> Just $ pick_known_symType (UnknownNumSymType,t2)
+          (Just t1,Just t2) -> Just $ pick_known_symType2 [t1,t2,UnknownNumSymType]
+    SNot expr -> fmap (const Bool) $ getSymType2 vn expr
+    SymNull _ -> Nothing
+    SymUnknown (vn2,expr) _
+      | vn == vn2 -> Just $ toSymType2 expr
+      | otherwise -> Nothing
+    --SIte SymExpr SymStateEnv (Maybe SymStateEnv)
+    SIte ifCond ifState maybeElseState -> let
+      one   = getSymType2 vn ifCond
+      two   = getSymType1 vn ifState
+      three = case getSymType1 vn <$> maybeElseState of
+        Just x -> x
+        Nothing -> Nothing
+      in pick_known_symType4 [one,two,three]
+    SLoop _ _ _ _ _ -> Nothing
+    SymReturnVoid -> Nothing
+    _ -> error $ constructErrorMsg loc "TODO" logContents where
+
+-- get the SymType of the array mentioned in the condition
+-- So far this is being used only in `JML.Internal.LoopInvariants.inferSearchExclusionTemplates`
+get_StateChangingCondition_arraySymType :: [(SymType, String, [(CFGT.Node_Coor,String)])] -> StateChangingCondition -> SymType
+get_StateChangingCondition_arraySymType dynamicallyAccessedArrays cond = let
+  loc = "SymbolicExecution.Internal.Internal.get_StateChangingCondition_arraySymType"
+  logContents = [
+    ("dynamicallyAccessedArrays",show dynamicallyAccessedArrays),
+    ("cond",show cond)] in
+  case cond of
+    -- you get array type from LoopSummary: `dynamicallyAccessedArrays`
+    ElemInArray arrName _ _ -> let
+      finding = flip find dynamicallyAccessedArrays
+        $ \(_,arrName2,_) -> arrName == arrName2 in
+      case finding of
+        Just (arrType,_,_) -> arrType
+        _ -> error $ constructErrorMsg loc "TODO1" logContents
+    _ -> error $ constructErrorMsg loc "TODO2" $ logContents
+           ++ [("logContents",show logContents)
+               ,("cond",show cond)]
+
+getSummarized_er :: ExecutionResult -> ExecutionResult
+getSummarized_er = \case
+  ER_Summary _ er -> getSummarized_er er
+  er -> er
 
 ------------------------------
 ------------------------------
@@ -662,6 +938,7 @@ getVarName symExpr = let
   loc = "SymbolicExecution.Internal.Internal.getVarName" in
   case symExpr of
     SymVar _ varName _ -> varName
+    SArrayIndexAccess _ vn _ -> vn
     SBin expr1 _ expr2 ->
       let n1 = if isVar expr1 then Just $ getVarName expr1 else Nothing
           n2 = if isVar expr2 then Just $ getVarName expr2 else Nothing
@@ -671,9 +948,20 @@ getVarName symExpr = let
            (Just n,Nothing) -> n
            (Nothing,Just n) -> n
            (Just x,Just y) -> error
-             $ constructErrorMsg loc "TODO" [("symExpr",show symExpr)]
+             $ constructErrorMsg loc "TODO1" [("symExpr",show symExpr)]
     SObjAcc [arrName,"length"] -> arrName
-    _ -> error $ constructErrorMsg loc "won't happen2" [("symExpr",show symExpr)]
+    _ -> error $ constructErrorMsg loc "TODO2" [("symExpr",show symExpr)]
+
+getAccessedArraysNamesViaNamedIndexes :: [String] -> SymExpr -> [(SymType,String)]
+getAccessedArraysNamesViaNamedIndexes indexes symExpr = let
+  loc = "SymbolicExecution.Internal.Internal.getAccessedArraysNamesViaNamedIndexes"
+  logContents = [("symExpr",show symExpr)]
+  in case symExpr of
+    SymVar _ _ _ -> []
+    SArrayIndexAccess arrType arrName (SymVar _ index _)
+      | index `elem` indexes -> [(arrType,arrName)]
+    SBin expr1 _ expr2 -> concatMap (getAccessedArraysNamesViaNamedIndexes indexes) [expr1,expr2]
+    _ -> error $ constructErrorMsg loc "TODO" logContents
 
 get_SItes :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
 get_SItes m = flip Map.filterWithKey m $ \_ -> \case
@@ -997,7 +1285,8 @@ existsIn vn symExpr = case symExpr of
   SVarAssignments _ -> False
   SymUnknown (_,expr) _ -> existsIn vn expr
   SymFun _ expr -> existsIn vn expr
-  SArrayIndexAccess _ _ _ -> False
+  --SArrayIndexAccess (SYT.Array SYT.Int) "a" (SYT.SymVar SYT.Int "i" [])
+  SArrayIndexAccess _ vn2 _ -> vn == vn2
   SObjAcc _ -> False
   SymNull _ -> False
   SNot expr -> vn `existsIn` expr
@@ -1230,7 +1519,12 @@ getVarAssignments :: SymStateEnv -> [(String,(SymExpr,CFGT.Node_Coor))]
 getVarAssignments = maybe [] (\(SVarAssignments li) -> li) . Map.lookup VarAssignments
 
 get_ER_IfExprs :: [ExecutionResult] -> [ExecutionResult]
-get_ER_IfExprs ers = [er | er@(ER_IfExpr _ _ _ _) <- ers]
+get_ER_IfExprs ers = catMaybes [res
+  | er <- ers
+  , let res = case getSummarized_er er of
+          ER_IfExpr _ _ _ _ -> Just er
+          _ -> Nothing
+  ]
 
 isReassigned :: String -> SymStateEnv -> Bool
 isReassigned vn sy = case find (\(vn2,_) -> vn2 == vn) (getVarAssignments sy) of
@@ -1330,6 +1624,7 @@ runMonad :: SymbolicExecutionMonad a -> (String,Either String a)
 runMonad runner = let
   initialSymState = SymState
     { env = Map.empty
+    , executionResults = []
     , logHeader = Log.Header
         { Log.logScopeDepth = 1
         , Log.logCounter = []
@@ -1461,6 +1756,47 @@ getFactAbout loopExitFacts vn = flip find loopExitFacts $ \loopExitFact -> case 
 -------------------
 -------------------
 
+createStateChangingConditions :: SymExpr -> [StateChangingCondition]
+createStateChangingConditions cond = let
+  loc = "SymbolicExecution.Internal.Internal.createStateChangingConditions"
+  logContents = [("cond",show cond)]
+  in case cond of
+       -----
+       SBin expr1@(SArrayIndexAccess _ vn1 indexSymExpr1)
+            Eq
+            expr2@(SArrayIndexAccess _ vn2 indexSymExpr2) -> error
+              $ constructErrorMsg loc "TODO1" $ logContents ++ [
+                  ("expr1",show expr1),
+                  ("expr2",show expr2)]
+       -----
+       SBin expr1 And expr2 -> error
+         $ constructErrorMsg loc "TODO2" $ logContents ++ [
+                  ("expr1",show expr1),
+                  ("expr2",show expr2)]
+       -----
+       SBin expr1 Or expr2 -> error
+         $ constructErrorMsg loc "TODO3" $ logContents ++ [
+                  ("expr1",show expr1),
+                  ("expr2",show expr2)]
+       -----
+       SBin expr1@(SArrayIndexAccess _ vn indexSymExpr) Eq expr2 -> (:[]) $
+         ElemInArray vn indexSymExpr expr2
+       -----
+       SBin expr1 Eq expr2@(SArrayIndexAccess _ vn indexSymExpr) -> (:[]) $
+         ElemInArray vn indexSymExpr expr1
+       -----
+       _ -> (:[]) $ Condition cond
+
+stateChangingCondition_2_symExprs :: SymType -> StateChangingCondition -> SymExpr
+stateChangingCondition_2_symExprs symType = \case
+  ElemInArray arrayName counterSymExpr value_2_exclude ->
+    SBin (SArrayIndexAccess symType arrayName counterSymExpr) Eq value_2_exclude
+  Condition symExpr -> symExpr
+
+-------------------
+-------------------
+-------------------
+
 isLoopCounter :: String -> LoopSummary -> Bool
 isLoopCounter counterName loopSummary = let
   loc = "SymbolicExecution.Internal.isLoopCounter"
@@ -1502,7 +1838,7 @@ loopGuardHasCounter counterName summary = case loopGuard summary of
 
 loopCounterBoundsHasCounter :: String -> LoopSummary -> Bool
 loopCounterBoundsHasCounter counterName summary =
-  any (\(_,name,_) -> name == counterName)
+  any (\(_,(_,name),_) -> name == counterName)
       (loopCountersBounds summary)
 
 loopDecreasesCandidatesHasCounter :: String -> LoopSummary -> Bool
@@ -1580,3 +1916,35 @@ filterLoopPatterns loopPatternPredicate templateTagPredicate loopPatternsInfos =
       , loopPatternPredicate loopPattern
       , let relevantTags = filter templateTagPredicate tags
       ]
+
+-- looks at all loop patterns,
+-- and keeps only the EarlyReturn and LinearSearch which address same conditions
+-- then returns only their conditions.
+--
+-- This function was primarily implemented to be used in JML.Internal.LoopInvariants.inferSearchExclusionTemplates
+--   in order to 1) decide if a SearchExclusionTemplate is in effect,
+--               2) and to get the informations needed to build the invariant.
+getSimilar_linearSearch_earlyReturn ::
+  [(LoopPattern,[LoopSummaryTag])] -> [(StateChangingConditions,(CFGT.Node_Coor,Maybe SymExpr))]
+getSimilar_linearSearch_earlyReturn loopPatternsInfos = case loopPatternsInfos of
+  [] -> []
+  ((SearchPattern (LinearSearch tuple),_) : rest) -> case lookup (ControlFlowPattern $ EarlyReturn tuple) loopPatternsInfos of
+    Just _ -> let
+      newRest = [a
+        | a@(loopPattern,_) <- rest
+        , case loopPattern of
+            ControlFlowPattern (EarlyReturn tu) -> tu /= tuple
+            _ -> True
+        ]
+      in tuple : getSimilar_linearSearch_earlyReturn newRest
+  ((ControlFlowPattern (EarlyReturn tuple),_) : rest) -> case lookup (SearchPattern $ LinearSearch tuple) loopPatternsInfos of
+    Just _ -> let
+      newRest = [a
+        | a@(loopPattern,_) <- rest
+        , case loopPattern of
+            SearchPattern (LinearSearch tu) -> tu /= tuple
+            _ -> True
+        ]
+      in tuple : getSimilar_linearSearch_earlyReturn newRest
+  (_ : rest) -> getSimilar_linearSearch_earlyReturn rest
+

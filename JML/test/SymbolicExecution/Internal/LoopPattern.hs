@@ -1,6 +1,7 @@
 module Internal.LoopPattern where
 
 import SymbolicExecution.Types
+import CFG.Types
 
 -- testing the output of `inferLoopPatterns` in SymbolicExecution.Internal.LoopPattern
 allTargets :: [(String,[[(LoopPattern,[LoopSummaryTag])]])]
@@ -8,7 +9,8 @@ allTargets = [
   ("idByLoop",idByLoop),
   ("idByLoopStride3",idByLoopStride3),
   ("idByLoop2",idByLoop2),
-  ("halving",halving)
+  ("halving",halving),
+  ("contains",contains)
   ]
 
 idByLoop :: [[(LoopPattern, [LoopSummaryTag])]]
@@ -63,7 +65,7 @@ idByLoop2 =
      ]
     ),
     (ControlFlowPattern $ BreakExit (SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])),
-     [LoopExitViaBreakConditions])
+     [LoopExitViaBreakFacts])
    ]
   ]
 
@@ -85,3 +87,38 @@ halving =
     )
    ]
   ]
+
+contains :: [[(LoopPattern, [LoopSummaryTag])]]
+contains =
+  [
+   [(CounterPattern (CountingUp "i"),
+     [LoopCounters
+     ,LoopFrameTargetsDevelopmentTrajectory
+     ,LoopCountersBounds
+     ]
+    ),
+    (BoundPattern (StableBound (SObjAcc ["a","length"])),
+     [LoopCounters
+     ,LoopCountersBounds
+     ,LoopGuard
+     ,LoopBoundStabilityFacts
+     ,LoopReadOnlyVars
+     ]
+    ),
+    (TraversalPattern (ArrayScan ("a",["i"])),
+     [DynamicallyAccessedArrays
+     ,LoopFrameTargetsDevelopmentTrajectory
+     ]
+    ),
+    (SearchPattern $ LinearSearch ([(Just $ Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},ElemInArray "a" (SymVar Int "i" []) (SymVar Int "x" []))],(Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}},Just (SBool True))),
+     [DynamicallyAccessedArrays
+     ,LoopExitViaBreakFacts
+     ,LoopExitViaReturnFacts
+     ]
+    ),
+    (ControlFlowPattern $ EarlyReturn ([(Just $ Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},ElemInArray "a" (SymVar Int "i" []) (SymVar Int "x" []))],(Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}},Just (SBool True))),
+     [LoopExitViaReturnFacts]
+    )
+   ]
+  ]
+

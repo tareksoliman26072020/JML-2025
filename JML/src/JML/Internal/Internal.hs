@@ -15,15 +15,16 @@ import Data.Traversable (forM)
 import qualified Data.Map as Map
 
 import JML.Types
-import JML.PrettyPrint (ppBehavior, ppBehaviors, ppColoredClause)
+import JML.PrettyPrint (ppBehavior, ppBehaviors, ppColoredClauses)
 import qualified JML.Logs.Log as Log
 import Data.Maybe (isJust,catMaybes,fromJust,mapMaybe)
 
-import qualified CFG.Types as CFGT (ScopeRange, ScopeRange(SR))
+import qualified CFG.Types as CFGT (ScopeRange, ScopeRange(SR), Node_Coor(..))
 
 import qualified SymbolicExecution.Types as SYT
 import qualified SymbolicExecution.Internal.Internal as SY.Internal
 import qualified SymbolicExecution.Internal.Math.Calculator as SY.Internal.Calculator
+import qualified SymbolicExecution.Internal.LoopPattern as SY.Internal.LoopPattern
 
 yellow :: String -> String
 yellow = printf "\ESC[1;33m%s\ESC[m"
@@ -68,7 +69,8 @@ incrementLogEnumeration = do
           localVars = localVars jmlState,
           globalVars = globalVars jmlState,
           reAssigned = reAssigned jmlState,
-          pathCreationEnumeration = pathCreationEnumeration jmlState
+          pathCreationEnumeration = pathCreationEnumeration jmlState,
+          executionResults = executionResults jmlState
         }
         --tellingIt (depth,oldCounterStr) (depth,logNum newCounter)
         f newCounter
@@ -82,7 +84,8 @@ incrementLogEnumeration = do
           localVars = localVars jmlState,
           globalVars = globalVars jmlState,
           reAssigned = reAssigned jmlState,
-          pathCreationEnumeration = pathCreationEnumeration jmlState
+          pathCreationEnumeration = pathCreationEnumeration jmlState,
+          executionResults = executionResults jmlState
         }
         --tellingIt (depth,oldCounterStr) (depth,logNum newCounter)
         f newCounter
@@ -99,7 +102,8 @@ incrementLogDepth = do
     localVars = localVars jmlState,
     globalVars = globalVars jmlState,
     reAssigned = reAssigned jmlState,
-    pathCreationEnumeration = pathCreationEnumeration jmlState
+    pathCreationEnumeration = pathCreationEnumeration jmlState,
+    executionResults = executionResults jmlState
   }
   --tell [Log.Log "?" $ Log.IncrementLogDepth depth (depth+1)]
 
@@ -114,12 +118,20 @@ decrementLogDepth = do
     localVars = localVars jmlState,
     globalVars = globalVars jmlState,
     reAssigned = reAssigned jmlState,
-    pathCreationEnumeration = pathCreationEnumeration jmlState
+    pathCreationEnumeration = pathCreationEnumeration jmlState,
+    executionResults = executionResults jmlState
   }
   --tell [Log.Log "?" $ Log.DecrementLogDepth depth (depth-1)]
 
 constructLog :: String -> String -> [(String,String)] -> JMLMonad String
 constructLog loc tag contents = tellNextLog
+  $ Log.LogTag (cyan loc) (green tag)
+  $ ("  " ++)
+  $ constructLogContents contents
+
+constructNestedLog :: String -> String -> String -> [(String,String)] -> JMLMonad String
+constructNestedLog loc nestedTag tag contents = tellNextLog
+  $ Log.Nested nestedTag
   $ Log.LogTag (cyan loc) (green tag)
   $ ("  " ++)
   $ constructLogContents contents
@@ -261,6 +273,7 @@ toJMLType2 expr = let
     JMLOld expr -> toJMLType2 expr
     JMLException t _ _ -> t
     JMLBool _ -> Bool_Type
+    JMLObjAcc [_,"length"] -> Int_Type
     _ -> error $ printf "%s: TODO2: %s" loc (show expr)
 
 inferJMLType :: Expr -> JMLType
@@ -295,7 +308,7 @@ inferJMLType expr = let
     SymFun ToString _ -> String_Type
     _ -> error $ printf "%s: TODO: %s" loc (show expr)
 
-convertImplication :: ClauseValue -> Expr
+convertImplication :: Clause -> Expr
 convertImplication val = let
   loc = "JML.Internal.Internal.convertImplication" in
   case val of
@@ -331,6 +344,11 @@ negate expr = let
            in JMLBin (negate expr1) newOp (negate expr2)
      _ -> error $ printf "%s: TODO: %s" loc (show expr)
 
+negateQuantifier :: Quantifier -> Quantifier
+negateQuantifier = \case
+  Universal -> Existential
+  Existential -> Universal
+
 symBinOpToOp :: SYT.SymBinOp -> Op
 symBinOpToOp symBinOp = case symBinOp of
   SYT.Add -> Add
@@ -341,8 +359,10 @@ symBinOpToOp symBinOp = case symBinOp of
   SYT.Lt  -> Lt
   SYT.Le  -> Le
   SYT.Eq  -> Eq
+  SYT.Neq -> Neq
   SYT.Mod -> Mod
   SYT.Or  -> Or
+  SYT.And  -> And
   _ -> error $ printf "JML.Internal.symBinOpToOp: TODO: %s" (show symBinOp)
 
 hasReturn :: [ExecutionResult] -> Bool
@@ -354,8 +374,8 @@ hasReturn ers = case flip find ers (\case
   Just _ -> True
   Nothing -> False
 
-clauseValueHasJMLVarUnknown :: ClauseValue -> Bool
-clauseValueHasJMLVarUnknown clauseValue = case clauseValue of
+clauseHasJMLVarUnknown :: Clause -> Bool
+clauseHasJMLVarUnknown clause = case clause of
   Ensures expr -> hasJMLVarUnknown0 expr
   LoopInvariant expr -> hasJMLVarUnknown0 expr
   Signals _ expr -> hasJMLVarUnknown0 expr
@@ -437,21 +457,22 @@ getArrayAccessIndex arrName expr = let
       | arrName == arrName2 -> resExpr
     _ -> error $ constructErrorMsg loc "TODO" [("expr",show expr)]
 
-addToDefaultClause :: ClauseValue -> JMLMonad ()
-addToDefaultClause clauseValue = do
+addToDefaultClause :: Clause -> JMLMonad ()
+addToDefaultClause clause = do
   let loc = "JML.Internal.Internal.addToDefaultClause"
-  tellNextLog $ Log.Location loc (show clauseValue)
-  modify $ \(JMLState jmlMethod stack jmlLogHeader formal local global reAss pathNum) -> JMLState {
+  tellNextLog $ Log.Location loc (show clause)
+  modify $ \(JMLState jmlMethod stack jmlLogHeader formal local global reAss pathNum ers) -> JMLState {
     method = jmlMethod,
     jmlStack = [res
       | Requires (a,b) values <- stack
-      , let res = Requires (a,b) $ values ++ [clauseValue]],
+      , let res = Requires (a,b) $ values ++ [clause]],
     logHeader = jmlLogHeader,
     formalParms = formal,
     localVars = local,
     globalVars = global,
     reAssigned = reAss,
-    pathCreationEnumeration = pathNum
+    pathCreationEnumeration = pathNum,
+    executionResults = ers
   }
   tellingReportTheState loc $> ()
 
@@ -461,6 +482,32 @@ combinePreconditions mPre1 op mPre2 = case (mPre1,mPre2) of
   (Nothing,Just pre2) -> Just pre2
   (Just pre1,Nothing) -> Just pre1
   (Just pre1,Just pre2) -> Just $ JMLBin pre1 op pre2
+
+combineExistentiallyQuantifiedExprs :: Expr -> Expr -> Expr
+combineExistentiallyQuantifiedExprs expr1 expr2 = let
+  loc = "JML.Internal.Internal.combineExistentiallyQuantifiedExprs"
+  logContents = [("expr1","expr2")] in
+  case (expr1,expr2) of
+    (ExistentialQuantification _,ExistentialQuantification _) -> JMLBin expr1 And expr2
+    _ -> error $ constructErrorMsg loc "won't happen" logContents
+
+-- this was mainly implemented to combine Ensures-clauses
+combineExprs :: Expr -> Expr -> Expr
+combineExprs expr1 expr2 = let
+  loc = "JML.Internal.Internal.combineExprs"
+  logContents = [("expr1",show expr1),("expr2",show expr2)] in
+  case (expr1,expr2) of
+    -- when two different existentially quantified expressions imply the same post condition
+    -- then the they can be combined
+    (cond1 `JMLImplies` res1,cond2 `JMLImplies` res2)
+      | res1 == res2 &&
+        all isExistentiallyQuantifiedExpr [cond1,cond2] -> combineExistentiallyQuantifiedExprs cond1 cond2 `JMLImplies` res1
+      | otherwise -> error $ constructErrorMsg loc "TODO" logContents
+
+isExistentiallyQuantifiedExpr :: Expr -> Bool
+isExistentiallyQuantifiedExpr = \case
+  ExistentialQuantification _ -> True
+  _ -> False
 
 -- when default clause has a precondition
 mutateDefaultClause :: Expr -> JMLMonad ()
@@ -480,14 +527,15 @@ mutateDefaultClause newPrecondition = do
     localVars = localVars jmlState,
     globalVars = globalVars jmlState,
     reAssigned = reAssigned jmlState,
-    pathCreationEnumeration = pathCreationEnumeration jmlState
+    pathCreationEnumeration = pathCreationEnumeration jmlState,
+    executionResults = executionResults jmlState
   }
   tellingReportTheState $ loc ++ " <<look at the stack>>"
   return ()
 
 processJMLVarUnknown_via_loopExitFacts :: CFGT.ScopeRange ->
   [(String,SYT.SymbolicExecutionValue)] ->
-  (Maybe SYT.SymbolicExecutionValue,[SYT.SymbolicExecutionValue]) ->
+  (Maybe SYT.SymbolicExecutionValue,[(CFGT.Node_Coor,SYT.SymbolicExecutionValue)]) ->
   Maybe SYT.SymbolicExecutionValue ->
   [SYT.LoopExitFact]
   -> JMLMonad ()
@@ -507,26 +555,26 @@ processJMLVarUnknown_via_loopExitFacts scopeRange
   constructLog loc "processJMLVarUnknown_via_loopExitFacts" logContents
   clauses <- jmlStack <$> get
   newClauses <- forM clauses $ \(Requires tu vals) -> do
-    newVals <- forM vals $ \clauseValue -> case clauseValue of
+    newVals <- forM vals $ \clause -> case clause of
       Ensures ((JMLVar _ vn) `JMLEquals` expr) -> case get_fact vn of
-        Nothing -> return [clauseValue]
+        Nothing -> return [clause]
         Just fact -> err loc expr fact 1
       Ensures ((JMLVar _ vn) `JMLNotEquals` expr) -> case get_fact vn of
-        Nothing -> return [clauseValue]
+        Nothing -> return [clause]
         Just fact -> err loc expr fact 2
-      LoopInvariant _ -> return [clauseValue]
+      LoopInvariant _ -> return [clause]
       Signals vn expr -> case get_fact vn of
-        Nothing -> return [clauseValue]
+        Nothing -> return [clause]
         Just fact -> err loc expr fact 3
-      Assignable _ -> return [clauseValue]
+      Assignable _ -> return [clause]
       VarAssignment _ -> do
-        newClauseValue <- processVarAssignment clauseValue
+        newClause <- processVarAssignment clause
         constructLog loc "Summary" [
-          ("old clause value",show clauseValue),
-          ("new clause value",show newClauseValue)
+          ("old clause value",show clause),
+          ("new clause value",show newClause)
           ]
-        return newClauseValue
-      HasSideEffect -> return [clauseValue]
+        return newClause
+      HasSideEffect -> return [clause]
     return $ Requires tu (concat newVals)
   tellingReportTheStack loc "<new clauses>" newClauses
   modify $ \jmlState -> JMLState {
@@ -537,7 +585,8 @@ processJMLVarUnknown_via_loopExitFacts scopeRange
     localVars = localVars jmlState,
     globalVars = globalVars jmlState,
     reAssigned = reAssigned jmlState,
-    pathCreationEnumeration = pathCreationEnumeration jmlState
+    pathCreationEnumeration = pathCreationEnumeration jmlState,
+    executionResults = executionResults jmlState
   }
   return () where
   ----------
@@ -562,23 +611,24 @@ processJMLVarUnknown_via_loopExitFacts scopeRange
   get_fact :: String -> Maybe SYT.LoopExitFact
   get_fact = SY.Internal.getFactAbout loopExitFacts
   ----------
-  processVarAssignment :: ClauseValue -> JMLMonad [ClauseValue]
-  processVarAssignment clauseValue@(VarAssignment (t,vn,expr)) = do
+  processVarAssignment :: Clause -> JMLMonad [Clause]
+  processVarAssignment clause@(VarAssignment (t,vn,expr)) = do
     let loc = "JML.Internal.Internal\
               \.processJMLVarUnknown_via_loopExitFacts.processVarAssignment"
         logContents = [
-          ("clauseValue",show clauseValue),
+          ("clause",show clause),
           ("loopEnteringCondition",show loopEnteringCondition),
           ("loopExitingConditions",show loopExitingConditions)
           ]
     constructLog loc "processVarAssignment" logContents
     case get_fact vn of
       Nothing -> let
-        toReturn = [clauseValue]
+        toReturn = [clause]
         in (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
       Just fact -> do
-        let loopExitingConditions_negated :: [SYT.SymbolicExecutionValue]
-            loopExitingConditions_negated = map SY.Internal.negate loopExitingConditions
+        let loopExitingConditions2 = map snd loopExitingConditions
+            loopExitingConditions_negated :: [SYT.SymbolicExecutionValue]
+            loopExitingConditions_negated = map SY.Internal.negate loopExitingConditions2
             combining :: SYT.SymBinOp -> [SYT.SymbolicExecutionValue] -> SYT.SymbolicExecutionValue
             combining op (x:xs) = foldl' (\l r -> SYT.SBin l op r) x xs
             fact_studied = studyFact fact expr
@@ -596,7 +646,7 @@ processJMLVarUnknown_via_loopExitFacts scopeRange
                 (symExprToExpr2 $ combining SYT.And
                                 $ map (SY.Internal.Calculator.substitute loopInitFacts) conds)
                 (VarAssignment (t,vn,new_expr))
-            newVal2 = case loopExitingConditions of
+            newVal2 = case loopExitingConditions2 of
               [] -> err loc expr fact 2
               conds -> case lookup vn loopInitFacts of
                 Just init_expr -> Implication
@@ -617,7 +667,7 @@ processJMLVarUnknown_via_loopExitFacts scopeRange
                 (symExprToExpr2 $ combining SYT.And
                                 $ map (SY.Internal.Calculator.substitute loopInitFacts) conds)
                 (VarInRange (t,vn,(from_expr,to_expr)))
-            newVal2 = case loopExitingConditions of
+            newVal2 = case loopExitingConditions2 of
               [] -> err loc expr fact 5
               conds -> case lookup vn loopInitFacts of
                 Just init_expr -> Implication
@@ -630,41 +680,6 @@ processJMLVarUnknown_via_loopExitFacts scopeRange
                     ("newVal1",show newVal1),
                     ("newVal2",show newVal2)]
                   return [newVal1,newVal2]
-          {-
-          [new_expr] -> let
-            newVal1 = case loopEnteringCondition of
-              Nothing -> err loc expr fact 1
-              Just cond -> Implication (symExprToExpr2 cond) $
-                VarAssignment (t,vn,new_expr)
-            newVal2 = case loopSkipCondition of
-              Nothing -> err loc expr fact 2
-              Just cond -> case lookup vn loopInitFacts of
-                Just init_expr -> Implication (symExprToExpr2 cond) $
-                  VarAssignment (t,vn,symExprToExpr2 init_expr)
-                Nothing -> err loc expr fact 3
-            in do constructLog loc "fact creates new value" [
-                    ("new_expr",show new_expr),
-                    ("newVal1",show newVal1),
-                    ("newVal2",show newVal2)]
-                  return [newVal1,newVal2]
-          ---
-          [from_expr,to_expr] -> let
-            newVal1 = case loopEnteringCondition of
-              Nothing -> err loc expr fact 4
-              Just cond -> Implication (symExprToExpr2 cond) $
-                VarInRange (t,vn,(from_expr,to_expr))
-            newVal2 = case loopSkipCondition of
-              Nothing -> err loc expr fact 5
-              Just cond -> case lookup vn loopInitFacts of
-                Just init_expr -> Implication (symExprToExpr2 cond) $
-                  VarAssignment (t,vn,symExprToExpr2 init_expr)
-            in do constructLog loc "fact creates range" [
-                    ("from_expr",show from_expr),
-                    ("to_expr",show to_expr),
-                    ("newVal1",show newVal1),
-                    ("newVal2",show newVal2)]
-                  return [newVal1,newVal2]
-        -}
         decrementLogDepth
         (tellNextLog $ Log.Return loc (show res)) $> res
 
@@ -722,6 +737,7 @@ equalsNullIn arrName expr = let
   JMLNull _ -> False
   JMLObjAcc _ -> False
   JMLArrayIndexAccess _ _ _ -> False
+  JMLVarUnknown _ _ _ expr -> equalsNullIn arrName expr
   _ -> error $ printf "TODO1 in %s ==> %s" loc (show expr)
 
 isJMLVarUnknown :: Expr -> Bool
@@ -755,16 +771,16 @@ addBehavior sy er = do
   let loc = "JML.Internal.Internal.addBehavior"
   tellNextLog $ Log.Location loc (show er)
   case er of
-    ER_ReturnException _ -> addBehaviorViaReturn er
-    ER_Void -> logSkipping loc
-    ER_ReturnVoid -> addBehaviorViaReturn er
-    ER_LoopConditions _ _ -> logSkipping loc
-    ER_Actions _ -> do
+    ER_ReturnException _ -> recordExecutionResult er *> addBehaviorViaReturn er
+    ER_Void -> recordExecutionResult er *> logSkipping loc
+    ER_ReturnVoid -> recordExecutionResult er *> addBehaviorViaReturn er
+    ER_LoopConditions _ _ -> recordExecutionResult er *> logSkipping loc
+    ER_Actions _ -> recordExecutionResult er *> do
       incrementLogEnumeration
       incrementLogDepth *> addToDefaultClause HasSideEffect <* decrementLogDepth
-    ER_Return _ -> addBehaviorViaReturn er
+    ER_Return _ -> recordExecutionResult er *> addBehaviorViaReturn er
     --
-    ER_VarName_Global_Reassigned vn symExpr mSR -> do
+    ER_VarName_Global_Reassigned vn symExpr mSR -> recordExecutionResult er *> do
       let innerLoc = printf "%s ==> ER_VarName_Global_Reassigned" loc
       do incrementLogEnumeration
          incrementLogDepth *> addToDefaultClause (Assignable [vn]) <* decrementLogDepth
@@ -791,7 +807,7 @@ addBehavior sy er = do
         x -> throwError $ constructErrorMsg innerLoc "TODO"
           [("er",show er),("x",show x)]
     --
-    ER_VarName vn symExpr mSR -> do
+    ER_VarName vn symExpr mSR -> recordExecutionResult er *> do
       let innerLoc = printf "%s ==> ER_VarName" loc :: String
       jmlState <- get
       -- logging
@@ -799,27 +815,27 @@ addBehavior sy er = do
          (jmlStack <$> get) >>= tellingReportTheStack loc
            "<<before adding new clause value to default Clause>>"
       expr <- flip symExprToExpr symExpr <$> get
-      let newClauseValue1 = VarAssignment (
+      let newClause1 = VarAssignment (
             toJMLType $ SY.Internal.toSymType2 symExpr,
             vn,
             expr)
       -- add to default clause
       do incrementLogEnumeration
          incrementLogDepth
-         addToDefaultClause newClauseValue1
+         addToDefaultClause newClause1
          decrementLogDepth
       -- logging
       constructLog innerLoc "new Clause Value added to default Clause"
-        [("newClauseValue1",show newClauseValue1)]
+        [("newClause1",show newClause1)]
       -- logging
       do tellingReportTheState (loc ++ " <<after adding new clause value to default Clause>>")
          (jmlStack <$> get) >>= tellingReportTheStack loc
            "<<after adding new clause value to default Clause>>"
       return ()
     --
-    ER_VarName_Unassigned _ _ _ -> logSkipping loc
+    ER_VarName_Unassigned _ _ _ -> recordExecutionResult er *> logSkipping loc
     --
-    ER_ArrayAccess li -> do
+    ER_ArrayAccess li -> recordExecutionResult er *> do
       let innerLoc = printf "%s ==> ER_ArrayAccess" loc :: String
           logContents = [("li",show li)]
       constructLog innerLoc "ER_ArrayAccess" logContents
@@ -869,7 +885,7 @@ addBehavior sy er = do
             (first : rest) -> foldl'
               (\l r -> combinePreconditions l And (Just r))
               (Just first) rest
-      let arrAssignable :: ClauseValue
+      let arrAssignable :: Clause
           arrAssignable = Assignable
             [res | (Right (_,arrName,SYT.SymVar _ indexName _),_,_) <- li
                  , let res = printf "%s[%s]" arrName indexName]
@@ -887,7 +903,7 @@ addBehavior sy er = do
             `JMLEquals`
               JMLOld (JMLArrayIndexAccess (Array_Type Int_Type) "arr" (JMLVar Int_Type "i"))]
        -}
-      let arrIndexesEnsures :: [ClauseValue]
+      let arrIndexesEnsures :: [Clause]
           arrIndexesEnsures = [Ensures expr
             | (Right (arrType1,arrName1,arrIndexSymExpr1),_,rightSide) <- li
             , let f (arrType2,arrName2,arrIndexSymExpr2) = symExprToExpr jmlState
@@ -932,7 +948,8 @@ addBehavior sy er = do
       localVars = Map.keys ma,
       globalVars = globalVars jmlState,
       reAssigned = reAssigned jmlState,
-      pathCreationEnumeration = pathCreationEnumeration jmlState
+      pathCreationEnumeration = pathCreationEnumeration jmlState,
+      executionResults = executionResults jmlState ++ [er]
     }
     ER_VarAssignments li -> modify $ \jmlState -> JMLState {
       method    = method jmlState,
@@ -942,7 +959,8 @@ addBehavior sy er = do
       localVars = localVars jmlState,
       globalVars = globalVars jmlState,
       reAssigned = map fst li,
-      pathCreationEnumeration = pathCreationEnumeration jmlState
+      pathCreationEnumeration = pathCreationEnumeration jmlState,
+      executionResults = executionResults jmlState ++ [er]
     }
     ER_GlobalVars li -> modify $ \jmlState -> JMLState {
       method    = method jmlState,
@@ -952,7 +970,8 @@ addBehavior sy er = do
       localVars = localVars jmlState,
       globalVars = li,
       reAssigned = reAssigned jmlState,
-      pathCreationEnumeration = pathCreationEnumeration jmlState
+      pathCreationEnumeration = pathCreationEnumeration jmlState,
+      executionResults = executionResults jmlState ++ [er]
     }
     ER_FormalParms li -> modify $ \jmlState -> JMLState {
       method    = method jmlState,
@@ -962,10 +981,11 @@ addBehavior sy er = do
       localVars = localVars jmlState,
       globalVars = globalVars jmlState,
       reAssigned = reAssigned jmlState,
-      pathCreationEnumeration = pathCreationEnumeration jmlState
+      pathCreationEnumeration = pathCreationEnumeration jmlState,
+      executionResults = executionResults jmlState ++ [er]
     }
     --
-    ER_IfThenElse (_,scopeRange) (ifRequires,ifJMLState,if_ers) maybeElse -> do
+    ER_IfThenElse (_,scopeRange) (ifRequires,ifJMLState,if_ers) maybeElse -> recordExecutionResult er *> do
       let innerLoc = printf "%s ==> ER_IfThenElse" loc :: String
       tellingReportTheState innerLoc
       ---------- if
@@ -1052,7 +1072,8 @@ addBehavior sy er = do
            localVars = localVars jmlState,
            globalVars = globalVars jmlState,
            reAssigned = reAssigned jmlState,
-           pathCreationEnumeration = pathCreationEnumeration jmlState
+           pathCreationEnumeration = pathCreationEnumeration jmlState,
+           executionResults = executionResults jmlState
          }
          -- tell state after deleting original clauses
          tellingReportTheState (innerLoc ++ " <<after delelting original clauses>>")
@@ -1091,11 +1112,12 @@ addBehavior sy er = do
       tellingReportTheState innerLoc
       return ()
     -- 
-    ER_LoopSummary scopeRange invariantTemplates loopSummary -> do
+    ER_LoopSummary scopeRange invariantTemplates postMethodClauses loopSummary -> recordExecutionResult er *> do
       let innerLoc = printf "%s ==> ER_LoopSummary" loc :: String
           logContents = [
              ("scopeRange",show scopeRange),
-             ("invariantTemplates",show invariantTemplates)
+             ("invariantTemplates",show invariantTemplates),
+             ("postMethodClauses",show postMethodClauses)
             ]
           newLoopSpecification = LoopInvariants scopeRange invariantTemplates
       constructLog innerLoc "ER_LoopSummary" logContents
@@ -1112,10 +1134,11 @@ addBehavior sy er = do
         localVars = localVars jmlState,
         globalVars = globalVars jmlState,
         reAssigned = reAssigned jmlState,
-        pathCreationEnumeration = pathCreationEnumeration jmlState
+        pathCreationEnumeration = pathCreationEnumeration jmlState,
+        executionResults = executionResults jmlState
       }
       constructLog innerLoc "new loop specification added" [("newLoopSpecification",show newLoopSpecification)]
-      -- check if there are JMLUnknownVars among the ClauseValues
+      -- check if there are JMLUnknownVars among the Clauses
       -- which can be solved with help of loopExitFacts
       do incrementLogEnumeration
          incrementLogDepth *>
@@ -1123,9 +1146,18 @@ addBehavior sy er = do
              (SYT.loopInitFacts loopSummary)
              (SYT.loopEnteringCondition loopSummary,SYT.loopExitingConditions loopSummary)
              (SYT.loopSkipCondition loopSummary)
-             (SYT.loopExitFacts loopSummary)
+             (map snd $ SYT.loopExitFacts loopSummary)
              <* decrementLogDepth
       tellingReportTheState innerLoc
+      do let len = length postMethodClauses
+         incrementLogEnumeration
+         incrementLogDepth
+         forM_ (zip [1::Int ..] postMethodClauses) $ \(counter,clause) -> do
+           constructNestedLog loc
+             (printf "%d/%d inheriting post-condition clause" counter len) ""
+             [("clause",show clause)]
+           addToDefaultClause clause
+         decrementLogDepth
       return ()
     _ -> throwError $ constructErrorMsg loc "TODO" [("er",show er)]
   where
@@ -1142,8 +1174,7 @@ addBehavior sy er = do
         jmlState <- get
         symExec <- getSymbolicExecution
         let expr = symExprToExpr jmlState symExpr
-        constructLog loc "inferring JMLResult" [("expr",show expr)]
-        let jmlResults = case expr of
+        let normalizeExpr = case expr of
               -- an unknown value may be known with help of implications
               -- so far, implications are the child of `ER_LoopSummary`
               JMLVarUnknown _ _ vn1 _ -> let
@@ -1175,6 +1206,29 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
             $ \(JMLBin (JMLVar _ arrName) _ _) ->
                 (not $ arrName `equalsNullIn` expr) &&
                 (any (\f -> f arrName jmlState) [isFormalParm,isGlobalVar])
+        -- early returns in previous loops effect the „ensures“ clause.
+        -- therefore `studyEarlyReturnsLoopInvariants` is the conversion of the previous loop invariants to clauses
+        -- the loop invariants that are relevant are `SearchExclusionTemplate`
+        earlyReturnsExprs :: [Expr] <- do
+          ers <- executionResults <$> get
+          let previous_loopInvariants :: [[LoopInvariantTemplate]]
+              previous_loopInvariants = [loopInvariantTemplates
+                | ER_LoopSummary _ loopInvariantTemplates _ _ <- ers]
+          return $ do
+            loopInvariantTemplate <- previous_loopInvariants
+            concatMap (inferPostMethodClausesViaLoopInvariants2 loopInvariantTemplate) normalizeExpr{-
+          return
+            $ flip concatMap previous_loopInvariants
+            $ \loopInvariantTemplate ->
+                 concatMap (inferPostMethodClausesViaLoopInvariants2 loopInvariantTemplate) normalizeExpr-}
+        let combineEarlyReturnsExprs :: [Expr] -> Expr
+            combineEarlyReturnsExprs (expr : rest) = foldl' combineExprs expr rest
+        constructLog loc "inferring JMLResult" [
+          ("expr",show expr),
+          ("earlyReturnsExprs",show earlyReturnsExprs)]
+        let jmlResults = case earlyReturnsExprs of
+              [] -> normalizeExpr
+              li -> [combineEarlyReturnsExprs li]
         return $ (,) jmlResults
                $ case accessedArrays of
                    [] -> Nothing
@@ -1233,7 +1287,7 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
   addBehaviorToState newBehavior = do
     let loc = "JML.Internal.Internal.addBehavior.addBehaviorToState"
     tellNextLog $ Log.AddBehaviorToState loc (show newBehavior)
-    modify $ \(JMLState jmlMethod stack jmlLogHeader formal local global reAss pathNum) -> JMLState {
+    modify $ \(JMLState jmlMethod stack jmlLogHeader formal local global reAss pathNum ers) -> JMLState {
       method = Method {
         name = name jmlMethod,
         jmlSpecifications = jmlSpecifications jmlMethod ++ [MethodSpecification newBehavior]
@@ -1244,11 +1298,12 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
       localVars = local,
       globalVars = global,
       reAssigned = reAss,
-      pathCreationEnumeration = pathNum
+      pathCreationEnumeration = pathNum,
+      executionResults = ers
     }
     return newBehavior
   -- adding clause to behavior
-  addClauseToBehavior :: Behavior -> Clause -> Behavior
+  addClauseToBehavior :: Behavior -> Clauses -> Behavior
   addClauseToBehavior behavior clause@(Requires (theScopeRange,thePreCondition) values) = let
     loc = "JML.Internal.Internal.addBehavior.addClauseToBehavior"
     gettingAssignable = concat [li | Assignable li <- values]
@@ -1259,7 +1314,7 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
     gettingSideEffect = HasSideEffect `elem` values
     gettingEnsures = [expr | Ensures expr <- values]
     newPreCondition = combinePreconditions (requires behavior) And thePreCondition
-    processing = processJMLVarUnknown_behavior $ case behavior of
+    behavior2process = case behavior of
       NormalBehavior{} -> NormalBehavior {
         behaviorScopeRange = theScopeRange,
         requires = newPreCondition,
@@ -1276,14 +1331,21 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
         vars = vars behavior ++ gettingVars,
         hasSideEffect = hasSideEffect behavior || gettingSideEffect,
         ensures = ensures behavior ++ gettingEnsures
-      } in
-    processing
+      } -- `until` applies `f` repeatedly
+        -- until `p` is met
+        -- the idea is that there may be nested number of JMLVarUnknown
+        -- which need processing
+        -- and `until` deal with it until processing the behavior yields no new output.
+        in fst $ until 
+      {- p -}(\(old,new) -> old == new)
+      {- f -}(\(old,new) -> (new,processJMLVarUnknown_behavior new))
+             (behavior2process,processJMLVarUnknown_behavior behavior2process)
   --
-  check_if_assignables_missing :: [String] -> Clause -> [(JMLType,String,Expr)]
-  check_if_assignables_missing allGlobalVars (Requires _ clauseValues) = let
+  check_if_assignables_missing :: [String] -> Clauses -> [(JMLType,String,Expr)]
+  check_if_assignables_missing allGlobalVars (Requires _ clauses) = let
     loc = "JML.Internal.Internal.addBehavior.check_if_assignables_missing"
     clause_globalVars_exprs = [(t,vn,expr)
-      | VarAssignment (t,vn,expr) <- clauseValues
+      | VarAssignment (t,vn,expr) <- clauses
       , vn `elem` allGlobalVars
       , let isReassigned = \case
               JMLOld ex -> isReassigned ex
@@ -1291,14 +1353,14 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
               JMLString _ -> False
               ex -> error $ printf "TODO in %s: %s" loc (show ex)
       , isReassigned expr]
-    clause_assignables = concat [li | Assignable li <- clauseValues]
+    clause_assignables = concat [li | Assignable li <- clauses]
     to_be_assignable = [(t,v,expr) | (t,v,expr) <- clause_globalVars_exprs, v `notElem` clause_assignables]
     in to_be_assignable
   --
   -- if a defaut clause exists, it gets replaced
   -- otherwise, a new clause is created
   -- this was first used in ER_IfThenElse
-  createClause :: [Clause] -> Clause -> JMLMonad ()
+  createClause :: [Clauses] -> Clauses -> JMLMonad ()
   createClause originalClauses cl@(Requires (mSR,mPreCondition) newValues) = do
     let loc = "JML.Internal.Internal.addBehavior.createClause"
     tellNextLog $ Log.Location loc $ printf
@@ -1310,13 +1372,13 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
       \*) %s:\n\
       \%s"
       (yellow "original Clauses")
-      (intercalate "\n------\n" $ map ppColoredClause originalClauses)
+      (intercalate "\n------\n" $ map ppColoredClauses originalClauses)
       (yellow "New Clause")
-      (ppColoredClause cl)
+      (ppColoredClauses cl)
     -- tell state
     tellingReportTheState (loc ++ " <<before creating the clause>>")
     num <- getPathEnumeration
-    let defaultClauseVals :: [ClauseValue]
+    let defaultClauseVals :: [Clause]
         defaultClauseVals = case (num,originalClauses) of
           (1,[Requires (Nothing,Nothing) vals]) -> vals
           _     -> []
@@ -1325,7 +1387,7 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
           $ defaultClauseVals ++ newValues
     tellNextLog
       $ Log.LogTag loc "new clause <unprocessed>"
-      $ ppColoredClause new_unprocessed_Clause
+      $ ppColoredClauses new_unprocessed_Clause
     -- new clause <<processed>>
     new_processed_Clause <- do
       let processed = nubClause $ processJMLVarUnknown_clause new_unprocessed_Clause
@@ -1345,7 +1407,7 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
                  $ zip [1::Int ..] globalVars_to_add
                tellNextLog
                  $ Log.LogTag loc "new clause <semi processed>"
-                 $ ppColoredClause processed
+                 $ ppColoredClauses processed
                let Requires tu vals = processed
                let gs = map (\(_,vn,_) -> vn) globalVars_to_add
                return $ Requires tu
@@ -1368,7 +1430,7 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
          else return processed
     tellNextLog
       $ Log.LogTag loc "new clause <processed>"
-      $ ppColoredClause new_processed_Clause
+      $ ppColoredClauses new_processed_Clause
     -- add new clause
     modify $ \jmlState -> JMLState {
       method    = method jmlState,
@@ -1378,7 +1440,8 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
       localVars = localVars jmlState,
       globalVars = globalVars jmlState,
       reAssigned = reAssigned jmlState,
-      pathCreationEnumeration = pathCreationEnumeration jmlState
+      pathCreationEnumeration = pathCreationEnumeration jmlState,
+      executionResults = executionResults jmlState
     }
     let logging logTag = tellNextLog $ Log.LogTag loc logTag
           $ printf "  %s: %s\n\
@@ -1392,17 +1455,17 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
     tellingReportTheState loc
     return ()
   --
-  isDefaultClause :: Clause -> Bool
-  isDefaultClause = \case
+  isDefaultClauses :: Clauses -> Bool
+  isDefaultClauses = \case
     Requires (Nothing,Nothing) _ -> True
     _ -> False
   {-
-  alterDefaultClausesPreCondition :: [Clause] -> Maybe Expr -> String -> JMLMonad ()
+  alterDefaultClausesPreCondition :: [Clauses] -> Maybe Expr -> String -> JMLMonad ()
   alterDefaultClausesPreCondition originalStack new_mPreCondition nestedMsg = do
     
     inheritClausesFromInnerState originalStack [] (Nothing,new_mPreCondition) nestedMsg
   -}
-  inheritClausesFromInnerState :: [Clause] -> [Clause] -> (CFGT.ScopeRange,Maybe Expr) -> String -> JMLMonad ()
+  inheritClausesFromInnerState :: [Clauses] -> [Clauses] -> (CFGT.ScopeRange,Maybe Expr) -> String -> JMLMonad ()
   inheritClausesFromInnerState originalStack innerStateClauses (new_scopeRange,new_mPreCondition) nestedMsg = do
     let loc = "JML.Internal.Internal.addBehavior.inheritClausesFromInnerState"
     tellNextLog $ Log.Location loc $ printf
@@ -1419,8 +1482,8 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
       \======\n\
       \======\n\
       \** %s: %s"
-      (yellow "original stack") (intercalate "\n------\n" $ map ppColoredClause originalStack)
-      (yellow "Inner State Clauses") (intercalate "\n------\n" $ map ppColoredClause innerStateClauses)
+      (yellow "original stack") (intercalate "\n------\n" $ map ppColoredClauses originalStack)
+      (yellow "Inner State Clauses") (intercalate "\n------\n" $ map ppColoredClauses innerStateClauses)
       (yellow "new scope Range") (show new_scopeRange)
       (yellow "new mPreCondition") (show new_mPreCondition)
     let helper (_,old_mPreCondition) vals nestedMsg = let
@@ -1438,10 +1501,10 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
           decrementLogDepth
     if -- no clauses ==> createClause with no clauses + new pre condition
        | null innerStateClauses -> case originalStack of
-           [clause]
-             | isDefaultClause clause -> do
+           [clauses]
+             | isDefaultClauses clauses -> do
                  tellNextLog $ Log.LogTag loc
-                   "no innerstateClauses, originalStack is default clause" ""
+                   "no innerstateClauses, originalStack is default clauses" ""
                  helper (Nothing,Nothing) [] nestedMsg
            _ -> let
              len = length originalStack in do
@@ -1513,7 +1576,7 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
            vn
            (show behavior)
            (show vars)
-  processJMLVarUnknown_clause :: Clause -> Clause
+  processJMLVarUnknown_clause :: Clauses -> Clauses
   processJMLVarUnknown_clause (Requires tu vals) = let
     loc = "JML.Internal.Internal.addBehavior.processJMLVarUnknown_clause"
     helper originalExpr = \case
@@ -1570,7 +1633,7 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
     in flip map vars $ \(JMLVar t vn `JMLEquals` exprVal) ->
          JMLVar t vn `JMLEquals` helper exprVal
   -- look up var in clause values
-  lookUpVar_clause :: String -> [ClauseValue] -> Maybe Expr
+  lookUpVar_clause :: String -> [Clause] -> Maybe Expr
   lookUpVar_clause vn vals = let
     -- helper1
     helper1 = \case
@@ -1611,7 +1674,7 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
         \  3) expr2 = %s" loc
         name (show expr1) (show expr2)
   -- nub, but for clause
-  nubClause :: Clause -> Clause
+  nubClause :: Clauses -> Clauses
   nubClause (Requires tu vals) = let
     helper [] = []
     helper [val] = [val]
@@ -1661,7 +1724,7 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
 -- which has a speicific scope range, and a specific pre-condition (requires)
 extractVarsFromState :: CFGT.ScopeRange -> Expr -> JMLMonad [Expr]
 extractVarsFromState theScopeRange theRequires = do
-  JMLState (Method _ specs) _ _ formals locals _ _ _ <- get
+  JMLState (Method _ specs) _ _ formals locals _ _ _ _ <- get
   let behaviors = [b | MethodSpecification b <- specs]
   let vars = flip concatMap behaviors $ \case
         -- which behaviors exist in `theScopeRange`, and has `ifRequire`?
@@ -1715,9 +1778,10 @@ tellingReportTheState loc = do
   tellNextLog $ Log.ReportTheState loc
     (show $ method s) (map (\(Requires one two) -> (show one,map show two)) $ jmlStack s) (show $ logHeader s)
     (show $ formalParms s) (show $ localVars s) (show $ globalVars s)
+    (show $ reAssigned s) (show $ pathCreationEnumeration s) (map show $ executionResults s)
     (ppBehaviors [b | MethodSpecification b <- jmlSpecifications $ method s])
 
-tellingReportTheStack :: String -> String -> [Clause] -> JMLMonad String
+tellingReportTheStack :: String -> String -> [Clauses] -> JMLMonad String
 tellingReportTheStack loc tag clauses =
   tellNextLog $ Log.ReportTheStack loc tag
   $ map (\(Requires one two) -> (show one,map show two)) clauses
@@ -1731,7 +1795,8 @@ incrementPathEnumeration = modify $ \jmlState -> JMLState {
   localVars = localVars jmlState,
   globalVars = globalVars jmlState,
   reAssigned = reAssigned jmlState,
-  pathCreationEnumeration = pathCreationEnumeration jmlState + 1
+  pathCreationEnumeration = pathCreationEnumeration jmlState + 1,
+  executionResults = executionResults jmlState
 }
 
 getPathEnumeration :: JMLMonad Int
@@ -1764,10 +1829,45 @@ checkRemovingDefaultBehavior = do
         localVars = localVars jmlState,
         globalVars = globalVars jmlState,
         reAssigned = reAssigned jmlState,
-        pathCreationEnumeration = pathCreationEnumeration jmlState
+        pathCreationEnumeration = pathCreationEnumeration jmlState,
+        executionResults = executionResults jmlState
       }
       tellingReportTheState (loc ++ " <<default behavior deleted>>") $> ()
     else tellNextLog (Log.LogTag loc "default behavior is not deleted" "") $> ()
+
+-- if the LoopInvariants has a `SearchExclusionTemplate`
+-- then this function comes into effect,
+-- and it extracts clauses in the form of „Ensures“
+inferPostMethodClausesViaLoopInvariants1 :: [LoopInvariantTemplate] -> JMLMonad [Clause]
+inferPostMethodClausesViaLoopInvariants1 invariantTemplates = do
+  let loc = "JML.Internal.Internal.inferPostMethodClausesViaLoopInvariants1"
+      logContents = [("invariantTemplates",show invariantTemplates)]
+  constructLog loc "inferPostMethodClausesViaLoopInvariants1" logContents
+  -- convert SearchExclusionTemplate to the clause Ensures
+  let ensures = [res
+        | Maintaining al@(SearchExclusionTemplate (quantifier,a,(pCoor,p)) c@(_,mReturn)) <- invariantTemplates
+        , case mReturn of
+            Nothing -> error $ constructErrorMsg loc "TODO" [("SearchExclusionTemplate",show al)]
+            _ -> True
+        , let res = Ensures
+                $ ExistentialQuantification (negateQuantifier quantifier,a,(pCoor,negate p)) `JMLImplies` JMLResult (fromJust mReturn)
+        ]
+  let toReturn = ensures
+  (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
+
+-- this function gets the `ensures` clause from the loop
+-- and it overrides the `ensures` that results from the outer return statement 
+inferPostMethodClausesViaLoopInvariants2 :: [LoopInvariantTemplate] -> Expr -> [Expr]
+inferPostMethodClausesViaLoopInvariants2 previous_loopInvariants expr = let
+  loc = "JML.Internal.Internal.inferPostMethodClausesViaLoopInvariants2"
+  logContents = [
+    ("expr",show expr),
+    ("previous_loopInvariants",show previous_loopInvariants)] in [res
+  | Maintaining al@(SearchExclusionTemplate tu c@(_,mReturn)) <- previous_loopInvariants
+  , case mReturn of
+      Nothing -> error $ constructErrorMsg loc "TODO" [("SearchExclusionTemplate",show al)]
+      _ -> True
+  , let res = ExistentialQuantification tu `JMLImplies` expr]
 
 alterList :: (Maybe a -> [a]) -> (a -> Bool) -> [a] -> [a]
 alterList f p li = let
@@ -1781,6 +1881,19 @@ alterList f p li = let
   case find p new_li of
     Just _ -> new_li
     Nothing -> li ++ f Nothing
+
+recordExecutionResult :: ExecutionResult -> JMLMonad ()
+recordExecutionResult er = modify $ \jmlState -> JMLState  {
+  method    = method jmlState,
+  jmlStack  = jmlStack jmlState,
+  logHeader = logHeader jmlState,
+  formalParms = formalParms jmlState,
+  localVars = localVars jmlState,
+  globalVars = globalVars jmlState,
+  reAssigned = reAssigned jmlState,
+  pathCreationEnumeration = pathCreationEnumeration jmlState,
+  executionResults = executionResults jmlState ++ [er]
+}
 
 ------------------------------------
 -- Helpers for CounterBoundsTemplate
@@ -1810,6 +1923,24 @@ isStridedCounterTemplateTag loopSummaryTag = let
        SY.Internal.isLoopFrameTargetsTag,
        SY.Internal.isLoopInitFactsTag,
        SY.Internal.isLoopFrameTargetsDevelopmentTrajectoryTag]
+
+--------------------------------------
+-- Helpers for SearchExclusionTemplate
+--------------------------------------
+istheSearchExclusionTemplatePattern :: SYT.LoopPattern -> Bool
+istheSearchExclusionTemplatePattern loopPattern = case loopPattern of
+  SYT.TraversalPattern (SYT.ArrayScan _) -> True
+  SYT.SearchPattern (SYT.LinearSearch _) -> True
+  SYT.ControlFlowPattern (SYT.EarlyReturn _) -> True
+  _ -> False 
+
+istheSearchExclusionTemplateTag :: SYT.LoopSummaryTag -> Bool
+istheSearchExclusionTemplateTag loopSummaryTag = let
+  loc = "JML.Internal.Internal.istheSearchExclusionTemplateTag"
+  in (loopSummaryTag `elem`) 
+       (SY.Internal.LoopPattern.arrayScanPatternsTags ++
+        SY.Internal.LoopPattern.linearSearchPatternsTags ++
+        SY.Internal.LoopPattern.earlyReturnPatternTags)
 
 --------------------------------
 -- Helpers for LoopFrameTemplate
@@ -1855,7 +1986,8 @@ runMonad sys funName runner = let
     localVars = [],
     globalVars = [],
     reAssigned = [],
-    pathCreationEnumeration = 0
+    pathCreationEnumeration = 0,
+    executionResults = []
   }
     
 --run_e :: ReaderT (Map.Map String SYT.SymbolicExecution) (WriterT [Log.Log] (State JMLState)) (Either String a)

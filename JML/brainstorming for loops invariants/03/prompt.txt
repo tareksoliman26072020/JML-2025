@@ -1,4 +1,4 @@
-In this chat, the main focus is getting JML syntax for the method „halving“, especially how the loop invariants look like, and how they affect the overall JML specifications of the method.
+In this chat, the main focus is getting JML syntax for the method „contains“, especially how the loop invariants look like, and how they affect the overall JML specifications of the method.
 
 In this JML project called „JML“, there's knowledge and informations which are the stepping stone for this current chat. There informations are to be found in this project's source files:
 1) loop_invariant_missions_idByLoop2_halving.md
@@ -11,13 +11,14 @@ In this JML project called „JML“, there's knowledge and informations which a
 *) in the two files 1) and 2) you find an „initial“ output for loops invariants for the methods mentioned in 5)
 *) The file mentioned in 3) is a new representation „LoopPattern“ (read in that file the first small section: Goal Of This Document).
 *) 5) has methods which I'm basing my work on, and in 4) you see the same methods, but with „initial“ JML specifications.
-*) 6) provides informations about the LoopSummary, LoopPattern that are satisfactory for the methods `idByLoop` and `idByLoopStride3`
+*) 6) provides informations about the LoopSummary, LoopPattern that are satisfactory for the methods `idByLoop`, `idByLoopStride3`, `idByLoop2`, `halving`
 
 The five files (from 1) to 5)) may be outdated in some sections, but in majority they are a decent representation. This is to be noticed by going throught the other chats in this project, mainly the following 4 chats:
   4) Loop Invariants Review
   5.1) idByLoop: to-be-tested-3 LoopSummary, InvariantTemplate
   5.2) idByLoopStride3
   5.3) idByLoop2
+  5.4) halving
 
 For the sake of accuracy in this chat, LoopSummary, LoopPattern, LoopInvariantTemplate look like this (all the provided data types below are a subject of getting extended by you if necessary to provide correct and thorough answers. The addition can be based on files attached in this project, or invented by you):
 ```haskell
@@ -79,13 +80,15 @@ data SymExpr =
   | SymReturnVoid
   | SymContinue
   | SymBreak
+  | SymPreScope CFGT.ScopeRange (SymType,String) -- ^ Value of the expression prior to a scope.
   deriving (Eq,Show)
 
 type SymReason = ([(CFGT.Kind,CFGT.ScopeRange)],Int)
 
 data SymType = Int | Double | Float | Bool | Void | Array SymType | String 
              | UnknownGlobalVarSymType
-             | UnknownNumSymType deriving (Show,Eq,Ord)
+             | UnknownNumSymType
+             deriving (Show,Eq,Ord)
 
 predefinedFuns :: [String]
 predefinedFuns = ["toString","print","println"]
@@ -186,7 +189,7 @@ data CounterPattern
 
 data BoundPattern
   = StableBound SymExpr
-  | MovingBound
+  | MovingBound String
   | GuardlessWithInternalExit SymExpr
   deriving (Eq, Show)
 
@@ -245,13 +248,24 @@ data LoopSummaryTag =
 ```
 ```haskell
 data LoopInvariantTemplate
+  = Maintaining Maintaining_LoopInvariantTemplate
+  | LoopAssigns LoopAssigns_LoopInvariantTemplate
+  | DecreasesTemplate Expr
+  deriving (Show,Eq)
+
+data Maintaining_LoopInvariantTemplate
   = CounterBoundsTemplate Expr String Expr
   | StridedCounterTemplate
       String  -- counter
       Expr    -- stride
       Expr    -- residue
-  | LoopFrameTemplate [String]
-  | DecreasesTemplate Expr
+  | MovingBoundRelationTemplate String Expr
+  | CounterLowerBoundTemplate Expr String
+  | GuardedInvariantTemplate Expr Expr
+  deriving (Show, Eq)
+
+data LoopAssigns_LoopInvariantTemplate
+  = LoopFrameTemplate [String]
   deriving (Show, Eq)
 
 data LoopInvariants = LoopInvariants {
@@ -261,15 +275,17 @@ data LoopInvariants = LoopInvariants {
 ```
 
 Now we arrive the my question which is the initiation of this current chat:
-Similar to `idByLoop`, `idByLoopStride3`, `idByLoop` in test3.java, Give me all JML specifications of the following method `halving`, including the loop specifications too for sure:
+Similar to `idByLoop`, `idByLoopStride3`, `idByLoop2`, `halving` in test3.java, Give me all JML specifications of the following method `contains`, including the loop specifications too for sure:
 ```java
-public static int halving(int n) {
+public static boolean contains(int[] a, int x) {
   int i = 0;
-  while (i < n) {
-    n--;
+  while (i < a.length) {
+    if (a[i] == x) {
+      return true;
+    }
     i++;
   }
-  return i;
+  return false;
 }
 ```
 I want you to double-check your answers for correctness and take your time answering. This goes for this prompt and all future prompts in this chat.

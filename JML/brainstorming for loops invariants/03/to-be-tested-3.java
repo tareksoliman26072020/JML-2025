@@ -36,7 +36,7 @@ public static int idByLoop2(int n) {
 
 ////////////////////
 
-//TODO: the goal here is to test the counter bound (n) because it's not a constant.
+//test the counter bound (n) because it's not a constant.
 public static int halving(int n) {
   int i = 0;
   while (i < n) {
@@ -50,15 +50,62 @@ public static int halving(int n) {
 
 // Array traversal without mutation
 public static boolean contains(int[] a, int x) {
-    int i = 0;
-    while (i < a.length) {
-        if (a[i] == x) {
-            return true;
-        }
-        i++;
+  int i = 0;
+  while (i < a.length) {
+    if (a[i] == x) {
+      return true;
     }
-    return false;
+    i++;
+  }
+  return false;
 }
+
+////////////////////
+
+// the idea here is to make sure that the outcome of contains2 is similar to contains
+// despite that the loop doesn't have an early return
+public static boolean contains2(int[] a, int x) {
+  int i = 0;
+  boolean res = false;
+  while (i < a.length) {
+    if (a[i] == x) {
+      res = true;
+      break;
+    }
+    i++;
+  }
+  return res;
+}
+
+////////////////////
+
+// termination of loop is independant from loop guard
+public static boolean contains3(int[] a, int x) {
+  int i = 0;
+  while (true) {
+    if (a[i] == x) {
+      return true;
+    }
+    i++;
+    if (i >= a.length) {
+      return false;
+    }
+  }
+}
+
+////////////////////
+
+public static boolean containsGreaterThan(int[] a, int x) {
+  int i = 0;
+  while (i < a.length) {
+    if (a[i] > x) {
+      return true;
+    }
+    i++;
+  }
+  return false;
+}
+
 ////////////////////
 
 // First-index search

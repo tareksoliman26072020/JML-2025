@@ -173,6 +173,32 @@ getPath startId cfg =
                   Nothing -> []
                   Just nextNodeId -> getPath nextNodeId cfg
 
+------------------
+
+-- gives me the kind of the scope in which the `nodeCoor` exists
+findKind_via_nodeCoor :: CFG -> Node_Coor -> Maybe Kind
+findKind_via_nodeCoor cfg nodeCoor = let
+  loc = "CFG.Internal.findKind_via_nodeCoor"
+  scopeStart = varDeclAt nodeCoor
+  logContents = [
+    ("cfg",show cfg),
+    ("nodeCoor",show nodeCoor),
+    ("scopeStart",show scopeStart)
+    ]
+  maybeNodeData = case [nodeData
+    | Node nodeId nodeData _ <- nodes cfg
+    , scopeStart == nodeId
+    ] of
+    [] -> Nothing
+    [nodeData] -> Just nodeData
+    nodeDatas -> error $ constructErrorMsg loc "won't happen1" $ logContents
+      ++ [("nodeDatas",show nodeDatas)] in
+  flip fmap maybeNodeData $ \case
+    BooleanExpression kind _ -> kind
+    _ -> error $ constructErrorMsg loc "won't happen2" $ logContents
+      ++ [("maybeNodeData",show maybeNodeData)]
+  
+
 {-
   Entry wrongSum3: method type: Int, args: (Int n)
 ----------
@@ -261,10 +287,34 @@ getPathToScope br cfg = helper (branchStart br) where
           | isForStartNode theNode =
              let endNodeId = getEndForNode cfg theNode
              in [(For, SR nodeId (getNodeId endNodeId))]
+          | isWhileCondNode theNode =
+             let endNodeId = getEndWhileNode cfg theNode
+             in [(While, SR nodeId (getNodeId endNodeId))]
           | otherwise = []
     in (++ recordCoor) $ case stepBack nodeId (edges cfg) of
          Nothing -> error "getPathToScope ==> won't happen"
          Just (nextNodeId,_) -> helper nextNodeId
+
+getPathToCoor :: Node_Coor -> CFG -> [Node_Coor]
+getPathToCoor nodeCoor cfg = [scopeRange_2_nodeCoor sr
+  | (_,sr) <- getPathToScope (varFrame nodeCoor) cfg
+  ]
+{-
+data Node_Coor = Node_Coor
+  { varDeclAt :: Int
+  , varFrame  :: ScopeRange
+  } deriving (Eq,Show)
+
+data ScopeRange = SR
+  { branchStart :: Int
+  , branchEnd :: Int
+  } deriving (Eq,Ord,Show)
+ -}
+scopeRange_2_nodeCoor :: ScopeRange -> Node_Coor
+scopeRange_2_nodeCoor sr = Node_Coor {
+  varDeclAt = branchStart sr,
+  varFrame  = sr
+}
 
 {-
   Entry wrongSum3: method type: Int, args: (Int n)

@@ -15,8 +15,8 @@ import qualified SymbolTable.SymbolTableCreator as ST (exec)
 import qualified SymbolTable.Types as STT (Entry,showEntry)
 
 import qualified CFG.CFG as CFG1 (exec)
-import qualified CFG.Internal as CFG2 (findCFGByName, getPath, getCFGName)
-import qualified CFG.Types as CFGT (CFG(..), showCFG, Node(..), ScopeRange(..), Kind(..), NodeData(..))
+import qualified CFG.Internal as CFG2-- (findCFGByName, getPath, getCFGName, findNode_via_id, getPathToScope)
+import qualified CFG.Types as CFGT-- (CFG(..), showCFG, Node(..), ScopeRange(..), Kind(..), NodeData(..))
 
 import qualified SymbolicExecution.Types as SYT
 import qualified SymbolicExecution.Method as SYM (runCFG)
@@ -380,3 +380,4 @@ f = run_isolate
   $ SYT.SBin (SYT.SBin (SYT.SymVar SYT.Int "i" []) SYT.Lt (SYT.SymVar SYT.Int "n" []))
              SYT.Add
              (SYT.SymInt 2)
+

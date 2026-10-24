@@ -248,3 +248,289 @@ int halving (int n) {
   }
   return i;
 }
+
+//////////////////////////////
+
+/*
+Your current LoopSummary is sufficient for the counter structure, but it does not directly represent two facts that matter particularly for contains:
+
+1. a loop exit caused by return, together with its returned value;
+2. the semantic search-exclusion fact from which the quantified invariant is generated.
+
+The older report contains these concepts informally as earlyExits and semanticPrefixFact.
+
+data StateChangingCondition
+  = ExcludeElemInArray
+      SymExpr   -- counter
+      String   -- array
+      SymExpr  -- searched value
+  deriving (Show, Eq)
+
+Then extend `LoopSummary` with:
+
+data LoopSummary = LoopSummary {
+    loopSyntax :: LoopSyntax
+  , loopReadOnlyVars :: [String]
+  , loopFrameTargets :: [String]
+  , loopInitFacts :: [(String,SymExpr)]
+  , loopGuard :: Maybe SymExpr
+  , loopEnteringCondition :: Maybe SymExpr
+  , loopSkipCondition :: Maybe SymExpr
+  , loopExitingConditions :: [SymExpr]
+  , loopExitViaBreakConditions :: [SymExpr]
+
+  , loopCounters :: [String]
+  , loopAssignments :: [String]
+  , loopFrameTargetsDevelopmentTrajectory
+      :: [(String,SymExprDevelopmentTrajectory)]
+  , loopExitFacts :: [LoopExitFact]
+  , loopCountersBounds :: [(SymExpr,String,SymExpr)]
+  , loopBoundStabilityFacts
+      :: [(SymExpr,SymExprDevelopmentTrajectory)]
+
+  -- NEW:
+  , loopExitViaReturnFacts :: [(StateChangingCondition,SymExpr)]
+
+  , loopDecreasesCandidate :: [SymExpr]
+} deriving (Show,Eq)
+
+/*
+Complete LoopSummary for contains:
+For readability, define:
+iE =
+  SymVar Int "i" []
+
+xE =
+  SymVar Int "x" []
+
+aLenE =
+  SObjAcc ["a","length"]
+
+aAtIE =
+  SArrayIndexAccess Int "a" iE
+
+foundE =
+  SBin aAtIE Eq xE
+*/
+
+/*
+LoopSummary {
+    loopSyntax =
+      WhileSyntax
+
+  , loopReadOnlyVars =
+      ["a","x"]
+
+  , loopFrameTargets =
+      ["i"]
+
+  , loopInitFacts =
+      [("i", SymInt 0)]
+
+  , loopGuard =
+      Just $
+        SBin iE Lt aLenE
+
+  , loopEnteringCondition =
+      Just $
+        SBin (SymInt 0) Lt aLenE
+
+  , loopSkipCondition =
+      Just $
+        SBin (SymInt 0) Ge aLenE
+
+  , loopExitingConditions =
+      [SBin iE Ge aLenE]
+
+  , loopExitViaBreakConditions =
+      []
+
+  , loopExitViaReturnFacts =
+      [(ExcludeElemInArray "a" "i" xE,SBool True)]
+
+  , loopCounters =
+      ["i"]
+
+  , dynamicallyAccessedArrays = [("x",["i"])]
+  
+  , loopAssignments =
+      ["i"]
+
+  , loopFrameTargetsDevelopmentTrajectory =
+      [("i", Increasing (SymInt 1))]
+
+  , loopExitFacts =
+      [LoopExitFactValue "i" aLenE]
+
+  , loopCountersBounds =
+      [(SymInt 0, "i", aLenE)]
+
+  , loopBoundStabilityFacts =
+      [(aLenE, ReadOnly)]
+
+  , loopDecreasesCandidate =
+      [SBin aLenE Sub iE]
+}
+*/
+
+/*
+EarlyReturn is important for control-flow analysis and postcondition validation:
+[
+  ( CounterPattern (CountingUp "i")
+  , [ LoopCounters
+    , LoopFrameTargetsDevelopmentTrajectory
+    , LoopCountersBounds
+    ]
+  ),
+
+  ( BoundPattern (StableBound aLenE)
+  , [ LoopGuard
+    , LoopCountersBounds
+    , LoopBoundStabilityFacts
+    , LoopReadOnlyVars
+    ]
+  ),
+
+  ( TraversalPattern ArrayScan  -- ArrayScan because
+                                --   1) because the counters "i" increases or decreases monotonically
+                                --   2) and because The guard or another proven invariant keeps the index within a logical array range, typically: i < a.length
+                                --   3) and because there is an array access expression via a dynamically changeable expression (a loop counter).
+  , [ LoopGuard
+    , LoopCounters
+    , LoopCountersBounds
+    , LoopReadOnlyVars
+    ]
+  ),
+
+  ( SearchPattern LinearSearch  -- LinearSearch
+                                --   1) because the comparison can terminate due to a criterion (a[i] == x) the search successfully: return True
+                                        (loopExitViaBreakConditions, loopExitViaReturnFacts)
+                                --   2) because (CounterPattern (CountingUp "i"))
+                                        (There is an array traversal)
+                                        (loopFrameTargetsDevelopmentTrajectory, dynamicallyAccessedArrays)
+                                --   3) because if the criterion is not satisfied, the traversal progresses: i++;
+                                --   4) If the criterion is not satisfied, the loop eventually exhausts the candidate range: i < a.length
+  , [ LoopCounters
+    , LoopGuard
+    , loopExitViaReturnFacts
+    ]
+  ),
+
+  ( ControlFlowPattern EarlyReturn -- because the value of `loopExitViaReturnFacts`
+  , [ LoopExitViaReturnFacts
+    ]
+  )
+]
+*/
+
+/*
+`LoopInvariantTemplate` needs one new maintaining template:
+```
+data Maintaining_LoopInvariantTemplate =
+  -- NEW:
+  SearchExclusionTemplate
+    Int         -- counterLowerBound
+    String      -- counter
+    Trajectory  -- counterTrajectoryStride
+    Expr        -- counterUpperBound
+    Expr        -- metPredicate
+
+  deriving (Show, Eq)
+```
+
+SearchExclusionTemplate (counterLowerBound,counter,counterTrajectoryStride,counterUpperBound) metPredicate  ===>
+```
+//@ maintaining
+//@   (\forall int k;
+//       counterInitFact <= k
+           && k < counter
+           && k < counterUpperBound
+           && k % counterTrajectoryStride == counterLowerBound;
+//       metPredicate);
+```
+if Stride == 1, then drop `&& k % counterTrajectoryStride == counterLowerBound`
+let:
+aLen =
+  -- your JML Expr representation of a.length
+
+Then the complete generated template set is:
+[
+  Maintaining $
+    CounterBoundsTemplate
+      (JMLInt 0)
+      "i"
+      aLen
+
+, Maintaining $
+    SearchExclusionTemplate
+      "i"
+      "a"
+      (JMLVar Int_Type "x")
+
+, LoopAssigns $
+    LoopFrameTemplate
+      ["i"]
+
+, DecreasesTemplate $
+    JMLBin
+      aLen
+      Sub
+      (JMLVar Int_Type "i")
+]
+*/
+
+/*
+1)
+CounterPattern (CountingUp "i")
+  ==> Maintaining $ CounterBoundsTemplate (JMLInt 0) "i" (SObjAcc ["a","length"])
+    ==> maintaining 0 <= i && i <= (SObjAcc ["a","length"])
+
+2)
+SearchPattern LinearSearch, ControlFlowPattern EarlyReturn
+  ==> Maintaining $ SearchExclusionTemplate "i" "a" (JMLVar Int_Type "x")
+    ==> maintaining (\forall int k; 0 <= k && k < i; a[k] != x)
+
+3)
+LoopAssigns $ LoopFrameTemplate ["i"]
+  ==> loop_assigns i
+
+4)
+DecreasesTemplate $ JMLBin (SObjAcc ["a","length"]) Sub (JMLVar Int_Type "i")
+  ==> decreases a.length - i
+*/
+
+/*@ normal_behavior
+  @   requires a != null;
+  @   assignable \nothing;
+  @   ensures \result <==>
+  @       (\exists int k; 0 <= k && k < a.length; a[k] == x);
+  @*/
+public static boolean contains(int[] a, int x) {
+  int i = 0;
+  //@ maintaining 0 <= i && i <= a.length;
+  //@ maintaining (\forall int k; 0 <= k && k < i; a[k] != x);
+  //@ loop_assigns i;
+  //@ decreases a.length - i;
+  while (i < a.length) {
+    if (a[i] == x) {
+      return true;
+    }
+    i++;
+  }
+  return false;
+}
+
+//////////////////////////////
+
+public static boolean contains(int[] a, int x) {
+  int i = 0;
+  while (i < a.length) {
+    if (a[i] == x) {
+      return true;
+    }
+    i++;
+  }
+  return false;
+}
+
+//////////////////////////////

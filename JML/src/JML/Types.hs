@@ -8,7 +8,7 @@ import Control.Monad.Writer
 
 import qualified SymbolicExecution.Types as SYT (
   SymbolicExecution,SymbolicExecutionValue,SymType,
-  LoopSummary,LoopPattern,LoopSummaryTag,LoopExitFact)
+  LoopSummary,LoopPattern,LoopSummaryTag,LoopExitFact,SymExprDevelopmentTrajectory)
 import qualified CFG.Types as CFGT (Node_Coor, ScopeRange)
 import qualified JML.Logs.Log as Log (Log, Header)
 
@@ -35,8 +35,22 @@ data Expr = JMLVar JMLType String | JMLVarUnknown [CFGT.ScopeRange] JMLType Stri
           | JMLArray (Maybe JMLType) (Maybe Expr) [Expr]
           | SymFun DefinedFun Expr
           | JMLVoid {- this is made to be coupled with `JMLResult` -}
+          | ExistentialQuantification QuantifiedExpr
           deriving (Show,Eq)
 
+type QuantifiedExpr = (,,) Quantifier
+  [(String, -- quantified variable name and their types
+    (Expr,  -- lower bound
+     (JMLType, -- counter type
+      String,  -- counter
+      Expr,    -- counter init value
+      (Expr, -- counter trajectory Stride
+       Bool)),  -- whether the stride is 1
+     Expr))]     -- counterUpperBound
+  (CFGT.Node_Coor, -- coordinate of the predicate
+   Expr)          -- metPredicate
+
+data Quantifier = Existential | Universal deriving (Eq,Show)
 
 data DefinedFun = ToString | Print | Println | UserDefined String deriving (Show,Eq)
 
@@ -74,6 +88,12 @@ data Maintaining_LoopInvariantTemplate
       String  -- counter
       Expr    -- stride
       Expr    -- residue
+  | SearchExclusionTemplate  -- occurs in case of early return and linear search
+                             -- this means that the loop is exited via a return statement
+                             -- when a condition is met
+      QuantifiedExpr
+      (CFGT.Node_Coor, -- means of terminating
+       Maybe Expr)     -- its coordinates
   | MovingBoundRelationTemplate String Expr
   | CounterLowerBoundTemplate Expr String
   | GuardedInvariantTemplate Expr Expr
@@ -95,17 +115,17 @@ data JMLSpecification =
   | LoopSpecification LoopInvariants
   deriving (Show,Eq)
 
-data Clause = Requires (Maybe CFGT.ScopeRange,Maybe Expr) [ClauseValue]
+data Clauses = Requires (Maybe CFGT.ScopeRange,Maybe Expr) [Clause]
             deriving (Show,Eq)
 
-data ClauseValue =
+data Clause =
     Ensures Expr
   | LoopInvariant Expr
   | Signals String Expr
   | Assignable [String]
   | VarAssignment (JMLType,String,Expr)
   | VarInRange (JMLType,String,(Expr,Expr))
-  | Implication Expr ClauseValue
+  | Implication Expr Clause
   | HasSideEffect
   deriving (Show,Eq)
 
@@ -117,13 +137,14 @@ data Method = Method {
 
 data JMLState = JMLState {
   method    :: Method,
-  jmlStack  :: [Clause],
+  jmlStack  :: [Clauses],
   logHeader :: Log.Header,
   formalParms :: [String],
   localVars :: [String],
   globalVars :: [String],
   reAssigned :: [String],
-  pathCreationEnumeration :: Int
+  pathCreationEnumeration :: Int,
+  executionResults :: [ExecutionResult]
 } deriving (Show,Eq)
 
 type JMLMonad =
@@ -157,5 +178,9 @@ data ExecutionResult =
       ,Maybe (SYT.SymType,String,SYT.SymbolicExecutionValue)
       ,Either SYT.SymbolicExecutionValue (SYT.SymType,String,SYT.SymbolicExecutionValue)
       )]
-  | ER_LoopSummary CFGT.ScopeRange [LoopInvariantTemplate] SYT.LoopSummary
+  | ER_LoopSummary CFGT.ScopeRange
+                   [LoopInvariantTemplate]  -- inferred loop invariant templates
+                   [Clause]                 -- loop invariants that are relevant
+                                            -- to constructing method's post conditions
+                   SYT.LoopSummary
   deriving (Show,Eq)

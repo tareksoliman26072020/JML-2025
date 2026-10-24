@@ -9,7 +9,7 @@ import JML.Internal.LoopInvariants (inferLoopInvariantTemplates)
 import qualified JML.Logs.Log as Log
 import JML.PrettyPrint (ppBehavior, ppBehaviors)
 import qualified SymbolicExecution.Types as SYT (
-  SymStateKey(..), SymExpr(..),
+  SymStateKey(..), SymExpr(..), LoopSummary(loopExitViaReturnFacts),
   SymbolicExecution, SymbolicExecutionKey, SymbolicExecutionValue)
 import qualified SymbolicExecution.Internal.Internal as SY (
   getFunName, isGlobalVariable2, hasReturn, isLocalVar, hasFormalParameter,
@@ -157,7 +157,18 @@ instance SymbolicExecutionVisitor MethodProcessor where
       invariantTemplates <- incrementLogDepth *>
         inferLoopInvariantTemplates loopSummary loopPatterns
           <* decrementLogDepth
-      let toReturn = ER_LoopSummary scopeRange invariantTemplates loopSummary
+      
+      postMethodClauses <- do
+        let searchExclusionTemplates = [a
+              | a@(Maintaining (SearchExclusionTemplate _ _)) <- invariantTemplates
+              ]
+        let relevantInvariantTemplates = searchExclusionTemplates
+        incrementLogEnumeration
+        incrementLogDepth *>
+          inferPostMethodClausesViaLoopInvariants1 relevantInvariantTemplates
+            <* decrementLogDepth
+      
+      let toReturn = ER_LoopSummary scopeRange invariantTemplates postMethodClauses loopSummary
       tellingThenReturning loc toReturn
     -----------------------------
     _ ->
@@ -287,7 +298,8 @@ runSE sys sy =
         localVars = [],
         globalVars = [],
         reAssigned = [],
-        pathCreationEnumeration = 0
+        pathCreationEnumeration = 0,
+        executionResults = []
       }
 
       run_e :: ReaderT (Map.Map String SYT.SymbolicExecution) (WriterT [Log.Log] (State JMLState)) (Either String [ExecutionResult])

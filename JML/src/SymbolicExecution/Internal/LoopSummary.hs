@@ -6,7 +6,7 @@ import SymbolicExecution.Types
 import qualified SymbolicExecution.Logs.Log as Log
 import SymbolicExecution.Internal.Internal
 import SymbolicExecution.Internal.Math.Calculator (numericCalculator, substitute, isSymExprGreaterThan, trajectoryCalculator, symExprCompare)
-import SymbolicExecution.Internal.Math.Isolator (isolate, run_isolate, IsolationFailureReason)
+import SymbolicExecution.Internal.Math.Isolator (isolate, run_isolate, IsolationFailureReason(VarAbsent))
 import qualified CFG.Internal as CFG (getExpression)
 import qualified Data.Map as Map
 import Control.Monad (forM, foldM)
@@ -17,6 +17,7 @@ import Control.Monad.Writer
 import Text.Printf (printf)
 import Data.Functor (($>))
 import qualified CFG.Types as CFGT
+import qualified CFG.Internal as CFG (getPathToCoor)
 import qualified Parser.Types as AST
 import Data.List ((\\), find, nub, nubBy, foldl')
 import Data.Maybe (catMaybes, fromJust)
@@ -116,96 +117,196 @@ getLoopGuard (origEnv,newEnv) loopCondition = do
 --------------------
 --------------------
 
-getLoopExitingConditions :: Maybe SymExpr -> (SymStateEnv,[ExecutionResult]) -> SymbolicExecutionMonad [SymExpr]
-getLoopExitingConditions loopGuard (breaksEnv,breaks_ers) = do
+getLoopExitingConditions :: CFGT.CFG -> (CFGT.Node_Coor,Maybe SymExpr)
+  -> (SymStateEnv,[ExecutionResult])
+  -> (SymStateEnv,[ExecutionResult])
+  -> SymbolicExecutionMonad [(CFGT.Node_Coor,SymExpr)]
+getLoopExitingConditions cfg (loopCondExprNodeCoor,loopGuard) (breaksEnv,breaks_ers) (returnsEnv,returns_ers) = do
   let loc = globalLoc ++ ".getLoopExitingConditions"
       logContents = [
+        ("cfg",show cfg),
+        ("loopCondExprNodeCoor",show loopCondExprNodeCoor),
         ("loopGuard",show loopGuard),
         ("breaksEnv",show breaksEnv),
-        ("breaks_ers",show breaks_ers)]
+        ("breaks_ers",show breaks_ers),
+        ("returnsEnv",show returnsEnv),
+        ("returns_ers",show returns_ers)]
   constructLog loc "getLoopExitingConditions" logContents
-      -- whether there's a break statement
-  let unconditionalBreaks = case Map.lookup Break breaksEnv of
-        Just SymBreak -> [SBool True]
-        Nothing -> []
-        _ -> error $ constructErrorMsg loc "won't happen" logContents
-      breaksConditions :: [SymExpr]
-      breaksConditions = Map.foldMapWithKey studyBreakSymExpr breaksEnv
-      pickLoopGuards = case loopGuard of
+  let -- whether there's a break statement
+      unconditionalBreaks = flip concatMap breaks_ers $ \case
+        ER_Summary coor ER_Break -> [([coor],SBool True)]
+        _ -> []
+      breaksConditions :: [(CFGT.Node_Coor,SymExpr)]
+      breaksConditions = let
+        one = foldl' studyBreakSymExpr [] breaks_ers in [
+          (coor,normalizeConditions2 symExpr)
+          | (coor,symExpr) <- one
+          ]
+      ----------
+      unconditionalReturns = flip concatMap returns_ers $ \case
+        ER_Summary coor (ER_Return _) -> [(coor,SBool True)]
+        _ -> []
+      returnsConditions :: [(CFGT.Node_Coor,SymExpr)]
+      returnsConditions = let
+        one = foldl' studyreturnSymExpr [] returns_ers in [
+          (coor,normalizeConditions2 symExpr)
+          | (coor,symExpr) <- one
+          ]
+      ----------
+      loopCondition = case loopGuard of
         Just (SBool True) -> []
-        Just guard -> [negate guard]
+        Just guard -> [(loopCondExprNodeCoor,negate guard)]
         Nothing -> []
       summary = [
         ("unconditionalBreaks",show unconditionalBreaks),
-        ("breaksConditions",show breaksConditions)]
+        ("breaksConditions",show breaksConditions),
+        ("unconditionalReturns",show unconditionalReturns),
+        ("returnsConditions",show returnsConditions)]
   constructLog loc "summary" summary
-  let toReturn = pickLoopGuards ++ unconditionalBreaks ++ breaksConditions
-  --throwError $ constructErrorMsg loc "W" $
-  --  logContents ++ [("toReturn",show toReturn)]
+  let toReturn :: [(CFGT.Node_Coor,SymExpr)] =
+                 loopCondition ++
+                 breaksConditions ++ returnsConditions
+
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
-  -- if a `SymExpr` provides a break statement,
-  -- then extract the path condition which makes it occur
-  studyBreakSymExpr :: SymStateKey -> SymExpr -> [SymExpr]
-  studyBreakSymExpr k v = let
+  --
+  studyBreakSymExpr :: [(CFGT.Node_Coor,SymExpr)] -> ExecutionResult -> [(CFGT.Node_Coor,SymExpr)]
+  studyBreakSymExpr acc er = let
     loc = globalLoc ++ ".getLoopExitingConditions.studyBreakSymExpr" in
-    case (k,v) of
-      (Break,SymBreak) -> [SBool True]
-      (ScopeRange sr,SIte _ ifEnv maybe_elseEnv) -> let
-        ifCond = case [ifCond
-          | ER_IfExpr sr2 (ifCond,_) _ _ <- breaks_ers
-          , sr == sr2
-          ] of
-          [cond] -> cond
-          _ -> error $ constructErrorMsg loc "won't happen" [
-            ("k",show k),
-            ("v",show v)
+    case er of
+      ER_Break -> error $ constructErrorMsg loc "won't happen" []
+      ER_Summary coor ER_Break -> acc ++ [(coor,SBool True)]
+      ER_Summary _ er
+        | hasBreak_ers [er] -> [(li,symExpr)
+            | (li,symExpr) <- studyBreakSymExpr acc er
             ]
-        if_rec = addCond ifCond (Map.foldMapWithKey studyBreakSymExpr ifEnv)
-        else_rec = addCond (negate ifCond) (maybe [] (Map.foldMapWithKey studyBreakSymExpr) maybe_elseEnv)
-        in if_rec ++ else_rec
-      (MethodHandle,_) -> []
-      (GlobalVars,_) -> []
-      (FormalParms,_) -> []
-      (VarBindings,_) -> []
-      (VarAssignments,_) -> []
-      (VarName _,_) -> []
-      _ -> error $ constructErrorMsg loc "TODO" [("k",show k),("v",show v)]
-  addCond :: SymExpr -> [SymExpr] -> [SymExpr]
-  addCond cond li = [res
-    | symExpr <- li
-    , let res = case symExpr of
-            SBool True -> cond
-            _ -> symExpr
-    ]
+        | otherwise -> acc
+      ER_IfExpr sr (ifCond,_) (ifCoor,ifErs) (_,elseErs) -> let
+        negated = negate ifCond
+        ifRec = [(coor,SBin ifCond And conds)
+          | (coor,conds) <- foldl' studyBreakSymExpr [] ifErs
+          ]
+        elseRec = [(coor,SBin negated And conds)
+          | (coor,conds) <- foldl' studyBreakSymExpr [] elseErs
+          ]
+        in acc ++ ifRec ++ elseRec
+      _ -> error $ constructErrorMsg loc "TODO1" [("acc",show acc),("er",show er)]
+  --
+  studyreturnSymExpr :: [(CFGT.Node_Coor,SymExpr)] -> ExecutionResult -> [(CFGT.Node_Coor,SymExpr)]
+  studyreturnSymExpr acc er = let
+    loc = globalLoc ++ ".getLoopExitingConditions.studyreturnSymExpr" in
+    case er of
+      ER_Return _ -> error $ constructErrorMsg loc "won't happen" []
+      ER_Summary coor (ER_Return _) -> acc ++ [(coor,SBool True)]
+      ER_Summary _ er
+        | hasReturn_ers [er] -> [(li,symExpr)
+            | (li,symExpr) <- studyreturnSymExpr acc er
+            ]
+        | otherwise -> acc
+      ER_IfExpr sr (ifCond,_) (_,ifErs) (_,elseErs) -> let
+        negated = negate ifCond
+        ifRec = [(coor,SBin ifCond And conds)
+          | (coor,conds) <- foldl' studyreturnSymExpr [] ifErs
+          ]
+        elseRec = [(coor,SBin negated And conds)
+          | (coor,conds) <- foldl' studyreturnSymExpr [] elseErs
+          ]
+        in acc ++ ifRec ++ elseRec
+      ER_Entry _ _ -> acc
+      ER_MethodParameter _ _ -> acc
+      _ -> error $ constructErrorMsg loc "TODO1" [("acc",show acc),("er",show er)]
 
 --------------------
 --------------------
 --------------------
 
-getLoopExitViaBreakConditions :: [ExecutionResult] -> SymbolicExecutionMonad [SymExpr]
-getLoopExitViaBreakConditions forBody_forStep_ers = do
-  let loc = globalLoc ++ ".getLoopExitViaBreakConditions"
+getLoopExitViaBreakFacts :: [ExecutionResult] -> SymbolicExecutionMonad [StateChangingConditions]
+getLoopExitViaBreakFacts forBody_forStep_ers = do
+  let loc = globalLoc ++ ".getLoopExitViaBreakFacts"
   let logContents = [
         ("forBody_forStep_ers",show forBody_forStep_ers)]
-  constructLog loc "getLoopExitViaBreakConditions" logContents
+  constructLog loc "getLoopExitViaBreakFacts" logContents
   -- the conditions which lead to a break statement
-  let breakConds = concat [ifCond ++ elseCond
-        | ER_IfExpr _ (cond,_) if_ers else_ers <- forBody_forStep_ers
-        , let ifCond = if ER_Break `elem` if_ers
-                then [cond]
-                else []
-        , let elseCond = if ER_Break `elem` else_ers
-                then [negate cond]
-                else []
+  let studied = study forBody_forStep_ers
+  constructLog loc "summary" [("studied",show studied)]
+  let toReturn = filter (not . null) studied
+  tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
+  study :: [ExecutionResult] -> [StateChangingConditions]
+  study = concatMap $ \case
+    ER_Break -> [[(Nothing,Condition $ SBool True)]]
+    ER_Summary _ er -> study [er]
+    ER_IfExpr _ (ifCond,_) (ifCoor,ifErs) (maybeElseCoor,elseErs) -> let
+      negated = negate ifCond
+      fromIf = [res
+        | rec <- study ifErs
+        , let res
+                | null rec      = rec
+                | otherwise = [(Just ifCoor,cond)
+                    | cond <- createStateChangingConditions ifCond
+                    ] ++ filterCoor rec
+--              | otherwise = (Just ifCoor,Condition ifCond) : filterCoor rec
         ]
-  tellNextLog (Log.Return loc (show breakConds)) $> breakConds
+      fromElse = [res
+        | rec <- study elseErs
+        , let res
+                | null rec        = rec
+                | otherwise = [(maybeElseCoor,cond)
+                    | cond <- createStateChangingConditions negated
+                    ] ++ filterCoor rec
+--              | otherwise = (maybeElseCoor,Condition negated) : filterCoor rec
+        ]
+      in fromIf ++ fromElse
+    _ -> []
+  --
+  filterCoor :: StateChangingConditions -> StateChangingConditions
+  filterCoor = filter $ \case
+    (Nothing,Condition (SBool True)) -> False
+    _ -> True
+
+--------------------
+--------------------
+--------------------
+-- [([ElemInArray "a" (SymVar Int "i" []) (SymVar Int "x" [])],Just (SBool True))]
+getLoopExitViaReturnFacts :: [ExecutionResult] -> SymbolicExecutionMonad [(StateChangingConditions,(CFGT.Node_Coor,Maybe SymExpr))]
+getLoopExitViaReturnFacts forBody_forStep_ers = do
+  let loc = globalLoc ++ ".getLoopExitViaReturnFacts"
+  let logContents = [
+        ("forBody_forStep_ers",show forBody_forStep_ers)]
+  constructLog loc "getLoopExitViaReturnFacts" logContents
+  let toReturn = study forBody_forStep_ers
+  --throwError $ constructErrorMsg loc "MEOW" $ logContents ++ [("toReturn",show toReturn)]
+  tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
+  -- each tuple has two elements:
+  --   1) the concatenation of conditions which lead to the return statement
+  --   2) the expression which is returned
+  study :: [ExecutionResult] -> [(StateChangingConditions,(CFGT.Node_Coor,Maybe SymExpr))]
+  study ers = let
+    loc = globalLoc ++ ".getLoopExitViaReturnFacts.study" in flip concatMap ers $ \case
+    ER_Summary coor (ER_Return mExpr) -> [([],(coor,mExpr))]
+    ER_Summary _ er -> study [er]
+    ER_IfExpr _ (ifCond,_) (ifCoor,ifErs) (maybeElseCoor,elseErs) -> let
+      fromIf = [(one,mReturnSymExpr)
+        | (stateChangingConditions,mReturnSymExpr) <- study ifErs
+        , let newStateChangingConditions = [(Just ifCoor,cond)
+                | cond <- createStateChangingConditions ifCond
+                ]
+        , let one = newStateChangingConditions ++ stateChangingConditions
+        ]
+      fromElse = [(one,mReturnSymExpr)
+        | (stateChangingConditions,mReturnSymExpr) <- study elseErs
+        , let newStateChangingConditions = [(maybeElseCoor,cond)
+                | cond <- createStateChangingConditions (negate ifCond)
+                ]
+        , let one = newStateChangingConditions ++ stateChangingConditions
+        ]
+      in fromIf ++ fromElse
+    _ -> []
 
 --------------------
 --------------------
 --------------------
 
 getLoopCounters :: (CFGT.ScopeRange, SymStateEnv, SymStateEnv)
-                -> (Maybe SymExpr, [SymExpr])
+                -> (Maybe SymExpr, [(CFGT.Node_Coor,SymExpr)])
                 -> ([(String,SymExpr)], [String])
                 -> SymbolicExecutionMonad [String]
 getLoopCounters (branchRange,origEnv,newEnv)
@@ -222,33 +323,106 @@ getLoopCounters (branchRange,origEnv,newEnv)
         ,("loopFrameTargets",show loopFrameTargets)
         ]
   constructLog loc "getLoopCounters" logContents
-  let conds_vns :: [String]
+  let loopExitingConditions2 = map snd loopExitingConditions
+      conds_vns :: [String]
       conds_vns = [vn
         | vn <- nub $ concatMap getVarNames3
-                    $ (maybe [] ((:[]) . id) loopGuard) ++ loopExitingConditions
+                    $ (maybe [] ((:[]) . id) loopGuard) ++ loopExitingConditions2
         , vn `elem` loopFrameTargets
         ]
   let toReturn = conds_vns
-  
-  {-let loopGuard_vars = maybe [] getVarNames3 loopGuard
-
-  toReturn <- case Map.lookup VarAssignments newEnv of
-    Nothing -> return []
-    Just (SVarAssignments li) -> let
-      -- VarAssignments provides informations about variables which are re-assigned in the loop
-      -- and I care about those who were caught in the branch range of the loop
-      relevantVars :: [String]
-      relevantVars = [vn
-        | (vn,(symExpr,CFGT.Node_Coor _ (CFGT.SR begin end))) <- li
-        , begin == CFGT.branchStart branchRange
-        , end == CFGT.branchEnd branchRange
-        , vn `elem` loopGuard_vars
-        ]
-      in return relevantVars-}
-  {-throwError $ constructErrorMsg loc "Summary" $ logContents ++ [
-    ("loopGuard_vars",show loopGuard_vars),
-    ("toReturn",show toReturn)]-}
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn
+
+--------------------
+--------------------
+--------------------
+
+getDynamicallyAccessedArrays :: CFGT.CFG -> [String] -> [ExecutionResult] -> SymbolicExecutionMonad [(SymType,String,[(CFGT.Node_Coor,String)])]
+getDynamicallyAccessedArrays cfg loopCounters loop_ers = do
+  let loc = "SymbolicExecution.Internal.LoopSummary.getDynamicallyAccessedArrays"
+      logContents = [
+        ("cfg",show cfg),
+        ("loopCounters",show loopCounters),
+        ("loop_ers",show loop_ers)]
+      relevantSymExprs :: [(SymExpr,[(CFGT.Node_Coor,String)])]
+      relevantSymExprs = study_loop_ers loop_ers
+      --symExpr = SBin (SArrayIndexAccess (Array Int) "a" (SymVar Int "i" [])) Eq (SymVar Int "x" [])
+  let toReturn = [(arrType,arrName,vns)
+        | (symExpr,vns) <- relevantSymExprs
+        , (arrType,arrName) <- getAccessedArraysNamesViaNamedIndexes loopCounters symExpr
+        ]
+  tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
+  err loc msg er = error $ constructErrorMsg loc msg [("er",show er)]
+  -- checks `loop_ers` and returns all expressions of form `SArrayIndexAccess`
+  -- which involve `loopCounters`
+  study_loop_ers :: [ExecutionResult] -> [(SymExpr,[(CFGT.Node_Coor,String)])]
+  study_loop_ers ers = let
+    loc = "SymbolicExecution.Internal.LoopSummary.getDynamicallyAccessedArrays.study_loop_ers"
+    in flip concatMap ers $ \er -> case er of
+    ER_Summary coor er -> study_er_summary coor er
+    _ -> err loc "TODO3" er
+  study_er_summary :: CFGT.Node_Coor -> ExecutionResult -> [(SymExpr,[(CFGT.Node_Coor,String)])]
+  study_er_summary coor er = let
+    loc = "SymbolicExecution.Internal.LoopSummary.getDynamicallyAccessedArrays.study_er_summary"
+    logContents = [
+      ("coor",show coor),
+      ("er",show er)] in case er of
+      ER_IfExpr _ (ifCond,_) (_,ifErs) (_,elseErs) ->
+        studySymExpr coor ifCond ++ study_loop_ers ifErs ++ study_loop_ers elseErs
+      ER_SymStateMapEntry _ symExpr -> studySymExpr coor symExpr
+      ER_Expr symExpr -> studySymExpr coor symExpr
+      ER_ArrayCallExpr{} -> err loc "TODO1" er
+      ER_IfCond symExpr -> studySymExpr coor symExpr
+      ER_PredefinedFunCall symExpr -> studySymExpr coor symExpr
+      ER_Return mSymExpr -> maybe [] (studySymExpr coor) mSymExpr
+      ER_ActualParameterDetected _ _ -> err loc "TODO2" er
+      ER_Break -> []
+      ER_SymTypeInferred _ _ -> []
+      ER_FunCall _ -> []
+  studySymExpr :: CFGT.Node_Coor -> SymExpr -> [(SymExpr,[(CFGT.Node_Coor,String)])]
+  studySymExpr nodeCoor symExpr = case studySymExprHelper symExpr of
+    [] -> []
+    vns -> [(symExpr,map ((,) nodeCoor) vns)]
+  -- returns True is SymExpr has an accessed array (SArrayIndexAccess),
+  -- and the index is a loop counter (a frame target)
+  studySymExprHelper :: SymExpr -> [String]
+  studySymExprHelper symExpr = let
+    loc = "SymbolicExecution.Internal\
+          \.LoopSummary.getDynamicallyAccessedArrays.studySymExprHelper"
+    logContents = [("symExpr",show symExpr)]
+    err msg = error $ constructErrorMsg loc msg logContents in
+    case symExpr of
+      SBin expr1 _ expr2 -> concatMap studySymExprHelper [expr1,expr2]
+      SNot expr -> studySymExprHelper expr
+      SIte _ _ _ -> err loc "TODO1"
+      SLoop _ _ _ _ _ -> err loc "TODO2"
+      SArrayIndexAccess _ _ index -> study_array_index index
+      SymVar _ _ _ -> []
+      SBool _ -> []
+      SymInt _ -> []
+      SymString _ -> []
+      SymDouble _ -> []
+      SymFloat _ -> []
+      SObjAcc _ -> []
+      _ -> err loc "TODO3"
+  -- checks if the index has a loop counter
+  study_array_index :: SymExpr -> [String]
+  study_array_index index = let
+    loc = "SymbolicExecution.Internal\
+          \.LoopSummary.getDynamicallyAccessedArrays.study_array_index"
+    logContents = [
+      ("index",show index)
+      ] in case index of
+    SymVar _ vn _
+      | vn `elem` loopCounters -> [vn]
+      | otherwise -> []
+    SymInt _ -> []
+    SymDouble _ -> []
+    SymString _ -> []
+    SymFloat _ -> []
+    SBool _ -> []
+    SObjAcc _ -> []
+    _ -> error $ constructErrorMsg loc "TODO" [("index",show index)]
 
 --------------------
 --------------------
@@ -369,7 +543,7 @@ getLoopFrameTargetsDevelopmentTrajectory loopFrameTargets (forBody_forStep_path,
 3) loopCountersDevelopmentTrajectory: [("i",Increasing (SymInt 1))]
  -}
 -- [(SymInt 0,"i",SymVar Int "n")]
-getLoopCountersBounds :: [(String,SymExpr)] -> [String] -> (Maybe SymExpr,[SymExpr]) -> [(String,SymExprDevelopmentTrajectory)] -> [String] -> SymbolicExecutionMonad [(SymExpr,String,SymExpr)]
+getLoopCountersBounds :: [(String,SymExpr)] -> [String] -> (Maybe SymExpr,[(CFGT.Node_Coor,SymExpr)]) -> [(String,SymExprDevelopmentTrajectory)] -> [String] -> SymbolicExecutionMonad [(SymExpr,(SymType,String),SymExpr)]
 getLoopCountersBounds
   loopInitFacts loopCounters (loopGuard,loopExitingConditions)
   loopFrameTargetsDevelopmentTrajectory loopReadOnlyVars = do
@@ -384,13 +558,12 @@ getLoopCountersBounds
         ]
   constructLog loc "getLoopCountersBounds" logContents
   let f counterName = [negate condition
-        | condition <- loopExitingConditions
+        | condition <- map snd loopExitingConditions
         , counterName `existsIn` condition
         ]
-  let toReturn :: [(SymExpr,String,SymExpr)]
-      toReturn = [(newInitVal,counterName,newLastVal)
+  let toReturn :: [(SymExpr,(SymType,String),SymExpr)]
+      toReturn = [(newInitVal,(counterType,counterName),newLastVal)
         | counterName <- loopCounters
---        , maybe False (counterName `existsIn`) loopGuard
         , let initVal = case lookup counterName loopInitFacts of
                 Just x -> x
                 Nothing -> error $ constructErrorMsg loc "won't happen1" $ logContents ++ [("counterName",counterName)]
@@ -409,6 +582,11 @@ getLoopCountersBounds
                 _   -> error $ constructErrorMsg loc "won't happen3" $ logContents ++ [
                   ("counterName",counterName),
                   ("boundsWithCounter",show boundsWithCounter)]
+        , let counterType = case trajectory of
+                Increasing step -> toSymType2 step
+                Decreasing step -> toSymType2 step
+                Mixed symExpr   -> toSymType2 symExpr
+                _               -> error $ constructErrorMsg loc "TODO" [("trajectory",show trajectory)]
         -- I decided to filter out some trajectories
         , case trajectory of
             Increasing _ -> True
@@ -468,8 +646,6 @@ getLoopCountersBounds
     loc = "SymbolicExecution.Internal.LoopSummary\
           \.getLoopCountersBounds.studyLoopFrameTargetsDevelopmentTrajectory"
     logContents = [
-   --  ("loopGuard",show loopGuard)
-   -- ,("loopExitingConditions",show loopExitingConditions)
        ("trajectory",show trajectory)
       ,("comparison",show comparison)
       ,("initVal",show initVal)
@@ -494,7 +670,7 @@ getLoopCountersBounds
 --------------------
 --------------------
 
-getLoopBoundStabilityFacts :: ([CFGT.Node],SymStateEnv,SymStateEnv) -> [(SymExpr, String, SymExpr)] -> [String] -> SymbolicExecutionMonad [(SymExpr, SymExprDevelopmentTrajectory)]
+getLoopBoundStabilityFacts :: ([CFGT.Node],SymStateEnv,SymStateEnv) -> [(SymExpr, (SymType,String), SymExpr)] -> [String] -> SymbolicExecutionMonad [(SymExpr, SymExprDevelopmentTrajectory)]
 getLoopBoundStabilityFacts
   (forBody_forStep_path,orig_env,new_env) loopCounterBounds loopFrameTargets = do
   let loc = "SymbolicExecution.Internal.LoopSummary.getLoopBoundStabilityFacts"
@@ -706,7 +882,7 @@ observe `loopCountersDevelopmentTrajectory` and `loopBoundStabilityFacts`
  -}
 getLoopDecreasesCandidate ::
   [(String,SymExprDevelopmentTrajectory)] ->
-  [(SymExpr,String,SymExpr)] ->
+  [(SymExpr,(SymType,String),SymExpr)] ->
   [(SymExpr,SymExprDevelopmentTrajectory)] ->
   SymbolicExecutionMonad [SymExpr]
 getLoopDecreasesCandidate
@@ -727,7 +903,7 @@ getLoopDecreasesCandidate
    -}
   let toStudy :: [(CounterInfos,BoundInfos)]
       toStudy = concat [zip_counter_bounds--((counter,counterTrajectory),boundsStabilities)
-        | (lowerBound,counter,upperBound) <- loopCountersBounds
+        | (lowerBound,(_,counter),upperBound) <- loopCountersBounds
         , let whichBounds :: [(BoundPosition,SymExpr)]
               whichBounds = getNonConstantBound (lowerBound,upperBound)
               
@@ -996,7 +1172,7 @@ getLoopSkipCondition loopEnteringCondition = do
 --------------------
 --------------------
 
-getLoopExitFacts :: (Maybe SymExpr,[SymExpr]) -> [(String,SymExprDevelopmentTrajectory)] -> SymbolicExecutionMonad [LoopExitFact]
+getLoopExitFacts :: (Maybe SymExpr,[(CFGT.Node_Coor,SymExpr)]) -> [(String,SymExprDevelopmentTrajectory)] -> SymbolicExecutionMonad [(CFGT.Node_Coor,LoopExitFact)]
 getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTrajectory = do
   let loc = globalLoc ++ ".getLoopExitFacts"
       logContents = [
@@ -1005,24 +1181,26 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
         ,("loopFrameTargetsDevelopmentTrajectory",show loopFrameTargetsDevelopmentTrajectory)
         ]
   constructLog loc "getLoopExitFacts" logContents
-  let toReturn :: [LoopExitFact]
-      toReturn = let
-        exitConds_vns = concatMap getVarNames3 loopExitingConditions
-        vns = maybe exitConds_vns (\lg -> getVarNames3 lg ++ exitConds_vns) loopGuard
-        guards = map negate loopExitingConditions
-        finding = [tu | tu@(vn,_) <- loopFrameTargetsDevelopmentTrajectory, vn `elem` vns]
-        in flip concatMap guards $ \guard -> case finding of
-            _ -> [res
-              | (vn,trajectory) <- finding
+  let -- collecting variables names of the conditions
+      --   found in `loopExitingConditions` and in `loopGuard`
+      vns = let
+        exitConds_vns = concatMap (getVarNames3 . snd) loopExitingConditions
+        in maybe exitConds_vns (\lg -> getVarNames3 lg ++ exitConds_vns) loopGuard
+      -- negate all guards in `loopExitingConditions`
+      guards = map (\(coor,cond) -> (coor,negate cond)) loopExitingConditions
+      -- trajectories that are relevant to the collected variables in `vns`
+      relevant_trajectories = [tu | tu@(vn,_) <- loopFrameTargetsDevelopmentTrajectory, vn `elem` vns]
+  constructLog loc "Summary" $ logContents ++ [
+    ("vns",show vns),
+    ("guards",show guards),
+    ("relevant_trajectories",show relevant_trajectories)]
+  let toReturn = let
+        in flip concatMap guards $ \(coor,guard) -> case relevant_trajectories of
+            _ -> catMaybes [fmap (\res -> (coor,res)) maybe_Res
+              | (vn,trajectory) <- relevant_trajectories
               , let maybe_Res = symExprNextStep vn (isolate_vr vn guard) trajectory
-              , let res = case maybe_Res of
-                      Nothing -> error $ constructErrorMsg loc "TODO1" $ logContents ++
-                        [("vn",vn)
-                        ,("guard",show guard)
-                        ,("trajectory",show trajectory)]
-                      Just loopExitFact -> loopExitFact 
+              , let res = maybe_Res
               ]
-            --_ -> error $ constructErrorMsg loc "TODO1" $ logContents ++ [("finding",show finding)]
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn where
   -- isolate `vr` in `guard`
   isolate_vr :: String -> SymExpr -> SymExpr
@@ -1034,6 +1212,11 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
         $ logContents ++ [("error",err)]
       ----------
       Right either_isolation -> case either_isolation of
+        Left VarAbsent -> let
+          g = lookupPartialSymExprs vn (MethodHandle,guard)
+          in if | null g -> error $ constructErrorMsg loc "won't happen"
+                    $ logContents ++ [("g",show g)]
+                | otherwise -> guard
         Left (isolationFailureReason :: IsolationFailureReason) -> error
             $ constructErrorMsg loc "TODO2"
             $ logContents ++ [
@@ -1062,8 +1245,11 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
       case (acc,lookup guard_vn loopFrameTargetsDevelopmentTrajectory) of
         (Nothing,b@(Just (Increasing _))) -> b
         (Nothing,b@(Just (Decreasing _))) -> b
+        (Nothing,Nothing) -> Nothing
         (Nothing,b) -> error $ constructErrorMsg loc "TODO1" [
+          ("loopFrameTargetsDevelopmentTrajectory",show loopFrameTargetsDevelopmentTrajectory),
           ("relevant_guard_vns",show relevant_guard_vns),
+          ("guard_vn",show guard_vn),
           ("b",show b)]
         (Just acc_trajectory,Just vn_trajectory) ->
           trajectoryCalculator acc_trajectory vn_trajectory
@@ -1084,6 +1270,7 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
       ,("isConstantGuard",show isConstantGuard)
       ,("collective_relevant_guard_vns_trajectory",show collective_relevant_guard_vns_trajectory)] in
     case (trajectory,guard) of
+      ----------
       (Increasing step,SBin expr1@(SymVar _ vn2 _) op expr2) -> let
         step_type = toSymType2 step in if
           | vn == vn2 && isTypeNumeric step_type -> case op of
@@ -1116,6 +1303,7 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
                              EQ -> LoopExitFactValue vn expr3
             _ -> error $ constructErrorMsg loc "TODO2" logContents
           | otherwise -> error $ constructErrorMsg loc "TODO3" logContents
+      ----------
       (Decreasing step,SBin expr1@(SymVar _ vn2 _) op expr2) -> let
         step_type = toSymType2 step in if
           | vn == vn2 && isTypeNumeric step_type -> case op of
@@ -1145,4 +1333,12 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
                              EQ -> LoopExitFactValue vn right
             _ -> error $ constructErrorMsg loc "TODO4" logContents
           | otherwise -> error $ constructErrorMsg loc "TODO5" logContents
+      ----------
+      (_,SBin (SArrayIndexAccess _ arrName index@(SymVar _ vn1 [])) Neq expr2)
+        | vn == vn1 -> Just $ LoopExitFactArrayAccessValue arrName index expr2
+      ----------
+      (_,SBin expr1 Neq (SArrayIndexAccess _ arrName index@(SymVar _ vn2 [])))
+        | vn == vn2 -> Just $ LoopExitFactArrayAccessValue arrName index expr1
+      ----------
+      (Complicated _ _,_) -> Nothing
       _ -> error $ constructErrorMsg loc "TODO6" logContents

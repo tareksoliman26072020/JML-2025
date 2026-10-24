@@ -4,6 +4,7 @@ module JML.PrettyPrint where
 import JML.Types
 import Data.List (intercalate, foldl',(\\))
 import Text.Printf (printf)
+import qualified SymbolicExecution.Types as SYT (SymExprDevelopmentTrajectory(..))
 import qualified CFG.Types as CFGT (CFG(..), Node(..), NodeData(..), Kind(..), ScopeRange(..))
 import qualified CFG.Internal as CFG (ppNode,getEdge)
 
@@ -78,8 +79,8 @@ NormalBehavior {requires = Nothing, assignable = [], ensures = Just (Int 5)}
          ]
        _ -> ""--error $ "JML.PrettyPrint.ppBehavior ==> TODO: " ++ show behavior
 
-ppColoredClause :: Clause -> String
-ppColoredClause (Requires (one,two) three) = printf
+ppColoredClauses :: Clauses -> String
+ppColoredClauses (Requires (one,two) three) = printf
   "%s: %s\n\
   \%s: %s\n\
   \%s:\n\
@@ -92,6 +93,11 @@ ppColoredClause (Requires (one,two) three) = printf
       "%s %s" (yellow $ printf "%d)" counter) (show value))
    $ zip [1::Int ..] three
   )
+
+ppQuantifier :: Quantifier -> String
+ppQuantifier = \case
+  Existential -> "\\exists"
+  Universal   -> "\\forall"
 
 ppExpr :: Expr -> String
 ppExpr expr = case expr of
@@ -120,6 +126,35 @@ ppExpr expr = case expr of
   JMLArray _ _ elems -> printf "[%s]" (intercalate ", " $ map ppExpr elems)
   SymFun ToString expr -> printf "toString(%s)" (ppExpr expr)
   JMLNull _ -> "null"
+  ExistentialQuantification (quantifier,counters_infos,(predicate_coor,predicate)) -> printf
+    "(\\%s %s;\n\
+    \        %s;\n\
+    \          %s)"
+    (ppQuantifier quantifier) (quantifiers counters_infos) (bound_quantified_vars counters_infos) (ppExpr predicate) where
+    quantifiers :: [(String, -- quantified variable name
+                     (Expr,  -- lower bound
+                      (JMLType, -- counter type
+                       String,  -- counter
+                       Expr,    -- counter init value
+                       (Expr, -- counter trajectory Stride
+                        Bool)),  -- whether the stride is 1
+                      Expr))] -> String
+    quantifiers li = intercalate ", " [printf "%s %s" (ppJMLType counterType) quantified_var
+      | (quantified_var,(_,(counterType,_,_,_),_)) <- li
+      ]
+    bound_quantified_vars li = intercalate " &&\n        " [res
+      | (quantified_var,(lower,(_,counter,init,(stride,isStrideOne)),upper)) <- li
+      , let res = printf "%s <= %s && \
+                         \%s < %s && \
+                         \%s < %s%s"
+                         (ppExpr init) quantified_var
+                         quantified_var counter
+                         quantified_var (ppExpr upper)
+                         (if isStrideOne
+                            then ""
+                            else printf " && %s % %s == %s"
+                                        quantified_var (ppExpr stride) (ppExpr lower))
+      ]
 
 --JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n") `JMLImplies` JMLVar Int_Type "i"
   expr1 `JMLImplies` expr2 -> printf "(%s ==> %s)" (ppExpr expr1) (ppExpr expr2)
@@ -150,6 +185,13 @@ ppOp op = case op of
   Or -> "||"
   _ -> error $ printf "JML.PrettyPrint.ppOp: TODO: %s" (show op)
 
+ppJMLType :: JMLType -> String
+ppJMLType jmlType = let
+  loc = "JML.PrettyPrint.ppJMLType"
+  logContents = [("jmlType",show jmlType)] in case jmlType of
+  Int_Type -> "int"
+  _ -> error $ printf "TODO in %s: JMLType: %s" loc (show jmlType)
+
 ppBehaviors :: [Behavior] -> String
 ppBehaviors behaviors = 
   let res = intercalate "\n  @ also\n  " $ map ppBehavior behaviors
@@ -168,6 +210,9 @@ ppLoopInvariantTemplate template = let
     Maintaining (StridedCounterTemplate counter stride residue) -> printf
       "maintaining %s %% %s == %s"
       counter (ppExpr stride) (ppExpr residue)
+  --SearchExclusionTemplate MEOW
+    Maintaining (SearchExclusionTemplate quantifiedExpr _) -> printf
+      "maintaining %s" (ppExpr $ ExistentialQuantification quantifiedExpr)
   --LoopFrameTemplate [String]
     LoopAssigns (LoopFrameTemplate vars) -> "loop_assigns " ++ (intercalate ", " vars)
   --DecreasesTemplate Expr
@@ -178,6 +223,7 @@ pp_CFG_JML cfg jmlSpecifications = let
   innerLoc = loc ++ ".pp_CFG_JML.helper"
   ppBehs = ppBehaviors [behavior | MethodSpecification behavior <- jmlSpecifications]
   (_,_,_,pp) = foldl' (helper innerLoc) (0,Nothing,[],"") (CFGT.nodes cfg)
+  --in error $ show cfg where
   in ppBehs ++ "\n" ++ pp where
   ---
   getLoopInvariants :: [JMLSpecification] -> [LoopInvariants]
@@ -240,11 +286,24 @@ pp_CFG_JML cfg jmlSpecifications = let
         in (newIndent,new_maybe_last_node,else_ids ++ else_id,newAcc)
       ---
     CFGT.End _ _ _ -> let
+      nextIds = dropWhile (\(id2,_) -> id2<=CFGT.id node) $ CFGT.edges cfg
       newIndent = indent - 2
       ppNode = CFG.ppNode node
       semicolon = case ppNode of
         "" -> ""
         _ -> ";"
-      newAcc = acc ++ replicate indent ' ' ++ ppNode ++ semicolon ++ "\n" ++ replicate newIndent ' ' ++ "}\n"
+      closeParentheses = case nextIds of
+        [] -> replicate newIndent ' ' ++ "}\n"
+        _  -> ""
+      newAcc = acc ++ replicate indent ' ' ++ ppNode ++ semicolon ++ "\n" ++ closeParentheses
       in (indent,Just node,else_ids,newAcc)
+      {-case nextIds of
+        -- end of method
+        [] -> let
+          
+        -- a return statement happened to exit in the scope of an if or loop
+        -- in this case there's nothing to be done here
+        _ -> let
+          newAcc = acc ++ 
+          in (indent,Just node,else_ids,acc)-}
     _ -> error $ printf "TODO2 in %s:\n  %s\n  %s" innerLoc (show cfg) (show jmlSpecifications)

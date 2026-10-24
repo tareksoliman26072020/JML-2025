@@ -109,7 +109,7 @@ ppConsoleLogTag = \case
          (yellow "behavior") (yellow $ show num) behavior
          (yellow "Pretty Printed") (concatMap (\case '\n' -> "\n    "; ch -> [ch]) pp))
      $ zip [1 :: Int ..] behaviors)
-  ReportTheState loc method jmlStack logHeader formals locals globals pp -> printf
+  ReportTheState loc method jmlStack logHeader formals locals globals reAssigned pathCreationEnumeration ers pp -> printf
     "%s in %s\n\
     \  %s: %s\n\
     \  %s: %s\n\
@@ -117,6 +117,10 @@ ppConsoleLogTag = \case
     \  %s: %s\n\
     \  %s: %s\n\
     \  %s: %s\n\
+    \  %s: %s\n\
+    \  %s: %s\n\
+    \  %s:\n\
+    \    %s\n\
     \  %s:\n\
     \    %s"
     (yellow "Report The State") (cyan loc)
@@ -127,6 +131,11 @@ ppConsoleLogTag = \case
     (yellow "formals") formals
     (yellow "locals") locals
     (yellow "globals") globals
+    (yellow "reAssigned") reAssigned
+    (yellow "pathCreationEnumeration") pathCreationEnumeration
+    (yellow "executionResults") (intercalate "\n    " [res
+      | (num,er) <- zip [1::Int ..] ers
+      , let res = printf "%s) %s" (yellow $ printf "%d" num) er])
     (yellow "Pretty Printed") (concatMap (\case '\n' -> "\n    "; ch -> [ch]) pp)
   ReportTheStack loc tag li -> (printf "%s in %s\n" (yellow tag) (cyan loc) :: String) ++ (printf
     $ intercalate "\n----------\n"

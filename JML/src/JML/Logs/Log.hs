@@ -17,7 +17,7 @@ data LogTag =
   | AddBehaviorToState String String
   | AddClauseToState String String
   | Return String String
-  | ReportTheState String String [(String,[String])] String String String String String
+  | ReportTheState String String [(String,[String])] String String String String String String [String] String
   | ReportTheStack String String [(String,[String])]
   | IfInnerJMLState String String String [(String,[String])] String String String String String
   | ElseInnerJMLState String String String [(String,[String])] String String String String String
@@ -128,7 +128,7 @@ ppLogTag = \case
          "behavior" (show num) behavior
          "Pretty Printed" (concatMap (\case '\n' -> "\n    "; ch -> [ch]) pp))
      $ zip [1 :: Int ..] behaviors)
-  ReportTheState loc method jmlStack logHeader formals locals globals pp -> printf
+  ReportTheState loc method jmlStack logHeader formals locals globals reAssigned pathCreationEnumeration ers pp -> printf
     "%s in %s\n\
     \  %s: %s\n\
     \  %s: %s\n\
@@ -136,6 +136,10 @@ ppLogTag = \case
     \  %s: %s\n\
     \  %s: %s\n\
     \  %s: %s\n\
+    \  %s: %s\n\
+    \  %s: %s\n\
+    \  %s:\n\
+    \    %s\n\
     \  %s:\n\
     \    %s"
     "Report The State" loc
@@ -146,6 +150,11 @@ ppLogTag = \case
     "formals" formals
     "locals" locals
     "globals" globals
+    "reAssigned" reAssigned
+    "pathCreationEnumeration" pathCreationEnumeration
+    "executionResults" (intercalate "\n    " [res
+      | (num,er) <- zip [1::Int ..] ers
+      , let res = printf "%d) %s" num er]){-ers-}
     "Pretty Printed" (concatMap (\case '\n' -> "\n    "; ch -> [ch]) pp)
   ReportTheStack loc tag li -> (printf "%s in %s\n" tag loc :: String) ++ (printf
     $ intercalate "\n----------\n"

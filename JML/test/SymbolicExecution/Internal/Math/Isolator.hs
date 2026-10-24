@@ -48,6 +48,8 @@ allTargets = [
  ,("2*i-j <= i+n"          ,example39,example39_correct)
  ,("i-3 >= i+n"            ,example40,example40_correct)
  ,("(i+j)-(i+1) > n"       ,example41,example41_correct)
+ ,("i[j] == x"             ,example42,example42_correct)
+ ,("x == i[j]"             ,example43,example43_correct)
  ]
 
 --------------------
@@ -586,3 +588,25 @@ example41_correct = Left $ Eliminated
   $ SBin (SBin (SymVar SYT.Int "j" []) Sub (SymInt 1))
          Gt
          (SymVar SYT.Int "n" [])
+
+--------------------
+
+-- i[j] == x
+example42 = SBin
+  (SArrayIndexAccess (SYT.Array SYT.Int) "i" (SymVar SYT.Int "j" []))
+  Eq
+  (SymVar SYT.Int "x" [])
+
+example42_correct = Right example42
+
+--------------------
+
+-- x == i[j]
+example43 = SBin
+  (SymVar SYT.Int "x" [])
+  Eq
+  (SArrayIndexAccess (SYT.Array SYT.Int) "i" (SymVar SYT.Int "j" []))
+
+example43_correct = Right example42
+
+--------------------
