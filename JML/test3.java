@@ -521,16 +521,3 @@ public static boolean contains(int[] a, int x) {
 }
 
 //////////////////////////////
-
-public static boolean contains(int[] a, int x) {
-  int i = 0;
-  while (i < a.length) {
-    if (a[i] == x) {
-      return true;
-    }
-    i++;
-  }
-  return false;
-}
-
-//////////////////////////////

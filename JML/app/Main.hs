@@ -57,8 +57,7 @@ getAST methodName = readFile "test1.java" >>=
   . fromRight undefined . parse parseDeclList ""
 
 getAST2 ::IO (Either ParseError Method)
-getAST2 = readFile "test2.java" >>= return .
-  parse parseExtDecl ""
+getAST2 = readFile "test2.java" >>= return . parse parseExtDecl ""
 
 getSymbolTable :: IO STT.Entry
 getSymbolTable = readFile "test2.java" >>= return

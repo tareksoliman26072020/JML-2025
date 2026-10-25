@@ -104,9 +104,9 @@ parseContinue :: Parser Statement
 parseContinue = keyword "continue" $> ContinueStmt
 
 parseStmt :: Parser Statement
-parseStmt = parseBlock <|> parseIf <|> parseFor <|> parseWhile <|> parseTry
-  <|> parseBreak <|> parseContinue
-  <|> parseReturn <|> parseExcp <|> parseDeclOrFunCall
+parseStmt = many parseComment *> choice [
+  parseBlock, parseIf, parseFor, parseWhile, parseTry,
+  parseBreak, parseContinue, parseReturn, parseExcp, parseDeclOrFunCall]
 
 parseComment :: Parser ()
 parseComment = choice [

@@ -52,6 +52,7 @@ library
       SymbolicExecution.Logs.Markdown
       SymbolicExecution.Logs.PrettyPrint
       SymbolicExecution.Method
+      SymbolicExecution.PrettyPrint
       SymbolicExecution.Types
       SymbolTable.SymbolTableCreator
       SymbolTable.Types
