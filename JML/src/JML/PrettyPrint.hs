@@ -197,8 +197,16 @@ ppBehaviors behaviors =
   let res = intercalate "\n  @ also\n  " $ map ppBehavior behaviors
   in "/*" ++ res ++ "\n  @*/"
 
+{-
+data LoopInvariants = LoopInvariants {
+  loopScopeRange :: CFGT.ScopeRange,
+  loopClauses :: [LoopInvariantTemplate]
+}
+ -}
 ppLoopInvariants :: LoopInvariants -> String
-ppLoopInvariants = undefined
+ppLoopInvariants lis = "LoopInvariants:\n" ++
+  "  loopScopeRange: " ++ (show $ loopScopeRange lis) ++ "\n" ++
+  "  loopClauses:\n    " ++ intercalate "\n    " (map show $ loopClauses lis)
 
 ppLoopInvariantTemplate :: LoopInvariantTemplate -> String
 ppLoopInvariantTemplate template = let

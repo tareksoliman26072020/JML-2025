@@ -317,7 +317,7 @@ createTest3 fileName destinationFileName = do
       ses :: [SYT.SymbolicExecution]
       ses = map snd cfgs_ses
       
-      res0 :: [(String,(CFGT.CFG,SYT.SymbolicExecution,[(SYT.LoopSummary,[SYT.LoopPattern])],[JMLT.LoopInvariants],String))]
+      res0 :: [(String,(CFGT.CFG,SYT.SymbolicExecution,[(SYT.LoopSummary,[(SYT.LoopPattern, [SYT.LoopSummaryTag])])],[JMLT.LoopInvariants],String))]
       res0 = [(methodName,(cfg,se,sy_li,loopsInvariants,pp))
         | (cfg,se) <- cfgs_ses
         , let SYT.SMethodHandle _ methodName = se Map.! SYT.MethodHandle
@@ -332,13 +332,13 @@ createTest3 fileName destinationFileName = do
       res :: [String]
       res = do
         (methodName,(cfg,se,sy_li,loopsInvariants,pp)) <- res0
-        let sy_li_pp = [res
-              | (loopSummary,loopPatterns) <- sy_li
-              , let res = SY.PP.ppLoopSummary loopSummary ++ "\n\n" ++ SY.PP.ppLoopPatterns loopPatterns
-              ]
-        let loopsInvariants_pp = map JML.PP.ppLoopInvariants loopsInvariants
-        return []
-  forM_ res0 $ \(methodName,(cfg,se,sy_li,loopsInvariants,pp)) -> do
+        [printf "/*\n%s\n*/\n\n\n%s\n\n%s\n" res pp (unlines $ replicate 3 $ replicate 50 '/')
+           | (loopSummary,loopPatterns) <- sy_li
+           , let res = "method: " ++ methodName ++ "\n\n" ++ SY.PP.ppLoopSummary loopSummary ++ "\n\n\n" ++ SY.PP.ppLoopPatterns loopPatterns ++ "\n\n\n" ++ intercalate "\n" (map JML.PP.ppLoopInvariants loopsInvariants)
+           ]
+  writeFile destinationFileName $ unlines res
+     
+  {-forM_ res0 $ \(methodName,(cfg,se,sy_li,loopsInvariants,pp)) -> do
     putStrLn methodName
     putStrLn ""
     forM_ sy_li $ \(loopSummary,loopPatterns) -> do
@@ -349,16 +349,14 @@ createTest3 fileName destinationFileName = do
     print loopsInvariants
     putStrLn ""
     putStrLn pp
-    putStrLn "===================="
+    putStrLn "===================="-}
   where
-  folding_se :: [(SYT.LoopSummary,[SYT.LoopPattern])] -> SYT.SymbolicExecutionValue -> [(SYT.LoopSummary,[SYT.LoopPattern])]
+  folding_se :: [(SYT.LoopSummary,[(SYT.LoopPattern, [SYT.LoopSummaryTag])])] -> SYT.SymbolicExecutionValue -> [(SYT.LoopSummary,[(SYT.LoopPattern, [SYT.LoopSummaryTag])])]
   folding_se acc = \case
     SYT.SLoop _ _ _ maybeLoopSummary loopPatternsLi -> case maybeLoopSummary of
       Nothing -> acc
-      Just loopSummary -> let
-        loopPatterns = [loopPattern
-          | (loopPattern,_) <- loopPatternsLi]
-        in acc ++ [(loopSummary,loopPatterns)]
+      Just loopSummary ->
+        acc ++ [(loopSummary,loopPatternsLi)]
     _ -> acc
 
 -----------------------------

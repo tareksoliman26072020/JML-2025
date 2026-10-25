@@ -1,47 +1,66 @@
 /*
+method: idByLoop
+
 LoopSummary:
-  loopSyntax = WhileSyntax,
-  loopReadOnlyVars = ["n"],
-  loopFrameTargets = ["i"],
-  loopInitFacts = [("i",SymInt 0)],
-  loopGuard = Just $ SBin (SymVar Int "i" []) Lt (SymVar Int "n" []),
-  loopEnteringCondition = Just $ SBin (SymInt 0) Lt (SymVar Int "n" []),
-  loopSkipCondition = Just (SBin (SymInt 0) Ge (SymVar Int "n" [])),
-  loopExitingConditions = [SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])],
-  loopExitViaBreakConditions = [],
-  loopCounters = ["i"],
-  loopAssignments = ["i"],
-  loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
-  loopCountersBounds = [(SymInt 0,"i",SymVar Int "n" [])],
-  loopBoundStabilityFacts = [(SymVar Int "n" [],ReadOnly)],
-  loopDecreasesCandidate = [SBin (SymVar Int "n" []) Sub (SymVar Int "i" [])],
-  loopExitFacts = [LoopExitFactValue "i" (SymVar Int "n" [])]
+  loopSyntax: WhileSyntax
+  loopReadOnlyVars: ["n"]
+  loopFrameTargets: ["i"]
+  loopInitFacts:
+    ("i",SymInt 0)
+  loopGuard: Just (SBin (SymVar Int "i" []) Lt (SymVar Int "n" []))
+  loopEnteringCondition: Just (SBin (SymInt 0) Lt (SymVar Int "n" []))
+  loopSkipCondition: Just (SBin (SymInt 0) Ge (SymVar Int "n" []))
+  loopExitingConditions:
+    (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}},
+     SBin (SymVar Int "i" []) Ge (SymVar Int "n" []))
+  loopExitViaBreakFacts:
+    NONE
+  loopExitViaReturnFacts:
+    NONE
+  loopCounters: ["i"]
+  dynamicallyAccessedArrays:
+    NONE
+  loopAssignments: ["i"]
+  loopFrameTargetsDevelopmentTrajectory:
+    ("i",Increasing (SymInt 1))
+  loopExitFacts:
+    (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}},
+     LoopExitFactValue "i" (SymVar Int "n" []))
+  loopCountersBounds:
+    (SymInt 0,(Int,"i"),SymVar Int "n" [])
+  loopBoundStabilityFacts:
+    (SymVar Int "n" [],ReadOnly)
+  loopDecreasesCandidate:
+    SBin (SymVar Int "n" []) Sub (SymVar Int "i" [])
+
+
+LoopPatterns:
+  (CounterPattern (CountingUp "i"),
+   [LoopCounters
+   ,LoopFrameTargetsDevelopmentTrajectory
+   ,LoopCountersBounds])
+  (BoundPattern (StableBound (SymVar Int "n" [])),
+   [LoopCounters
+   ,LoopCountersBounds
+   ,LoopGuard
+   ,LoopBoundStabilityFacts
+   ,LoopReadOnlyVars])
+
+
+LoopInvariants:
+  loopScopeRange: SR {branchStart = 2, branchEnd = 4}
+  loopClauses:
+    Maintaining (CounterBoundsTemplate (JMLInt 0) "i" (JMLVar Int_Type "n"))
+    LoopAssigns (LoopFrameTemplate ["i"])
+    DecreasesTemplate (JMLBin (JMLVar Int_Type "n") Sub (JMLVar Int_Type "i"))
 */
 
-/*
-LoopPattern:
-   [
-    (CounterPattern (CountingUp "i"),
-     [LoopCounters,LoopFrameTargetsDevelopmentTrajectory,LoopCountersBounds]
-    ),
-    (BoundPattern (StableBound (SymVar Int "n" [])),
-     [LoopCounters,LoopCountersBounds,LoopGuard,LoopBoundStabilityFacts,LoopReadOnlyVars]
-    )
-   ]
-*/
-
-/*
-LoopInvariantTemplate:
-  Maintaining $ CounterBoundsTemplate (JMLInt 0) "i" (JMLVar Int_Type "n")
-  LoopAssigns $ LoopFrameTemplate ["i"]
-  Decreases $ DecreasesTemplate (JMLBin (JMLVar Int_Type "n") Sub (JMLVar Int_Type "i"))
-*/
 
 /*@ normal_behavior
   @   requires true;
   @   assignable \nothing;
-  @   ensures 0 < n ==> \result == n;
-  @   ensures 0 >= n ==> \result == 0;
+  @   ensures (0 < n ==> \result == n);
+  @   ensures (0 >= n ==> \result == 0);
   @*/
 int idByLoop (int n) {
   int i = 0;
@@ -54,56 +73,80 @@ int idByLoop (int n) {
   return i;
 }
 
-//////////////////////////////
+
+//////////////////////////////////////////////////
+//////////////////////////////////////////////////
+//////////////////////////////////////////////////
+
 
 /*
+method: idByLoopStride3
+
 LoopSummary:
-  loopSyntax = WhileSyntax,
-  loopReadOnlyVars = ["n"],
-  loopFrameTargets = ["i"],
-  loopInitFacts = [("i",SymInt 0)],
-  loopGuard = Just $ SBin (SymVar Int "i" []) Lt (SymVar Int "n" []),
-  loopEnteringCondition = Just (SBin (SymInt 0) Lt (SymVar Int "n" [])),
-  loopSkipCondition = Just (SBin (SymInt 0) Ge (SymVar Int "n" [])),
-  loopExitingConditions = [SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])],
-  loopExitViaBreakConditions = [],
-  loopCounters = ["i"],
-  loopAssignments = ["i"],
-  loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 3))],
-  loopCountersBounds = [(SymInt 0,"i",SBin (SymVar Int "n" []) Add (SymInt 2))],
-  loopBoundStabilityFacts = [(SymVar Int "n" [],ReadOnly),(SBin (SymVar Int "n" []) Add (SymInt 2),ReadOnly)],
-  loopDecreasesCandidate = [SBin (SBin (SymVar Int "n" []) Add (SymInt 2)) Sub (SymVar Int "i" [])],
-  loopExitFacts = [LoopExitFactRange "i" (SymVar Int "n" []) (SBin (SymVar Int "n" []) Add (SymInt 2))]
+  loopSyntax: WhileSyntax
+  loopReadOnlyVars: ["n"]
+  loopFrameTargets: ["i"]
+  loopInitFacts:
+    ("i",SymInt 0)
+  loopGuard: Just (SBin (SymVar Int "i" []) Lt (SymVar Int "n" []))
+  loopEnteringCondition: Just (SBin (SymInt 0) Lt (SymVar Int "n" []))
+  loopSkipCondition: Just (SBin (SymInt 0) Ge (SymVar Int "n" []))
+  loopExitingConditions:
+    (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}},
+     SBin (SymVar Int "i" []) Ge (SymVar Int "n" []))
+  loopExitViaBreakFacts:
+    NONE
+  loopExitViaReturnFacts:
+    NONE
+  loopCounters: ["i"]
+  dynamicallyAccessedArrays:
+    NONE
+  loopAssignments: ["i"]
+  loopFrameTargetsDevelopmentTrajectory:
+    ("i",Increasing (SymInt 3))
+  loopExitFacts:
+    (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}},
+     LoopExitFactRange "i" (SymVar Int "n" []) (SBin (SymVar Int "n" []) Add (SymInt 2)))
+  loopCountersBounds:
+    (SymInt 0,(Int,"i"),SBin (SymVar Int "n" []) Add (SymInt 2))
+  loopBoundStabilityFacts:
+    (SymVar Int "n" [],ReadOnly)
+    (SBin (SymVar Int "n" []) Add (SymInt 2),ReadOnly)
+  loopDecreasesCandidate:
+    SBin (SBin (SymVar Int "n" []) Add (SymInt 2)) Sub (SymVar Int "i" [])
+
+
+LoopPatterns:
+  (CounterPattern (CountingUp "i"),
+   [LoopCounters
+   ,LoopFrameTargetsDevelopmentTrajectory
+   ,LoopCountersBounds])
+  (CounterPattern (StridedCounting "i"),
+   [LoopCounters
+   ,LoopFrameTargetsDevelopmentTrajectory])
+  (BoundPattern (StableBound (SBin (SymVar Int "n" []) Add (SymInt 2))),
+   [LoopCounters
+   ,LoopCountersBounds
+   ,LoopGuard
+   ,LoopBoundStabilityFacts
+   ,LoopReadOnlyVars])
+
+
+LoopInvariants:
+  loopScopeRange: SR {branchStart = 2, branchEnd = 4}
+  loopClauses:
+    Maintaining (CounterBoundsTemplate (JMLInt 0) "i" (JMLBin (JMLVar Int_Type "n") Add (JMLInt 2)))
+    Maintaining (StridedCounterTemplate "i" (JMLInt 3) (JMLInt 0))
+    LoopAssigns (LoopFrameTemplate ["i"])
+    DecreasesTemplate (JMLBin (JMLBin (JMLVar Int_Type "n") Add (JMLInt 2)) Sub (JMLVar Int_Type "i"))
 */
 
-/*
-LoopPattern:
-   [
-    (CounterPattern (CountingUp "i"),[LoopCounters,LoopFrameTargetsDevelopmentTrajectory,LoopCountersBounds]),
-    (CounterPattern (StridedCounting "i"),[LoopCounters,LoopFrameTargetsDevelopmentTrajectory]),
-    (BoundPattern (StableBound (SBin (SymVar Int "n" []) Add (SymInt 2))),
-     [LoopCounters
-     ,LoopCountersBounds
-     ,LoopGuard
-     ,LoopBoundStabilityFacts
-     ,LoopReadOnlyVars
-     ])
-   ]
-*/
-
-/*
-LoopInvariantTemplate:
-  Maintaining $ CounterBoundsTemplate (JMLInt 0) "i" (JMLBin (JMLVar Int_Type "n") Add (JMLInt 2))
-  StridedCounterTemplate "i" (JMLInt 3) (JMLInt 0)
-  LoopAssigns $ LoopFrameTemplate ["i"]
-  Decreases $ DecreasesTemplate $ JMLBin (JMLBin (JMLVar Int_Type "n") Add (JMLInt 2)) Sub (JMLVar Int_Type "i")
-*/
 
 /*@ normal_behavior
   @   requires true;
   @   assignable \nothing;
-  @   ensures 0 < n ==> n <= \result <= n + 2;
-  @   ensures 0 >= n ==> \result == 0;
+  @   ensures (0 < n ==> n <= \result <= n + 2);
+  @   ensures (0 >= n ==> \result == 0);
   @*/
 int idByLoopStride3 (int n) {
   int i = 0;
@@ -117,62 +160,80 @@ int idByLoopStride3 (int n) {
   return i;
 }
 
-//////////////////////////////
 
-/* LoopSummary:
-  loopSyntax = WhileSyntax,
-  loopReadOnlyVars = ["n"],
-  loopFrameTargets = ["i"],
-  loopInitFacts = [("i",SymInt 0)],
-  loopGuard = Just (SBool True),
-  loopEnteringCondition = Just (SBool True),
-  loopSkipCondition = Just (SBool False),
-  loopExitingConditions = [SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])],
-  loopExitViaBreakConditions = [SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])],
-  loopCounters = ["i"],
-  loopAssignments = ["i"],
-  loopFrameTargetsDevelopmentTrajectory = [("i",Increasing (SymInt 1))],
-  loopExitFacts = [LoopExitFactValue "i" (SymVar Int "n" [])],
-  loopCountersBounds = [(SymInt 0,"i",SymVar Int "n" [])],
-  loopBoundStabilityFacts = [(SymVar Int "n" [],ReadOnly)],
-  loopDecreasesCandidate = [SBin (SymVar Int "n" []) Sub (SymVar Int "i" [])]
-*/
+//////////////////////////////////////////////////
+//////////////////////////////////////////////////
+//////////////////////////////////////////////////
 
-/* LoopPattern:
-[
+
+/*
+method: idByLoop2
+
+LoopSummary:
+  loopSyntax: WhileSyntax
+  loopReadOnlyVars: ["n"]
+  loopFrameTargets: ["i"]
+  loopInitFacts:
+    ("i",SymInt 0)
+  loopGuard: Just (SBool True)
+  loopEnteringCondition: Just (SBool True)
+  loopSkipCondition: Just (SBool False)
+  loopExitingConditions:
+    (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}},
+     SBin (SymVar Int "i" []) Ge (SymVar Int "n" []))
+  loopExitViaBreakFacts:
+    [(Just (Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}}),Condition (SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])))]
+  loopExitViaReturnFacts:
+    NONE
+  loopCounters: ["i"]
+  dynamicallyAccessedArrays:
+    NONE
+  loopAssignments: ["i"]
+  loopFrameTargetsDevelopmentTrajectory:
+    ("i",Increasing (SymInt 1))
+  loopExitFacts:
+    (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}},
+     LoopExitFactValue "i" (SymVar Int "n" []))
+  loopCountersBounds:
+    (SymInt 0,(Int,"i"),SymVar Int "n" [])
+  loopBoundStabilityFacts:
+    (SymVar Int "n" [],ReadOnly)
+  loopDecreasesCandidate:
+    SBin (SymVar Int "n" []) Sub (SymVar Int "i" [])
+
+
+LoopPatterns:
   (CounterPattern (CountingUp "i"),
    [LoopCounters
-   ,LoopFrameTargetsDevelopmentTrajectory,LoopCountersBounds
-   ]
-  ),
-  (BoundPattern $ StableBound (SymVar Int "n" []),
+   ,LoopFrameTargetsDevelopmentTrajectory
+   ,LoopCountersBounds])
+  (BoundPattern (StableBound (SymVar Int "n" [])),
    [LoopCounters
    ,LoopCountersBounds
    ,LoopGuard
    ,LoopBoundStabilityFacts
-   ,LoopReadOnlyVars
-   ]
-  ),
-  (BoundPattern $ GuardlessWithInternalExit (SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])),
+   ,LoopReadOnlyVars])
+  (BoundPattern (GuardlessWithInternalExit (SBin (SymVar Int "i" []) Ge (SymVar Int "n" []))),
    [LoopGuard
-   ,LoopExitingConditions
-   ]
-  ),
-  (ControlFlowPattern $ BreakExit (SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])),
-   [LoopExitViaBreakConditions])
-]
+   ,LoopExitingConditions])
+  (ControlFlowPattern (BreakExit (SBin (SymVar Int "i" []) Ge (SymVar Int "n" []))),
+   [LoopExitViaBreakFacts])
+
+
+LoopInvariants:
+  loopScopeRange: SR {branchStart = 2, branchEnd = 7}
+  loopClauses:
+    Maintaining (CounterBoundsTemplate (JMLInt 0) "i" (JMLVar Int_Type "n"))
+    LoopAssigns (LoopFrameTemplate ["i"])
+    DecreasesTemplate (JMLBin (JMLVar Int_Type "n") Sub (JMLVar Int_Type "i"))
 */
-/*
-LoopInvariantTemplate:
-  Maintaining $ CounterBoundsTemplate (JMLInt 0) "i" (JMLVar Int_Type "n"),
-  LoopAssigns $ LoopFrameTemplate ["i"],
-  Decreases $ DecreasesTemplate (JMLBin (JMLVar Int_Type "n") Sub (JMLVar Int_Type "i"))
-*/
+
+
 /*@ normal_behavior
   @   requires true;
   @   assignable \nothing;
-  @   ensures 0 < n ==> \result == n;
-  @   ensures 0 >= n ==> \result == 0;
+  @   ensures (0 < n ==> \result == n);
+  @   ensures (0 >= n ==> \result == 0);
   @*/
 int idByLoop2 (int n) {
   int i = 0;
@@ -188,53 +249,86 @@ int idByLoop2 (int n) {
   return i;
 }
 
-//////////////////////////////
 
-/* LoopSummary:
-loopSyntax = WhileSyntax
-loopReadOnlyVars = []
-loopFrameTargets = ["n","i"]
-loopInitFacts = [("i",SymInt 0),("n",SymPreScope (SR {branchStart = 2, branchEnd = 5}) (Int,"n"))]
-loopGuard = Just (SBin (SymVar Int "i" []) Lt (SymVar Int "n" []))
-loopEnteringCondition = Just (SBin (SymInt 0) Lt (SymPreScope (SR {branchStart = 2, branchEnd = 5}) (Int,"n")))
-loopSkipCondition = Just (SBin (SymInt 0) Ge (SymPreScope (SR {branchStart = 2, branchEnd = 5}) (Int,"n")))
-loopExitingConditions = [SBin (SymVar Int "i" []) Ge (SymVar Int "n" [])]
-loopExitViaBreakConditions = []
-loopCounters = ["i","n"]
-loopAssignments = ["n","i"]
-loopFrameTargetsDevelopmentTrajectory = [("n",Decreasing (SymInt 1)),("i",Increasing (SymInt 1))]
-loopExitFacts = [LoopExitFactRange "n" (SBin (SymVar Int "i" []) Sub (SymInt 1)) (SymVar Int "i" []),LoopExitFactRange "i" (SymVar Int "n" []) (SBin (SymVar Int "n" []) Add (SymInt 1))]
-loopCountersBounds = [(SymInt 0,"i",SymVar Int "n" []),(SymVar Int "i" [],"n",SymPreScope (SR {branchStart = 2, branchEnd = 5}) (Int,"n"))]
-loopBoundStabilityFacts = [(SymVar Int "n" [],Decreasing (SymInt 1)),(SymVar Int "i" [],Increasing (SymInt 1))]
-loopDecreasesCandidate = [SBin (SymVar Int "n" []) Sub (SymVar Int "i" [])]
+//////////////////////////////////////////////////
+//////////////////////////////////////////////////
+//////////////////////////////////////////////////
+
+
+/*
+method: halving
+
+LoopSummary:
+  loopSyntax: WhileSyntax
+  loopReadOnlyVars: []
+  loopFrameTargets: ["n","i"]
+  loopInitFacts:
+    ("i",SymInt 0)
+    ("n",SymPreScope (SR {branchStart = 2, branchEnd = 5}) (Int,"n"))
+  loopGuard: Just (SBin (SymVar Int "i" []) Lt (SymVar Int "n" []))
+  loopEnteringCondition: Just (SBin (SymInt 0) Lt (SymPreScope (SR {branchStart = 2, branchEnd = 5}) (Int,"n")))
+  loopSkipCondition: Just (SBin (SymInt 0) Ge (SymPreScope (SR {branchStart = 2, branchEnd = 5}) (Int,"n")))
+  loopExitingConditions:
+    (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 6}},
+     SBin (SymVar Int "i" []) Ge (SymVar Int "n" []))
+  loopExitViaBreakFacts:
+    NONE
+  loopExitViaReturnFacts:
+    NONE
+  loopCounters: ["i","n"]
+  dynamicallyAccessedArrays:
+    NONE
+  loopAssignments: ["n","i"]
+  loopFrameTargetsDevelopmentTrajectory:
+    ("n",Decreasing (SymInt 1))
+    ("i",Increasing (SymInt 1))
+  loopExitFacts:
+    (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 6}},
+     LoopExitFactRange "n" (SBin (SymVar Int "i" []) Sub (SymInt 1)) (SymVar Int "i" []))
+    (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 6}},
+     LoopExitFactRange "i" (SymVar Int "n" []) (SBin (SymVar Int "n" []) Add (SymInt 1)))
+  loopCountersBounds:
+    (SymInt 0,(Int,"i"),SymVar Int "n" [])
+    (SymVar Int "i" [],(Int,"n"),SymPreScope (SR {branchStart = 2, branchEnd = 5}) (Int,"n"))
+  loopBoundStabilityFacts:
+    (SymVar Int "n" [],Decreasing (SymInt 1))
+    (SymVar Int "i" [],Increasing (SymInt 1))
+  loopDecreasesCandidate:
+    SBin (SymVar Int "n" []) Sub (SymVar Int "i" [])
+
+
+LoopPatterns:
+  (CounterPattern (CountingUp "i"),
+   [LoopCounters
+   ,LoopFrameTargetsDevelopmentTrajectory
+   ,LoopCountersBounds])
+  (CounterPattern (CountingDown "n"),
+   [LoopCounters
+   ,LoopFrameTargetsDevelopmentTrajectory
+   ,LoopCountersBounds])
+  (BoundPattern (MovingBound "n"),
+   [LoopFrameTargets
+   ,LoopBoundStabilityFacts])
+  (BoundPattern (MovingBound "i"),
+   [LoopFrameTargets
+   ,LoopBoundStabilityFacts])
+
+
+LoopInvariants:
+  loopScopeRange: SR {branchStart = 2, branchEnd = 5}
+  loopClauses:
+    Maintaining (CounterBoundsTemplate (JMLInt 0) "i" (JMLVar Int_Type "n"))
+    Maintaining (CounterBoundsTemplate (JMLVar Int_Type "i") "n" (JMLOld (JMLVar Int_Type "n")))
+    LoopAssigns (LoopFrameTemplate ["n","i"])
+    DecreasesTemplate (JMLBin (JMLVar Int_Type "n") Sub (JMLVar Int_Type "i"))
 */
-/* LoopPattern:
-[
- (CounterPattern (CountingUp "i"),
-  [LoopCounters,LoopFrameTargetsDevelopmentTrajectory,LoopCountersBounds]
- ),
- (CounterPattern (CountingDown "n"),
-  [LoopCounters,LoopFrameTargetsDevelopmentTrajectory,LoopCountersBounds]
- ),
- (BoundPattern (MovingBound "n"),
-  [LoopFrameTargets,LoopBoundStabilityFacts]
- ),
- (BoundPattern (MovingBound "i"),
-  [LoopFrameTargets,LoopBoundStabilityFacts]
- )
-]
-*/
-/* LoopInvariantTemplate:
-Maintaining (CounterBoundsTemplate (JMLInt 0) "i" (JMLVar Int_Type "n")),
-Maintaining (CounterBoundsTemplate (JMLVar Int_Type "i") "n" (JMLOld (JMLVar Int_Type "n"))),
-LoopAssigns (LoopFrameTemplate ["n","i"]),
-DecreasesTemplate (JMLBin (JMLVar Int_Type "n") Sub (JMLVar Int_Type "i"))
-*/
+
+
 /*@ normal_behavior
   @   requires true;
   @   assignable \nothing;
-  @   ensures 0 < \old(n) ==> n <= \result <= n + 1;
-  @   ensures 0 >= \old(n) ==> \result == 0;
+  @   ensures (0 < \old(n) ==> n <= \result <= n + 1);
+  @   ensures (0 >= \old(n) ==> \result == 0);
   @*/
 int halving (int n) {
   int i = 0;
@@ -249,270 +343,104 @@ int halving (int n) {
   return i;
 }
 
-//////////////////////////////
+
+//////////////////////////////////////////////////
+//////////////////////////////////////////////////
+//////////////////////////////////////////////////
+
 
 /*
-Your current LoopSummary is sufficient for the counter structure, but it does not directly represent two facts that matter particularly for contains:
+method: contains
 
-1. a loop exit caused by return, together with its returned value;
-2. the semantic search-exclusion fact from which the quantified invariant is generated.
+LoopSummary:
+  loopSyntax: WhileSyntax
+  loopReadOnlyVars: ["a","x"]
+  loopFrameTargets: ["i"]
+  loopInitFacts:
+    ("i",SymInt 0)
+  loopGuard: Just (SBin (SymVar Int "i" []) Lt (SObjAcc ["a","length"]))
+  loopEnteringCondition: Just (SBin (SymInt 0) Lt (SObjAcc ["a","length"]))
+  loopSkipCondition: Just (SBin (SymInt 0) Ge (SObjAcc ["a","length"]))
+  loopExitingConditions:
+    (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}},
+     SBin (SymVar Int "i" []) Ge (SObjAcc ["a","length"]))
+    (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}},
+     SBin (SArrayIndexAccess (Array Int) "a" (SymVar Int "i" [])) Eq (SymVar Int "x" []))
+  loopExitViaBreakFacts:
+    NONE
+  loopExitViaReturnFacts:
+    ([(Just (Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}}),ElemInArray "a" (SymVar Int "i" []) (SymVar Int "x" []))],(Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}},Just (SBool True)))
+  loopCounters: ["i"]
+  dynamicallyAccessedArrays:
+    (Array Int,"a",[(Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 7}},"i")])
+  loopAssignments: ["i"]
+  loopFrameTargetsDevelopmentTrajectory:
+    ("i",Increasing (SymInt 1))
+  loopExitFacts:
+    (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}},
+     LoopExitFactValue "i" (SObjAcc ["a","length"]))
+    (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}},
+     LoopExitFactArrayAccessValue "a" (SymVar Int "i" []) (SymVar Int "x" []))
+  loopCountersBounds:
+    (SymInt 0,(Int,"i"),SObjAcc ["a","length"])
+  loopBoundStabilityFacts:
+    (SObjAcc ["a","length"],ReadOnly)
+  loopDecreasesCandidate:
+    SBin (SObjAcc ["a","length"]) Sub (SymVar Int "i" [])
 
-The older report contains these concepts informally as earlyExits and semanticPrefixFact.
 
-data StateChangingCondition
-  = ExcludeElemInArray
-      SymExpr   -- counter
-      String   -- array
-      SymExpr  -- searched value
-  deriving (Show, Eq)
+LoopPatterns:
+  (CounterPattern (CountingUp "i"),
+   [LoopCounters
+   ,LoopFrameTargetsDevelopmentTrajectory
+   ,LoopCountersBounds])
+  (BoundPattern (StableBound (SObjAcc ["a","length"])),
+   [LoopCounters
+   ,LoopCountersBounds
+   ,LoopGuard
+   ,LoopBoundStabilityFacts
+   ,LoopReadOnlyVars])
+  (TraversalPattern (ArrayScan ("a",["i"])),
+   [DynamicallyAccessedArrays
+   ,LoopFrameTargetsDevelopmentTrajectory])
+  (SearchPattern (LinearSearch ([(Just (Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}}),ElemInArray "a" (SymVar Int "i" []) (SymVar Int "x" []))],(Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}},Just (SBool True)))),
+   [DynamicallyAccessedArrays
+   ,LoopExitViaBreakFacts
+   ,LoopExitViaReturnFacts])
+  (ControlFlowPattern (EarlyReturn ([(Just (Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}}),ElemInArray "a" (SymVar Int "i" []) (SymVar Int "x" []))],(Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}},Just (SBool True)))),
+   [LoopExitViaReturnFacts])
 
-Then extend `LoopSummary` with:
 
-data LoopSummary = LoopSummary {
-    loopSyntax :: LoopSyntax
-  , loopReadOnlyVars :: [String]
-  , loopFrameTargets :: [String]
-  , loopInitFacts :: [(String,SymExpr)]
-  , loopGuard :: Maybe SymExpr
-  , loopEnteringCondition :: Maybe SymExpr
-  , loopSkipCondition :: Maybe SymExpr
-  , loopExitingConditions :: [SymExpr]
-  , loopExitViaBreakConditions :: [SymExpr]
-
-  , loopCounters :: [String]
-  , loopAssignments :: [String]
-  , loopFrameTargetsDevelopmentTrajectory
-      :: [(String,SymExprDevelopmentTrajectory)]
-  , loopExitFacts :: [LoopExitFact]
-  , loopCountersBounds :: [(SymExpr,String,SymExpr)]
-  , loopBoundStabilityFacts
-      :: [(SymExpr,SymExprDevelopmentTrajectory)]
-
-  -- NEW:
-  , loopExitViaReturnFacts :: [(StateChangingCondition,SymExpr)]
-
-  , loopDecreasesCandidate :: [SymExpr]
-} deriving (Show,Eq)
-
-/*
-Complete LoopSummary for contains:
-For readability, define:
-iE =
-  SymVar Int "i" []
-
-xE =
-  SymVar Int "x" []
-
-aLenE =
-  SObjAcc ["a","length"]
-
-aAtIE =
-  SArrayIndexAccess Int "a" iE
-
-foundE =
-  SBin aAtIE Eq xE
+LoopInvariants:
+  loopScopeRange: SR {branchStart = 2, branchEnd = 7}
+  loopClauses:
+    Maintaining (CounterBoundsTemplate (JMLInt 0) "i" (JMLObjAcc ["a","length"]))
+    Maintaining (SearchExclusionTemplate (Universal,[("k1",(JMLInt 0,(Int_Type,"i",JMLInt 0,(JMLInt 1,True)),JMLObjAcc ["a","length"]))],(Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},JMLBin (JMLArrayIndexAccess (Array_Type Int_Type) "a" (JMLVar Int_Type "k1")) Neq (JMLVar Int_Type "x"))) (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}},Just (JMLBool True)))
+    LoopAssigns (LoopFrameTemplate ["i"])
+    DecreasesTemplate (JMLBin (JMLObjAcc ["a","length"]) Sub (JMLVar Int_Type "i"))
 */
 
-/*
-LoopSummary {
-    loopSyntax =
-      WhileSyntax
-
-  , loopReadOnlyVars =
-      ["a","x"]
-
-  , loopFrameTargets =
-      ["i"]
-
-  , loopInitFacts =
-      [("i", SymInt 0)]
-
-  , loopGuard =
-      Just $
-        SBin iE Lt aLenE
-
-  , loopEnteringCondition =
-      Just $
-        SBin (SymInt 0) Lt aLenE
-
-  , loopSkipCondition =
-      Just $
-        SBin (SymInt 0) Ge aLenE
-
-  , loopExitingConditions =
-      [SBin iE Ge aLenE]
-
-  , loopExitViaBreakConditions =
-      []
-
-  , loopExitViaReturnFacts =
-      [(ExcludeElemInArray "a" "i" xE,SBool True)]
-
-  , loopCounters =
-      ["i"]
-
-  , dynamicallyAccessedArrays = [("x",["i"])]
-  
-  , loopAssignments =
-      ["i"]
-
-  , loopFrameTargetsDevelopmentTrajectory =
-      [("i", Increasing (SymInt 1))]
-
-  , loopExitFacts =
-      [LoopExitFactValue "i" aLenE]
-
-  , loopCountersBounds =
-      [(SymInt 0, "i", aLenE)]
-
-  , loopBoundStabilityFacts =
-      [(aLenE, ReadOnly)]
-
-  , loopDecreasesCandidate =
-      [SBin aLenE Sub iE]
-}
-*/
-
-/*
-EarlyReturn is important for control-flow analysis and postcondition validation:
-[
-  ( CounterPattern (CountingUp "i")
-  , [ LoopCounters
-    , LoopFrameTargetsDevelopmentTrajectory
-    , LoopCountersBounds
-    ]
-  ),
-
-  ( BoundPattern (StableBound aLenE)
-  , [ LoopGuard
-    , LoopCountersBounds
-    , LoopBoundStabilityFacts
-    , LoopReadOnlyVars
-    ]
-  ),
-
-  ( TraversalPattern ArrayScan  -- ArrayScan because
-                                --   1) because the counters "i" increases or decreases monotonically
-                                --   2) and because The guard or another proven invariant keeps the index within a logical array range, typically: i < a.length
-                                --   3) and because there is an array access expression via a dynamically changeable expression (a loop counter).
-  , [ LoopGuard
-    , LoopCounters
-    , LoopCountersBounds
-    , LoopReadOnlyVars
-    ]
-  ),
-
-  ( SearchPattern LinearSearch  -- LinearSearch
-                                --   1) because the comparison can terminate due to a criterion (a[i] == x) the search successfully: return True
-                                        (loopExitViaBreakConditions, loopExitViaReturnFacts)
-                                --   2) because (CounterPattern (CountingUp "i"))
-                                        (There is an array traversal)
-                                        (loopFrameTargetsDevelopmentTrajectory, dynamicallyAccessedArrays)
-                                --   3) because if the criterion is not satisfied, the traversal progresses: i++;
-                                --   4) If the criterion is not satisfied, the loop eventually exhausts the candidate range: i < a.length
-  , [ LoopCounters
-    , LoopGuard
-    , loopExitViaReturnFacts
-    ]
-  ),
-
-  ( ControlFlowPattern EarlyReturn -- because the value of `loopExitViaReturnFacts`
-  , [ LoopExitViaReturnFacts
-    ]
-  )
-]
-*/
-
-/*
-`LoopInvariantTemplate` needs one new maintaining template:
-```
-data Maintaining_LoopInvariantTemplate =
-  -- NEW:
-  SearchExclusionTemplate
-    Int         -- counterLowerBound
-    String      -- counter
-    Trajectory  -- counterTrajectoryStride
-    Expr        -- counterUpperBound
-    Expr        -- metPredicate
-
-  deriving (Show, Eq)
-```
-
-SearchExclusionTemplate (counterLowerBound,counter,counterTrajectoryStride,counterUpperBound) metPredicate  ===>
-```
-//@ maintaining
-//@   (\forall int k;
-//       counterInitFact <= k
-           && k < counter
-           && k < counterUpperBound
-           && k % counterTrajectoryStride == counterLowerBound;
-//       metPredicate);
-```
-if Stride == 1, then drop `&& k % counterTrajectoryStride == counterLowerBound`
-let:
-aLen =
-  -- your JML Expr representation of a.length
-
-Then the complete generated template set is:
-[
-  Maintaining $
-    CounterBoundsTemplate
-      (JMLInt 0)
-      "i"
-      aLen
-
-, Maintaining $
-    SearchExclusionTemplate
-      "i"
-      "a"
-      (JMLVar Int_Type "x")
-
-, LoopAssigns $
-    LoopFrameTemplate
-      ["i"]
-
-, DecreasesTemplate $
-    JMLBin
-      aLen
-      Sub
-      (JMLVar Int_Type "i")
-]
-*/
-
-/*
-1)
-CounterPattern (CountingUp "i")
-  ==> Maintaining $ CounterBoundsTemplate (JMLInt 0) "i" (SObjAcc ["a","length"])
-    ==> maintaining 0 <= i && i <= (SObjAcc ["a","length"])
-
-2)
-SearchPattern LinearSearch, ControlFlowPattern EarlyReturn
-  ==> Maintaining $ SearchExclusionTemplate "i" "a" (JMLVar Int_Type "x")
-    ==> maintaining (\forall int k; 0 <= k && k < i; a[k] != x)
-
-3)
-LoopAssigns $ LoopFrameTemplate ["i"]
-  ==> loop_assigns i
-
-4)
-DecreasesTemplate $ JMLBin (SObjAcc ["a","length"]) Sub (JMLVar Int_Type "i")
-  ==> decreases a.length - i
-*/
 
 /*@ normal_behavior
-  @   requires a != null;
+  @   requires true;
   @   assignable \nothing;
-  @   ensures \result <==>
-  @       (\exists int k; 0 <= k && k < a.length; a[k] == x);
+  @   ensures ((\\forall int k1;
+        0 <= k1 && k1 < i && k1 < a.length;
+          a[k1] != x) ==> \result == false);
+  @   ensures ((\\exists int k1;
+        0 <= k1 && k1 < i && k1 < a.length;
+          a[k1] == x) ==> \result == true);
   @*/
-public static boolean contains(int[] a, int x) {
+boolean contains (int[] a, int x) {
   int i = 0;
   //@ maintaining 0 <= i && i <= a.length;
-  //@ maintaining (\forall int k; 0 <= k && k < i; a[k] != x);
+  //@ maintaining (\\forall int k1;
+        0 <= k1 && k1 < i && k1 < a.length;
+          a[k1] != x);
   //@ loop_assigns i;
   //@ decreases a.length - i;
-  while (i < a.length) {
-    if (a[i] == x) {
+  while(i<a.length) {
+    if(a[i]==x) {
       return true;
     }
     i++;
@@ -520,4 +448,9 @@ public static boolean contains(int[] a, int x) {
   return false;
 }
 
-//////////////////////////////
+
+//////////////////////////////////////////////////
+//////////////////////////////////////////////////
+//////////////////////////////////////////////////
+
+
