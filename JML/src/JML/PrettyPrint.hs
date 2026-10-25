@@ -1,8 +1,9 @@
-{-# Language LambdaCase, ScopedTypeVariables #-}
+{-# Language LambdaCase, ScopedTypeVariables, MultiWayIf #-}
 module JML.PrettyPrint where
 
 import JML.Types
-import Data.List (intercalate, foldl',(\\))
+import Data.List (intercalate, foldl',(\\), isPrefixOf, isInfixOf)
+import Data.Char (isSpace)
 import Text.Printf (printf)
 import qualified SymbolicExecution.Types as SYT (SymExprDevelopmentTrajectory(..))
 import qualified CFG.Types as CFGT (CFG(..), Node(..), NodeData(..), Kind(..), ScopeRange(..))
@@ -250,6 +251,20 @@ pp_CFG_JML cfg jmlSpecifications = let
     case x of
       [y] -> y
       _ -> error $ printf "TODO in %s ==> %s" loc (show x)
+  f :: String -> String
+  f "" = ""
+  f str@(one : rest) = let
+    x = "\n    " in if
+    | x `isPrefixOf` str -> let
+        prefix = "\n  //"
+        prefixLength = 5
+        in prefix ++ f (drop prefixLength str)
+    | x `isInfixOf` str && not (isSpace one) -> let
+        prefix = takeWhile (not . isSpace) str
+        prefixLength = length prefix
+        in prefix ++ f (drop prefixLength str)
+    | x `isInfixOf` str -> one : f rest
+    | otherwise -> str
   helper :: String -> (Int,Maybe (CFGT.Node),[Int],String) -> CFGT.Node -> (Int,Maybe (CFGT.Node),[Int],String)
   helper innerLoc tu@(indent,maybe_last_node,else_ids,acc) node = case node of
   --Entry (AST.Type AST.Types) String [AST.Expression]
@@ -276,7 +291,7 @@ pp_CFG_JML cfg jmlSpecifications = let
         new_maybe_last_node = Just node
         pp_invariants = intercalate "\n"
           $ [res | invariant <- findLoopInvariant id jmlSpecifications
-                 , let res = spaces ++ "//@ " ++ ppLoopInvariantTemplate invariant ++ ";"]
+                 , let res = spaces ++ "//@ " ++ f (ppLoopInvariantTemplate invariant) ++ ";"]
         newAcc = acc ++ pp_invariants ++ "\n" ++
                  replicate indent ' ' ++ CFG.ppNode node ++ " {\n"
         in (newIndent,new_maybe_last_node,else_ids,newAcc)
@@ -308,13 +323,4 @@ pp_CFG_JML cfg jmlSpecifications = let
         _  -> ""
       newAcc = acc ++ replicate indent ' ' ++ ppNode ++ semicolon ++ "\n" ++ closeParentheses
       in (indent,Just node,else_ids,newAcc)
-      {-case nextIds of
-        -- end of method
-        [] -> let
-          
-        -- a return statement happened to exit in the scope of an if or loop
-        -- in this case there's nothing to be done here
-        _ -> let
-          newAcc = acc ++ 
-          in (indent,Just node,else_ids,acc)-}
     _ -> error $ printf "TODO2 in %s:\n  %s\n  %s" innerLoc (show cfg) (show jmlSpecifications)

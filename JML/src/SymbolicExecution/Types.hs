@@ -166,7 +166,6 @@ data SymBinOp
   deriving (Eq, Show)
 
 data SymExpr =
--- | A (tiny) symbolic expression language
     SMethodHandle SymType String
   | SymNum    Float
   | SymInt    Integer             -- ^ concrete integer literal
@@ -294,11 +293,7 @@ data StateChangingCondition =
 
 data LoopExitFact =
     LoopExitFactRange String SymExpr SymExpr
-  | LoopExitFactValue String SymExpr{-
-  | LoopReturnExit
-      LoopExitFact -- loopReturnCondition
-      SymExpr      -- return value
--}
+  | LoopExitFactValue String SymExpr
   | LoopExitFactArrayAccessValue
       String       -- Array name
       SymExpr      -- Element index

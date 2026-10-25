@@ -569,3 +569,14 @@ ppKind = \case
   If -> "if"
   While -> "while"
   For -> "for"
+
+{-
+data CFG = CFG {
+  nodes :: [Node],
+  edges :: [(NodeID,[NodeID])]
+}
+ -}
+ppCFG :: CFG -> String
+ppCFG cfg = "CFG:\n" ++
+  "  nodes:\n    " ++ intercalate "\n    " (map show $ nodes cfg) ++ "\n" ++
+  "  edges:\n    " ++ intercalate "\n    " (map show $ edges cfg)

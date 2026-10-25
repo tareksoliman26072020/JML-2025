@@ -10,8 +10,10 @@ In this JML project called „JML“, there's knowledge and informations which a
 
 *) in the two files 1) and 2) you find an „initial“ output for loops invariants for the methods mentioned in 5)
 *) The file mentioned in 3) is a new representation „LoopPattern“ (read in that file the first small section: Goal Of This Document).
-*) 5) has methods which I'm basing my work on, and in 4) you see the same methods, but with „initial“ JML specifications.
-*) 6) provides informations about the LoopSummary, LoopPattern that are satisfactory for the methods `idByLoop`, `idByLoopStride3`, `idByLoop2`, `halving`
+*) 5) has methods which I'm basing my work on, and in 4) you see the same methods, but with „initial“ JML specifications. However, I'm working on methods that are not mentioned there too.
+*) 6) provides informations about the LoopSummary, LoopPattern that are satisfactory for the methods `idByLoop`, `idByLoopStride3`, `idByLoop2`, `halving`, `contains`
+
+Mainly, observe the methods in the file `test3.java` and consider them the basis of work on the next methods.
 
 The five files (from 1) to 5)) may be outdated in some sections, but in majority they are a decent representation. This is to be noticed by going throught the other chats in this project, mainly the following 4 chats:
   4) Loop Invariants Review
@@ -19,6 +21,7 @@ The five files (from 1) to 5)) may be outdated in some sections, but in majority
   5.2) idByLoopStride3
   5.3) idByLoop2
   5.4) halving
+  5.5) contains
 
 For the sake of accuracy in this chat, LoopSummary, LoopPattern, LoopInvariantTemplate look like this (all the provided data types below are a subject of getting extended by you if necessary to provide correct and thorough answers. The addition can be based on files attached in this project, or invented by you):
 ```haskell
@@ -40,7 +43,6 @@ data SymBinOp
   deriving (Eq, Show)
 
 data SymExpr =
--- | A (tiny) symbolic expression language
     SMethodHandle SymType String
   | SymNum    Float
   | SymInt    Integer             -- ^ concrete integer literal
@@ -83,6 +85,10 @@ data SymExpr =
   | SymPreScope CFGT.ScopeRange (SymType,String) -- ^ Value of the expression prior to a scope.
   deriving (Eq,Show)
 
+-- declared for the sake of `SymVar` in `SymExpr`
+-- the goal is to attach infos about the context of the variable when necessary
+data VarInfo = ForAccumulator CFGT.ScopeRange SymExpr deriving (Show,Eq)
+
 type SymReason = ([(CFGT.Kind,CFGT.ScopeRange)],Int)
 
 data SymType = Int | Double | Float | Bool | Void | Array SymType | String 
@@ -121,8 +127,9 @@ data LoopSummary = LoopSummary {
   -- The initial loop guard which should be met so that the loop gets iterated
   , loopEnteringCondition :: Maybe SymExpr
   , loopSkipCondition :: Maybe SymExpr
-  , loopExitingConditions :: [SymExpr]
-  , loopExitViaBreakConditions :: [SymExpr]
+  , loopExitingConditions :: [(CFGT.Node_Coor,SymExpr)]
+  , loopExitViaBreakFacts :: [StateChangingConditions]
+  , loopExitViaReturnFacts :: [(StateChangingConditions,(CFGT.Node_Coor,Maybe SymExpr))]
   -- The variables that function as loop counters or induction variables.
   -- A loopCounter is a variable whose value represents loop progress.
   -- Usually it is an induction variable:
@@ -131,23 +138,43 @@ data LoopSummary = LoopSummary {
   --   3) updated predictably in the loop,
   --   4) and used to define bounds, processed ranges, or termination.
   , loopCounters :: [String]
+  -- arrays that are accessed via loop counters
+  , dynamicallyAccessedArrays :: [
+      (SymType,  -- array type
+       String,   -- array name
+       [(CFGT.Node_Coor,String)]) -- loop counters used to access the array
+      ]
   -- Local variables assigned inside the loop
   , loopAssignments :: [String]
   -- Records whether a effected vars increases, decreases, moves conditionally, or does not really change, and how much the var changes per iteration.
   , loopFrameTargetsDevelopmentTrajectory :: [(String,SymExprDevelopmentTrajectory)]
   -- inferring how the loopFrameTargets end up looking like when the loop is exited
-  , loopExitFacts :: [LoopExitFact]
+  , loopExitFacts :: [(CFGT.Node_Coor,LoopExitFact)]
   -- Lower and upper bounds for each counter.
-  , loopCountersBounds :: [(SymExpr,String,SymExpr)]
+  , loopCountersBounds :: [(SymExpr,(SymType,String),SymExpr)]
   -- how the loop bound changes during the loop
   , loopBoundStabilityFacts :: [(SymExpr,SymExprDevelopmentTrajectory)]
   -- Candidate termination variant
   , loopDecreasesCandidate :: [SymExpr]
 } deriving (Show,Eq)
 
+type StateChangingConditions = [(Maybe CFGT.Node_Coor,StateChangingCondition)]  -- Conditions represent a conjunction of conditions
+
+data StateChangingCondition =
+   ElemInArray
+     String                -- array
+     SymExpr               -- counter
+     SymExpr               -- value to exclude
+ | Condition SymExpr     -- a singular condition
+ deriving (Show,Eq)
+
 data LoopExitFact =
     LoopExitFactRange String SymExpr SymExpr
   | LoopExitFactValue String SymExpr
+  | LoopExitFactArrayAccessValue
+      String       -- Array name
+      SymExpr      -- Element index
+      SymExpr      -- value
   deriving (Show,Eq)
 
 data SymExprDevelopmentTrajectory =
@@ -194,7 +221,15 @@ data BoundPattern
   deriving (Eq, Show)
 
 data TraversalPattern
-  = ArrayScan
+  = ArrayScan (String,[String])
+                      -- ArrayScan == There is a sequence of elements that being visited.
+                      --   1) because there is an array access expression
+                      --      via a dynamically changeable expression (a loop counter).
+                      --   2) because the counters which allow dynamic access to an array (i.e. "i") increase or decrease monotonically.
+                      --   3) and because The guard or another proven invariant
+                      --      keeps the index within a logical array range
+                      --      , typically: i < a.length
+                      -- indicators: loopFrameTargetsDevelopmentTrajectory, dynamicallyAccessedArrays
   | PrefixProperty
   | SourceUnchanged
   deriving (Eq, Show)
@@ -215,14 +250,26 @@ data AccumulatorPattern
   deriving (Eq, Show)
 
 data SearchPattern
-  = LinearSearch
+  = LinearSearch (StateChangingConditions,(CFGT.Node_Coor,Maybe SymExpr))
+                          -- LinearSearch == An element in an array is being tested against a search predicate at a time.
+                          -- because there's an array access, which is dynamically accessed
+                          --   that is present in a condition,
+                          --   which lead to the termination of the loop
+                          -- Linearsearch =
+                          --   1) ArrayScan
+                          --      +
+                          --   2) loopExitViaReturnFacts (due to the array that is scanned)
+                          -- indicators: dynamicallyAccessedArrays, loopExitViaBreakFacts, loopExitViaReturnFacts
+                          --   Because the arrays that is dynamically getting accessed
+                          --           is the reason why the loop is terminated
   | FirstIndexSearch
   | BooleanPredicateScan
   | BinarySearch
   deriving (Eq, Show)
 
 data ControlFlowPattern
-  = EarlyReturn
+  = EarlyReturn (StateChangingConditions,(CFGT.Node_Coor,Maybe SymExpr))
+                            -- EarlyReturn == When the search predicate succeeds, the execution of the loop does not continue to the next iteration.
   | BreakExit SymExpr
   | ContinuePath
   | ThrowExit
@@ -232,6 +279,7 @@ data LoopSummaryTag =
    LoopInitFacts
  | LoopGuard
  | LoopCounters
+ | DynamicallyAccessedArrays
  | LoopCountersBounds
  | LoopFrameTargetsDevelopmentTrajectory
  | LoopBoundStabilityFacts
@@ -242,7 +290,8 @@ data LoopSummaryTag =
  | LoopEnteringCondition
  | LoopSkipCondition
  | LoopExitingConditions
- | LoopExitViaBreakConditions
+ | LoopExitViaBreakFacts
+ | LoopExitViaReturnFacts
  | LoopExitFact
  deriving (Show,Eq)
 ```
@@ -259,6 +308,12 @@ data Maintaining_LoopInvariantTemplate
       String  -- counter
       Expr    -- stride
       Expr    -- residue
+  | SearchExclusionTemplate  -- occurs in case of early return and linear search
+                             -- this means that the loop is exited via a return statement
+                             -- when a condition is met
+      QuantifiedExpr
+      (CFGT.Node_Coor, -- means of terminating
+       Maybe Expr)     -- its coordinates
   | MovingBoundRelationTemplate String Expr
   | CounterLowerBoundTemplate Expr String
   | GuardedInvariantTemplate Expr Expr

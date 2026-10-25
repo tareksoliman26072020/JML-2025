@@ -1,6 +1,22 @@
 /*
 method: idByLoop
 
+CFG:
+  nodes:
+    Entry (BuiltInType Int) "idByLoop" [VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "n"}]
+    Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}
+    Node {id = 2, nodeData = BooleanExpression While (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "n"}})), parent = 0}
+    Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}}), parent = 2}
+    Node {id = 4, nodeData = Meet While, parent = 0}
+    End {id = 5, parent = 0, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}
+  edges:
+    (0,[1])
+    (1,[2])
+    (2,[3,4])
+    (3,[2])
+    (4,[5])
+
+
 LoopSummary:
   loopSyntax: WhileSyntax
   loopReadOnlyVars: ["n"]
@@ -81,6 +97,22 @@ int idByLoop (int n) {
 
 /*
 method: idByLoopStride3
+
+CFG:
+  nodes:
+    Entry (BuiltInType Int) "idByLoopStride3" [VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "n"}]
+    Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}
+    Node {id = 2, nodeData = BooleanExpression While (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "n"}})), parent = 0}
+    Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 3.0}}}), parent = 2}
+    Node {id = 4, nodeData = Meet While, parent = 0}
+    End {id = 5, parent = 0, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}
+  edges:
+    (0,[1])
+    (1,[2])
+    (2,[3,4])
+    (3,[2])
+    (4,[5])
+
 
 LoopSummary:
   loopSyntax: WhileSyntax
@@ -168,6 +200,28 @@ int idByLoopStride3 (int n) {
 
 /*
 method: idByLoop2
+
+CFG:
+  nodes:
+    Entry (BuiltInType Int) "idByLoop2" [VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "n"}]
+    Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}
+    Node {id = 2, nodeData = BooleanExpression While (Just (BoolLiteral True)), parent = 0}
+    Node {id = 3, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = >=, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "n"}})), parent = 2}
+    Node {id = 4, nodeData = Statement BreakStmt, parent = 3}
+    Node {id = 5, nodeData = Meet If, parent = 2}
+    Node {id = 6, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}}), parent = 2}
+    Node {id = 7, nodeData = Meet While, parent = 0}
+    End {id = 8, parent = 0, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}
+  edges:
+    (0,[1])
+    (1,[2])
+    (2,[3,7])
+    (3,[4,5])
+    (4,[5])
+    (5,[6])
+    (6,[2])
+    (7,[8])
+
 
 LoopSummary:
   loopSyntax: WhileSyntax
@@ -257,6 +311,24 @@ int idByLoop2 (int n) {
 
 /*
 method: halving
+
+CFG:
+  nodes:
+    Entry (BuiltInType Int) "halving" [VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "n"}]
+    Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}
+    Node {id = 2, nodeData = BooleanExpression While (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "n"}})), parent = 0}
+    Node {id = 3, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "n"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "n"}, binOp = -, expr2 = NumberLiteral 1.0}}}), parent = 2}
+    Node {id = 4, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}}), parent = 2}
+    Node {id = 5, nodeData = Meet While, parent = 0}
+    End {id = 6, parent = 0, mExpr = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}
+  edges:
+    (0,[1])
+    (1,[2])
+    (2,[3,5])
+    (3,[4])
+    (4,[2])
+    (5,[6])
+
 
 LoopSummary:
   loopSyntax: WhileSyntax
@@ -352,6 +424,28 @@ int halving (int n) {
 /*
 method: contains
 
+CFG:
+  nodes:
+    Entry (BuiltInType Boolean) "contains" [VarExpr {varType = Just (ArrayType {baseType = BuiltInType Int}), varObj = [], varName = "a"},VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "x"}]
+    Node {id = 1, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}
+    Node {id = 2, nodeData = BooleanExpression While (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = <, expr2 = VarExpr {varType = Nothing, varObj = ["a"], varName = "length"}})), parent = 0}
+    Node {id = 3, nodeData = BooleanExpression If (Just (BinOpExpr {expr1 = ArrayCallExpr {arrName = VarExpr {varType = Nothing, varObj = [], varName = "a"}, index = Just (VarExpr {varType = Nothing, varObj = [], varName = "i"})}, binOp = ==, expr2 = VarExpr {varType = Nothing, varObj = [], varName = "x"}})), parent = 2}
+    End {id = 4, parent = 3, mExpr = Just (BoolLiteral True)}
+    Node {id = 5, nodeData = Meet If, parent = 2}
+    Node {id = 6, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Nothing, varObj = [], varName = "i"}, assEright = BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = +, expr2 = NumberLiteral 1.0}}}), parent = 2}
+    Node {id = 7, nodeData = Meet While, parent = 0}
+    End {id = 8, parent = 0, mExpr = Just (BoolLiteral False)}
+  edges:
+    (0,[1])
+    (1,[2])
+    (2,[3,7])
+    (3,[4,5])
+    (4,[5])
+    (5,[6])
+    (6,[2])
+    (7,[8])
+
+
 LoopSummary:
   loopSyntax: WhileSyntax
   loopReadOnlyVars: ["a","x"]
@@ -435,8 +529,8 @@ boolean contains (int[] a, int x) {
   int i = 0;
   //@ maintaining 0 <= i && i <= a.length;
   //@ maintaining (\\forall int k1;
-        0 <= k1 && k1 < i && k1 < a.length;
-          a[k1] != x);
+  //    0 <= k1 && k1 < i && k1 < a.length;
+  //      a[k1] != x);
   //@ loop_assigns i;
   //@ decreases a.length - i;
   while(i<a.length) {

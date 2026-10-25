@@ -334,7 +334,11 @@ createTest3 fileName destinationFileName = do
         (methodName,(cfg,se,sy_li,loopsInvariants,pp)) <- res0
         [printf "/*\n%s\n*/\n\n\n%s\n\n%s\n" res pp (unlines $ replicate 3 $ replicate 50 '/')
            | (loopSummary,loopPatterns) <- sy_li
-           , let res = "method: " ++ methodName ++ "\n\n" ++ SY.PP.ppLoopSummary loopSummary ++ "\n\n\n" ++ SY.PP.ppLoopPatterns loopPatterns ++ "\n\n\n" ++ intercalate "\n" (map JML.PP.ppLoopInvariants loopsInvariants)
+           , let res = "method: " ++ methodName ++ "\n\n" ++
+                       CFG2.ppCFG cfg ++ "\n\n\n" ++
+                       SY.PP.ppLoopSummary loopSummary ++ "\n\n\n" ++
+                       SY.PP.ppLoopPatterns loopPatterns ++ "\n\n\n" ++
+                       intercalate "\n" (map JML.PP.ppLoopInvariants loopsInvariants)
            ]
   writeFile destinationFileName $ unlines res
      
