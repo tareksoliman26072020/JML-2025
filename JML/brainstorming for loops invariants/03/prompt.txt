@@ -1,4 +1,4 @@
-In this chat, the main focus is getting JML syntax for the method „contains“, especially how the loop invariants look like, and how they affect the overall JML specifications of the method.
+In this chat, the main focus is getting JML syntax for the method „contains2“, especially how the loop invariants look like, and how they affect the overall JML specifications of the method.
 
 In this JML project called „JML“, there's knowledge and informations which are the stepping stone for this current chat. There informations are to be found in this project's source files:
 1) loop_invariant_missions_idByLoop2_halving.md

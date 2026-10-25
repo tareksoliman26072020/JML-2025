@@ -15,18 +15,19 @@ import qualified SymbolTable.SymbolTableCreator as ST (exec)
 import qualified SymbolTable.Types as STT (Entry,showEntry)
 
 import qualified CFG.CFG as CFG1 (exec)
-import qualified CFG.Internal as CFG2-- (findCFGByName, getPath, getCFGName, findNode_via_id, getPathToScope)
-import qualified CFG.Types as CFGT-- (CFG(..), showCFG, Node(..), ScopeRange(..), Kind(..), NodeData(..))
+import qualified CFG.Internal as CFG2
+import qualified CFG.Types as CFGT
 
 import qualified SymbolicExecution.Types as SYT
 import qualified SymbolicExecution.Method as SYM (runCFG)
 import qualified SymbolicExecution.Logs.PrettyPrint as SY.PP.Log
 import qualified SymbolicExecution.Internal.Math.Calculator as SY.Calculator
 import qualified SymbolicExecution.Internal.Internal as SY.Internal (cast, toSymType2, getFunName, modifyVoidMethod, getVarNames3)
+import qualified SymbolicExecution.PrettyPrint as SY.PP
 
 import qualified JML.Types as JMLT
 import qualified JML.Internal.Internal as JML.Internal
-import qualified JML.PrettyPrint as JML.PP (ppBehaviors, pp_CFG_JML)
+import qualified JML.PrettyPrint as JML.PP (ppBehaviors, pp_CFG_JML, ppLoopInvariants)
 import qualified JML.Logs.Log as JML.Log (Log)
 import qualified JML.Logs.PrettyPrint as JML.PP.Log (ppLogs, LogKind(Console))
 import qualified JML.Method as JML (runSE)
@@ -40,6 +41,7 @@ import Text.Printf (printf)
 
 import SymbolicExecution.Internal.Math.Isolator (isolate, run_isolate, IsolationFailureReason)
 import qualified SymbolicExecution.Logs.Log as Log (Log, Header(..))
+import Control.Monad (forM_)
 import Control.Monad.Except
 import Control.Monad.Writer
 import Control.Monad.Reader
@@ -296,6 +298,69 @@ printJMLMethod0 fileName funName withLogs = do
 
 printJMLMethod :: String -> Bool -> IO JMLT.Method
 printJMLMethod funName withLogs = printJMLMethod0 "test1.java" funName withLogs
+
+-----------------------------
+
+createTest3 :: String -> String -> IO ()
+createTest3 fileName destinationFileName = do
+  unparsed <- readFile fileName
+  let loc = "Main.printJMLMethod0.createTest3"
+  let parsed :: [AST.Method]
+      parsed = fromRight undefined (parse parseDeclList "" unparsed)
+            
+      cfgs_ses :: [(CFGT.CFG,SYT.SymbolicExecution)]
+      cfgs_ses = do
+        let cfgs = map CFG1.exec parsed
+        cfg <- cfgs
+        let (_,_,_,s) = SYM.runCFG cfgs cfg Nothing Nothing
+        return (cfg,s)
+
+      ses :: [SYT.SymbolicExecution]
+      ses = map snd cfgs_ses
+      
+      res0 :: [(String,(CFGT.CFG,SYT.SymbolicExecution,[(SYT.LoopSummary,[SYT.LoopPattern])],[JMLT.LoopInvariants],String))]
+      res0 = [(methodName,(cfg,se,sy_li,loopsInvariants,pp))
+        | (cfg,se) <- cfgs_ses
+        , let SYT.SMethodHandle _ methodName = se Map.! SYT.MethodHandle
+        , let sy_li = Map.foldl' folding_se [] se
+        , let (_,_,jmlState) = JML.runSE (JML.Internal.se_2_map ses) se
+        , let jmlSpecs = JMLT.jmlSpecifications $ JMLT.method jmlState
+        , let loopsInvariants = [loopInvariants
+                | JMLT.LoopSpecification loopInvariants <- jmlSpecs]
+        , let pp = JML.PP.pp_CFG_JML cfg jmlSpecs
+        ]
+      
+      res :: [String]
+      res = do
+        (methodName,(cfg,se,sy_li,loopsInvariants,pp)) <- res0
+        let sy_li_pp = [res
+              | (loopSummary,loopPatterns) <- sy_li
+              , let res = SY.PP.ppLoopSummary loopSummary ++ "\n\n" ++ SY.PP.ppLoopPatterns loopPatterns
+              ]
+        let loopsInvariants_pp = map JML.PP.ppLoopInvariants loopsInvariants
+        return []
+  forM_ res0 $ \(methodName,(cfg,se,sy_li,loopsInvariants,pp)) -> do
+    putStrLn methodName
+    putStrLn ""
+    forM_ sy_li $ \(loopSummary,loopPatterns) -> do
+      print loopSummary
+      putStrLn ""
+      print loopPatterns
+    putStrLn ""
+    print loopsInvariants
+    putStrLn ""
+    putStrLn pp
+    putStrLn "===================="
+  where
+  folding_se :: [(SYT.LoopSummary,[SYT.LoopPattern])] -> SYT.SymbolicExecutionValue -> [(SYT.LoopSummary,[SYT.LoopPattern])]
+  folding_se acc = \case
+    SYT.SLoop _ _ _ maybeLoopSummary loopPatternsLi -> case maybeLoopSummary of
+      Nothing -> acc
+      Just loopSummary -> let
+        loopPatterns = [loopPattern
+          | (loopPattern,_) <- loopPatternsLi]
+        in acc ++ [(loopSummary,loopPatterns)]
+    _ -> acc
 
 -----------------------------
 

@@ -84,12 +84,13 @@ instance SymbolicExecutionVisitor MethodProcessor where
     (SYT.Return,symExpr) -> do
       let loc = globalLoc ++ ".visitSymExpr.Return " ++ show symExpr
       tellNextLog $ Log.Location loc (show tu)
-      ers <- executionResults <$> get
-      let earlyReturnInvariantTemplates = [res
-            | ER_LoopSummary _ loopInvariantTemplates _ _ <- ers
-            , let res = [al
-                    | al@(Maintaining (SearchExclusionTemplate _ _)) <- loopInvariantTemplates]
-            ]
+      earlyReturnInvariantTemplates <- do
+        ers <- executionResults <$> get
+        return $ filter (not . null) [res
+              | ER_LoopSummary _ loopInvariantTemplates _ _ <- ers
+              , let res = [al
+                      | al@(Maintaining (SearchExclusionTemplate _ _)) <- loopInvariantTemplates]
+              ]
       let toReturn = ER_Return symExpr earlyReturnInvariantTemplates
       tellingThenReturning loc toReturn
     -----------------------------

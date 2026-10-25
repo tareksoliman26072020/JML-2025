@@ -167,7 +167,9 @@ data ExecutionResult =
   | ER_VarName String SYT.SymbolicExecutionValue (Maybe (CFGT.ScopeRange,Expr))
   | ER_VarName_Unassigned String SYT.SymbolicExecutionValue (Maybe (CFGT.ScopeRange,Expr))
   | ER_ReturnException String
-  | ER_Return SYT.SymbolicExecutionValue [[LoopInvariantTemplate]]
+  | ER_Return SYT.SymbolicExecutionValue
+              [[LoopInvariantTemplate]] -- each inner list represents a previous loop
+                                        -- which has an early return
   | ER_ReturnVoid
   | ER_Actions Expr
   | ER_IfThenElse (Maybe String,CFGT.ScopeRange)

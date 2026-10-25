@@ -197,6 +197,9 @@ ppBehaviors behaviors =
   let res = intercalate "\n  @ also\n  " $ map ppBehavior behaviors
   in "/*" ++ res ++ "\n  @*/"
 
+ppLoopInvariants :: LoopInvariants -> String
+ppLoopInvariants = undefined
+
 ppLoopInvariantTemplate :: LoopInvariantTemplate -> String
 ppLoopInvariantTemplate template = let
   loc = "JML.PrettyPrint" in
