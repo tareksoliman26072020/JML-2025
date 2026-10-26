@@ -143,6 +143,7 @@ data ExecutionResult =
                                 -- due to the presence of previous return statement
                                 -- in a scope or more
   | ER_ActualParameterDetected String SymExpr
+  | ER_ArrayAccess (SymType,String,SymExpr)
   deriving (Show,Eq)
 
 instance MonadFail (Either String) where
@@ -186,7 +187,8 @@ data SymExpr =
 
   | SymNull SymType               -- ^ value of an unassigned variable
   | SymVar SymType String [VarInfo]
-  | SymArrayAccess [(Either SymExpr (SymType,String,SymExpr)
+  | SymArrayAccess
+                   [(Either SymExpr (SymType,String,SymExpr)
                     ,Maybe (SymType,String,SymExpr)
                     ,Either SymExpr (SymType,String,SymExpr))]
                                   -- ^ False = Left Operand, True = Right Operand

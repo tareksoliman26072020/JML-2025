@@ -355,7 +355,8 @@ arrayElementSymType = \case
 
 -- get SymType via SymExpr
 toSymType2 :: SymExpr -> SymType
-toSymType2 = \case
+toSymType2 expr = let
+  loc = "SymbolicExecution.Internal.Internal.toSymType2" in case expr of
   SymInt _ -> Int
   SymDouble _ -> Double
   SymFloat _ -> Float
@@ -373,15 +374,20 @@ toSymType2 = \case
   SymNum _ -> UnknownNumSymType
   SymString _ -> String
   SException symType _ _ -> symType
+  SymArray mt _ li -> case maybe [] ((: []) . id) mt ++ map toSymType2 li of
+    [] -> error $ constructErrorMsg loc "TODO2" [
+      ("mt",show mt),
+      ("li",show li)]
+    aList -> Array $ pick_known_symType2 aList{-
   SymArray mt _ li -> Array $
-    pick_known_symType2 $ maybe [] ((: []) . id) mt ++ map toSymType2 li
+    pick_known_symType2 $ maybe [] ((: []) . id) mt ++ map toSymType2 li-}
   SymFun t symExpr
     | t == ToString -> String
     | otherwise -> toSymType2 symExpr
   SArrayIndexAccess (Array arrElemType) _ _ -> arrElemType
   SArrayIndexAccess arrType _ _ -> error $ "TODO3: toSymType2 ==> Why is this not of Array Type?: " ++ show arrType
   --SLoopFailure (SR {branchStart = 2, branchEnd = 6}) 20
-  symExpr -> error $ "TODO3: toSymType2 ==> " ++ show symExpr
+  _ -> error $ "TODO4: toSymType2 ==> " ++ show expr
 
 pick_known_symType :: (SymType,SymType) -> SymType
 pick_known_symType = \case
@@ -752,6 +758,9 @@ newType: Int,
 er: ER_SymStateMapEntry (VarName "y") (SymVar UnknownNumSymType "y")
  -}
   let loc = "SymbolicExecution.Internal.inferGlobalVarType"
+  let logContents = [
+        ("newType",show newType),
+        ("er",show er)]
   tellNextLog $ Log.Affected loc ["SymType: " ++ show newType , "ExecutionResult: " ++ show er]
   case getSummarized_er er of
     ER_Summary _ innerIr -> inferGlobalVarType newType innerIr
@@ -791,7 +800,7 @@ er: ER_SymStateMapEntry (VarName "y") (SymVar UnknownNumSymType "y")
                     newType2 = let
                       li = maybe [] (: []) mNewVarType ++ (map toSymType2 innerSymExprs)
                       in case li of
-                           [] -> error $ constructErrorMsg loc "TODO" [--MEOW
+                           [] -> error $ constructErrorMsg loc "TODO" [
                             ("symExpr",show symExpr),
                             ("innerSymExprs",show innerSymExprs)]
                            _ -> pick_known_symType2 li 
@@ -867,16 +876,30 @@ getSymType2 vn symExpr = let
     SBool _ -> Nothing
     SymString _ -> Nothing
     SObjAcc _ -> Nothing
-    SymArrayAccess li -> foldl' (\acc (one,_,three) -> let
+    SymArrayAccess li -> foldl' (\acc (one,two,three) -> let
       f ei = case ei of
-        Left _ -> Nothing
+        Left symExpr2 -> getSymType2 vn symExpr2
         Right (t,vn2,_)
           | vn == vn2 -> Just t
           | otherwise -> Nothing
-      li2 = catMaybes [f one,acc,f three] in
+      g m = case m of
+        Just (t,vn2,_)
+          | vn == vn2 -> Just t
+          | otherwise -> Nothing
+        Nothing -> Nothing
+      li2 = catMaybes [f one,g two,f three,acc] in
       case li of
         [] -> Nothing
-        _  -> Just $ pick_known_symType2 li2) Nothing li
+        _ | null li2 -> Nothing{-
+        _ | null li2 -> error $ constructErrorMsg loc "TODO1" [
+              ("vn",vn),
+              ("li",show li),
+              ("li2",show li2),
+              ("acc",show acc),
+              ("one",show one),
+              ("two",show two),
+              ("three",show three)]-}
+          | otherwise -> Just $ pick_known_symType2 li2) Nothing li
     SBin expr1 op expr2 -> let
       tu = (getSymType2 vn expr1,getSymType2 vn expr2) in if
       | op `elem` [Eq,Neq,Lt,Le,Gt,Ge,And,Or] -> case tu of
@@ -902,7 +925,10 @@ getSymType2 vn symExpr = let
       in pick_known_symType4 [one,two,three]
     SLoop _ _ _ _ _ -> Nothing
     SymReturnVoid -> Nothing
-    _ -> error $ constructErrorMsg loc "TODO" logContents where
+    SArrayIndexAccess t vn2 _
+      | vn == vn2 -> Just t
+      | otherwise -> Nothing
+    _ -> error $ constructErrorMsg loc "TODO2" logContents where
 
 -- get the SymType of the array mentioned in the condition
 -- So far this is being used only in `JML.Internal.LoopInvariants.inferSearchExclusionTemplates`
@@ -1792,6 +1818,28 @@ stateChangingCondition_2_symExprs symType = \case
   ElemInArray arrayName counterSymExpr value_2_exclude ->
     SBin (SArrayIndexAccess symType arrayName counterSymExpr) Eq value_2_exclude
   Condition symExpr -> symExpr
+
+-- This function checks if an expression accesses an array,
+-- and if so, then it's a right. If not, then Left
+ifArrayIsAccessed :: ExecutionResult -> Either SymExpr (SymType,String,SymExpr)
+ifArrayIsAccessed er = let
+  loc = "SymbolicExecution.Internal.Internal.ifArrayIsAccessed"
+  logContents = [("er",show er)]
+  in case er of
+    ER_ArrayCallExpr callExpr _ -> ifArrayIsAccessed2 callExpr
+    _ -> Left $ case getSymExpr er of
+      Just symExpr -> symExpr
+      Nothing -> error $ constructErrorMsg loc "TODO" [("er",show er)]
+
+ifArrayIsAccessed2 :: SymExpr -> Either SymExpr (SymType,String,SymExpr)
+ifArrayIsAccessed2 symExpr = let
+  loc = "SymbolicExecution.Internal.Internal.ifArrayIsAccessed2"
+  logContents = [("symExpr",show symExpr)] in
+  case symExpr of
+    SArrayIndexAccess arrType arrName indexSymExpr
+      | isConstant indexSymExpr -> Left symExpr
+      | otherwise -> Right (arrType,arrName,indexSymExpr)
+    _ -> error $ constructErrorMsg loc "TODO" logContents
 
 -------------------
 -------------------

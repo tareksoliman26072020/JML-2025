@@ -97,11 +97,12 @@ printSymState0 :: String -> String -> Bool -> IO SYT.SymbolicExecution
 printSymState0 fileName funName withLogs = readFile fileName >>=
   (\cfgs -> case CFG2.findCFGByName funName cfgs of
               Just cfg0 ->
-                let (er,logs,_,s) = SYM.runCFG cfgs cfg0 Nothing Nothing
+                let (er,logs,ers,s) = SYM.runCFG cfgs cfg0 Nothing Nothing
                 in case er of
                      "" -> do if withLogs
                                 then putStrLn $ (SY.PP.Log.ppLogs SY.PP.Log.Console logs)
                                 else return ()
+                              putStrLn "ExecutionResults:\n" >> print ers <* putStrLn ""
                               return s
                                         
                      _  -> do if withLogs

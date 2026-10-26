@@ -1155,7 +1155,7 @@ visitExpr nodeCoor expr@AST.BinOpExpr{} = do
     incrementLogDepth *>
       censor (map $ \(Log.Log num tag) -> Log.Log num $ Log.Nested "Right operand" tag)
              (visitExpr nodeCoor (AST.expr2 expr)) <* decrementLogDepth
-
+  
   let mOne = getSymExpr er_one
       mTwo = getSymExpr er_two
   case (mOne,mTwo) of
@@ -1188,6 +1188,10 @@ visitExpr nodeCoor expr@AST.UnOpExpr{} = throwError "visitExpr ==> UnOpExpr ==> 
 visitExpr nodeCoor expr@AST.AssignExpr{} = do
   let loc = "SymbolicExecution.Method.visitExpr.AssignExpr"
   tellNextLog $ Log.Expression_2_Handle (show expr) loc
+  -- `one` and `two` may have `ArrayAccess`,
+  -- and if that is so, then they have to be reversed to originalArrayAccess,
+  -- because they'll be formatted and added differently
+  originalArrayAccess :: Maybe SymExpr <- (Map.lookup ArrayAccess . env) <$> get
 
   one <- do
     incrementLogEnumeration
@@ -1203,6 +1207,12 @@ visitExpr nodeCoor expr@AST.AssignExpr{} = do
              (visitExpr nodeCoor (AST.assEright expr))
         <* decrementLogDepth
 
+  modify $ \symState -> SymState {
+    env = Map.alter (const originalArrayAccess) ArrayAccess (env symState),
+    executionResults = executionResults symState,
+    logHeader = logHeader symState
+  }
+  
   let logContents = [
           ("expr",show expr)
         , ("one",show one)
@@ -1210,22 +1220,9 @@ visitExpr nodeCoor expr@AST.AssignExpr{} = do
         ]
   -- if either one or two is ER_ArrayCallExpr,
   -- then we want to record this in the state „ArrayAccess“
-  do
-     let f :: SymExpr -> Either SymExpr (SymType,String,SymExpr)
-         f callExpr = case callExpr of
-             SArrayIndexAccess arrType arrName indexSymExpr
-               | isConstant indexSymExpr -> Left callExpr
-               | otherwise -> Right (arrType,arrName,indexSymExpr)
-             _ -> error $ constructErrorMsg loc "TODO1" logContents
-     let g er = case er of
-           ER_ArrayCallExpr callExpr _ -> f callExpr
-           _ -> Left $ case getSymExpr er of
-             Just symExpr -> symExpr
-             Nothing -> error $ constructErrorMsg loc "TODO2" [("er",show er)]
-     let newElem :: (Either SymExpr (SymType,String,SymExpr)
-                    ,Maybe (SymType,String,SymExpr)
-                    ,Either SymExpr (SymType,String,SymExpr))
-         newElem = (g one,Nothing,g two)
+  do let newElem = (ifArrayIsAccessed one,
+                    Nothing :: Maybe (SymType,String,SymExpr),
+                    ifArrayIsAccessed two)
      let which = case newElem of
            (Right _ ,_,Right _) -> "both"
            (Right _  ,_,Left _)  -> "left"
@@ -1250,6 +1247,7 @@ visitExpr nodeCoor expr@AST.AssignExpr{} = do
            logHeader = logHeader symState
          }
      constructLog loc logTag [("one",show one),("two",show two),("newElem",show newElem)]
+
   -- one_val's sole purpose is its type
   -- one_svn is important to find key in the map
   let (one_svn,one_val,(leftOpKeyStr,leftOpValStr)) = case getSummarized_er one of
@@ -1431,6 +1429,7 @@ visitExpr nodeCoor expr@AST.VarExpr{} = do
       let toReturn = ER_VarExprObjAccess (intercalate "." $ li ++ [AST.varName expr]) (objAccCalculator (getVarNames stateEnv) symExpr0)
       tellNextLog (Log.Return "visitExpr ==> VarExpr" (show toReturn)) $> toReturn
 
+
 -- ArrayCallExpr {arrName :: Expression, index :: Maybe Expression}
 {-
 ArrayCallExpr {
@@ -1476,6 +1475,20 @@ visitExpr nodeCoor expr@AST.ArrayCallExpr{} = do
   let symExprCall = SArrayIndexAccess arrType arrName index_er
       symExprVal = objAccCalculator varNames symExprCall
   let toReturn = ER_ArrayCallExpr symExprCall symExprVal
+  -- array has been accessed, and this needs to be recorded
+  do let newElem :: (Either SymExpr (SymType,String,SymExpr)
+                    ,Maybe (SymType,String,SymExpr)
+                    ,Either SymExpr (SymType,String,SymExpr))
+         newElem = (Left symExprCall,Just (arrType,arrName,index_er),Left symExprVal)
+     tellNextLog $ Log.ModifyState loc ("ArrayAccess","newElem: " ++ show newElem)
+     modify $ \symState -> SymState {
+       env = Map.alter (\case
+         Just (SymArrayAccess li) -> Just $ SymArrayAccess $ li ++ [newElem]
+         Nothing -> Just $ SymArrayAccess [newElem])
+         ArrayAccess (env symState),
+       executionResults = executionResults symState,
+       logHeader = logHeader symState
+     }
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn
 
 visitExpr nodeCoor expr@(AST.BoolLiteral b) = do
@@ -2139,6 +2152,7 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
                  ) (VarName vn) ma
           ) map_withVarAssignments forBody_Some_VarNames
 
+  s <- env <$> get
   loopSummary <- do
     incrementLogEnumeration
     incrementLogDepth *>
@@ -2520,7 +2534,6 @@ runCFG cfgs cfg mPath mSymState =
       run_s :: ((Either String [ExecutionResult],[Log.Log]),SymState)
       run_s@((er,logs),s) = runState run_w initialSymState
       
-  --in either (const undefined) ({-id-}\r -> error $ constructErrorMsg loc "MEOW" [("r",show r)]) er
   in (either id (const "") er
      ,logs
      ,either (const []) (const $ executionResults s) er
