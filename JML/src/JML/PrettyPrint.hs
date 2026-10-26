@@ -7,7 +7,7 @@ import Data.Char (isSpace)
 import Text.Printf (printf)
 import qualified SymbolicExecution.Types as SYT (SymExprDevelopmentTrajectory(..))
 import qualified CFG.Types as CFGT (CFG(..), Node(..), NodeData(..), Kind(..), ScopeRange(..))
-import qualified CFG.Internal as CFG (ppNode,getEdge)
+import qualified CFG.Internal as CFG (ppNode,getEdge,getForStep_via_parentId)
 
 loc :: String
 loc = "JML.PrettyPrint.ppBehavior"
@@ -310,6 +310,22 @@ pp_CFG_JML cfg jmlSpecifications = let
           [_,x] -> [x]
           [_] -> []
         in (newIndent,new_maybe_last_node,else_ids ++ else_id,newAcc)
+      ---
+      CFGT.ForInitialization _ -> let
+        new_maybe_last_node = Just node
+        newAcc = acc
+          ++ replicate indent ' ' ++ "for(" ++ CFG.ppNode node ++ "; "
+        in (indent,new_maybe_last_node,else_ids,newAcc)
+      ---
+      CFGT.BooleanExpression CFGT.For _ -> let
+        new_maybe_last_node = Just node
+        parentId = CFGT.parent node
+        forStepNode = CFG.getForStep_via_parentId cfg parentId
+        newIndent = indent + 2
+        newAcc = acc ++ CFG.ppNode node ++ "; " ++ CFG.ppNode forStepNode ++ ") {\n"
+        in (newIndent,new_maybe_last_node,else_ids,newAcc)
+      ---
+      CFGT.ForStep _ -> (indent,maybe_last_node,else_ids,acc)
       ---
       _ -> error $ "WEW: " ++ show nodeData
       ---

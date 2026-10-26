@@ -890,15 +890,7 @@ getSymType2 vn symExpr = let
       li2 = catMaybes [f one,g two,f three,acc] in
       case li of
         [] -> Nothing
-        _ | null li2 -> Nothing{-
-        _ | null li2 -> error $ constructErrorMsg loc "TODO1" [
-              ("vn",vn),
-              ("li",show li),
-              ("li2",show li2),
-              ("acc",show acc),
-              ("one",show one),
-              ("two",show two),
-              ("three",show three)]-}
+        _ | null li2 -> Nothing
           | otherwise -> Just $ pick_known_symType2 li2) Nothing li
     SBin expr1 op expr2 -> let
       tu = (getSymType2 vn expr1,getSymType2 vn expr2) in if

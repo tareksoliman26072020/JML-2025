@@ -3,6 +3,7 @@ module Parser.Print where
 
 import Data.Char
 import Data.List
+import Text.Printf (printf)
 
 import Parser.Types
 
@@ -32,6 +33,27 @@ showExpr = \case
   Null -> "null"
   ArrayCallExpr {arrName, index} -> showExpr arrName
     ++ "[" ++ maybe "" showExpr index ++ "]"
+  {-
+   ArrayInstantiationExpr {
+     arrType = Just (ArrayType {baseType = BuiltInType String}),
+     arrSize = Nothing,
+     arrElems = [StringLiteral "Toyota"
+                ,StringLiteral "Mercedes"
+                ,StringLiteral "BMW"
+                ,StringLiteral "Volkswagen"
+                ,StringLiteral "Skoda"]
+   }
+   -}
+  ArrayInstantiationExpr{arrType, arrSize, arrElems} -> let
+    showElems = intercalate ", " $ map showExpr arrElems in
+    case arrType of
+      Nothing -> printf "{%s}" showElems
+      Just t -> case arrSize of
+        Nothing -> printf
+          "new %s {%s}" (showType t) showElems
+        Just size -> let
+          ArrayType innerType = t in printf
+          "new %s[%s] {%s}" (showType innerType) (show size) showElems
   FunCallExpr {funName, funArgs} -> showExpr funName
     ++ "(" ++ intercalate ", " (map showExpr funArgs) ++ ")"
   CondExpr {eiff, ethenn, eelsee} -> showParenExpr eiff

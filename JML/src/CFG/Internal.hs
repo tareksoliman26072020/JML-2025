@@ -118,6 +118,21 @@ getEndForNode cfg node = case findEdge_via_id cfg (getNodeId node) of
            in if isForEndNode n then n
               else error $ "TODO: getEndForNode ==> " ++ show [next1,next2]
 
+-- was mainly implemented to be used in JML.PrettyPrint.pp_CFG_JML
+getForStep_via_parentId :: CFG -> NodeID -> Node
+getForStep_via_parentId cfg parentId = let
+  loc = "CFG.Internal.getForStep_via_parentId"
+  logContents = [
+    ("cfg",show cfg),
+    ("parentId",show parentId)] in case find f (nodes cfg) of
+  Nothing -> error $ constructErrorMsg loc "won't happen" logContents
+  Just node -> node
+  where
+  f :: Node -> Bool
+  f = \case
+    Node _ (ForStep _) parentId2 -> parentId == parentId2
+    _ -> False
+
 getEndWhileNode :: CFG -> Node -> Node
 getEndWhileNode cfg node = case findEdge_via_id cfg (getNodeId node) of
   Nothing -> error "getEndWhileNode: won't happen"
@@ -557,10 +572,15 @@ data NodeData = Statement AST.Statement
  -}
 ppNodeData :: NodeData -> String
 ppNodeData nodeData = let
-  loc = "CFG.Types.ppNodeData" in
+  loc = "CFG.Types.ppNodeData"
+  f mExpr = maybe "" AST.PP.showExpr mExpr in
   case nodeData of
     Statement statement -> AST.PP.showStmt statement
-    BooleanExpression kind maybe_expr -> ppKind kind ++ "(" ++ maybe "" AST.PP.showExpr maybe_expr ++ ")"
+    BooleanExpression kind maybe_expr
+      | kind `elem` [If,While] -> ppKind kind ++ "(" ++ f maybe_expr ++ ")"
+      | kind == For -> f maybe_expr
+    ForInitialization mExpr -> maybe "" AST.PP.showExpr mExpr
+    ForStep mExpr           -> maybe "" AST.PP.showStmt mExpr
     Meet _ -> ""
     _ -> error $ printf "TODO in %s ==> %s" loc (show nodeData)
 
