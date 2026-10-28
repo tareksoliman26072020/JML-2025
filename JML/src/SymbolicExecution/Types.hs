@@ -143,7 +143,7 @@ data ExecutionResult =
                                 -- due to the presence of previous return statement
                                 -- in a scope or more
   | ER_ActualParameterDetected String SymExpr
-  | ER_ArrayAccess (SymType,String,SymExpr)
+  | ER_ArrayAccess (SymType,String,Maybe SymExpr)
   deriving (Show,Eq)
 
 instance MonadFail (Either String) where
@@ -193,6 +193,11 @@ data SymExpr =
                     ,Either SymExpr (SymType,String,SymExpr))]
                                   -- ^ False = Left Operand, True = Right Operand
                                   --   Nothing = neither
+    {- (a,b,c)
+       1) if a is Right, then a is an expression that is accessing an array
+       2) if c is Right, then a is an expression that is accessing an array
+       3) if a is Left, and c is Left, then b = array is accessed via index
+     -}
   | SymArrayElem SymExpr SymExpr  -- ^ will only be used in SVarAssignments
   | SymFun DefinedFun SymExpr
   | SVarBindings (Map.Map String CFGT.Node_Coor)
@@ -209,6 +214,13 @@ data SymExpr =
   | SymBreak
   | SymPreScope CFGT.ScopeRange (SymType,String) -- ^ Value of the expression prior to a scope.
   deriving (Eq,Show)
+
+data ArrayAccessionInfo =
+  ReAssignment (ArrayAccessionInfo,ArrayAccessionInfo) |
+  ViaConstantIndex (SymType,String,SymExpr) |
+  ViaNonConstantIndex (SymType,String,SymExpr) |
+  AccessionViaObject (String,String)
+  deriving (Show,Eq)
 
 -- declared for the sake of `SymVar` in `SymExpr`
 -- the goal is to attach infos about the context of the variable when necessary

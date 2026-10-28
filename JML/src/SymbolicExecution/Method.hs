@@ -85,7 +85,7 @@ instance CFGVisitor MethodProcessor where
       let loc = "SymbolicExecution.Method.visitNode.End"
       tellNextLog $ Log.MethodEnd loc
       -- get fun name. It'll be used to find the cfg of the function
-      (env <$> get) >>= \s -> throwError (constructErrorMsg loc "MEOW2" [("s",show s)])
+      -- get method type
       (methodType,methodName) <- do
         visited <- getFunHandle
         return $ case visited of
@@ -948,13 +948,6 @@ visitExpr nodeCoor (expr@AST.FunCallExpr{}) = do
             ers <- executionResults <$> get
             let (err,funCallLogs2,ers2,funCallSymState2Env) = runCFG cfgs cfg0 Nothing
                   $ Just $ SymState funCallMap0 [] (Log.Header 1 [0])
-            throwError $ constructErrorMsg loc "MEOW" [
-              ("ers",show ers),
-              ("err",show err),
-              ("cfg0",show cfg0),
-              ("funCallMap0",show funCallMap0),
-              ("funCallSymState2Env",show funCallSymState2Env),
-              ("ers2",show ers2)]
             case err of
               "" -> return (funCallLogs2,funCallSymState2Env)
               _  -> throwError $ constructErrorMsg loc "funcall runner" [("err",show err)]
@@ -1429,6 +1422,13 @@ visitExpr nodeCoor expr@AST.VarExpr{} = do
       stateEnv <- env <$> get
       let symExpr0@(SObjAcc exprs) = SObjAcc $ li ++ [AST.varName expr]
       let toReturn = ER_VarExprObjAccess (intercalate "." $ li ++ [AST.varName expr]) (objAccCalculator (getVarNames stateEnv) symExpr0)
+      {-do case symExpr0 of
+           SObjAcc [arrName,"length"] -> let
+             newElem :: (Either SymExpr (SymType,String,SymExpr)
+                        ,Maybe (SymType,String,SymExpr)
+                        ,Either SymExpr (SymType,String,SymExpr))
+             newElem = (Left symExpr0,Just (arrType,arrName,MEOW),Left symExpr0)
+           _ -> return ()-}
       tellNextLog (Log.Return "visitExpr ==> VarExpr" (show toReturn)) $> toReturn
 
 
@@ -1614,7 +1614,7 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
      (loopState,env_Before_Acc_with_essentials,forBody_forStep_visited) <- case forCondExpr_visited_expr of
        -- if the loop condition is not fulfilled,
        -- the  there's no point in „visiting“ the loop body
-       SBool False -> get >>= \s -> return (s,Map.empty,[])
+       SBool False -> get >>= \s -> return (s,env_Before_Acc,[])
        _ -> do
          s <- get
          constructLog loc "forBody_forStep_path" [
@@ -1666,10 +1666,6 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
                forBody_forStep_visited :: [ExecutionResult])
        3 -> do
          tellNextLog $ Log.ForLoopDone "visitRegisteredLoop"
-         (env <$> get) >>= \s -> throwError (constructErrorMsg loc "MEOW3" [
-           ("s",show s),
-           ("env_Before_Acc_with_essentials",show env_Before_Acc_with_essentials),
-           ("env_Before_Acc",show env_Before_Acc)])
          modify $ \symState -> SymState
            env_Before_Acc_with_essentials
            executionResults_Before_Acc
