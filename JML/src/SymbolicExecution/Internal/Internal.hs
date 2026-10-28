@@ -1813,8 +1813,8 @@ ifArrayIsAccessed er = let
   logContents = [("er",show er)]
   in case er of
     ER_ArrayCallExpr callExpr _ -> ifArrayIsAccessed2 callExpr
-    _ -> error $ constructErrorMsg loc "TODO1" [("er",show er)]
-
+    _ -> Nothing
+    
 ifArrayIsAccessed2 :: SymExpr -> Maybe ArrayAccessionInfo
 ifArrayIsAccessed2 symExpr = let
   loc = "SymbolicExecution.Internal.Internal.ifArrayIsAccessed2"

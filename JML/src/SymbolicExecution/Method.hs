@@ -1215,8 +1215,8 @@ visitExpr nodeCoor expr@AST.AssignExpr{} = do
         ]
   -- if either one or two is ER_ArrayCallExpr,
   -- then we want to record this in the state „ArrayAccess“
-  do let left = ifArrayIsAccessed one
-         right = ifArrayIsAccessed two
+  do let left = ifArrayIsAccessed $ getSummarized_er one
+         right = ifArrayIsAccessed $ getSummarized_er two
      let maybeArrayAccessed
            | any isJust [left,right] = Just $ ReAssignment (fromJust left,fromJust right)
            | otherwise = Nothing
@@ -1419,13 +1419,19 @@ visitExpr nodeCoor expr@AST.VarExpr{} = do
       stateEnv <- env <$> get
       let symExpr0@(SObjAcc exprs) = SObjAcc $ li ++ [AST.varName expr]
       let toReturn = ER_VarExprObjAccess (intercalate "." $ li ++ [AST.varName expr]) (objAccCalculator (getVarNames stateEnv) symExpr0)
-      {-do case symExpr0 of
-           SObjAcc [arrName,"length"] -> let
-             newElem :: (Either SymExpr (SymType,String,SymExpr)
-                        ,Maybe (SymType,String,SymExpr)
-                        ,Either SymExpr (SymType,String,SymExpr))
-             newElem = (Left symExpr0,Just (arrType,arrName,MEOW),Left symExpr0)
-           _ -> return ()-}
+      do case symExpr0 of
+           SObjAcc [_,"length"] -> do
+             let arrayAccessed = AccessionViaObject symExpr0
+             modify $ \symState -> SymState {
+               --env = Map.insert ArrayAccess arrayAccessed (env symState),
+               env = Map.alter (\case
+                 Just (SymArrayAccess li) -> Just $ SymArrayAccess $ li ++ [arrayAccessed]
+                 Nothing -> Just $ SymArrayAccess [arrayAccessed])
+                 ArrayAccess (env symState),
+               executionResults = executionResults symState,
+               logHeader = logHeader symState
+             }
+           _ -> throwError $ constructErrorMsg loc "TODO" [("symExpr0",show symExpr0)]
       tellNextLog (Log.Return "visitExpr ==> VarExpr" (show toReturn)) $> toReturn
 
 

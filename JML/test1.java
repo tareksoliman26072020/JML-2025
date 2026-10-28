@@ -6602,18 +6602,6 @@ public int sumUntilNegative(int[] nums) {
     return sum;
 }
 
-public int sumUntilNegative0() {
-    int[] nums = new int[]{};
-    int sum = 0;
-    for (int i=0; i<nums.length; i++) {
-        if (nums[i] < 0) {
-            break;
-        }
-        sum += nums[i];
-    }
-    return sum;
-}
-
 //DONE
 //JavaMethod
 /*
