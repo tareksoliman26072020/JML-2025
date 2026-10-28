@@ -187,10 +187,10 @@ data SymExpr =
 
   | SymNull SymType               -- ^ value of an unassigned variable
   | SymVar SymType String [VarInfo]
-  | SymArrayAccess
+  | SymArrayAccess [ArrayAccessionInfo]{-
                    [(Either SymExpr (SymType,String,SymExpr)
                     ,Maybe (SymType,String,SymExpr)
-                    ,Either SymExpr (SymType,String,SymExpr))]
+                    ,Either SymExpr (SymType,String,SymExpr))]-}
                                   -- ^ False = Left Operand, True = Right Operand
                                   --   Nothing = neither
     {- (a,b,c)
@@ -219,7 +219,7 @@ data ArrayAccessionInfo =
   ReAssignment (ArrayAccessionInfo,ArrayAccessionInfo) |
   ViaConstantIndex (SymType,String,SymExpr) |
   ViaNonConstantIndex (SymType,String,SymExpr) |
-  AccessionViaObject (String,String)
+  AccessionViaObject SymExpr
   deriving (Show,Eq)
 
 -- declared for the sake of `SymVar` in `SymExpr`

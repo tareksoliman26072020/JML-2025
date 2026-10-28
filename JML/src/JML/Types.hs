@@ -7,7 +7,7 @@ import Control.Monad.Except
 import Control.Monad.Writer
 
 import qualified SymbolicExecution.Types as SYT (
-  SymbolicExecution,SymbolicExecutionValue,SymType,
+  SymbolicExecution,SymbolicExecutionValue,SymType,ArrayAccessionInfo,
   LoopSummary,LoopPattern,LoopSummaryTag,LoopExitFact,SymExprDevelopmentTrajectory)
 import qualified CFG.Types as CFGT (Node_Coor, ScopeRange)
 import qualified JML.Logs.Log as Log (Log, Header)
@@ -175,11 +175,11 @@ data ExecutionResult =
   | ER_IfThenElse (Maybe String,CFGT.ScopeRange)
            (Expr,JMLState,[ExecutionResult]) (Maybe (Expr,JMLState,[ExecutionResult]))
   | ER_LoopConditions CFGT.ScopeRange [Map.Map String SYT.SymbolicExecutionValue]
-  | ER_ArrayAccess [(
+  | ER_ArrayAccess [SYT.ArrayAccessionInfo]{-[(
        Either SYT.SymbolicExecutionValue (SYT.SymType,String,SYT.SymbolicExecutionValue)
       ,Maybe (SYT.SymType,String,SYT.SymbolicExecutionValue)
       ,Either SYT.SymbolicExecutionValue (SYT.SymType,String,SYT.SymbolicExecutionValue)
-      )]
+      )]-}
   | ER_LoopSummary CFGT.ScopeRange
                    [LoopInvariantTemplate]  -- inferred loop invariant templates
                    [Clause]                 -- loop invariants that are relevant

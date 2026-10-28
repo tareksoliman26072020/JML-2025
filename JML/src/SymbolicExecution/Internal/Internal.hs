@@ -876,22 +876,16 @@ getSymType2 vn symExpr = let
     SBool _ -> Nothing
     SymString _ -> Nothing
     SObjAcc _ -> Nothing
-    SymArrayAccess li -> foldl' (\acc (one,two,three) -> let
-      f ei = case ei of
-        Left symExpr2 -> getSymType2 vn symExpr2
-        Right (t,vn2,_)
-          | vn == vn2 -> Just t
-          | otherwise -> Nothing
-      g m = case m of
-        Just (t,vn2,_)
-          | vn == vn2 -> Just t
-          | otherwise -> Nothing
-        Nothing -> Nothing
-      li2 = catMaybes [f one,g two,f three,acc] in
-      case li of
-        [] -> Nothing
-        _ | null li2 -> Nothing
-          | otherwise -> Just $ pick_known_symType2 li2) Nothing li
+    SymArrayAccess li -> let
+      f :: ArrayAccessionInfo -> Maybe SymType
+      f = \case
+        ReAssignment (info1,info2) -> pick_known_symType3 (f info1,f info2)
+        ViaConstantIndex (t,_,_) -> Just t
+        ViaNonConstantIndex (t,_,_) -> Just t
+        AccessionViaObject expr -> case expr of
+          SObjAcc [_,"length"] -> Just Int
+          _ -> error $ constructErrorMsg loc "TODO" $ logContents ++ [("expr",show expr)]
+      in foldl' (\acc info -> pick_known_symType3 (acc,f info)) Nothing li
     SBin expr1 op expr2 -> let
       tu = (getSymType2 vn expr1,getSymType2 vn expr2) in if
       | op `elem` [Eq,Neq,Lt,Le,Gt,Ge,And,Or] -> case tu of
@@ -1813,26 +1807,24 @@ stateChangingCondition_2_symExprs symType = \case
 
 -- This function checks if an expression accesses an array,
 -- and if so, then it's a right. If not, then Left
-ifArrayIsAccessed :: ExecutionResult -> Either SymExpr (SymType,String,SymExpr)
+ifArrayIsAccessed :: ExecutionResult -> Maybe ArrayAccessionInfo
 ifArrayIsAccessed er = let
   loc = "SymbolicExecution.Internal.Internal.ifArrayIsAccessed"
   logContents = [("er",show er)]
   in case er of
     ER_ArrayCallExpr callExpr _ -> ifArrayIsAccessed2 callExpr
-    _ -> Left $ case getSymExpr er of
-      Just symExpr -> symExpr
-      Nothing -> error $ constructErrorMsg loc "TODO" [("er",show er)]
+    _ -> error $ constructErrorMsg loc "TODO1" [("er",show er)]
 
-ifArrayIsAccessed2 :: SymExpr -> Either SymExpr (SymType,String,SymExpr)
+ifArrayIsAccessed2 :: SymExpr -> Maybe ArrayAccessionInfo
 ifArrayIsAccessed2 symExpr = let
   loc = "SymbolicExecution.Internal.Internal.ifArrayIsAccessed2"
   logContents = [("symExpr",show symExpr)] in
   case symExpr of
     SArrayIndexAccess arrType arrName indexSymExpr
-      | isConstant indexSymExpr -> Left symExpr
-      | otherwise -> Right (arrType,arrName,indexSymExpr)
-    _ -> error $ constructErrorMsg loc "TODO" logContents
-
+      | isConstant indexSymExpr -> Just $ ViaConstantIndex (arrType,arrName,indexSymExpr)
+      | otherwise -> Just $ ViaNonConstantIndex (arrType,arrName,indexSymExpr)
+    SObjAcc _ -> error $ constructErrorMsg loc "TODO" logContents
+    _ -> Nothing
 -------------------
 -------------------
 -------------------

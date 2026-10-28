@@ -7,7 +7,7 @@ import SymbolicExecution.Types
 import qualified CFG.Types as CFGT
 import qualified CFG.Internal as CFG
 import qualified Data.Map as Map
-import Data.Maybe (mapMaybe, fromJust)
+import Data.Maybe (mapMaybe, fromJust, isJust)
 import Control.Monad (foldM, zipWithM_, liftM, forM)
 import Control.Monad.Reader (ReaderT,runReaderT,ask)
 import Control.Monad.State
@@ -1215,33 +1215,30 @@ visitExpr nodeCoor expr@AST.AssignExpr{} = do
         ]
   -- if either one or two is ER_ArrayCallExpr,
   -- then we want to record this in the state „ArrayAccess“
-  do let newElem = (ifArrayIsAccessed one,
-                    Nothing :: Maybe (SymType,String,SymExpr),
-                    ifArrayIsAccessed two)
-     let which = case newElem of
-           (Right _ ,_,Right _) -> "both"
-           (Right _  ,_,Left _)  -> "left"
-           (Left _  ,_,Right _) -> "right"
-           (Left _  ,_,Left _)  -> "none"
-     let logTag = case which of
-           "both"  -> "both sides have array access"
-           "left"  -> "left side has array access"
-           "right" -> "right side has array access"
-           "none"  -> "both sides have no array access"
+  do let left = ifArrayIsAccessed one
+         right = ifArrayIsAccessed two
+     let maybeArrayAccessed
+           | any isJust [left,right] = Just $ ReAssignment (fromJust left,fromJust right)
+           | otherwise = Nothing
+     let logTag = case (left,right) of
+           (Just (ViaNonConstantIndex _),Just (ViaNonConstantIndex _))  -> "both sides have array access"
+           (Just (ViaNonConstantIndex _),_)  -> "left side has array access"
+           (_,Just (ViaNonConstantIndex _)) -> "right side has array access"
+           _  -> "both sides have no array access"
      -- telling
-     case newElem of
-       (Left _,Nothing,Left _) -> return ()
-       _ -> do
-         tellNextLog $ Log.ModifyState loc ("ArrayAccess","newElem: " ++ show newElem)
-         modify $ \symState -> SymState {
-           env = Map.alter (\case
-             Just (SymArrayAccess li) -> Just $ SymArrayAccess $ li ++ [newElem]
-             Nothing -> Just $ SymArrayAccess [newElem])
-             ArrayAccess (env symState),
-           executionResults = executionResults symState,
-           logHeader = logHeader symState
-         }
-     constructLog loc logTag [("one",show one),("two",show two),("newElem",show newElem)]
+     do case logTag of
+          "both sides have no array access" -> return ()
+          _ -> do
+            tellNextLog $ Log.ModifyState loc ("ArrayAccess","maybeArrayAccessed: " ++ show maybeArrayAccessed)
+            modify $ \symState -> SymState {
+              env = Map.alter (\case
+                Just (SymArrayAccess li) -> Just $ SymArrayAccess $ li ++ [fromJust maybeArrayAccessed]
+                Nothing -> Just $ SymArrayAccess [fromJust maybeArrayAccessed])
+                ArrayAccess (env symState),
+              executionResults = executionResults symState,
+              logHeader = logHeader symState
+            }
+     constructLog loc logTag [("one",show one),("two",show two),("maybeArrayAccessed",show maybeArrayAccessed)]
 
   -- one_val's sole purpose is its type
   -- one_svn is important to find key in the map
@@ -1478,19 +1475,18 @@ visitExpr nodeCoor expr@AST.ArrayCallExpr{} = do
       symExprVal = objAccCalculator varNames symExprCall
   let toReturn = ER_ArrayCallExpr symExprCall symExprVal
   -- array has been accessed, and this needs to be recorded
-  do let newElem :: (Either SymExpr (SymType,String,SymExpr)
-                    ,Maybe (SymType,String,SymExpr)
-                    ,Either SymExpr (SymType,String,SymExpr))
-         newElem = (Left symExprCall,Just (arrType,arrName,index_er),Left symExprVal)
-     tellNextLog $ Log.ModifyState loc ("ArrayAccess","newElem: " ++ show newElem)
-     modify $ \symState -> SymState {
-       env = Map.alter (\case
-         Just (SymArrayAccess li) -> Just $ SymArrayAccess $ li ++ [newElem]
-         Nothing -> Just $ SymArrayAccess [newElem])
-         ArrayAccess (env symState),
-       executionResults = executionResults symState,
-       logHeader = logHeader symState
-     }
+  do case ifArrayIsAccessed2 symExprCall of
+       Nothing -> return ()
+       Just arrayAccessed -> do
+         tellNextLog $ Log.ModifyState loc ("ArrayAccess","arrayAccessed: " ++ show arrayAccessed)
+         modify $ \symState -> SymState {
+           env = Map.alter (\case
+             Just (SymArrayAccess li) -> Just $ SymArrayAccess $ li ++ [arrayAccessed]
+             Nothing -> Just $ SymArrayAccess [arrayAccessed])
+             ArrayAccess (env symState),
+           executionResults = executionResults symState,
+           logHeader = logHeader symState
+         }
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn
 
 visitExpr nodeCoor expr@(AST.BoolLiteral b) = do
@@ -2242,35 +2238,8 @@ createLoopSummary cfg theLoopSyntax m_Acc
           Just symExpr -> return (Just symExpr,Just stateAfter)
           Nothing -> throwError $ constructErrorMsg loc "TODO1" [("er",show er)]
   -- visit the loop guard
-  {-
-  (maybe_forCondExpr_visited :: Maybe SymExpr,maybe_stateAfterForCond) <- do
-    case maybe_stateAfterAcc of
-      Nothing -> return ()
-      Just s -> put s
-    case mForCondExpr of
-      Nothing -> return (Nothing,Nothing)
-      Just forCondExpr -> do
-        er <- censor (filter $ const False) (visitExpr forCondExpr)
-        stateAfter <- get
-        put origState
-        case getSymExpr er of
-          Just symExpr -> return (Just symExpr,Just stateAfter)
-          Nothing -> throwError $ constructErrorMsg loc "TODO2" [("er",show er)]
-   -}
   let maybe_forCondExpr_visited = fmap (const forCondExpr_visited_expr) mForCondExpr
   -- visit the loop body
-  {-
-  (forBody_forStep_path_visited,forBody_forStep_path_visited_ers)
-    :: (SymState,[ExecutionResult]) <- do
-    case maybe_stateAfterForCond of
-      Nothing -> return ()
-      Just s -> put s
-    ers <- forM forBody_forStep_path (
-        censor (filter (const False))
-      . methodProcessorMonad
-      . visitNode)
-    liftM (\s -> (,) s ers) get <* put origState
-   -}
   let forBody_forStep_path_visited = forBody_forStep_path_visited0--loopState
       forBody_forStep_path_visited_ers = forBody_forStep_ers
   -- all varnames mentioned in the loop body + in the condition + in the accumulator
