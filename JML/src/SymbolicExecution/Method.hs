@@ -84,18 +84,19 @@ instance CFGVisitor MethodProcessor where
     n@CFGT.End{} -> do
       let loc = "SymbolicExecution.Method.visitNode.End"
       tellNextLog $ Log.MethodEnd loc
+      -- get fun name. It'll be used to find the cfg of the function
+      (env <$> get) >>= \s -> throwError (constructErrorMsg loc "MEOW2" [("s",show s)])
+      (methodType,methodName) <- do
+        visited <- getFunHandle
+        return $ case visited of
+          ER_FunHandle methodType methodName -> (methodType,methodName)
+          _ -> error $ printf "won't happen1: %s ==> %s" loc (show visited)
       (_,cfgs) <- ask
       (nodeCoor,cfg) <- do
-        -- get fun name. It'll be used to find the cfg of the function
-        funName <- do
-          visited <- getFunHandle
-          return $ case visited of
-            ER_FunHandle _ funName -> funName
-            _ -> error $ printf "won't happen1: %s ==> %s" loc (show visited)
         let -- `cfg` will be used to construct the coordinates of the statement: `newVarCoor`
-            cfg = case CFG.findCFGByName funName cfgs of
+            cfg = case CFG.findCFGByName methodName cfgs of
               -- CFG not found
-              Nothing   -> error $ printf "%s ==> %s does not exist" loc funName
+              Nothing   -> error $ printf "%s ==> %s does not exist" loc methodName
               -- CFG found
               Just cfg0 -> cfg0
         return $ (,) CFGT.Node_Coor {
@@ -106,12 +107,6 @@ instance CFGVisitor MethodProcessor where
             } cfg
       case CFGT.mExpr n of
         Nothing       -> do
-          -- is it a void method or not?
-          methodType <- do
-            visited <- getFunHandle
-            case visited of
-              ER_FunHandle methodType _ -> return methodType
-              _ -> error $ printf "%s ==> won't happen" loc
           -- 
           case methodType of
             Void -> do
@@ -703,7 +698,7 @@ getFunHandle :: SymbolicExecutionMonad ExecutionResult
 getFunHandle = do
   theEnv <- env <$> get
   case Map.lookup MethodHandle theEnv of
-    Nothing -> throwError $ "SymbolicExecution.Method.getFunHandle ==> fun handle does not exist"
+    Nothing -> throwError $ "SymbolicExecution.Method.getFunHandle ==> won't happen: " ++ show theEnv
     -- it will always be a `Just` when `getFunHandle` is called
     -- for any node after the `Entry` node.
     Just (SMethodHandle methodType methodName) -> return
@@ -951,12 +946,18 @@ visitExpr nodeCoor (expr@AST.FunCallExpr{}) = do
                 Map.empty
           (funCallLogs2,funCallSymState2Env) <- do
             ers <- executionResults <$> get
-            let (err,funCallLogs2,_,funCallSymState2Env) = runCFG cfgs cfg0 Nothing
-                  $ Just $ SymState funCallMap0 ers (Log.Header 1 [0])
+            let (err,funCallLogs2,ers2,funCallSymState2Env) = runCFG cfgs cfg0 Nothing
+                  $ Just $ SymState funCallMap0 [] (Log.Header 1 [0])
+            throwError $ constructErrorMsg loc "MEOW" [
+              ("ers",show ers),
+              ("err",show err),
+              ("cfg0",show cfg0),
+              ("funCallMap0",show funCallMap0),
+              ("funCallSymState2Env",show funCallSymState2Env),
+              ("ers2",show ers2)]
             case err of
               "" -> return (funCallLogs2,funCallSymState2Env)
               _  -> throwError $ constructErrorMsg loc "funcall runner" [("err",show err)]
-                  --throwError $ printf "%s ==> funcall runner ==> %s" loc err
           if null globalVars
             then return ()
             else do
@@ -1142,6 +1143,7 @@ visitExpr nodeCoor (expr@AST.FunCallExpr{}) = do
       | otherwise -> throwError $ "visitExpr => FunCallExpr: Method " ++ funCallName ++ " does not exist"
 --BinOpExpr {expr1 :: Expression, binOp :: BinOp, expr2 :: Expression}
 visitExpr nodeCoor expr@AST.BinOpExpr{} = do
+  let loc = "SymbolicExecution.Method.visitExpr.BinOpExpr"
   tellNextLog $ Log.Expression_2_Handle (show expr) "visitExpr -> BinOpExpr"
   er_one <- do
     incrementLogEnumeration
@@ -1609,19 +1611,36 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
   -- here gets decided whether to call `visitUnregisteredLoop` or `visitRegisteredLoop`
   do -- `forBody_forStep_visited`, alongside `forCondExpr_visited`, helps deciding whether
      --   to call `visitUnregisteredLoop` or `visitRegisteredLoop`
-     (loopState,forBody_forStep_visited) <- case forCondExpr_visited_expr of
+     (loopState,env_Before_Acc_with_essentials,forBody_forStep_visited) <- case forCondExpr_visited_expr of
        -- if the loop condition is not fulfilled,
        -- the  there's no point in „visiting“ the loop body
-       SBool False -> get >>= \s -> return (s,[])
+       SBool False -> get >>= \s -> return (s,Map.empty,[])
        _ -> do
          s <- get
          constructLog loc "forBody_forStep_path" [
            ("forBody_forStep_path",show forBody_forStep_path),
-           ("s",show s)]
+           ("state before visiting loop path",show s)]
          ers <- mapM (censor (filter $ const False) . methodProcessorMonad . visitNode) forBody_forStep_path
-         s2 <- get
-         put s
-         return (s2,ers)
+         -- get loop infos,
+         -- and get essentials from loop that needs to be recorded outside of the loop
+         (s2,env_Before_Acc_with_essentials) <- do
+           s2 <- get
+           -- informations in the loop the need to recorded
+           let essentialsFromLoop = flip Map.filterWithKey (env s2) $ \case
+                 -- record `ArrayAccess` from the loop: it's necessary to construct the clause
+                 -- indicating that the array has to not be null
+                 ArrayAccess -> const True
+                 _ -> const False
+           let f m key newVal = Map.insert key newVal m
+           let env_Before_Acc_with_essentials = Map.foldlWithKey' f env_Before_Acc essentialsFromLoop
+           put s
+           modify $ \symState -> SymState {
+             env = Map.foldlWithKey' f (env symState) essentialsFromLoop,
+             executionResults = executionResults symState,
+             logHeader = logHeader symState
+           }
+           return (s2,env_Before_Acc_with_essentials)
+         return (s2,env_Before_Acc_with_essentials,ers)
      de <- do
        incrementLogEnumeration
        incrementLogDepth *>
@@ -1636,19 +1655,23 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
            ("de",show de)]
      case de of
        1 -> callRegisteredLoop (loc ++ ".callRegisteredLoop")
-              (env_Before_Acc,executionResults_Before_Acc)
+              (maybe_acc_er,env_Before_Acc_with_essentials,executionResults_Before_Acc)
               (forCondExpr_visited_expr :: SymExpr,
                loopState :: SymState,
                forBody_forStep_visited :: [ExecutionResult])
        2 -> callUnregisteredLoop (loc ++ ".callUnregisteredLoop")
-              maybe_acc_er env_Before_Acc executionResults_Before_Acc
+              (maybe_acc_er,env_Before_Acc_with_essentials,executionResults_Before_Acc)
               (forCondExpr_visited_expr :: SymExpr,
                loopState :: SymState,
                forBody_forStep_visited :: [ExecutionResult])
        3 -> do
          tellNextLog $ Log.ForLoopDone "visitRegisteredLoop"
+         (env <$> get) >>= \s -> throwError (constructErrorMsg loc "MEOW3" [
+           ("s",show s),
+           ("env_Before_Acc_with_essentials",show env_Before_Acc_with_essentials),
+           ("env_Before_Acc",show env_Before_Acc)])
          modify $ \symState -> SymState
-           env_Before_Acc
+           env_Before_Acc_with_essentials
            executionResults_Before_Acc
            (logHeader symState)
          return ER_ForLoopDone
@@ -1702,42 +1725,24 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
     ER_ForLoopDone -> True
     _ -> False
   ----------
-  callUnregisteredLoop loc maybe_acc_er env_Before_Acc executionResults_Before_Acc
+  callUnregisteredLoop loc
+    (maybe_acc_er,env_Before_Acc,executionResults_Before_Acc)
     (forCondExpr_visited_expr :: SymExpr,
      loopState :: SymState,
      forBody_forStep_ers :: [ExecutionResult]) = do
        modify $ \symState -> SymState env_Before_Acc executionResults_Before_Acc (logHeader symState)
-       -- add a varAssignment about the counter of the for loop
-       case theLoopSyntax of
-         ForSyntax -> case fmap getSummarized_er maybe_acc_er of
-           Just (ER_SymStateMapEntry (VarName vn) symExpr) -> let
-             forAccNodeCoor = CFGT.Node_Coor (CFGT.branchStart branchRange) branchRange
-             symExpr2 = SymVar (toSymType2 symExpr) vn [ForAccumulator branchRange symExpr]
-             varAssignment :: (String,(SymExpr,CFGT.Node_Coor))
-             varAssignment = (vn,(symExpr2,forAccNodeCoor))
-             in modify $ \symState -> SymState {
-                  env = Map.alter (\case
-                    Just (SVarAssignments li) -> Just $ SVarAssignments $ li ++ [varAssignment]
-                    Nothing -> Just $ SVarAssignments [varAssignment]
-                    ) VarAssignments (env symState),
-                  executionResults = executionResults symState,
-                  logHeader = logHeader symState
-                }
-           Just er -> throwError $ constructErrorMsg loc "TODO" [("er",show er)]
-           -- there is no counter
-           Nothing -> return ()
-         _ -> return ()
-    
-       visitUnregisteredLoop theLoopSyntax (nodeCoor,cfg) m_Acc
+       
+       visitUnregisteredLoop theLoopSyntax (nodeCoor,cfg) (maybe_acc_er,m_Acc)
          (mForCondExpr,forCondExpr_visited_expr)
          (forBody_forStep_path,loopState,forBody_forStep_ers)
          branchRange
   ----------
-  callRegisteredLoop loc (env_Before_Acc,executionResults_Before_Acc)
+  callRegisteredLoop loc
+    (maybe_acc_er,env_Before_Acc,executionResults_Before_Acc)
     (forCondExpr_visited_expr :: SymExpr,
      loopState :: SymState,
      forBody_forStep_ers :: [ExecutionResult]) = do
-    forLoopVisited <- visitRegisteredLoop theLoopSyntax 1 (env_Before_Acc,executionResults_Before_Acc) (nodeCoor,cfg) m_Acc
+    forLoopVisited <- visitRegisteredLoop theLoopSyntax 1 (env_Before_Acc,executionResults_Before_Acc) (nodeCoor,cfg) (maybe_acc_er,m_Acc)
       (mForCondExpr,forCondExpr_visited_expr)
       (forBody_forStep_path,loopState,forBody_forStep_ers)
       branchRange
@@ -1785,11 +1790,11 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
 
 ------------------------------
 
-visitRegisteredLoop :: LoopSyntax -> Int -> (Map.Map SymStateKey SymExpr,[ExecutionResult]) -> (CFGT.Node_Coor,CFGT.CFG) -> Maybe CFGT.Node
+visitRegisteredLoop :: LoopSyntax -> Int -> (Map.Map SymStateKey SymExpr,[ExecutionResult]) -> (CFGT.Node_Coor,CFGT.CFG) -> (Maybe ExecutionResult,Maybe CFGT.Node)
   -> (Maybe AST.Expression,SymExpr)
   -> ([CFGT.Node],SymState,[ExecutionResult])
   -> CFGT.ScopeRange -> SymbolicExecutionMonad ExecutionResult
-visitRegisteredLoop theLoopSyntax loopCounter (env_Before_Acc,executionResults_Before_Acc) (nodeCoor,cfg) m_Acc
+visitRegisteredLoop theLoopSyntax loopCounter (env_Before_Acc,executionResults_Before_Acc) (nodeCoor,cfg) (maybe_acc_er,m_Acc)
   (mForCondExpr,forCondExpr_visited_expr)
   (forBody_forStep_path,loopState,forBody_forStep_ers)
   branchRange = do
@@ -1860,7 +1865,7 @@ visitRegisteredLoop theLoopSyntax loopCounter (env_Before_Acc,executionResults_B
                      --   before staring the next loop round
                      get >>= tellNextLog . Log.ReportTheState loc . show . env
                      visitRegisteredLoop theLoopSyntax
-                       (loopCounter+1) (env_Before_Acc,executionResults_Before_Acc) (nodeCoor,cfg) m_Acc
+                       (loopCounter+1) (env_Before_Acc,executionResults_Before_Acc) (nodeCoor,cfg) (maybe_acc_er,m_Acc)
                        (mForCondExpr,forCondExpr_visited_expr)
                        (forBody_forStep_path,loopState,forBody_forStep_ers)
                        branchRange
@@ -1873,7 +1878,7 @@ visitRegisteredLoop theLoopSyntax loopCounter (env_Before_Acc,executionResults_B
             tellNextLog $ Log.ModifyState "visitRegisteredLoop" ("Undo SymState to before the loop",show env_Before_Acc)
             modify $ \symState -> SymState env_Before_Acc executionResults_Before_Acc (logHeader symState)
         
-          visitUnregisteredLoop theLoopSyntax (nodeCoor,cfg) m_Acc
+          visitUnregisteredLoop theLoopSyntax (nodeCoor,cfg) (maybe_acc_er,m_Acc)
             (mForCondExpr,forCondExpr_visited_expr)
             (forBody_forStep_path,loopState,forBody_forStep_ers)
             branchRange
@@ -1976,11 +1981,12 @@ createLoopCondition nodeCoor expr = do
 
 ------------------------------
 
-visitUnregisteredLoop :: LoopSyntax -> (CFGT.Node_Coor,CFGT.CFG) -> Maybe CFGT.Node
+visitUnregisteredLoop :: LoopSyntax -> (CFGT.Node_Coor,CFGT.CFG)
+  -> (Maybe ExecutionResult,Maybe CFGT.Node)
   -> (Maybe AST.Expression,SymExpr)
   -> ([CFGT.Node],SymState,[ExecutionResult])
   -> CFGT.ScopeRange -> SymbolicExecutionMonad ExecutionResult
-visitUnregisteredLoop theLoopSyntax (nodeCoor,cfg) m_Acc
+visitUnregisteredLoop theLoopSyntax (nodeCoor,cfg) (maybe_acc_er,m_Acc)
   (mForCondExpr,forCondExpr_visited_expr)
   (forBody_forStep_path,loopState,forBody_forStep_ers)
   branchRange = do
@@ -2029,8 +2035,29 @@ g) check VarNames in 2)
 h) if there are GlobalVars that are mentioned for the first time in 2) and have no VarName
   then create VarName for them in 1) (Siehe dazu "c")
  -}
+  let -- new varAssignment about the counter of the for loop
+      counterVarAssignment :: [(String, (SymExpr, CFGT.Node_Coor))]
+      counterVarAssignment = case theLoopSyntax of
+        ForSyntax -> case fmap getSummarized_er maybe_acc_er of
+          Just (ER_SymStateMapEntry (VarName vn) symExpr) -> let
+            forAccNodeCoor = CFGT.Node_Coor (CFGT.branchStart branchRange) branchRange
+            symExpr2 = SymVar (toSymType2 symExpr) vn [ForAccumulator branchRange symExpr]
+            varAssignment :: (String,(SymExpr,CFGT.Node_Coor))
+            varAssignment = (vn,(symExpr2,forAccNodeCoor))
+            in [varAssignment]{-modify $ \symState -> SymState {
+                 env = Map.alter (\case
+                   Just (SVarAssignments li) -> Just $ SVarAssignments $ li ++ [varAssignment]
+                   Nothing -> Just $ SVarAssignments [varAssignment]
+                   ) VarAssignments (env symState),
+                 executionResults = executionResults symState,
+                 logHeader = logHeader symState
+               }-}
+          Just er -> error $ constructErrorMsg loc "TODO1" [("er",show er)]
+          -- there is no counter
+          Nothing -> []
+        _ -> []
       -- GlobalVars from `originalState`
-  let originalGlobalVars = maybe [] (\case
+      originalGlobalVars = maybe [] (\case
           SGlobalVars li -> li
           val -> error $ "visitUnregisteredLoop ==> won't happen 1 ==> " ++ show val)
           $ Map.lookup GlobalVars (env originalState) 
@@ -2085,10 +2112,10 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
       forBody_Some_VarAssignments = flip (maybe [])
         (Map.lookup VarAssignments forBodySymStateEnv) $ \case
           SVarAssignments li -> flip filter li $ \(str,coor) ->
-              str `elem` originalGlobalVars ||
-              str `elem` forBodyGlobalVars ||
-              str `elem` originalVarBindings ||
-              str `elem` originalFormalParms
+            str `elem` originalGlobalVars ||
+            str `elem` forBodyGlobalVars ||
+            str `elem` originalVarBindings ||
+            str `elem` originalFormalParms
           val -> error $ "visitUnregisteredLoop ==> won't happen 5 ==> " ++ show val
       -- c) VarNames in `forBodySymStateEnv` with
       --        (GlobalVars,
@@ -2105,15 +2132,16 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
         Nothing -> Just $ SGlobalVars forBodyGlobalVars
         Just (SGlobalVars _) -> Just $ SGlobalVars forBodyGlobalVars)
         GlobalVars (env originalState)
-      -- f) add `forBody_Some_VarAssignments` to `map_withGlobalVars`
+      -- f) add `counterVarAssignment`, `forBody_Some_VarAssignments`
+      --      to `map_withGlobalVars`
       -- also, if `theLoopSyntax == ForSyntax`
       --     , and `m_Acc` is a Just,
       --     , then add it too
-      map_withVarAssignments = Map.alter (\case
-             Nothing -> Just $ SVarAssignments
-               $ forBody_Some_VarAssignments
-             Just (SVarAssignments _) -> Just $ SVarAssignments
-               $ forBody_Some_VarAssignments)
+      map_withVarAssignments = let
+        newVarAssignments = counterVarAssignment ++ forBody_Some_VarAssignments
+        in Map.alter (\case
+             Nothing -> Just $ SVarAssignments newVarAssignments
+             Just (SVarAssignments _) -> Just $ SVarAssignments newVarAssignments)
              VarAssignments map_withGlobalVars
       -- g), h) VarNames in the forbody (see `branchRange`) mentioned in `forBody_Some_VarNames`
       --    need to be SymUnknown, then add them to `map_withVarAssignments`
@@ -2153,6 +2181,7 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
           ) map_withVarAssignments forBody_Some_VarNames
 
   s <- env <$> get
+  --throwError $ constructErrorMsg loc "WOF" [("s",show s)]
   loopSummary <- do
     incrementLogEnumeration
     incrementLogDepth *>
@@ -2246,7 +2275,7 @@ createLoopSummary cfg theLoopSyntax m_Acc
       . visitNode)
     liftM (\s -> (,) s ers) get <* put origState
    -}
-  let forBody_forStep_path_visited = loopState
+  let forBody_forStep_path_visited = forBody_forStep_path_visited0--loopState
       forBody_forStep_path_visited_ers = forBody_forStep_ers
   -- all varnames mentioned in the loop body + in the condition + in the accumulator
   let loopVarNames :: [String] = let
@@ -2278,7 +2307,7 @@ createLoopSummary cfg theLoopSyntax m_Acc
   theLoopReadOnlyVars :: [String] <- do
     incrementLogEnumeration
     incrementLogDepth *>
-      getLoopReadOnlyVars loopVarNames (branchRange, env origState, env forBody_forStep_path_visited)
+      getLoopReadOnlyVars loopVarNames (branchRange, env origState,  forBody_forStep_path_visited)
       <* decrementLogDepth
   -------------------
   -- loopFrameTargets
@@ -2295,7 +2324,7 @@ createLoopSummary cfg theLoopSyntax m_Acc
     incrementLogEnumeration
     incrementLogDepth *>
       getLoopInitFacts
-        (env origState) (env forBody_forStep_path_visited,forBody_forStep_path_visited_ers)
+        (env origState) (forBody_forStep_path_visited,forBody_forStep_path_visited_ers)
         theLoopFrameTargets
         branchRange
           <* decrementLogDepth
@@ -2310,7 +2339,7 @@ createLoopSummary cfg theLoopSyntax m_Acc
       incrementLogEnumeration
       res <-
         incrementLogDepth *>
-          getLoopGuard (env origState, env forBody_forStep_path_visited) forCondExpr_converted
+          getLoopGuard (env origState, forBody_forStep_path_visited) forCondExpr_converted
             <* decrementLogDepth
       return $ Just res
   ----------------------------
@@ -2337,9 +2366,9 @@ createLoopSummary cfg theLoopSyntax m_Acc
     incrementLogDepth *>
       getLoopExitingConditions cfg
         (loopCondExprNodeCoor,theLoopGuard)
-        (getBreaks_StateEnv  $ env forBody_forStep_path_visited,
+        (getBreaks_StateEnv  $ forBody_forStep_path_visited,
          getBreaks_ers       $ forBody_forStep_path_visited_ers)
-        (getReturns_StateEnv $ env forBody_forStep_path_visited,
+        (getReturns_StateEnv $ forBody_forStep_path_visited,
          getReturns_ers      $ forBody_forStep_path_visited_ers)
       <* decrementLogDepth
   -----------------------------
@@ -2365,7 +2394,7 @@ createLoopSummary cfg theLoopSyntax m_Acc
     incrementLogEnumeration
     incrementLogDepth *>
       getLoopCounters
-        (branchRange, env origState, env forBody_forStep_path_visited)
+        (branchRange, env origState, forBody_forStep_path_visited)
         (theLoopGuard, theLoopExitingConditions)
         (theLoopInitFacts, theLoopFrameTargets)
         <* decrementLogDepth
@@ -2385,7 +2414,7 @@ createLoopSummary cfg theLoopSyntax m_Acc
   theLoopAssignments :: [String] <- do
     incrementLogEnumeration
     incrementLogDepth *>
-      getLoopAssignments (branchRange, env forBody_forStep_path_visited)
+      getLoopAssignments (branchRange, forBody_forStep_path_visited)
       <* decrementLogDepth
   -------------------------
   -- loopFrameTargetsDevelopmentTrajectory
@@ -2395,7 +2424,7 @@ createLoopSummary cfg theLoopSyntax m_Acc
     incrementLogDepth *>
       getLoopFrameTargetsDevelopmentTrajectory
         theLoopFrameTargets
-        (forBody_forStep_path,env origState, env forBody_forStep_path_visited)
+        (forBody_forStep_path,env origState, {-forBody_forStep_path_visited-}env loopState)
       <* decrementLogDepth
   ----------------
   -- loopExitFacts
@@ -2428,7 +2457,7 @@ createLoopSummary cfg theLoopSyntax m_Acc
     incrementLogDepth *>
       getLoopBoundStabilityFacts (
         forBody_forStep_path,
-        env origState, env forBody_forStep_path_visited)
+        env origState, env loopState)
         theLoopCountersBounds
         theLoopFrameTargets
       <* decrementLogDepth
@@ -2443,7 +2472,6 @@ createLoopSummary cfg theLoopSyntax m_Acc
         theLoopCountersBounds
         theLoopBoundStabilityFacts
       <* decrementLogDepth
-
   --------------
   -- LoopSummary
   --------------

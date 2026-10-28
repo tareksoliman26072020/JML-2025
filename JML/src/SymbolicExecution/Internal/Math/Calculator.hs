@@ -1089,6 +1089,9 @@ symExprCompare expr1 expr2 = let
             SymInt num    -> compare num 0
             SymDouble num -> compare num 0
             SymFloat num  -> compare num 0
+            expr -> error $ constructErrorMsg loc "MEOW" $ logContents ++ [
+              ("expr1",show expr1),
+              ("expr2",show expr2)]
       | otherwise -> error $ constructErrorMsg loc "TODO1" logContents
 
 isSymExprGreaterThan :: SymExpr -> SymExpr -> Bool

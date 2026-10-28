@@ -40,20 +40,6 @@ getLoopInitFacts origEnv (newEnv,newEnv_ers) loopFrameTargets branchRange = do
   constructLog loc "getLoopInitFacts" logContents
   let theVarNames = flip Map.foldMapWithKey (getVarNames origEnv) $ \(VarName vn) v ->
         helper vn v
-        {-case v of
-          SymVar _ vn2 _
-            | vn2 `elem` loopFrameTargets -> [(vn,SymPreScope branchRange v)]
-            | vn /= vn2 -> [(vn,v)]
-            | otherwise -> []
-          _ -> [(vn,SymPreScope branchRange v)]-}
-  {-let theVarNames = let
-        collecting = flip Map.filterWithKey (getVarNames origEnv) $ \(VarName vn) -> \case
-          -- filter out uninitialized variables
-          SymVar _ vn2 _ ->
-            vn2 `elem` loopFrameTargets || vn /= vn2
-          _ -> True
-        in Map.toList
-           $ Map.mapKeys (\(VarName vn) -> vn) collecting-}
   let forLoopCountersInitFacts :: [(String,SymExpr)]
       forLoopCountersInitFacts = case Map.lookup VarAssignments origEnv of
         Just (SVarAssignments li) -> [(vn,initVal)
@@ -276,7 +262,6 @@ getLoopExitViaReturnFacts forBody_forStep_ers = do
         ("forBody_forStep_ers",show forBody_forStep_ers)]
   constructLog loc "getLoopExitViaReturnFacts" logContents
   let toReturn = study forBody_forStep_ers
-  --throwError $ constructErrorMsg loc "MEOW" $ logContents ++ [("toReturn",show toReturn)]
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
   -- each tuple has two elements:
   --   1) the concatenation of conditions which lead to the return statement
