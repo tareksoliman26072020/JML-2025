@@ -187,7 +187,7 @@ data SymExpr =
 
   | SymNull SymType               -- ^ value of an unassigned variable
   | SymVar SymType String [VarInfo]
-  | SymArrayAccess [ArrayAccessionInfo]{-
+  | SymArrayAccess [({-CFGT.Node_Coor,-}ArrayAccessionInfo)]{-
                    [(Either SymExpr (SymType,String,SymExpr)
                     ,Maybe (SymType,String,SymExpr)
                     ,Either SymExpr (SymType,String,SymExpr))]-}
@@ -216,10 +216,16 @@ data SymExpr =
   deriving (Eq,Show)
 
 data ArrayAccessionInfo =
-  ReAssignment (ArrayAccessionInfo,ArrayAccessionInfo) |
-  ViaConstantIndex (SymType,String,SymExpr) |
-  ViaNonConstantIndex (SymType,String,SymExpr) |
-  AccessionViaObject SymExpr
+    ReAssignment (ArrayAccessionInfo,ArrayAccessionInfo)
+  | ViaConstantIndex (
+    SymType,             -- array type
+    String,              -- array name
+    ([String],SymExpr))  -- constant name(s) of index (if it exists) and expression
+  | ViaNonConstantIndex (
+    SymType,           -- array type
+    String,            -- array name
+    ([String],SymExpr))  -- index name and expression
+  | AccessionViaObject SymExpr
   deriving (Show,Eq)
 
 -- declared for the sake of `SymVar` in `SymExpr`

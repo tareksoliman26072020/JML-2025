@@ -1215,8 +1215,8 @@ visitExpr nodeCoor expr@AST.AssignExpr{} = do
         ]
   -- if either one or two is ER_ArrayCallExpr,
   -- then we want to record this in the state „ArrayAccess“
-  do let left = ifArrayIsAccessed $ getSummarized_er one
-         right = ifArrayIsAccessed $ getSummarized_er two
+  do let left = createArrayAccessionInfo_er $ getSummarized_er one
+         right = createArrayAccessionInfo_er $ getSummarized_er two
      let maybeArrayAccessed
            | any isJust [left,right] = Just $ ReAssignment (fromJust left,fromJust right)
            | otherwise = Nothing
@@ -1479,12 +1479,21 @@ visitExpr nodeCoor expr@AST.ArrayCallExpr{} = do
       Just symExpr -> return $ toSymType2 symExpr
   let symExprCall = SArrayIndexAccess arrType arrName index_er
       symExprVal = objAccCalculator varNames symExprCall
-  let toReturn = ER_ArrayCallExpr symExprCall symExprVal
   -- array has been accessed, and this needs to be recorded
-  do case ifArrayIsAccessed2 symExprCall of
+  do let indexVars :: [String] = maybe [] AST.getArrayIndexVarNames (AST.index expr)
+     case createArrayAccessionInfo (indexVars,symExprCall) of
        Nothing -> return ()
        Just arrayAccessed -> do
          tellNextLog $ Log.ModifyState loc ("ArrayAccess","arrayAccessed: " ++ show arrayAccessed)
+         ((getVarNames . env) <$> get) >>= \vars -> throwError (constructErrorMsg loc "MEOW" [
+           ("vars",show vars),
+           ("index_er",show index_er),
+           ("AST.index expr",show $ AST.index expr),
+           ("indexVars",show indexVars),
+           ("expr",show expr),
+           ("symExprCall",show symExprCall),
+           ("symExprVal",show symExprVal),
+           ("arrayAccessed",show arrayAccessed)])
          modify $ \symState -> SymState {
            env = Map.alter (\case
              Just (SymArrayAccess li) -> Just $ SymArrayAccess $ li ++ [arrayAccessed]
@@ -1493,6 +1502,7 @@ visitExpr nodeCoor expr@AST.ArrayCallExpr{} = do
            executionResults = executionResults symState,
            logHeader = logHeader symState
          }
+  let toReturn = ER_ArrayCallExpr symExprCall symExprVal
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn
 
 visitExpr nodeCoor expr@(AST.BoolLiteral b) = do

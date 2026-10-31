@@ -853,8 +853,8 @@ addBehavior sy er = do
           thrdTu_li :: SYT.ArrayAccessionInfo -> [(SYT.SymType,String,SYT.SymbolicExecutionValue)]
           thrdTu_li = \case
             SYT.ReAssignment (info1,info2) -> concatMap thrdTu_li [info1,info2]
-            SYT.ViaConstantIndex tu -> [tu]
-            SYT.ViaNonConstantIndex tu -> [tu]
+            SYT.ViaConstantIndex (a,b,(_,c)) -> [(a,b,c)]
+            SYT.ViaNonConstantIndex (a,b,(_,c)) -> [(a,b,c)]
             SYT.AccessionViaObject symExpr -> let
               err msg = error $ constructErrorMsg loc msg $ logContents ++ [("symExpr",show symExpr)] in
               case symExpr of
@@ -903,7 +903,7 @@ addBehavior sy er = do
           arrAssignable = Assignable $ catMaybes
             [res | arrayAccessionInfo <- li
                  , let res = case arrayAccessionInfo of
-                         SYT.ViaNonConstantIndex (_,arrName,SYT.SymVar _ indexName _) -> Just
+                         SYT.ViaNonConstantIndex (_,arrName,(_,SYT.SymVar _ indexName _)) -> Just
                            $ printf "%s[%s]" arrName indexName
                          _ -> Nothing
               ]{-
@@ -934,7 +934,7 @@ addBehavior sy er = do
                     _ -> True
                 _ -> False
             , let SYT.ReAssignment (
-                    SYT.ViaNonConstantIndex (arrType1,arrName1,arrIndexSymExpr1),
+                    SYT.ViaNonConstantIndex (arrType1,arrName1,(_,arrIndexSymExpr1)),
                     _) = arrayAccessionInfo
             , let f (arrType2,arrName2,arrIndexSymExpr2) = symExprToExpr jmlState
                     $ SYT.SArrayIndexAccess arrType2 arrName2 arrIndexSymExpr2
@@ -942,8 +942,8 @@ addBehavior sy er = do
                     $ SYT.SArrayIndexAccess arrType1 arrName1 arrIndexSymExpr1
             , let rightExpr = case arrayAccessionInfo of
                     SYT.ReAssignment (_,rightSide) -> case rightSide of
-                      SYT.ViaNonConstantIndex tu -> f tu
-                      SYT.ViaConstantIndex tu -> f tu
+                      SYT.ViaNonConstantIndex (a,b,(_,c)) -> f (a,b,c)
+                      SYT.ViaConstantIndex (a,b,(_,c)) -> f (a,b,c)
                       SYT.AccessionViaObject symExpr -> symExprToExpr jmlState symExpr
                   expr = leftExpr `JMLEquals` rightExpr
                   

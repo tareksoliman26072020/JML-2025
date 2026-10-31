@@ -1807,23 +1807,25 @@ stateChangingCondition_2_symExprs symType = \case
 
 -- This function checks if an expression accesses an array,
 -- and if so, then it's a right. If not, then Left
-ifArrayIsAccessed :: ExecutionResult -> Maybe ArrayAccessionInfo
-ifArrayIsAccessed er = let
-  loc = "SymbolicExecution.Internal.Internal.ifArrayIsAccessed"
+createArrayAccessionInfo_er :: ExecutionResult -> Maybe ArrayAccessionInfo
+createArrayAccessionInfo_er er = let
+  loc = "SymbolicExecution.Internal.Internal.createArrayAccessionInfo_er"
   logContents = [("er",show er)]
   in case er of
-    ER_ArrayCallExpr callExpr _ -> ifArrayIsAccessed2 callExpr
+    ER_ArrayCallExpr callExpr _ -> createArrayAccessionInfo ([],callExpr)
     _ -> Nothing
     
-ifArrayIsAccessed2 :: SymExpr -> Maybe ArrayAccessionInfo
-ifArrayIsAccessed2 symExpr = let
-  loc = "SymbolicExecution.Internal.Internal.ifArrayIsAccessed2"
-  logContents = [("symExpr",show symExpr)] in
+createArrayAccessionInfo :: ([String],SymExpr) -> Maybe ArrayAccessionInfo
+createArrayAccessionInfo (indexVars,symExpr) = let
+  loc = "SymbolicExecution.Internal.Internal.createArrayAccessionInfo"
+  logContents = [("symExpr",show symExpr),("indexVars",show indexVars)] in
   case symExpr of
     SArrayIndexAccess arrType arrName indexSymExpr
-      | isConstant indexSymExpr -> Just $ ViaConstantIndex (arrType,arrName,indexSymExpr)
-      | otherwise -> Just $ ViaNonConstantIndex (arrType,arrName,indexSymExpr)
-    SObjAcc _ -> error $ constructErrorMsg loc "TODO" logContents
+      | isConstant indexSymExpr -> Just $ ViaConstantIndex
+          $ (,,) arrType arrName (indexVars,indexSymExpr)
+      | otherwise -> --Just $ ViaNonConstantIndex (arrType,arrName,indexSymExpr)
+          error $ constructErrorMsg loc "TODO2" $ logContents ++ [("indexSymExpr",show indexSymExpr)]
+    SObjAcc _ -> error $ constructErrorMsg loc "TODO3" logContents
     _ -> Nothing
 -------------------
 -------------------

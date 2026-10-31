@@ -68,6 +68,29 @@ data Expression
   | ReturnExpr {returnE :: Maybe Expression}
   deriving (Eq, Show)
 
+yellow :: String -> String
+yellow = printf "\ESC[1;33m%s\ESC[m"
+
+cyan :: String -> String
+cyan = printf "\ESC[1;36m%s\ESC[m"
+
+green :: String -> String
+green = printf "\ESC[1;32m%s\ESC[m"
+
+constructLogContents :: [(String,String)] -> String
+constructLogContents contents = intercalate "\n\n  "
+  $ map (\(counter,(key,value)) -> printf "%s %s"
+            (yellow $ printf "%d) %s:" counter key) value)
+  $ zip [1::Int ..] contents
+
+constructLogMsg :: String -> String -> [(String,String)] -> String
+constructLogMsg loc tag contents = printf
+  "%s in %s\n\
+  \  %s"
+  (green tag) (cyan loc) (constructLogContents contents)
+
+constructErrorMsg = constructLogMsg
+
 isLiteral :: Expression -> Bool
 isLiteral (NumberLiteral _) = True
 isLiteral (BoolLiteral _) = True
@@ -171,6 +194,15 @@ getVarNames expr = let
     BoolLiteral _ -> []
     FunCallExpr _ funArgs -> concatMap getVarNames funArgs
     _ -> error $ printf "TODO in %s ==> %s" loc (show expr)
+
+-- this function is to be applied on the index of an array in `ArrayCallExpr{}`
+getArrayIndexVarNames :: Expression -> [String]
+getArrayIndexVarNames expr = let
+  loc = "Parser.Types.getArrayIndexVarNames"
+  logContents = [("expr",show expr)] in
+  case expr of
+    VarExpr{} -> [varName expr]
+    _ -> error $ constructErrorMsg loc "TODO" logContents
 
 isVarExpr :: Expression -> Bool
 isVarExpr = \case
