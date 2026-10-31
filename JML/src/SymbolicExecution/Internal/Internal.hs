@@ -885,7 +885,7 @@ getSymType2 vn symExpr = let
         AccessionViaObject expr -> case expr of
           SObjAcc [_,"length"] -> Just Int
           _ -> error $ constructErrorMsg loc "TODO" $ logContents ++ [("expr",show expr)]
-      in foldl' (\acc info -> pick_known_symType3 (acc,f info)) Nothing li
+      in foldl' (\acc (_,info) -> pick_known_symType3 (acc,f info)) Nothing li
     SBin expr1 op expr2 -> let
       tu = (getSymType2 vn expr1,getSymType2 vn expr2) in if
       | op `elem` [Eq,Neq,Lt,Le,Gt,Ge,And,Or] -> case tu of
@@ -1805,6 +1805,14 @@ stateChangingCondition_2_symExprs symType = \case
     SBin (SArrayIndexAccess symType arrayName counterSymExpr) Eq value_2_exclude
   Condition symExpr -> symExpr
 
+getArrayAccess :: SymStateEnv -> Maybe SymExpr
+getArrayAccess env = let
+  loc = "SymbolicExecution.Internal.Internal.getArrayAccess" in
+  flip fmap (Map.lookup ArrayAccess env) $ \case
+    a@(SymArrayAccess _) -> a
+    a -> error $ constructErrorMsg loc "won't happen" [("a",show a)]
+  
+
 -- This function checks if an expression accesses an array,
 -- and if so, then it's a right. If not, then Left
 createArrayAccessionInfo_er :: ExecutionResult -> Maybe ArrayAccessionInfo
@@ -1823,8 +1831,8 @@ createArrayAccessionInfo (indexVars,symExpr) = let
     SArrayIndexAccess arrType arrName indexSymExpr
       | isConstant indexSymExpr -> Just $ ViaConstantIndex
           $ (,,) arrType arrName (indexVars,indexSymExpr)
-      | otherwise -> --Just $ ViaNonConstantIndex (arrType,arrName,indexSymExpr)
-          error $ constructErrorMsg loc "TODO2" $ logContents ++ [("indexSymExpr",show indexSymExpr)]
+      | otherwise -> Just $ ViaNonConstantIndex
+          $ (,,) arrType arrName (indexVars,indexSymExpr)
     SObjAcc _ -> error $ constructErrorMsg loc "TODO3" logContents
     _ -> Nothing
 -------------------

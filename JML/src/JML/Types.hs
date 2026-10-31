@@ -175,11 +175,7 @@ data ExecutionResult =
   | ER_IfThenElse (Maybe String,CFGT.ScopeRange)
            (Expr,JMLState,[ExecutionResult]) (Maybe (Expr,JMLState,[ExecutionResult]))
   | ER_LoopConditions CFGT.ScopeRange [Map.Map String SYT.SymbolicExecutionValue]
-  | ER_ArrayAccess [SYT.ArrayAccessionInfo]{-[(
-       Either SYT.SymbolicExecutionValue (SYT.SymType,String,SYT.SymbolicExecutionValue)
-      ,Maybe (SYT.SymType,String,SYT.SymbolicExecutionValue)
-      ,Either SYT.SymbolicExecutionValue (SYT.SymType,String,SYT.SymbolicExecutionValue)
-      )]-}
+  | ER_ArrayAccess [(CFGT.Node_Coor,SYT.ArrayAccessionInfo)]
   | ER_LoopSummary CFGT.ScopeRange
                    [LoopInvariantTemplate]  -- inferred loop invariant templates
                    [Clause]                 -- loop invariants that are relevant

@@ -5291,13 +5291,14 @@ contains = Map.fromList [
   (VarAssignments,SVarAssignments [
       ("i",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
       ("i",(SymInt 1,Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 2, branchEnd = 7}}))]),
+  (ArrayAccess,SymArrayAccess [
+      (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}},
+       AccessionViaObject (SObjAcc ["a","length"])),
+      (Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 2, branchEnd = 7}},
+       ViaNonConstantIndex (SYT.Array SYT.Int,"a",(["i"],SymInt 0)))]),
   (VarName "a",SymVar (SYT.Array SYT.Int) "a" []),
   (VarName "i",SymUnknown ("i",SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 7})],6)]),
   (VarName "x",SymVar SYT.Int "x" []),
-  (ArrayAccess,SymArrayAccess [
-      (Left (SArrayIndexAccess (SYT.Array SYT.Int) "a" (SymInt 0)),
-       Just (SYT.Array SYT.Int,"a",SymInt 0),
-       Left (SArrayIndexAccess (SYT.Array SYT.Int) "a" (SymInt 0)))]),
   (ScopeRange (SR {branchStart = 2, branchEnd = 7}),
    SLoop Nothing
          (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Less, expr2 = VarExpr {varType = Nothing, varObj = ["a"], varName = "length"}}))

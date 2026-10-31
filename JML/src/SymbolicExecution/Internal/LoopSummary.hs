@@ -17,7 +17,7 @@ import Control.Monad.Writer
 import Text.Printf (printf)
 import Data.Functor (($>))
 import qualified CFG.Types as CFGT
-import qualified CFG.Internal as CFG (getPathToCoor)
+import qualified CFG.Internal as CFG (getPathToCoor, getVarNames2)
 import qualified Parser.Types as AST
 import Data.List ((\\), find, nub, nubBy, foldl')
 import Data.Maybe (catMaybes, fromJust)
@@ -27,6 +27,257 @@ globalLoc = "SymbolicExecution.Internal.LoopSummary"
 --------------------
 --------------------
 --------------------
+
+{-inferLoopSummary :: CFGT.CFG -> LoopSyntax -> Maybe CFGT.Node
+  -> (CFGT.Node_Coor,Maybe AST.Expression,SymExpr)
+  -> (([CFGT.Node],Map.Map SymStateKey SymExpr),(SymState,[ExecutionResult]))
+  -> CFGT.ScopeRange
+  -> SymbolicExecutionMonad LoopSummary
+inferLoopSummary cfg theLoopSyntax m_Acc
+  (loopCondExprNodeCoor,mForCondExpr,forCondExpr_visited_expr)
+  ((forBody_forStep_path,forBody_forStep_path_visited0),(loopState,forBody_forStep_ers))
+  branchRange =-}
+inferLoopSummary 
+  (loopVarNames :: [String])
+  (branchRange :: CFGT.ScopeRange)
+  (origState :: SymState)
+  (forBody_forStep_path_visited :: Map.Map SymStateKey SymExpr)
+  (forBody_forStep_path_visited_ers :: [ExecutionResult])
+  (mForCondExpr :: Maybe AST.Expression)
+  (maybe_forCondExpr_converted :: Maybe SymExpr)
+  (cfg :: CFGT.CFG)
+  (loopCondExprNodeCoor :: CFGT.Node_Coor)
+  (forBody_forStep_path :: [CFGT.Node])
+  (loopState :: SymState)
+  (theLoopSyntax :: LoopSyntax)
+  (m_Acc :: Maybe CFGT.Node)
+  (maybe_forCondExpr_visited :: Maybe SymExpr) = do
+  -- forCondExpr_visited_expr, loopState, forBody_forStep_ers
+  -- are inherited from `visitLoop`
+  let loc = "SymbolicExecution.Internal.LoopSummary.inferLoopSummary"
+  -------------------
+  -- loopReadOnlyVars
+  -------------------
+  theLoopReadOnlyVars :: [String] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopReadOnlyVars loopVarNames (branchRange, env origState,  forBody_forStep_path_visited)
+      <* decrementLogDepth
+  -------------------
+  -- loopFrameTargets
+  -------------------
+  theLoopFrameTargets :: [String] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopFrameTargets loopVarNames theLoopReadOnlyVars
+      <* decrementLogDepth
+  ----------------
+  -- loopInitFacts
+  ----------------
+  theLoopInitFacts :: [(String,SymExpr)] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopInitFacts
+        (env origState) (forBody_forStep_path_visited,forBody_forStep_path_visited_ers)
+        theLoopFrameTargets
+        branchRange
+          <* decrementLogDepth
+  ------------
+  -- loopGuard
+  ------------
+  (theLoopGuard :: Maybe SymExpr) <- case (mForCondExpr,maybe_forCondExpr_converted) of
+    (Nothing,Nothing) -> return Nothing
+    (Just forCondExpr,Just (forCondExpr_converted :: SymExpr)) -> do
+      tellNextLog $ Log.LogTag loc "before Loop Guard" (show forCondExpr)
+      tellNextLog $ Log.LogTag loc "Loop Guard" (show forCondExpr_converted)
+      incrementLogEnumeration
+      res <-
+        incrementLogDepth *>
+          getLoopGuard (env origState, forBody_forStep_path_visited) forCondExpr_converted
+            <* decrementLogDepth
+      return $ Just res
+  ----------------------------
+  -- loopEnteringCondition
+  ----------------------------
+  theLoopEnteringCondition :: Maybe SymExpr <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopEnteringCondition theLoopInitFacts theLoopGuard
+      <* decrementLogDepth
+  --------------------
+  -- loopSkipCondition
+  --------------------
+  theLoopSkipCondition :: Maybe SymExpr <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopSkipCondition theLoopEnteringCondition
+      <* decrementLogDepth
+  ---------------------
+  -- loopExitingConditions
+  ---------------------
+  theLoopExitingConditions :: [(CFGT.Node_Coor,SymExpr)] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopExitingConditions cfg
+        (loopCondExprNodeCoor,theLoopGuard)
+        (getBreaks_StateEnv  $ forBody_forStep_path_visited,
+         getBreaks_ers       $ forBody_forStep_path_visited_ers)
+        (getReturns_StateEnv $ forBody_forStep_path_visited,
+         getReturns_ers      $ forBody_forStep_path_visited_ers)
+      <* decrementLogDepth
+  -----------------------------
+  -- LoopExitViaBreakFacts
+  -----------------------------
+  theLoopExitViaBreakFacts :: [StateChangingConditions] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopExitViaBreakFacts forBody_forStep_path_visited_ers
+      <* decrementLogDepth
+  -------------------------
+  -- loopExitViaReturnFacts
+  -------------------------
+  theLoopExitViaReturnFacts :: [(StateChangingConditions,(CFGT.Node_Coor,Maybe SymExpr))] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopExitViaReturnFacts forBody_forStep_path_visited_ers
+      <* decrementLogDepth
+  ---------------
+  -- loopCounters
+  ---------------
+  theLoopCounters :: [String] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopCounters
+        (branchRange, env origState, forBody_forStep_path_visited)
+        (theLoopGuard, theLoopExitingConditions)
+        (theLoopInitFacts, theLoopFrameTargets)
+        <* decrementLogDepth
+  ----------------------------
+  -- dynamicallyAccessedArrays
+  ----------------------------
+  theDynamicallyAccessedArrays :: [(SymType,String,[(CFGT.Node_Coor,String)])] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getDynamicallyAccessedArrays cfg
+        theLoopCounters
+        forBody_forStep_path_visited_ers
+        <* decrementLogDepth
+  ------------------
+  -- loopAssignments
+  ------------------
+  theLoopAssignments :: [String] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopAssignments (branchRange, forBody_forStep_path_visited)
+      <* decrementLogDepth
+  -------------------------
+  -- loopFrameTargetsDevelopmentTrajectory
+  -------------------------
+  theLoopFrameTargetsDevelopmentTrajectory :: [(String,SymExprDevelopmentTrajectory)] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopFrameTargetsDevelopmentTrajectory
+        theLoopFrameTargets
+        (forBody_forStep_path,env origState, {-forBody_forStep_path_visited-}env loopState)
+      <* decrementLogDepth
+  ----------------
+  -- loopExitFacts
+  ----------------
+  theLoopExitFacts :: [(CFGT.Node_Coor,LoopExitFact)] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopExitFacts
+        (theLoopGuard,theLoopExitingConditions)
+        theLoopFrameTargetsDevelopmentTrajectory
+      <* decrementLogDepth
+  ---------------------
+  -- loopCountersBounds
+  ---------------------
+  theLoopCountersBounds :: [(SymExpr,(SymType,String),SymExpr)] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopCountersBounds
+        theLoopInitFacts
+        theLoopCounters
+        (theLoopGuard,theLoopExitingConditions)
+        theLoopFrameTargetsDevelopmentTrajectory
+        theLoopReadOnlyVars
+      <* decrementLogDepth
+  --------------------------
+  -- loopBoundStabilityFacts
+  --------------------------
+  theLoopBoundStabilityFacts :: [(SymExpr,SymExprDevelopmentTrajectory)] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopBoundStabilityFacts (
+        forBody_forStep_path,
+        env origState, env loopState)
+        theLoopCountersBounds
+        theLoopFrameTargets
+      <* decrementLogDepth
+  -------------------------
+  -- loopDecreasesCandidate
+  -------------------------
+  theLoopDecreasesCandidate :: [SymExpr] <- do
+    incrementLogEnumeration
+    incrementLogDepth *>
+      getLoopDecreasesCandidate
+        theLoopFrameTargetsDevelopmentTrajectory
+        theLoopCountersBounds
+        theLoopBoundStabilityFacts
+      <* decrementLogDepth
+  --------------
+  -- LoopSummary
+  --------------
+  let loopSummary = LoopSummary {
+        loopSyntax = theLoopSyntax,
+        loopInitFacts = theLoopInitFacts,
+        loopGuard = theLoopGuard,
+        loopEnteringCondition = theLoopEnteringCondition,
+        loopSkipCondition = theLoopSkipCondition,
+        loopExitingConditions = theLoopExitingConditions,
+        loopExitViaBreakFacts = theLoopExitViaBreakFacts,
+        loopExitViaReturnFacts = theLoopExitViaReturnFacts,
+        loopCounters = theLoopCounters,
+        dynamicallyAccessedArrays = theDynamicallyAccessedArrays,
+        loopAssignments = theLoopAssignments,
+        loopReadOnlyVars = theLoopReadOnlyVars,
+        loopFrameTargets = theLoopFrameTargets,
+        loopFrameTargetsDevelopmentTrajectory = theLoopFrameTargetsDevelopmentTrajectory,
+        loopExitFacts = theLoopExitFacts,
+        loopCountersBounds = theLoopCountersBounds,
+        loopBoundStabilityFacts = theLoopBoundStabilityFacts,
+        loopDecreasesCandidate = theLoopDecreasesCandidate
+      }
+  -------------------------
+  constructLog loc "summary in the end"
+    $ [("origState",show origState)
+      ,("m_Acc",show m_Acc)
+      ,("mForCondExpr",show mForCondExpr)
+      ,("origState",show origState)
+      ,("maybe_forCondExpr_visited",show maybe_forCondExpr_visited)
+      ,("forBody_forStep_path_visited",show forBody_forStep_path_visited)
+      ,("forBody_forStep_path_visited_ers",show forBody_forStep_path_visited_ers)
+      ,("forBody_forStep_path",show forBody_forStep_path)
+      ,("loopVarNames",show loopVarNames)
+      ,("maybe_forCondExpr_converted",show maybe_forCondExpr_converted)
+      ,("theLoopSyntax",show theLoopSyntax)
+      ,("theLoopInitFacts",show theLoopInitFacts)
+      ,("theLoopGuard",show theLoopGuard)
+      ,("theLoopEnteringCondition",show theLoopEnteringCondition)
+      ,("theLoopSkipCondition",show theLoopSkipCondition)
+      ,("theLoopExitingConditions",show theLoopExitingConditions)
+      ,("theLoopCounters",show theLoopCounters)
+      ,("theDynamicallyAccessedArrays",show theDynamicallyAccessedArrays)
+      ,("theLoopFrameTargetsDevelopmentTrajectory",show theLoopFrameTargetsDevelopmentTrajectory)
+      ,("theLoopAssignments",show theLoopAssignments)
+      ,("theLoopReadOnlyVars",show theLoopReadOnlyVars)
+      ,("theLoopFrameTargets",show theLoopFrameTargets)
+      ,("theLoopExitFacts",show theLoopExitFacts)
+      ,("theLoopCountersBounds",show theLoopCountersBounds)
+      ,("theLoopBoundStabilityFacts",show theLoopBoundStabilityFacts)
+      ,("theLoopDecreasesCandidate",show theLoopDecreasesCandidate)]
+  (tellNextLog $ Log.Return loc (show loopSummary)) $> loopSummary
 
 -- finding `LoopInitFacts` in `LoopSummary`
 getLoopInitFacts :: SymStateEnv -> (SymStateEnv,[ExecutionResult]) -> [String] -> CFGT.ScopeRange -> SymbolicExecutionMonad [(String,SymExpr)]

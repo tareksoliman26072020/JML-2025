@@ -8,11 +8,10 @@ import qualified CFG.Types as CFGT
 import qualified CFG.Internal as CFG
 import qualified Data.Map as Map
 import Data.Maybe (mapMaybe, fromJust, isJust)
-import Control.Monad (foldM, zipWithM_, liftM, forM)
+import Control.Monad (foldM, zipWithM, zipWithM_, liftM, liftM2, forM, forM_)
 import Control.Monad.Reader (ReaderT,runReaderT,ask)
 import Control.Monad.State
 import Control.Monad.Except
-import Control.Monad (zipWithM,forM_,liftM2)
 import Control.Applicative (asum)
 import qualified Parser.Types as AST
 import Visitors.API
@@ -258,13 +257,7 @@ instance CFGVisitor MethodProcessor where
             return $ case visited of
               ER_FunHandle _ funName -> funName
               _ -> error $ printf "won't happen1: %s ==> %s" loc (show visited)
-          --(_,cfgs) <- ask
-          let {-cfg = case CFG.findCFGByName funName cfgs of
-                      -- CFG not found
-                      Nothing   -> error $ printf "%s %s does not exist" loc funName
-                      -- CFG found
-                      Just cfg0 -> cfg0-}
-              -- branches: start id for the if branch, and the else branch if it exists.
+          let -- branches: start id for the if branch, and the else branch if it exists.
               --           return is a list of one or two ints.
               --           if there is no else branch, then the list has only one int.
               branches = case CFG.findEdge_via_id cfg (CFGT.id n) of
@@ -1230,12 +1223,14 @@ visitExpr nodeCoor expr@AST.AssignExpr{} = do
           "both sides have no array access" -> return ()
           _ -> do
             tellNextLog $ Log.ModifyState loc ("ArrayAccess","maybeArrayAccessed: " ++ show maybeArrayAccessed)
-            modify $ \symState -> SymState {
+            modify $ \symState -> let
+              arrayAccessed = fromJust maybeArrayAccessed
+              val = (nodeCoor,arrayAccessed) in SymState {
               env = Map.alter (\case
-                Just (SymArrayAccess li) -> Just $ SymArrayAccess $ li ++ [fromJust maybeArrayAccessed]
-                Nothing -> Just $ SymArrayAccess [fromJust maybeArrayAccessed])
+                Just (SymArrayAccess li) -> Just $ SymArrayAccess $ li ++ [val]
+                Nothing -> Just $ SymArrayAccess [val])
                 ArrayAccess (env symState),
-              executionResults = executionResults symState,
+              executionResults = executionResults symState ++ [ER_ArrayAccess (nodeCoor,expr) arrayAccessed],
               logHeader = logHeader symState
             }
      constructLog loc logTag [("one",show one),("two",show two),("maybeArrayAccessed",show maybeArrayAccessed)]
@@ -1423,12 +1418,13 @@ visitExpr nodeCoor expr@AST.VarExpr{} = do
            SObjAcc [_,"length"] -> do
              let arrayAccessed = AccessionViaObject symExpr0
              modify $ \symState -> SymState {
-               --env = Map.insert ArrayAccess arrayAccessed (env symState),
-               env = Map.alter (\case
-                 Just (SymArrayAccess li) -> Just $ SymArrayAccess $ li ++ [arrayAccessed]
-                 Nothing -> Just $ SymArrayAccess [arrayAccessed])
-                 ArrayAccess (env symState),
-               executionResults = executionResults symState,
+               env = let
+                 val = (nodeCoor,arrayAccessed) in
+                 Map.alter (\case
+                   Just (SymArrayAccess li) -> Just $ SymArrayAccess $ li ++ [val]
+                   Nothing -> Just $ SymArrayAccess [val])
+                   ArrayAccess (env symState),
+               executionResults = executionResults symState ++ [ER_ArrayAccess (nodeCoor,expr) arrayAccessed],
                logHeader = logHeader symState
              }
            _ -> throwError $ constructErrorMsg loc "TODO" [("symExpr0",show symExpr0)]
@@ -1485,21 +1481,14 @@ visitExpr nodeCoor expr@AST.ArrayCallExpr{} = do
        Nothing -> return ()
        Just arrayAccessed -> do
          tellNextLog $ Log.ModifyState loc ("ArrayAccess","arrayAccessed: " ++ show arrayAccessed)
-         ((getVarNames . env) <$> get) >>= \vars -> throwError (constructErrorMsg loc "MEOW" [
-           ("vars",show vars),
-           ("index_er",show index_er),
-           ("AST.index expr",show $ AST.index expr),
-           ("indexVars",show indexVars),
-           ("expr",show expr),
-           ("symExprCall",show symExprCall),
-           ("symExprVal",show symExprVal),
-           ("arrayAccessed",show arrayAccessed)])
          modify $ \symState -> SymState {
-           env = Map.alter (\case
-             Just (SymArrayAccess li) -> Just $ SymArrayAccess $ li ++ [arrayAccessed]
-             Nothing -> Just $ SymArrayAccess [arrayAccessed])
-             ArrayAccess (env symState),
-           executionResults = executionResults symState,
+           env = let
+             val = (nodeCoor,arrayAccessed) in
+             Map.alter (\case
+               Just (SymArrayAccess li) -> Just $ SymArrayAccess $ li ++ [val]
+               Nothing -> Just $ SymArrayAccess [val])
+               ArrayAccess (env symState),
+           executionResults = executionResults symState ++ [ER_ArrayAccess (nodeCoor,expr) arrayAccessed],
            logHeader = logHeader symState
          }
   let toReturn = ER_ArrayCallExpr symExprCall symExprVal
@@ -2192,28 +2181,159 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
   --throwError $ constructErrorMsg loc "WOF" [("s",show s)]
   loopSummary <- do
     incrementLogEnumeration
-    incrementLogDepth *>
-      createLoopSummary cfg theLoopSyntax m_Acc
-        (nodeCoor,mForCondExpr,forCondExpr_visited_expr)
-        ((forBody_forStep_path,map_withVarNames),(loopState,forBody_forStep_ers))
-        branchRange
-        <* decrementLogDepth
+    censor (map (\(Log.Log num tag) ->
+      Log.Log num $ Log.Nested "LoopSummary" tag)) (
+      incrementLogDepth *>
+        createLoopSummary cfg theLoopSyntax m_Acc
+          (nodeCoor,mForCondExpr,forCondExpr_visited_expr)
+          ((forBody_forStep_path,map_withVarNames),(loopState,forBody_forStep_ers))
+          branchRange
+          <* decrementLogDepth)
+  -- creating the loop summry can reveal significant infos that were unknown beforehand
+  do -- [dynamically accessed arrays]: if the array indexes are loop counters,
+     -- then they must be denoted to as `ViaNonConstantIndex` instead of `ViaConstantIndex`
+     studyArrayAccesses :: Maybe
+       ([(CFGT.Node_Coor,ArrayAccessionInfo)],[(CFGT.Node_Coor,ArrayAccessionInfo)]) <- do
+       maybe_ars_acces <- (getArrayAccess . env) <$> get
+       let d_a_ars = dynamicallyAccessedArrays loopSummary
+       let res = case maybe_ars_acces of
+             Nothing -> Nothing
+             -- filter li so that only the `ViaConstantIndex` which are involved
+             -- in the `dynamicallyAccessedArrays` are remained
+             Just (SymArrayAccess li) -> Just $ (,) li
+               [a :: (CFGT.Node_Coor,ArrayAccessionInfo)
+                 | a@(coor,ViaConstantIndex (_,_,(vars,_))) <- li
+                 , -- I use [1) the coordinates, and 2) the index name] to check
+                   flip any d_a_ars $ \(_,_,li2 :: [(CFGT.Node_Coor,String)]) ->
+                     flip any li2 $ \(coor2,var) ->
+                       coor == coor2 && var `elem` vars]
+       return res
+     -- if `relevant_arrayAccesses` is empty, then nothing is to be changed
+     case studyArrayAccesses of
+       Nothing -> return ()
+       Just (allArrayAccesses,relevant_arrayAccesses) -> do
+         let -- helper function for the folding function `newArrayAccesses`
+             folding acc tu@(coor,info) = case info of
+               ViaConstantIndex tu2 -> case lookup coor relevant_arrayAccesses of
+                 Nothing -> acc ++ [tu]
+                 Just _  -> acc ++ [(coor,ViaNonConstantIndex tu2)]
+               _ -> acc ++ [tu]
+             -- replace every element in `allArrayAccesses` which equals an element in
+             -- `relevant_arrayAccesses` with ViaNonConstantIndex
+             newArrayAccesses :: [(CFGT.Node_Coor,ArrayAccessionInfo)]
+             newArrayAccesses = foldl' folding [] allArrayAccesses
+         constructLog loc "converting some `ViaConstantIndex` to `ViaNonConstantIndex`" [
+           ("(old) allArrayAccesses",show allArrayAccesses),
+           ("(to be converted) relevant_arrayAccesses",show relevant_arrayAccesses),
+           ("(new) newArrayAccesses",show newArrayAccesses)]
+         modify $ \symState -> SymState {
+           env = Map.insert ArrayAccess (SymArrayAccess newArrayAccesses) map_withVarNames,
+           executionResults = executionResults symState,
+           logHeader = logHeader symState
+         }
+     return ()
+  --
   loopPatterns <- do
     incrementLogEnumeration
-    incrementLogDepth *>
-      inferLoopPatterns loopSummary
-      <* decrementLogDepth
-  let symExpr = SLoop m_Acc mForCondExpr forBody_forStep_path (Just loopSummary) loopPatterns
-      toReturn = ER_Summary nodeCoor $ ER_SymStateMapEntry (ScopeRange branchRange) symExpr
-  tellNextLog $ Log.ModifyState "visitUnregisteredLoop" (show branchRange,show symExpr)
+    censor (map (\(Log.Log num tag) ->
+      Log.Log num $ Log.Nested "LoopPatterns" tag)) (
+      incrementLogDepth *>
+        inferLoopPatterns loopSummary
+        <* decrementLogDepth)
+  let sLoop_symExpr = SLoop m_Acc mForCondExpr forBody_forStep_path (Just loopSummary) loopPatterns
+      toReturn = ER_Summary nodeCoor $ ER_SymStateMapEntry (ScopeRange branchRange) sLoop_symExpr
+  tellNextLog $ Log.ModifyState "visitUnregisteredLoop" (show branchRange,show sLoop_symExpr)
   modify $ \symState -> SymState {
-    env = Map.insert (ScopeRange branchRange) symExpr map_withVarNames,
+    env = Map.insert (ScopeRange branchRange) sLoop_symExpr (env symState),
     executionResults = executionResults symState ++ [toReturn],
     logHeader = logHeader symState
     }
   tellNextLog (Log.Return "visitUnregisteredLoop" (show toReturn)) $> toReturn
 
 ------------------------------
+{-
+createLoopSummary :: CFGT.CFG -> LoopSyntax -> Maybe CFGT.Node
+  -> (CFGT.Node_Coor,Maybe AST.Expression,SymExpr)
+  -> (([CFGT.Node],Map.Map SymStateKey SymExpr),(SymState,[ExecutionResult]))
+  -> CFGT.ScopeRange
+  -> SymbolicExecutionMonad LoopSummary
+createLoopSummary cfg theLoopSyntax m_Acc
+  (loopCondExprNodeCoor,mForCondExpr,forCondExpr_visited_expr)
+  ((forBody_forStep_path,forBody_forStep_path_visited0),(loopState,forBody_forStep_ers))
+  branchRange = do
+  -- forCondExpr_visited_expr, loopState, forBody_forStep_ers
+  -- are inherited from `visitLoop`
+  let loc = "SymbolicExecution.Method.createLoopSummary"
+      logContents = [
+         ("branchRange",show branchRange)
+        ,("theLoopSyntax",show theLoopSyntax)
+        ,("m_Acc",show m_Acc)
+        ,("loopCondExprNodeCoor",show loopCondExprNodeCoor)
+        ,("mForCondExpr",show mForCondExpr)
+        ,("forCondExpr_visited_expr",show forCondExpr_visited_expr)
+        ,("loopState",show loopState)
+        ,("forBody_forStep_ers",show forBody_forStep_ers)
+        ,("forBody_forStep_path",show forBody_forStep_path)
+        ,("forBody_forStep_path_visited0",show forBody_forStep_path_visited0)
+        ,("branchRange",show branchRange)
+        ]
+  constructLog loc "createLoopSummary" logContents
+  origState <- get
+  -- visit the loop counter
+  (maybe_forAcc_visited :: Maybe SymExpr,maybe_stateAfterAcc) <- do
+    case m_Acc of
+      Nothing -> return (Nothing,Nothing) 
+      Just acc -> do
+        er <- censor (filter $ const False) (methodProcessorMonad $ visitNode acc)
+        stateAfter <- get
+        put origState
+        case getSymExpr er of
+          Just symExpr -> return (Just symExpr,Just stateAfter)
+          Nothing -> throwError $ constructErrorMsg loc "TODO1" [("er",show er)]
+  -- visit the loop guard
+  let maybe_forCondExpr_visited = fmap (const forCondExpr_visited_expr) mForCondExpr
+  -- visit the loop body
+  let forBody_forStep_path_visited = forBody_forStep_path_visited0--loopState
+      forBody_forStep_path_visited_ers = forBody_forStep_ers
+  -- all varnames mentioned in the loop body + in the condition + in the accumulator
+  let loopVarNames :: [String] = let
+        acc_body_vars = (CFG.getVarNames2 $ maybe [] (:[]) m_Acc ++ forBody_forStep_path)
+        cond_Vars = maybe [] (AST.getVarNames) mForCondExpr
+        together = filter (/= "length")
+          (acc_body_vars ++ filter (`notElem` acc_body_vars) cond_Vars)
+        in together
+  -- convert the loop guard to SymExpr (no visiting)
+  let maybe_forCondExpr_converted :: Maybe SymExpr
+      maybe_forCondExpr_converted = flip fmap maybe_forCondExpr_visited
+        $ \forCondExpr_visited -> let
+            forCondExpr = fromJust mForCondExpr
+            theType = case forCondExpr_visited of
+              SBin symExpr1 op symExpr2
+                | isBooleanOperator op -> let
+                    theType1 = toSymType2 symExpr1
+                    theType2 = toSymType2 symExpr2 in if
+                      | theType1 == theType2 -> theType1
+                      | theType1 `isInstanceOf` theType2 -> theType1
+                      | theType2 `isInstanceOf` theType1 -> theType2
+                      | otherwise -> error
+                          $ printf "TODO3 in %s ==> %s" loc (show forCondExpr_visited)
+              _ -> toSymType2 forCondExpr_visited
+            in booleanCalculator $ toSymExpr theType forCondExpr
+  inferLoopSummary
+    (loopVarNames :: [String])
+    (branchRange :: CFGT.ScopeRange)
+    (origState :: SymState)
+    (forBody_forStep_path_visited :: Map.Map SymStateKey SymExpr)
+    (forBody_forStep_path_visited_ers :: [ExecutionResult])
+    (mForCondExpr :: Maybe AST.Expression)
+    (maybe_forCondExpr_converted :: Maybe SymExpr)
+    (cfg :: CFGT.CFG)
+    (loopCondExprNodeCoor :: CFGT.Node_Coor)
+    (forBody_forStep_path :: [CFGT.Node])
+    (loopState :: SymState)
+    (theLoopSyntax :: LoopSyntax)
+    (m_Acc :: Maybe CFGT.Node)
+    (maybe_forCondExpr_visited :: Maybe SymExpr)-}
 
 createLoopSummary :: CFGT.CFG -> LoopSyntax -> Maybe CFGT.Node
   -> (CFGT.Node_Coor,Maybe AST.Expression,SymExpr)
@@ -2505,6 +2625,7 @@ createLoopSummary cfg theLoopSyntax m_Acc
       ,("theLoopBoundStabilityFacts",show theLoopBoundStabilityFacts)
       ,("theLoopDecreasesCandidate",show theLoopDecreasesCandidate)]
   (tellNextLog $ Log.Return loc (show loopSummary)) $> loopSummary
+
 ------------------------------
 
 type Path = [CFGT.Node]

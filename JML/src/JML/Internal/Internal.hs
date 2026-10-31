@@ -843,16 +843,9 @@ addBehavior sy er = do
       -- `extractArrays` gets mentioned arrays
       let extractArray :: (SYT.SymType,String,SYT.SymbolicExecutionValue) -> (SYT.SymType,String)
           extractArray (arrType,arrName,_) = (arrType,arrName)
-          {-thrdTu_li :: (Either b a,Maybe a,Either b a) -> [a]
-          thrdTu_li tu@(x1,x2,x3) = let
-            two = maybe [] ((:[]) . id) x2 in case (x1,x3) of
-            (Right one,Right three) -> [one] ++ two ++ [three]
-            (Right one,Left _)   -> one : two
-            (Left _,Right three) -> two ++ [three]
-            (Left _,Left _)      -> two-}
-          thrdTu_li :: SYT.ArrayAccessionInfo -> [(SYT.SymType,String,SYT.SymbolicExecutionValue)]
-          thrdTu_li = \case
-            SYT.ReAssignment (info1,info2) -> concatMap thrdTu_li [info1,info2]
+          flatten :: SYT.ArrayAccessionInfo -> [(SYT.SymType,String,SYT.SymbolicExecutionValue)]
+          flatten = \case
+            SYT.ReAssignment (info1,info2) -> concatMap flatten [info1,info2]
             SYT.ViaConstantIndex (a,b,(_,c)) -> [(a,b,c)]
             SYT.ViaNonConstantIndex (a,b,(_,c)) -> [(a,b,c)]
             SYT.AccessionViaObject symExpr -> let
@@ -864,7 +857,7 @@ addBehavior sy er = do
                     Nothing -> err "TODO1"
                 _ -> err "TODO2"
           extractArrays :: [(SYT.SymType,String)]
-          extractArrays = concatMap (map extractArray . thrdTu_li) li
+          extractArrays = concatMap (map extractArray . flatten . snd) li
 
       jmlState <- get
       -- `nonNullableArrays` is a collections of arrays that has the form:
@@ -877,22 +870,9 @@ addBehavior sy er = do
               (\l (symType2,arrName2) -> combinePreconditions
                 l And (Just $ createExpr_arr_not_null2 (toJMLType symType2,arrName2)))
               (Just $ createExpr_arr_not_null2 (toJMLType symType1,arrName1)) rest
-      {-
-      li: [(Nothing,Nothing,Just (Array Int,"arr",SymVar Int "i"))
-          ,(Just (Array Int,"arr",SymVar Int "i"),Nothing,Just (Array Int,"arr",SymVar Int "j"))
-          ,(Just (Array Int,"arr",SymVar Int "j"),Nothing,Nothing)]
-      output: Just
-        $ JMLBin (JMLBin (JMLBin (JMLInt 0) Le (JMLVar Int_Type "i"))
-                         NonFlattableAnd
-                         (JMLBin (JMLVar Int_Type "i") Lt (JMLObjAcc ["arr","length"])))
-                 And
-                 (JMLBin (JMLBin (JMLInt 0) Le (JMLVar Int_Type "j"))
-                         NonFlattableAnd
-                         (JMLBin (JMLVar Int_Type "j") Lt (JMLObjAcc ["arr","length"])))
-       -}
       let requires_access_indexes_within_range :: Maybe Expr
           requires_access_indexes_within_range = case [res
-            | (_,arrName,indexSymExpr) <- nub $ concatMap thrdTu_li li
+            | (_,arrName,indexSymExpr) <- nub $ concatMap (flatten . snd) li
             , let res = createExpr_arrIndex_within_range (arrName,symExprToExpr jmlState indexSymExpr)
             ] of
             [] -> error $ constructErrorMsg innerLoc "won't happen" logContents
@@ -901,7 +881,7 @@ addBehavior sy er = do
               (Just first) rest
       let arrAssignable :: Clause
           arrAssignable = Assignable $ catMaybes
-            [res | arrayAccessionInfo <- li
+            [res | (_,arrayAccessionInfo) <- li
                  , let res = case arrayAccessionInfo of
                          SYT.ViaNonConstantIndex (_,arrName,(_,SYT.SymVar _ indexName _)) -> Just
                            $ printf "%s[%s]" arrName indexName
@@ -925,7 +905,7 @@ addBehavior sy er = do
        -}
       let arrIndexesEnsures :: [Clause]
           arrIndexesEnsures = [Ensures expr
-            | arrayAccessionInfo <- li
+            | (_,arrayAccessionInfo) <- li
             , case arrayAccessionInfo of
                 SYT.ReAssignment (
                   SYT.ViaNonConstantIndex _,

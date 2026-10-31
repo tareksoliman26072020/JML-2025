@@ -25,8 +25,8 @@ newtype MethodProcessor = MethodProcessor {
 ----------
 
 data SymStateKey = MethodHandle
-                 | GlobalVars | FormalParms | VarBindings | VarAssignments
-                 | VarName String | ArrayAccess
+                 | GlobalVars | FormalParms | VarBindings | VarAssignments | ArrayAccess
+                 | VarName String
                  | ScopeRange CFGT.ScopeRange | InheritedScopeRange String CFGT.ScopeRange
                  | LoopFailure
                  | LoopConditions CFGT.ScopeRange | Continue | Break
@@ -143,7 +143,7 @@ data ExecutionResult =
                                 -- due to the presence of previous return statement
                                 -- in a scope or more
   | ER_ActualParameterDetected String SymExpr
-  | ER_ArrayAccess (SymType,String,Maybe SymExpr)
+  | ER_ArrayAccess (CFGT.Node_Coor,AST.Expression) ArrayAccessionInfo
   deriving (Show,Eq)
 
 instance MonadFail (Either String) where
@@ -187,17 +187,7 @@ data SymExpr =
 
   | SymNull SymType               -- ^ value of an unassigned variable
   | SymVar SymType String [VarInfo]
-  | SymArrayAccess [({-CFGT.Node_Coor,-}ArrayAccessionInfo)]{-
-                   [(Either SymExpr (SymType,String,SymExpr)
-                    ,Maybe (SymType,String,SymExpr)
-                    ,Either SymExpr (SymType,String,SymExpr))]-}
-                                  -- ^ False = Left Operand, True = Right Operand
-                                  --   Nothing = neither
-    {- (a,b,c)
-       1) if a is Right, then a is an expression that is accessing an array
-       2) if c is Right, then a is an expression that is accessing an array
-       3) if a is Left, and c is Left, then b = array is accessed via index
-     -}
+  | SymArrayAccess [(CFGT.Node_Coor,ArrayAccessionInfo)]
   | SymArrayElem SymExpr SymExpr  -- ^ will only be used in SVarAssignments
   | SymFun DefinedFun SymExpr
   | SVarBindings (Map.Map String CFGT.Node_Coor)
@@ -285,8 +275,7 @@ data LoopSummary = LoopSummary {
   , dynamicallyAccessedArrays :: [
       (SymType,  -- array type
        String,   -- array name
-       [(CFGT.Node_Coor,String)]) -- loop counters used to access the array
-      ]
+       [(CFGT.Node_Coor,String)])] -- loop counters used to access the array
   -- Local variables assigned inside the loop
   , loopAssignments :: [String]
   -- Records whether a effected vars increases, decreases, moves conditionally, or does not really change, and how much the var changes per iteration.
