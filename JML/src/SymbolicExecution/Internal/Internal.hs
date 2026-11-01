@@ -879,7 +879,9 @@ getSymType2 vn symExpr = let
     SymArrayAccess li -> let
       f :: ArrayAccessionInfo -> Maybe SymType
       f = \case
-        ReAssignment (info1,info2) -> pick_known_symType3 (info1 >>= f,info2 >>= f)
+        ReAssignment (either_info1,either_info2) -> pick_known_symType3 $ (,)
+          (either (Just . toSymType2) f either_info1)
+          (either (Just . toSymType2) f either_info2)
         ViaConstantIndex (t,_,_) -> Just t
         ViaNonConstantIndex (t,_,_) -> Just t
         AccessionViaObject expr -> case expr of
@@ -1815,7 +1817,7 @@ getArrayAccess env = let
 
 -- This function checks if an expression accesses an array,
 -- and if so, then it's a right. If not, then Left
-createArrayAccessionInfo_er :: ExecutionResult -> [String] -> Maybe ArrayAccessionInfo
+createArrayAccessionInfo_er :: ExecutionResult -> [String] -> Either SymExpr ArrayAccessionInfo
 createArrayAccessionInfo_er er formalParms = let
   loc = "SymbolicExecution.Internal.Internal.createArrayAccessionInfo_er"
   logContents = [
@@ -1823,9 +1825,11 @@ createArrayAccessionInfo_er er formalParms = let
     ("formalParms",show formalParms)] in
   case er of
     ER_ArrayCallExpr callExpr _ -> createArrayAccessionInfo ([],callExpr) formalParms
-    _ -> Nothing
+    _ -> case getSymExpr er of
+      Nothing -> error $ constructErrorMsg loc "TODO" logContents
+      Just symExpr -> Left symExpr
     
-createArrayAccessionInfo :: ([String],SymExpr) -> [String] -> Maybe ArrayAccessionInfo
+createArrayAccessionInfo :: ([String],SymExpr) -> [String] -> Either SymExpr ArrayAccessionInfo
 createArrayAccessionInfo (indexVars,symExpr) formalParms = let
   loc = "SymbolicExecution.Internal.Internal.createArrayAccessionInfo"
   logContents = [
@@ -1836,19 +1840,25 @@ createArrayAccessionInfo (indexVars,symExpr) formalParms = let
     SArrayIndexAccess arrType arrName indexSymExpr -> let
       indexVarNames = getVarNames3 indexSymExpr in if
       | isConstant indexSymExpr ||
-        all (`elem` formalParms) indexVarNames -> Just $ ViaConstantIndex
+        all (`elem` formalParms) indexVarNames -> Right $ ViaConstantIndex
           $ (,,) arrType arrName (indexVars,indexSymExpr)
-      | otherwise -> Just $ ViaNonConstantIndex
+      | otherwise -> Right $ ViaNonConstantIndex
           $ (,,) arrType arrName (indexVars,indexSymExpr)
     SObjAcc _ -> error $ constructErrorMsg loc "TODO3" logContents
-    _ -> Nothing
+    _ -> Left symExpr
 
 hasViaNonConstantIndex :: ArrayAccessionInfo -> Bool
 hasViaNonConstantIndex = \case
   ViaNonConstantIndex _ -> True
-  ReAssignment (maybe_info1,maybe_info2) -> any hasViaNonConstantIndex
-    $ catMaybes [maybe_info1,maybe_info2]
+  ReAssignment (either_info1,either_info2) -> any hasViaNonConstantIndex
+    $ catMaybes
+    $ map hush [either_info1,either_info2]
   _ -> False
+
+hush :: Either a b -> Maybe b
+hush = \case
+  Left _ -> Nothing
+  Right x -> Just x
 
 -------------------
 -------------------

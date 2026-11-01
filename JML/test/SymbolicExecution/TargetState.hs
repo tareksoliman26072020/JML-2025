@@ -89,9 +89,9 @@ allTargets = [
   ("manyArrs",manyArrs),
   ("manyArrs2",manyArrs2),
   ("manyArrs3",manyArrs3),
-  ("manyArrs4", manyArrs4),{-
+  ("manyArrs4", manyArrs4),
   ("manyArrs5", manyArrs5),
-  ("manyArrs6", manyArrs6),
+  ("manyArrs6", manyArrs6),{-
   ("manyArrs7", manyArrs7), ("manyArrs7Call1", manyArrs7Call1), ("manyArrs7Call2", manyArrs7Call2),
   ("ifFun",ifFun),
   ("ifFun2",ifFun2),
@@ -2488,7 +2488,7 @@ manyArrs4 = Map.fromList [
 -----------------------------
 -----------------------------
 -----------------------------
-{-
+
 manyArrs5 :: SymStateEnv
 manyArrs5 = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Void "manyArrs5"),
@@ -2502,22 +2502,18 @@ manyArrs5 = Map.fromList [
         ("brand",(SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",SymString "4. Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}})),
         ("brand",(SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",SymString "4. Volkswagen",SymString "5. Skoda"],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),
     (ArrayAccess,SymArrayAccess [
+        (Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 8}},
+         AccessionViaObject (SObjAcc ["brand","length"])),
         (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}},
-         ViaConstantIndex (Array String,"brand",(["i"],SymInt 0))),
+         ViaConstantIndex (SYT.Array SYT.String,"brand",(["i"],SymInt 0))),
         (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}},
-         ViaConstantIndex (Array String,"brand",(["i"],SymInt 0))),
-        (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}},
-         AccessionViaObject (SObjAcc ["brand","length"])),
-        (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}},
-         AccessionViaObject (SObjAcc ["brand","length"])),
-        (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}},
-         AccessionViaObject (SObjAcc ["brand","length"])),
-        (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}},
-         AccessionViaObject (SObjAcc ["brand","length"])),
-        (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}},
-         AccessionViaObject (SObjAcc ["brand","length"])),
-        (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 8}},
-         AccessionViaObject (SObjAcc ["brand","length"]))]),
+         ViaConstantIndex (SYT.Array SYT.String,"brand",(["i"],SymInt 1))),
+        (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}},
+         ViaConstantIndex (SYT.Array SYT.String,"brand",(["i"],SymInt 2))),
+        (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}},
+         ViaConstantIndex (SYT.Array SYT.String,"brand",(["i"],SymInt 3))),
+        (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}},
+         ViaConstantIndex (SYT.Array SYT.String,"brand",(["i"],SymInt 4)))]),
     (VarName "brand",SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "1. Toyota",SymString "2. Mercedes",SymString "3. BMW",SymString "4. Volkswagen",SymString "5. Skoda"]),
     (LoopConditions (SR {branchStart = 2, branchEnd = 6}),
      SLoopConditions [
@@ -2542,26 +2538,19 @@ manyArrs6 = Map.fromList [
     (VarAssignments,SVarAssignments [
         ("brand",(SymArray (Just SYT.String) (Just (SymInt 5)) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 8}}))]),
     (VarName "brand",SymArray (Just SYT.String) (Just (SymInt 5)) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"]),
-    (ArrayAccess,
-     SymArrayAccess [
-       (Left (SArrayIndexAccess (SYT.Array SYT.String) "brand" (SymInt 0)),
-        Just (SYT.Array SYT.String,"brand",SymInt 0),
-        Left (SymString "Toyota")),
-       (Left (SArrayIndexAccess (SYT.Array SYT.String) "brand" (SymInt 0)),
-        Just (SYT.Array SYT.String,"brand",SymInt 0),
-        Left (SymString "Toyota")),
-       (Left (SArrayIndexAccess (SYT.Array SYT.String) "brand" (SymInt 1)),
-        Just (SYT.Array SYT.String,"brand",SymInt 1),
-        Left (SymString "Mercedes")),
-       (Left (SArrayIndexAccess (SYT.Array SYT.String) "brand" (SymInt 2)),
-        Just (SYT.Array SYT.String,"brand",SymInt 2),
-        Left (SymString "BMW")),
-       (Left (SArrayIndexAccess (SYT.Array SYT.String) "brand" (SymInt 3)),
-        Just (SYT.Array SYT.String,"brand",SymInt 3),
-        Left (SymString "Volkswagen")),
-       (Left (SArrayIndexAccess (SYT.Array SYT.String) "brand" (SymInt 4)),
-        Just (SYT.Array SYT.String,"brand",SymInt 4),
-        Left (SymString "Skoda"))]),
+    (ArrayAccess,SymArrayAccess [
+        (Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 8}},
+         AccessionViaObject (SObjAcc ["brand","length"])),
+        (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}},
+         ViaConstantIndex (SYT.Array SYT.String,"brand",(["i"],SymInt 0))),
+        (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}},
+         ViaConstantIndex (SYT.Array SYT.String,"brand",(["i"],SymInt 1))),
+        (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}},
+         ViaConstantIndex (SYT.Array SYT.String,"brand",(["i"],SymInt 2))),
+        (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}},
+         ViaConstantIndex (SYT.Array SYT.String,"brand",(["i"],SymInt 3))),
+        (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}},
+         ViaConstantIndex (SYT.Array SYT.String,"brand",(["i"],SymInt 4)))]),
     (LoopConditions (SR {branchStart = 2, branchEnd = 6}),
      SLoopConditions [
          Map.fromList [("brand.length",SymInt 5),("i",SymInt 0)],
@@ -2583,7 +2572,7 @@ manyArrs6 = Map.fromList [
 -----------------------------
 -----------------------------
 -----------------------------
-
+{-
 manyArrs7 :: SymStateEnv
 manyArrs7 = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Void "manyArrs7"),

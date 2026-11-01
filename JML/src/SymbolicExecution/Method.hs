@@ -1208,11 +1208,11 @@ visitExpr nodeCoor expr@AST.AssignExpr{} = do
          right = createArrayAccessionInfo_er (getSummarized_er two) formalParms
      let arrayAccessed = ReAssignment (left,right)
      let logTag = let
-          al = catMaybes [left,right] in if
+          al = catMaybes $ map hush [left,right] in if
           | null al || all (not . hasViaNonConstantIndex) al -> "both sides have no array access"
           | all hasViaNonConstantIndex al -> "both sides have array access"
-          | maybe False hasViaNonConstantIndex left -> "left side has array access"
-          | maybe False hasViaNonConstantIndex right -> "right side has array access"
+          | either (const False) hasViaNonConstantIndex left -> "left side has array access"
+          | either (const False) hasViaNonConstantIndex right -> "right side has array access"
      {-case CFGT.varDeclAt nodeCoor of
        7 -> throwError $ constructErrorMsg loc "MEOW" $ logContents ++
               [("left",show left),("right",show right),("logTag",logTag)]
@@ -1225,12 +1225,18 @@ visitExpr nodeCoor expr@AST.AssignExpr{} = do
             -- reverse the state to `originalArrayAccess`
             -- because ReAssignment will replace the Array Access of the left and right operands
             modify $ \symState -> let
-              val = (nodeCoor,arrayAccessed) in SymState {
+              val = (nodeCoor,arrayAccessed)
+              val_er = ER_ArrayAccess (nodeCoor,expr) arrayAccessed in SymState {
               env = Map.alter (\case
-                Just (SymArrayAccess li) -> Just $ SymArrayAccess $ li ++ [val]
+                Just (SymArrayAccess li)
+                  | val `elem` li -> Just $ SymArrayAccess li
+                  | otherwise -> Just $ SymArrayAccess $ li ++ [val]
                 Nothing -> Just $ SymArrayAccess [val]) ArrayAccess
                 $ Map.alter (const maybe_originalArrayAccess) ArrayAccess (env symState),
-              executionResults = executionResults symState ++ [ER_ArrayAccess (nodeCoor,expr) arrayAccessed],
+              executionResults = let
+                x = executionResults symState in if
+                | val_er `elem` x -> x
+                | otherwise -> x ++ [val_er],
               logHeader = logHeader symState
             }
             return ()
@@ -1423,10 +1429,16 @@ visitExpr nodeCoor expr@AST.VarExpr{} = do
              modify $ \symState -> SymState {
                env =
                  Map.alter (\case
-                   Just (SymArrayAccess li) -> Just $ SymArrayAccess $ li ++ [newArrayAccessInfo_tu]
+                   a@(Just (SymArrayAccess li))
+                     | newArrayAccessInfo_tu `elem` li -> a
+                     | otherwise -> Just $ SymArrayAccess $ li ++ [newArrayAccessInfo_tu]
                    Nothing -> Just $ SymArrayAccess [newArrayAccessInfo_tu])
                    ArrayAccess (env symState),
-               executionResults = executionResults symState ++ [ER_ArrayAccess (nodeCoor,expr) arrayAccessed],
+               executionResults = let
+                 x = executionResults symState
+                 val = ER_ArrayAccess (nodeCoor,expr) arrayAccessed in if
+                 | val `elem` x -> x
+                 | otherwise -> x ++ [val],
                logHeader = logHeader symState
              }
            _ -> throwError $ constructErrorMsg loc "TODO" [("symExpr0",show symExpr0)]
@@ -1482,18 +1494,24 @@ visitExpr nodeCoor expr@AST.ArrayCallExpr{} = do
      let indexVars :: [String] = maybe [] AST.getArrayIndexVarNames (AST.index expr)
          arrayAccessInfo = createArrayAccessionInfo (indexVars,symExprCall) formalParms
      case arrayAccessInfo of
-       Nothing -> return ()
-       Just arrayAccessed -> do
+       Left _ -> return ()
+       Right arrayAccessed -> do
          tellNextLog $ Log.ModifyState loc ("ArrayAccess","arrayAccessed: " ++ show arrayAccessed)
          let newArrayAccessInfo_tu = (nodeCoor,arrayAccessed)
          constructLog loc "creating new arrayAccessInfo" [
            ("newArrayAccessInfo_tu",show newArrayAccessInfo_tu)]
          modify $ \symState -> SymState {
            env = Map.alter (\case
-             Just (SymArrayAccess li) -> Just $ SymArrayAccess $ li ++ [newArrayAccessInfo_tu]
+             a@(Just (SymArrayAccess li))
+               | newArrayAccessInfo_tu `elem` li -> a
+               | otherwise -> Just $ SymArrayAccess $ li ++ [newArrayAccessInfo_tu]
              Nothing -> Just $ SymArrayAccess [newArrayAccessInfo_tu])
              ArrayAccess (env symState),
-           executionResults = executionResults symState ++ [ER_ArrayAccess (nodeCoor,expr) arrayAccessed],
+           executionResults = let
+             x = executionResults symState
+             val = ER_ArrayAccess (nodeCoor,expr) arrayAccessed in if
+             | val `elem` x -> x
+             | otherwise -> x ++ [val],
            logHeader = logHeader symState
          }
   let toReturn = ER_ArrayCallExpr symExprCall symExprVal
@@ -1585,6 +1603,12 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
   let loc = "SymbolicExecution.Method.visitLoop"
   tellNextLog (Log.Location "SymbolicExecution.Method.visitLoop")
   (env_Before_Acc,executionResults_Before_Acc) <- liftM2 (,) (env <$> get) (executionResults <$> get)
+  let loopConditionNodeCoor = case theLoopSyntax of
+        WhileSyntax -> nodeCoor
+        ForSyntax   -> CFGT.Node_Coor {
+          CFGT.varDeclAt = CFGT.varDeclAt nodeCoor + 1,
+          CFGT.varFrame  = CFGT.varFrame nodeCoor
+        }
   let prependLogs :: String -> [Log.Log] -> [Log.Log]
       prependLogs newLogTagStr = map (\(Log.Log innerCounterStr logTag) ->
         Log.Log innerCounterStr $ Log.Nested newLogTagStr logTag)
@@ -1608,12 +1632,6 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
         then incrementLogEnumeration $> ()
         else return ()
       re <- do
-        let loopConditionNodeCoor = case theLoopSyntax of
-              WhileSyntax -> nodeCoor
-              ForSyntax   -> CFGT.Node_Coor {
-                CFGT.varDeclAt = CFGT.varDeclAt nodeCoor + 1,
-                CFGT.varFrame  = CFGT.varFrame nodeCoor
-              }
         -- visiting the loop could lead to a new ArrayAccess entry.
         re <- incrementLogDepth *>
                 censor (prependLogs "For Loop Condition")
@@ -1675,6 +1693,7 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
               (maybe_acc_er,env_Before_Acc_with_essentials,executionResults_Before_Acc)
               (forCondExpr_visited_expr :: SymExpr,
                loopState :: SymState,
+               loopConditionNodeCoor :: CFGT.Node_Coor,
                forBody_forStep_visited :: [ExecutionResult])
        2 -> do
          callUnregisteredLoop (loc ++ ".callUnregisteredLoop")
@@ -1683,6 +1702,7 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
             executionResults_Before_Acc)
            (forCondExpr_visited_expr :: SymExpr,
             loopState :: SymState,
+            loopConditionNodeCoor :: CFGT.Node_Coor,
             forBody_forStep_visited :: [ExecutionResult])
        3 -> do
          tellNextLog $ Log.ForLoopDone "visitRegisteredLoop"
@@ -1745,20 +1765,14 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
     (maybe_acc_er,env_Before_Acc_with_essentials,executionResults_Before_Acc)
     (forCondExpr_visited_expr :: SymExpr,
      loopState :: SymState,
-     forBody_forStep_ers :: [ExecutionResult]) = do {-MEOW
-     
-     
-     modify $ \symState -> SymState {
-           env = Map.alter (const maybe_arrayAccessWithLoopCond) ArrayAccess $ env symState,
-           executionResults = executionResults symState,
-           logHeader = logHeader symState
-         }-}
+     loopConditionNodeCoor :: CFGT.Node_Coor,
+     forBody_forStep_ers :: [ExecutionResult]) = do
        modify $ \symState -> SymState
          env_Before_Acc_with_essentials
          executionResults_Before_Acc
          (logHeader symState)
        
-       visitUnregisteredLoop theLoopSyntax (nodeCoor,cfg) (maybe_acc_er,m_Acc)
+       visitUnregisteredLoop theLoopSyntax (nodeCoor,loopConditionNodeCoor,cfg) (maybe_acc_er,m_Acc)
          (mForCondExpr,forCondExpr_visited_expr)
          (forBody_forStep_path,loopState,forBody_forStep_ers)
          branchRange
@@ -1767,8 +1781,9 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
     (maybe_acc_er,env_Before_Acc,executionResults_Before_Acc)
     (forCondExpr_visited_expr :: SymExpr,
      loopState :: SymState,
+     loopConditionNodeCoor :: CFGT.Node_Coor,
      forBody_forStep_ers :: [ExecutionResult]) = do
-    forLoopVisited <- visitRegisteredLoop theLoopSyntax 1 (env_Before_Acc,executionResults_Before_Acc) (nodeCoor,cfg) (maybe_acc_er,m_Acc)
+    forLoopVisited <- visitRegisteredLoop theLoopSyntax 1 (env_Before_Acc,executionResults_Before_Acc) (nodeCoor,loopConditionNodeCoor,cfg) (maybe_acc_er,m_Acc)
       (mForCondExpr,forCondExpr_visited_expr)
       (forBody_forStep_path,loopState,forBody_forStep_ers)
       branchRange
@@ -1816,11 +1831,11 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
 
 ------------------------------
 
-visitRegisteredLoop :: LoopSyntax -> Int -> (Map.Map SymStateKey SymExpr,[ExecutionResult]) -> (CFGT.Node_Coor,CFGT.CFG) -> (Maybe ExecutionResult,Maybe CFGT.Node)
+visitRegisteredLoop :: LoopSyntax -> Int -> (Map.Map SymStateKey SymExpr,[ExecutionResult]) -> (CFGT.Node_Coor,CFGT.Node_Coor,CFGT.CFG) -> (Maybe ExecutionResult,Maybe CFGT.Node)
   -> (Maybe AST.Expression,SymExpr)
   -> ([CFGT.Node],SymState,[ExecutionResult])
   -> CFGT.ScopeRange -> SymbolicExecutionMonad ExecutionResult
-visitRegisteredLoop theLoopSyntax loopCounter (env_Before_Acc,executionResults_Before_Acc) (nodeCoor,cfg) (maybe_acc_er,m_Acc)
+visitRegisteredLoop theLoopSyntax loopCounter (env_Before_Acc,executionResults_Before_Acc) (nodeCoor,loopConditionNodeCoor,cfg) (maybe_acc_er,m_Acc)
   (mForCondExpr,forCondExpr_visited_expr)
   (forBody_forStep_path,loopState,forBody_forStep_ers)
   branchRange = do
@@ -1833,7 +1848,7 @@ visitRegisteredLoop theLoopSyntax loopCounter (env_Before_Acc,executionResults_B
       incrementLogDepth
       res <- censor (map $ \(Log.Log num tag) ->
                Log.Log num $ Log.Nested "For Loop Condition" tag)
-                    (visitExpr nodeCoor forCondExpr)
+                    (visitExpr loopConditionNodeCoor forCondExpr)
       decrementLogDepth
       return $ case res of
         ER_Expr forCondExpr_visited -> forCondExpr_visited
@@ -1891,7 +1906,7 @@ visitRegisteredLoop theLoopSyntax loopCounter (env_Before_Acc,executionResults_B
                      --   before staring the next loop round
                      get >>= tellNextLog . Log.ReportTheState loc . show . env
                      visitRegisteredLoop theLoopSyntax
-                       (loopCounter+1) (env_Before_Acc,executionResults_Before_Acc) (nodeCoor,cfg) (maybe_acc_er,m_Acc)
+                       (loopCounter+1) (env_Before_Acc,executionResults_Before_Acc) (nodeCoor,loopConditionNodeCoor,cfg) (maybe_acc_er,m_Acc)
                        (mForCondExpr,forCondExpr_visited_expr)
                        (forBody_forStep_path,loopState,forBody_forStep_ers)
                        branchRange
@@ -1904,7 +1919,7 @@ visitRegisteredLoop theLoopSyntax loopCounter (env_Before_Acc,executionResults_B
             tellNextLog $ Log.ModifyState "visitRegisteredLoop" ("Undo SymState to before the loop",show env_Before_Acc)
             modify $ \symState -> SymState env_Before_Acc executionResults_Before_Acc (logHeader symState)
         
-          visitUnregisteredLoop theLoopSyntax (nodeCoor,cfg) (maybe_acc_er,m_Acc)
+          visitUnregisteredLoop theLoopSyntax (nodeCoor,loopConditionNodeCoor,cfg) (maybe_acc_er,m_Acc)
             (mForCondExpr,forCondExpr_visited_expr)
             (forBody_forStep_path,loopState,forBody_forStep_ers)
             branchRange
@@ -2007,12 +2022,12 @@ createLoopCondition nodeCoor expr = do
 
 ------------------------------
 
-visitUnregisteredLoop :: LoopSyntax -> (CFGT.Node_Coor,CFGT.CFG)
+visitUnregisteredLoop :: LoopSyntax -> (CFGT.Node_Coor,CFGT.Node_Coor,CFGT.CFG)
   -> (Maybe ExecutionResult,Maybe CFGT.Node)
   -> (Maybe AST.Expression,SymExpr)
   -> ([CFGT.Node],SymState,[ExecutionResult])
   -> CFGT.ScopeRange -> SymbolicExecutionMonad ExecutionResult
-visitUnregisteredLoop theLoopSyntax (nodeCoor,cfg) (maybe_acc_er,m_Acc)
+visitUnregisteredLoop theLoopSyntax (nodeCoor,loopConditionNodeCoor,cfg) (maybe_acc_er,m_Acc)
   (mForCondExpr,forCondExpr_visited_expr)
   (forBody_forStep_path,loopState,forBody_forStep_ers)
   branchRange = do

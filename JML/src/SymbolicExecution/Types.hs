@@ -206,7 +206,7 @@ data SymExpr =
   deriving (Eq,Show)
 
 data ArrayAccessionInfo =
-    ReAssignment (Maybe ArrayAccessionInfo,Maybe ArrayAccessionInfo)
+    ReAssignment (Either SymExpr ArrayAccessionInfo,Either SymExpr ArrayAccessionInfo)
   | ViaConstantIndex (
     SymType,             -- array type
     String,              -- array name

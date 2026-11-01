@@ -845,8 +845,8 @@ addBehavior sy er = do
           extractArray (arrType,arrName,_) = (arrType,arrName)
           flatten :: SYT.ArrayAccessionInfo -> [(SYT.SymType,String,SYT.SymbolicExecutionValue)]
           flatten = \case
-            SYT.ReAssignment (maybe_info1,maybe_info2) -> concatMap flatten
-              $ catMaybes [maybe_info1,maybe_info2]
+            SYT.ReAssignment (either_info1,either_info2) -> concatMap flatten
+              $ catMaybes $ map SY.Internal.hush [either_info1,either_info2]
             SYT.ViaConstantIndex (a,b,(_,c)) -> [(a,b,c)]
             SYT.ViaNonConstantIndex (a,b,(_,c)) -> [(a,b,c)]
             SYT.AccessionViaObject symExpr -> let
@@ -909,25 +909,25 @@ addBehavior sy er = do
             | (_,arrayAccessionInfo) <- li
             , case arrayAccessionInfo of
                 SYT.ReAssignment (
-                  Just (SYT.ViaNonConstantIndex _),
-                  maybe_rightSide) -> case maybe_rightSide of
-                    Just (SYT.ReAssignment _) -> error $ constructErrorMsg loc "TODO3" [
+                  Right (SYT.ViaNonConstantIndex _),
+                  either_rightSide) -> case either_rightSide of
+                    Right (SYT.ReAssignment _) -> error $ constructErrorMsg loc "TODO3" [
                       ("arrayAccessionInfo",show arrayAccessionInfo)]
-                    Nothing -> False
-                    _ -> True
+                    Right _ -> True
+                    Left _ -> False
                 _ -> False
             , let SYT.ReAssignment (
-                    Just (SYT.ViaNonConstantIndex (arrType1,arrName1,(_,arrIndexSymExpr1))),
+                    Right (SYT.ViaNonConstantIndex (arrType1,arrName1,(_,arrIndexSymExpr1))),
                     _) = arrayAccessionInfo
             , let f (arrType2,arrName2,arrIndexSymExpr2) = symExprToExpr jmlState
                     $ SYT.SArrayIndexAccess arrType2 arrName2 arrIndexSymExpr2
             , let leftExpr = symExprToExpr jmlState
                     $ SYT.SArrayIndexAccess arrType1 arrName1 arrIndexSymExpr1
             , let rightExpr = case arrayAccessionInfo of
-                    SYT.ReAssignment (_,maybe_rightSide) -> case maybe_rightSide of
-                      Just (SYT.ViaNonConstantIndex (a,b,(_,c))) -> f (a,b,c)
-                      Just (SYT.ViaConstantIndex (a,b,(_,c))) -> f (a,b,c)
-                      Just (SYT.AccessionViaObject symExpr) -> symExprToExpr jmlState symExpr
+                    SYT.ReAssignment (_,either_rightSide) -> case either_rightSide of
+                      Right (SYT.ViaNonConstantIndex (a,b,(_,c))) -> f (a,b,c)
+                      Right (SYT.ViaConstantIndex (a,b,(_,c))) -> f (a,b,c)
+                      Right (SYT.AccessionViaObject symExpr) -> symExprToExpr jmlState symExpr
                   expr = leftExpr `JMLEquals` rightExpr
                   
             ]
