@@ -113,7 +113,7 @@ allTargets = [
   ("wrongSum2", wrongSum2),
   ("wrongSum3", wrongSum3),
   ("wrongSum4", wrongSum4),
-  ("wrongSum5", wrongSum5),{-
+  ("wrongSum5", wrongSum5),
   ("for1", for1),
   ("for2", for2),
   ("for3", for3),
@@ -124,7 +124,7 @@ allTargets = [
   ("sum4", sum4), ("sum4Call", sum4Call),
   ("sum1_While", sum1_While), ("sum1_WhileCall", sum1_WhileCall),
   ("sum1_While2", sum1_While2), ("sum1_While2Call1", sum1_While2Call1),
-                                ("sum1_While2Call2", sum1_While2Call2),
+                                ("sum1_While2Call2", sum1_While2Call2),{-
   ("sumOddNums", sumOddNums), ("sumOddNumsCall1", sumOddNumsCall1),
                               ("sumOddNumsCall2", sumOddNumsCall2),
   ("sumUntilNegative", sumUntilNegative), ("sumUntilNegativeCall1", sumUntilNegativeCall1),
@@ -3489,7 +3489,7 @@ wrongSum5 = Map.fromList [
 -----------------------------
 -----------------------------
 -----------------------------
-{-
+
 for1 :: SymStateEnv
 for1 = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "for1"),
@@ -3769,7 +3769,7 @@ sum1_While2Call2 = Map.fromList [
 -----------------------------
 -----------------------------
 -----------------------------
-
+{-
 sumOddNums :: SymStateEnv
 sumOddNums = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "sumOddNums"),

@@ -1831,6 +1831,7 @@ isForAccumulatorSymExpr branchRange symExpr = let
     ForAccumulator br _ -> branchRange == br
   SymArray _ mSymExpr _ -> maybe False (isForAccumulatorSymExpr branchRange) mSymExpr
   SBin expr1 _ expr2 -> any (isForAccumulatorSymExpr branchRange) [expr1,expr2]
+  SArrayIndexAccess _ _ _ -> False
   SymInt _ -> False
   SymNum _ -> False
   SymDouble _ -> False

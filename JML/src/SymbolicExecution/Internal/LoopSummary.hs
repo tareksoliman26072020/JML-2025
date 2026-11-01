@@ -816,18 +816,19 @@ getLoopCountersBounds
   let toReturn :: [(SymExpr,(SymType,String),SymExpr)]
       toReturn = [(newInitVal,(counterType,counterName),newLastVal)
         | counterName <- loopCounters
-        , let initVal = case lookup counterName loopInitFacts of
-                Just x -> x
-                Nothing -> error $ constructErrorMsg loc "won't happen1" $ logContents ++ [("counterName",counterName)]
-        , let trajectory = case lookup counterName loopFrameTargetsDevelopmentTrajectory of
-                Just x -> x
-                Nothing -> error $ constructErrorMsg loc "won't happen2" $ logContents ++ [("counterName",counterName)]
         , let boundsWithCounter :: [SymExpr]
               boundsWithCounter = case loopGuard of
                 Just lg
                   | counterName `existsIn` lg -> [lg]
                   | otherwise -> f counterName
                 Nothing -> f counterName
+        , not (null boundsWithCounter)
+        , let initVal = case lookup counterName loopInitFacts of
+                Just x -> x
+                Nothing -> error $ constructErrorMsg loc "won't happen1" $ logContents ++ [("counterName",counterName)]
+        , let trajectory = case lookup counterName loopFrameTargetsDevelopmentTrajectory of
+                Just x -> x
+                Nothing -> error $ constructErrorMsg loc "won't happen2" $ logContents ++ [("counterName",counterName)]
         , let bound :: (SymBinOp,SymExpr)
               bound@(comparison,lastVal) = case boundsWithCounter of
                 [b] -> studyBound counterName b
