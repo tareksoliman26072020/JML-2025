@@ -35,7 +35,7 @@ globalLoc = "SymbolicExecution.Internal.LoopSummary"
   -> SymbolicExecutionMonad LoopSummary
 inferLoopSummary cfg theLoopSyntax m_Acc
   (loopCondExprNodeCoor,mForCondExpr,forCondExpr_visited_expr)
-  ((forBody_forStep_path,forBody_forStep_path_visited0),(loopState,forBody_forStep_ers))
+  ((forBody_forStep_path,forBody_forStep_path_visited0),(loopFirstRoundState,forBody_forStep_ers))
   branchRange =-}
 inferLoopSummary 
   (loopVarNames :: [String])
@@ -48,11 +48,11 @@ inferLoopSummary
   (cfg :: CFGT.CFG)
   (loopCondExprNodeCoor :: CFGT.Node_Coor)
   (forBody_forStep_path :: [CFGT.Node])
-  (loopState :: SymState)
+  (loopFirstRoundState :: SymState)
   (theLoopSyntax :: LoopSyntax)
   (m_Acc :: Maybe CFGT.Node)
   (maybe_forCondExpr_visited :: Maybe SymExpr) = do
-  -- forCondExpr_visited_expr, loopState, forBody_forStep_ers
+  -- forCondExpr_visited_expr, loopFirstRoundState, forBody_forStep_ers
   -- are inherited from `visitLoop`
   let loc = "SymbolicExecution.Internal.LoopSummary.inferLoopSummary"
   -------------------
@@ -160,6 +160,7 @@ inferLoopSummary
     incrementLogDepth *>
       getDynamicallyAccessedArrays cfg
         theLoopCounters
+        (env loopFirstRoundState)
         forBody_forStep_path_visited_ers
         <* decrementLogDepth
   ------------------
@@ -178,7 +179,7 @@ inferLoopSummary
     incrementLogDepth *>
       getLoopFrameTargetsDevelopmentTrajectory
         theLoopFrameTargets
-        (forBody_forStep_path,env origState, {-forBody_forStep_path_visited-}env loopState)
+        (forBody_forStep_path,env origState, {-forBody_forStep_path_visited-}env loopFirstRoundState)
       <* decrementLogDepth
   ----------------
   -- loopExitFacts
@@ -211,7 +212,7 @@ inferLoopSummary
     incrementLogDepth *>
       getLoopBoundStabilityFacts (
         forBody_forStep_path,
-        env origState, env loopState)
+        env origState, env loopFirstRoundState)
         theLoopCountersBounds
         theLoopFrameTargets
       <* decrementLogDepth
@@ -581,16 +582,40 @@ getLoopCounters (branchRange,origEnv,newEnv)
 --------------------
 --------------------
 
-getDynamicallyAccessedArrays :: CFGT.CFG -> [String] -> [ExecutionResult] -> SymbolicExecutionMonad [(SymType,String,[(CFGT.Node_Coor,String)])]
-getDynamicallyAccessedArrays cfg loopCounters loop_ers = do
+getDynamicallyAccessedArrays :: CFGT.CFG -> [String] -> SymStateEnv -> [ExecutionResult] -> SymbolicExecutionMonad [(SymType,String,[(CFGT.Node_Coor,String)])]
+getDynamicallyAccessedArrays cfg loopCounters loopFirstRoundEnv loop_ers = do
   let loc = "SymbolicExecution.Internal.LoopSummary.getDynamicallyAccessedArrays"
       relevantSymExprs :: [(SymExpr,[(CFGT.Node_Coor,String)])]
       relevantSymExprs = study_loop_ers loop_ers
+      firstRoundArrayAccesses :: [(CFGT.Node_Coor,ArrayAccessionInfo)]
+      firstRoundArrayAccesses = case Map.lookup ArrayAccess loopFirstRoundEnv of
+        Nothing -> []
+        Just (SymArrayAccess li) -> li
+      -- `loopFirstRoundEnv` is the environment resulting after visiting all the statements
+      -- in the loop for one round.
+      -- `arrayAccessIndexes` records the coordinates in the loop in which a `loopCounter` is used to access an array
+      arrayAccessIndexes :: [(CFGT.Node_Coor,[String])] = let
+        -- `f` delivers the names of the indexes in `ViaConstantIndex` and `ViaNonConstantIndex`
+        f :: ArrayAccessionInfo -> [String]
+        f info = case info of
+          ViaConstantIndex (_,_,(indexVars,_)) -> indexVars
+          ViaNonConstantIndex (_,_,(indexVars,_)) -> indexVars
+          AccessionViaObject _ -> []
+          ReAssignment (either_info1,either_info2) -> concatMap f
+            $ catMaybes $ map hush [either_info1,either_info2]
+        in [(nodeCoor,vars)
+             | (nodeCoor,arrayAccessionInfo) <- firstRoundArrayAccesses
+             , let vars = f arrayAccessionInfo
+             , let -- I only want to keep the indexes names which are not constant
+                   relevantVars = filter (`elem` loopCounters) vars]
       --symExpr = SBin (SArrayIndexAccess (Array Int) "a" (SymVar Int "i" [])) Eq (SymVar Int "x" [])
       logContents = [
         ("cfg",show cfg),
         ("loopCounters",show loopCounters),
         ("loop_ers",show loop_ers),
+        ("loopFirstRoundEnv",show loopFirstRoundEnv),
+        ("firstRoundArrayAccesses",show firstRoundArrayAccesses),
+        ("arrayAccessIndexes",show arrayAccessIndexes),
         ("relevantSymExprs",show relevantSymExprs)]
   constructLog loc "getDynamicallyAccessedArrays" logContents
   let toReturn = [(arrType,arrName,vns)

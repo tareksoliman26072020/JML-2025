@@ -1648,7 +1648,7 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
   -- here gets decided whether to call `visitUnregisteredLoop` or `visitRegisteredLoop`
   do -- `forBody_forStep_visited`, alongside `forCondExpr_visited`, helps deciding whether
      --   to call `visitUnregisteredLoop` or `visitRegisteredLoop`
-     (loopState,env_Before_Acc_with_essentials,forBody_forStep_visited) <- case forCondExpr_visited_expr of
+     (loopFirstRoundState,env_Before_Acc_with_essentials,forBody_forStep_visited) <- case forCondExpr_visited_expr of
        -- if the loop condition is not fulfilled,
        -- the  there's no point in „visiting“ the loop body
        SBool False -> get >>= \s -> return (s,env_Before_Acc,[])
@@ -1681,7 +1681,7 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
      de <- do
        incrementLogEnumeration
        incrementLogDepth *>
-         studyLoop (env loopState,forBody_forStep_visited) forCondExpr_visited_expr
+         studyLoop (env loopFirstRoundState,forBody_forStep_visited) forCondExpr_visited_expr
            <* decrementLogDepth
      let summary = [
            ("mForCondExpr",show mForCondExpr),
@@ -1694,7 +1694,7 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
        1 -> callRegisteredLoop (loc ++ ".callRegisteredLoop")
               (maybe_acc_er,env_Before_Acc_with_essentials,executionResults_Before_Acc)
               (forCondExpr_visited_expr :: SymExpr,
-               loopState :: SymState,
+               loopFirstRoundState :: SymState,
                loopConditionNodeCoor :: CFGT.Node_Coor,
                forBody_forStep_visited :: [ExecutionResult])
        2 -> do
@@ -1703,7 +1703,7 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
             env_Before_Acc_with_essentials,
             executionResults_Before_Acc)
            (forCondExpr_visited_expr :: SymExpr,
-            loopState :: SymState,
+            loopFirstRoundState :: SymState,
             loopConditionNodeCoor :: CFGT.Node_Coor,
             forBody_forStep_visited :: [ExecutionResult])
        3 -> do
@@ -1766,7 +1766,7 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
   callUnregisteredLoop loc
     (maybe_acc_er,env_Before_Acc_with_essentials,executionResults_Before_Acc)
     (forCondExpr_visited_expr :: SymExpr,
-     loopState :: SymState,
+     loopFirstRoundState :: SymState,
      loopConditionNodeCoor :: CFGT.Node_Coor,
      forBody_forStep_ers :: [ExecutionResult]) = do
        modify $ \symState -> SymState
@@ -1776,18 +1776,18 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
        
        visitUnregisteredLoop theLoopSyntax (nodeCoor,loopConditionNodeCoor,cfg) (maybe_acc_er,m_Acc)
          (mForCondExpr,forCondExpr_visited_expr)
-         (forBody_forStep_path,loopState,forBody_forStep_ers)
+         (forBody_forStep_path,loopFirstRoundState,forBody_forStep_ers)
          branchRange
   ----------
   callRegisteredLoop loc
     (maybe_acc_er,env_Before_Acc,executionResults_Before_Acc)
     (forCondExpr_visited_expr :: SymExpr,
-     loopState :: SymState,
+     loopFirstRoundState :: SymState,
      loopConditionNodeCoor :: CFGT.Node_Coor,
      forBody_forStep_ers :: [ExecutionResult]) = do
     forLoopVisited <- visitRegisteredLoop theLoopSyntax 1 (env_Before_Acc,executionResults_Before_Acc) (nodeCoor,loopConditionNodeCoor,cfg) (maybe_acc_er,m_Acc)
       (mForCondExpr,forCondExpr_visited_expr)
-      (forBody_forStep_path,loopState,forBody_forStep_ers)
+      (forBody_forStep_path,loopFirstRoundState,forBody_forStep_ers)
       branchRange
     case forLoopVisited of
       -- for visitation was completed
@@ -1839,7 +1839,7 @@ visitRegisteredLoop :: LoopSyntax -> Int -> (Map.Map SymStateKey SymExpr,[Execut
   -> CFGT.ScopeRange -> SymbolicExecutionMonad ExecutionResult
 visitRegisteredLoop theLoopSyntax loopCounter (env_Before_Acc,executionResults_Before_Acc) (nodeCoor,loopConditionNodeCoor,cfg) (maybe_acc_er,m_Acc)
   (mForCondExpr,forCondExpr_visited_expr)
-  (forBody_forStep_path,loopState,forBody_forStep_ers)
+  (forBody_forStep_path,loopFirstRoundState,forBody_forStep_ers)
   branchRange = do
   let loc = "SymbolicExecution.Method.visitRegisteredLoop"
   tellNextLog $ Log.Location loc
@@ -1910,7 +1910,7 @@ visitRegisteredLoop theLoopSyntax loopCounter (env_Before_Acc,executionResults_B
                      visitRegisteredLoop theLoopSyntax
                        (loopCounter+1) (env_Before_Acc,executionResults_Before_Acc) (nodeCoor,loopConditionNodeCoor,cfg) (maybe_acc_er,m_Acc)
                        (mForCondExpr,forCondExpr_visited_expr)
-                       (forBody_forStep_path,loopState,forBody_forStep_ers)
+                       (forBody_forStep_path,loopFirstRoundState,forBody_forStep_ers)
                        branchRange
         else do
           tellNextLog $ Log.ForLoopLimitReached loc (show forLoopLimit)
@@ -1923,7 +1923,7 @@ visitRegisteredLoop theLoopSyntax loopCounter (env_Before_Acc,executionResults_B
         
           visitUnregisteredLoop theLoopSyntax (nodeCoor,loopConditionNodeCoor,cfg) (maybe_acc_er,m_Acc)
             (mForCondExpr,forCondExpr_visited_expr)
-            (forBody_forStep_path,loopState,forBody_forStep_ers)
+            (forBody_forStep_path,loopFirstRoundState,forBody_forStep_ers)
             branchRange
           -- add entry to SymState to report about the reached limit loop failure
           do
@@ -2031,7 +2031,7 @@ visitUnregisteredLoop :: LoopSyntax -> (CFGT.Node_Coor,CFGT.Node_Coor,CFGT.CFG)
   -> CFGT.ScopeRange -> SymbolicExecutionMonad ExecutionResult
 visitUnregisteredLoop theLoopSyntax (nodeCoor,loopConditionNodeCoor,cfg) (maybe_acc_er,m_Acc)
   (mForCondExpr,forCondExpr_visited_expr)
-  (forBody_forStep_path,loopState,forBody_forStep_ers)
+  (forBody_forStep_path,loopFirstRoundState,forBody_forStep_ers)
   branchRange = do
   let loc = "SymbolicExecution.Method.visitUnregisteredLoop"
   tellNextLog $ Log.UnvisitedForLoop "visitUnregisteredLoop" (show mForCondExpr)
@@ -2223,7 +2223,7 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
       incrementLogDepth *>
         createLoopSummary cfg theLoopSyntax m_Acc
           (nodeCoor,mForCondExpr,forCondExpr_visited_expr)
-          ((forBody_forStep_path,map_withVarNames),(loopState,forBody_forStep_ers))
+          ((forBody_forStep_path,map_withVarNames),(loopFirstRoundState,forBody_forStep_ers))
           branchRange
           <* decrementLogDepth)
   -- creating the loop summry can reveal significant infos that were unknown beforehand
@@ -2303,9 +2303,9 @@ createLoopSummary :: CFGT.CFG -> LoopSyntax -> Maybe CFGT.Node
   -> SymbolicExecutionMonad LoopSummary
 createLoopSummary cfg theLoopSyntax m_Acc
   (loopCondExprNodeCoor,mForCondExpr,forCondExpr_visited_expr)
-  ((forBody_forStep_path,forBody_forStep_path_visited0),(loopState,forBody_forStep_ers))
+  ((forBody_forStep_path,forBody_forStep_path_visited0),(loopFirstRoundState,forBody_forStep_ers))
   branchRange = do
-  -- forCondExpr_visited_expr, loopState, forBody_forStep_ers
+  -- forCondExpr_visited_expr, loopFirstRoundState, forBody_forStep_ers
   -- are inherited from `visitLoop`
   let loc = "SymbolicExecution.Method.createLoopSummary"
       logContents = [
@@ -2315,7 +2315,7 @@ createLoopSummary cfg theLoopSyntax m_Acc
         ,("loopCondExprNodeCoor",show loopCondExprNodeCoor)
         ,("mForCondExpr",show mForCondExpr)
         ,("forCondExpr_visited_expr",show forCondExpr_visited_expr)
-        ,("loopState",show loopState)
+        ,("loopFirstRoundState",show loopFirstRoundState)
         ,("forBody_forStep_ers",show forBody_forStep_ers)
         ,("forBody_forStep_path",show forBody_forStep_path)
         ,("forBody_forStep_path_visited0",show forBody_forStep_path_visited0)
@@ -2337,7 +2337,7 @@ createLoopSummary cfg theLoopSyntax m_Acc
   -- visit the loop guard
   let maybe_forCondExpr_visited = fmap (const forCondExpr_visited_expr) mForCondExpr
   -- visit the loop body
-  let forBody_forStep_path_visited = forBody_forStep_path_visited0--loopState
+  let forBody_forStep_path_visited = forBody_forStep_path_visited0--loopFirstRoundState
       forBody_forStep_path_visited_ers = forBody_forStep_ers
   -- all varnames mentioned in the loop body + in the condition + in the accumulator
   let loopVarNames :: [String] = let
@@ -2374,7 +2374,7 @@ createLoopSummary cfg theLoopSyntax m_Acc
     (cfg :: CFGT.CFG)
     (loopCondExprNodeCoor :: CFGT.Node_Coor)
     (forBody_forStep_path :: [CFGT.Node])
-    (loopState :: SymState)
+    (loopFirstRoundState :: SymState)
     (theLoopSyntax :: LoopSyntax)
     (m_Acc :: Maybe CFGT.Node)
     (maybe_forCondExpr_visited :: Maybe SymExpr)-}
@@ -2386,9 +2386,9 @@ createLoopSummary :: CFGT.CFG -> LoopSyntax -> Maybe CFGT.Node
   -> SymbolicExecutionMonad LoopSummary
 createLoopSummary cfg theLoopSyntax m_Acc
   (loopCondExprNodeCoor,mForCondExpr,forCondExpr_visited_expr)
-  ((forBody_forStep_path,forBody_forStep_path_visited0),(loopState,forBody_forStep_ers))
+  ((forBody_forStep_path,forBody_forStep_path_visited0),(loopFirstRoundState,forBody_forStep_ers))
   branchRange = do
-  -- forCondExpr_visited_expr, loopState, forBody_forStep_ers
+  -- forCondExpr_visited_expr, loopFirstRoundState, forBody_forStep_ers
   -- are inherited from `visitLoop`
   let loc = "SymbolicExecution.Method.createLoopSummary"
       logContents = [
@@ -2398,7 +2398,7 @@ createLoopSummary cfg theLoopSyntax m_Acc
         ,("loopCondExprNodeCoor",show loopCondExprNodeCoor)
         ,("mForCondExpr",show mForCondExpr)
         ,("forCondExpr_visited_expr",show forCondExpr_visited_expr)
-        ,("loopState",show loopState)
+        ,("loopFirstRoundState",show loopFirstRoundState)
         ,("forBody_forStep_ers",show forBody_forStep_ers)
         ,("forBody_forStep_path",show forBody_forStep_path)
         ,("forBody_forStep_path_visited0",show forBody_forStep_path_visited0)
@@ -2420,7 +2420,7 @@ createLoopSummary cfg theLoopSyntax m_Acc
   -- visit the loop guard
   let maybe_forCondExpr_visited = fmap (const forCondExpr_visited_expr) mForCondExpr
   -- visit the loop body
-  let forBody_forStep_path_visited = forBody_forStep_path_visited0--loopState
+  let forBody_forStep_path_visited = forBody_forStep_path_visited0--loopFirstRoundState
       forBody_forStep_path_visited_ers = forBody_forStep_ers
   -- all varnames mentioned in the loop body + in the condition + in the accumulator
   let loopVarNames :: [String] = let
@@ -2546,11 +2546,16 @@ createLoopSummary cfg theLoopSyntax m_Acc
   ----------------------------
   -- dynamicallyAccessedArrays
   ----------------------------
+  {-(env <$> get) >>= \env -> throwError $ constructErrorMsg loc "MEOW3" [
+    ("env",show env),
+    ("loopFirstRoundState",show loopFirstRoundState),
+    ("forBody_forStep_path_visited0",show forBody_forStep_path_visited0)]-}
   theDynamicallyAccessedArrays :: [(SymType,String,[(CFGT.Node_Coor,String)])] <- do
     incrementLogEnumeration
     incrementLogDepth *>
       getDynamicallyAccessedArrays cfg
         theLoopCounters
+        (env loopFirstRoundState)
         forBody_forStep_path_visited_ers
         <* decrementLogDepth
   ------------------
@@ -2569,7 +2574,7 @@ createLoopSummary cfg theLoopSyntax m_Acc
     incrementLogDepth *>
       getLoopFrameTargetsDevelopmentTrajectory
         theLoopFrameTargets
-        (forBody_forStep_path,env origState, {-forBody_forStep_path_visited-}env loopState)
+        (forBody_forStep_path,env origState, {-forBody_forStep_path_visited-}env loopFirstRoundState)
       <* decrementLogDepth
   ----------------
   -- loopExitFacts
@@ -2602,7 +2607,7 @@ createLoopSummary cfg theLoopSyntax m_Acc
     incrementLogDepth *>
       getLoopBoundStabilityFacts (
         forBody_forStep_path,
-        env origState, env loopState)
+        env origState, env loopFirstRoundState)
         theLoopCountersBounds
         theLoopFrameTargets
       <* decrementLogDepth
