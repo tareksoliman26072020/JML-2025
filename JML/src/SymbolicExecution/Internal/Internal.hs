@@ -1842,6 +1842,14 @@ createArrayAccessionInfo (indexVars,symExpr) formalParms = let
           $ (,,) arrType arrName (indexVars,indexSymExpr)
     SObjAcc _ -> error $ constructErrorMsg loc "TODO3" logContents
     _ -> Nothing
+
+hasViaNonConstantIndex :: ArrayAccessionInfo -> Bool
+hasViaNonConstantIndex = \case
+  ViaNonConstantIndex _ -> True
+  ReAssignment (maybe_info1,maybe_info2) -> any hasViaNonConstantIndex
+    $ catMaybes [maybe_info1,maybe_info2]
+  _ -> False
+
 -------------------
 -------------------
 -------------------

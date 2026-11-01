@@ -7,7 +7,7 @@ import SymbolicExecution.Types
 import qualified CFG.Types as CFGT
 import qualified CFG.Internal as CFG
 import qualified Data.Map as Map
-import Data.Maybe (mapMaybe, fromJust, isJust, isNothing)
+import Data.Maybe (mapMaybe, fromJust, isJust, isNothing, catMaybes)
 import Control.Monad (foldM, zipWithM, zipWithM_, liftM, liftM2, forM, forM_)
 import Control.Monad.Reader (ReaderT,runReaderT,ask)
 import Control.Monad.State
@@ -1195,8 +1195,8 @@ visitExpr nodeCoor expr@AST.AssignExpr{} = do
              (visitExpr nodeCoor (AST.assEright expr))
         <* decrementLogDepth
   
-  let logContents = [
-          ("expr",show expr)
+  let logContents = [("nodeCoor",show nodeCoor)
+        , ("expr",show expr)
         , ("one",show one)
         , ("two",show two)
         ]
@@ -1206,37 +1206,34 @@ visitExpr nodeCoor expr@AST.AssignExpr{} = do
   do formalParms <- (getFormalParms . env) <$> get
      let left  = createArrayAccessionInfo_er (getSummarized_er one) formalParms
          right = createArrayAccessionInfo_er (getSummarized_er two) formalParms
-     if | all isNothing [left,right] -> return ()
+     let arrayAccessed = ReAssignment (left,right)
+     let logTag = let
+          al = catMaybes [left,right] in if
+          | null al || all (not . hasViaNonConstantIndex) al -> "both sides have no array access"
+          | all hasViaNonConstantIndex al -> "both sides have array access"
+          | maybe False hasViaNonConstantIndex left -> "left side has array access"
+          | maybe False hasViaNonConstantIndex right -> "right side has array access"
+     {-case CFGT.varDeclAt nodeCoor of
+       7 -> throwError $ constructErrorMsg loc "MEOW" $ logContents ++
+              [("left",show left),("right",show right),("logTag",logTag)]
+       _ -> return ()-}
+     if | logTag == "both sides have no array access" -> return ()
         | otherwise -> do
+            constructLog loc "removing array access of left and right operands, and adding ReAssignment" [
+              ("one",show one), ("two",show two), ("arrayAccessed",show arrayAccessed),
+              ("maybe_originalArrayAccess",show maybe_originalArrayAccess)]
             -- reverse the state to `originalArrayAccess`
             -- because ReAssignment will replace the Array Access of the left and right operands
-            modify $ \symState -> SymState {
-              env = Map.alter (const maybe_originalArrayAccess) ArrayAccess (env symState),
-              executionResults = executionResults symState,
+            modify $ \symState -> let
+              val = (nodeCoor,arrayAccessed) in SymState {
+              env = Map.alter (\case
+                Just (SymArrayAccess li) -> Just $ SymArrayAccess $ li ++ [val]
+                Nothing -> Just $ SymArrayAccess [val]) ArrayAccess
+                $ Map.alter (const maybe_originalArrayAccess) ArrayAccess (env symState),
+              executionResults = executionResults symState ++ [ER_ArrayAccess (nodeCoor,expr) arrayAccessed],
               logHeader = logHeader symState
             }
-            let arrayAccessed = ReAssignment (left,right)
-            let logTag = case (left,right) of
-                  (Just _,Just _)  -> "both sides have array access"
-                  (Just _,_)  -> "left side has array access"
-                  (_,Just _) -> "right side has array access"
-                  _  -> "both sides have no array access"
-            -- telling
-            do case logTag of
-                 "both sides have no array access" -> return ()
-                 _ -> do
-                   tellNextLog $ Log.ModifyState loc ("ArrayAccess","arrayAccessed: " ++ show arrayAccessed)
-                   modify $ \symState -> let
-                     val = (nodeCoor,arrayAccessed) in SymState {
-                     env = Map.alter (\case
-                       Just (SymArrayAccess li) -> Just $ SymArrayAccess $ li ++ [val]
-                       Nothing -> Just $ SymArrayAccess [val])
-                       ArrayAccess (env symState),
-                     executionResults = executionResults symState ++ [ER_ArrayAccess (nodeCoor,expr) arrayAccessed],
-                     logHeader = logHeader symState
-                   }
-            constructLog loc logTag [("one",show one),("two",show two),
-              ("arrayAccessed",show arrayAccessed)] $> ()
+            return ()
 
   -- one_val's sole purpose is its type
   -- one_svn is important to find key in the map

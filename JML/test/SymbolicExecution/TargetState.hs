@@ -86,10 +86,10 @@ allTargets = [
   ("voidFun1",voidFun1),
   ("voidFun2",voidFun2),
   ("voidFun3",voidFun3),
-  ("manyArrs",manyArrs),{-
+  ("manyArrs",manyArrs),
   ("manyArrs2",manyArrs2),
   ("manyArrs3",manyArrs3),
-  ("manyArrs4", manyArrs4),
+  ("manyArrs4", manyArrs4),{-
   ("manyArrs5", manyArrs5),
   ("manyArrs6", manyArrs6),
   ("manyArrs7", manyArrs7), ("manyArrs7Call1", manyArrs7Call1), ("manyArrs7Call2", manyArrs7Call2),
@@ -2375,9 +2375,9 @@ manyArrs = Map.fromList [
         ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymInt 5],Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 5}}))]),
     (ArrayAccess,SymArrayAccess [
         (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 5}},
-         ReAssignment (Just (ViaConstantIndex (SYT.Array SYT.Int,"numbers",([],SymInt 0))),Nothing)),
+         ViaConstantIndex (SYT.Array SYT.Int,"numbers",([],SymInt 0))),
         (Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 5}},
-         ReAssignment (Just (ViaConstantIndex (SYT.Array SYT.Int,"numbers",([],SymInt 1))),Nothing))]),
+         ViaConstantIndex (SYT.Array SYT.Int,"numbers",([],SymInt 1)))]),
     (VarName "numbers",SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymInt 5]),
     (Return,SymReturnVoid),
     (Actions,SActions [SymString "[99, 5]\n"])
@@ -2386,7 +2386,7 @@ manyArrs = Map.fromList [
 -----------------------------
 -----------------------------
 -----------------------------
-{-
+
 manyArrs2 :: SymStateEnv
 manyArrs2 = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Void "manyArrs2"),
@@ -2417,25 +2417,25 @@ manyArrs2 = Map.fromList [
         ("numbers3",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymNull SYT.Int,SymInt 75,SymInt 34,SymInt 10,SymInt 6],Node_Coor {varDeclAt = 24, varFrame = SR {branchStart = 0, branchEnd = 29}})),
         ("numbers3",(SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 5,SymInt 75,SymInt 34,SymInt 10,SymInt 6],Node_Coor {varDeclAt = 25, varFrame = SR {branchStart = 0, branchEnd = 29}}))]),
     (ArrayAccess,SymArrayAccess [
-        (Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 0, branchEnd = 29}},ReAssignment (Just (ViaConstantIndex (Array String,"strs",([],SymInt 1))),Nothing)),
-        (Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 0, branchEnd = 29}},ReAssignment (Just (ViaConstantIndex (Array Int,"numbers1",([],SymInt 0))),Nothing)),
-        (Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 0, branchEnd = 29}},ReAssignment (Just (ViaConstantIndex (Array Int,"numbers1",([],SymInt 2))),Nothing)),
-        (Node_Coor {varDeclAt = 10, varFrame = SR {branchStart = 0, branchEnd = 29}},ReAssignment (Just (ViaConstantIndex (Array Int,"numbers1",([],SymInt 1))),Nothing)),
-        (Node_Coor {varDeclAt = 11, varFrame = SR {branchStart = 0, branchEnd = 29}},ReAssignment (Just (ViaConstantIndex (Array Int,"numbers1",([],SymInt 3))),Nothing)),
-        (Node_Coor {varDeclAt = 12, varFrame = SR {branchStart = 0, branchEnd = 29}},ReAssignment (Just (ViaConstantIndex (Array Int,"numbers1",([],SymInt 4))),Nothing)),
-        (Node_Coor {varDeclAt = 13, varFrame = SR {branchStart = 0, branchEnd = 29}},ReAssignment (Just (ViaConstantIndex (Array Int,"numbers1",([],SymInt 5))),Nothing)),
-        (Node_Coor {varDeclAt = 14, varFrame = SR {branchStart = 0, branchEnd = 29}},ReAssignment (Just (ViaConstantIndex (Array Int,"numbers1",([],SymInt 6))),Nothing)),
-        (Node_Coor {varDeclAt = 15, varFrame = SR {branchStart = 0, branchEnd = 29}},ReAssignment (Just (ViaConstantIndex (Array Int,"numbers2",([],SymInt 0))),Nothing)),
-        (Node_Coor {varDeclAt = 16, varFrame = SR {branchStart = 0, branchEnd = 29}},ReAssignment (Just (ViaConstantIndex (Array Int,"numbers2",([],SymInt 1))),Nothing)),
-        (Node_Coor {varDeclAt = 17, varFrame = SR {branchStart = 0, branchEnd = 29}},ReAssignment (Just (ViaConstantIndex (Array Int,"numbers2",([],SymInt 2))),Nothing)),
-        (Node_Coor {varDeclAt = 18, varFrame = SR {branchStart = 0, branchEnd = 29}},ReAssignment (Just (ViaConstantIndex (Array Int,"numbers2",([],SymInt 3))),Nothing)),
-        (Node_Coor {varDeclAt = 19, varFrame = SR {branchStart = 0, branchEnd = 29}},ReAssignment (Just (ViaConstantIndex (Array Int,"numbers2",([],SymInt 4))),Nothing)),
-        (Node_Coor {varDeclAt = 20, varFrame = SR {branchStart = 0, branchEnd = 29}},ReAssignment (Just (ViaConstantIndex (Array Int,"numbers3",([],SymInt 4))),Nothing)),
-        (Node_Coor {varDeclAt = 21, varFrame = SR {branchStart = 0, branchEnd = 29}},ReAssignment (Just (ViaConstantIndex (Array Int,"numbers3",([],SymInt 3))),Nothing)),
-        (Node_Coor {varDeclAt = 22, varFrame = SR {branchStart = 0, branchEnd = 29}},ReAssignment (Just (ViaConstantIndex (Array Int,"numbers3",([],SymInt 2))),Nothing)),
-        (Node_Coor {varDeclAt = 23, varFrame = SR {branchStart = 0, branchEnd = 29}},ReAssignment (Just (ViaConstantIndex (Array Int,"numbers3",([],SymInt 1))),Nothing)),
-        (Node_Coor {varDeclAt = 24, varFrame = SR {branchStart = 0, branchEnd = 29}},ReAssignment (Just (ViaConstantIndex (Array Int,"numbers3",([],SymInt 4))),Nothing)),
-        (Node_Coor {varDeclAt = 25, varFrame = SR {branchStart = 0, branchEnd = 29}},ReAssignment (Just (ViaConstantIndex (Array Int,"numbers3",([],SymInt 0))),Nothing))]),
+        (Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 0, branchEnd = 29}},ViaConstantIndex (SYT.Array SYT.String,"strs",([],SymInt 1))),
+        (Node_Coor {varDeclAt = 8, varFrame = SR {branchStart = 0, branchEnd = 29}},ViaConstantIndex (SYT.Array SYT.Int,"numbers1",([],SymInt 0))),
+        (Node_Coor {varDeclAt = 9, varFrame = SR {branchStart = 0, branchEnd = 29}},ViaConstantIndex (SYT.Array SYT.Int,"numbers1",([],SymInt 2))),
+        (Node_Coor {varDeclAt = 10, varFrame = SR {branchStart = 0, branchEnd = 29}},ViaConstantIndex (SYT.Array SYT.Int,"numbers1",([],SymInt 1))),
+        (Node_Coor {varDeclAt = 11, varFrame = SR {branchStart = 0, branchEnd = 29}},ViaConstantIndex (SYT.Array SYT.Int,"numbers1",([],SymInt 3))),
+        (Node_Coor {varDeclAt = 12, varFrame = SR {branchStart = 0, branchEnd = 29}},ViaConstantIndex (SYT.Array SYT.Int,"numbers1",([],SymInt 4))),
+        (Node_Coor {varDeclAt = 13, varFrame = SR {branchStart = 0, branchEnd = 29}},ViaConstantIndex (SYT.Array SYT.Int,"numbers1",([],SymInt 5))),
+        (Node_Coor {varDeclAt = 14, varFrame = SR {branchStart = 0, branchEnd = 29}},ViaConstantIndex (SYT.Array SYT.Int,"numbers1",([],SymInt 6))),
+        (Node_Coor {varDeclAt = 15, varFrame = SR {branchStart = 0, branchEnd = 29}},ViaConstantIndex (SYT.Array SYT.Int,"numbers2",([],SymInt 0))),
+        (Node_Coor {varDeclAt = 16, varFrame = SR {branchStart = 0, branchEnd = 29}},ViaConstantIndex (SYT.Array SYT.Int,"numbers2",([],SymInt 1))),
+        (Node_Coor {varDeclAt = 17, varFrame = SR {branchStart = 0, branchEnd = 29}},ViaConstantIndex (SYT.Array SYT.Int,"numbers2",([],SymInt 2))),
+        (Node_Coor {varDeclAt = 18, varFrame = SR {branchStart = 0, branchEnd = 29}},ViaConstantIndex (SYT.Array SYT.Int,"numbers2",([],SymInt 3))),
+        (Node_Coor {varDeclAt = 19, varFrame = SR {branchStart = 0, branchEnd = 29}},ViaConstantIndex (SYT.Array SYT.Int,"numbers2",([],SymInt 4))),
+        (Node_Coor {varDeclAt = 20, varFrame = SR {branchStart = 0, branchEnd = 29}},ViaConstantIndex (SYT.Array SYT.Int,"numbers3",([],SymInt 4))),
+        (Node_Coor {varDeclAt = 21, varFrame = SR {branchStart = 0, branchEnd = 29}},ViaConstantIndex (SYT.Array SYT.Int,"numbers3",([],SymInt 3))),
+        (Node_Coor {varDeclAt = 22, varFrame = SR {branchStart = 0, branchEnd = 29}},ViaConstantIndex (SYT.Array SYT.Int,"numbers3",([],SymInt 2))),
+        (Node_Coor {varDeclAt = 23, varFrame = SR {branchStart = 0, branchEnd = 29}},ViaConstantIndex (SYT.Array SYT.Int,"numbers3",([],SymInt 1))),
+        (Node_Coor {varDeclAt = 24, varFrame = SR {branchStart = 0, branchEnd = 29}},ViaConstantIndex (SYT.Array SYT.Int,"numbers3",([],SymInt 4))),
+        (Node_Coor {varDeclAt = 25, varFrame = SR {branchStart = 0, branchEnd = 29}},ViaConstantIndex (SYT.Array SYT.Int,"numbers3",([],SymInt 0)))]),
     (VarName "brand",SymArray (Just SYT.String) (Just $ SymInt 5) [SymString "Toyota",SymString "Mercedes",SymString "BMW",SymString "Volkswagen",SymString "Skoda"]),
     (VarName "numbers1",SymArray (Just SYT.Int) (Just $ SymInt 7) [SymInt 86,SymInt 57,SymInt 80,SymInt 34,SymInt 50,SymInt 48,SymInt 94]),
     (VarName "numbers2",SymArray (Just SYT.Int) (Just $ SymInt 5) [SymInt 51,SymInt 84,SymInt 92,SymInt 87,SymInt 81]),
@@ -2457,6 +2457,11 @@ manyArrs3 = Map.fromList [
         ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
         ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymNull SYT.Int],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}})),
         ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymInt 5],Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
+    (ArrayAccess,SymArrayAccess [
+        (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}},
+         ViaConstantIndex (SYT.Array SYT.Int,"numbers",([],SymInt 0))),
+        (Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 4}},
+         ViaConstantIndex (SYT.Array SYT.Int,"numbers",([],SymInt 1)))]),
     (VarName "numbers",SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymInt 5]),
     (Return,SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymInt 5])
   ]
@@ -2472,6 +2477,9 @@ manyArrs4 = Map.fromList [
     (VarAssignments,SVarAssignments [
         ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymNull SYT.Int,SymNull SYT.Int],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 4}})),
         ("numbers",(SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymNull SYT.Int],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}}))]),
+    (ArrayAccess,SymArrayAccess [
+        (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}},
+         ViaConstantIndex (SYT.Array SYT.Int,"numbers",([],SymInt 0)))]),
     (VarName "numbers",SymArray (Just SYT.Int) (Just $ SymInt 2) [SymInt 99,SymNull SYT.Int]),
     (Return,SymReturnVoid),
     (Actions,SActions [SymString "[99, 0]\n"])
@@ -2480,7 +2488,7 @@ manyArrs4 = Map.fromList [
 -----------------------------
 -----------------------------
 -----------------------------
-
+{-
 manyArrs5 :: SymStateEnv
 manyArrs5 = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Void "manyArrs5"),
