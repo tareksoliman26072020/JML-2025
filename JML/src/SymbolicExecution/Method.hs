@@ -7,7 +7,7 @@ import SymbolicExecution.Types
 import qualified CFG.Types as CFGT
 import qualified CFG.Internal as CFG
 import qualified Data.Map as Map
-import Data.Maybe (mapMaybe, fromJust, isJust)
+import Data.Maybe (mapMaybe, fromJust, isJust, isNothing)
 import Control.Monad (foldM, zipWithM, zipWithM_, liftM, liftM2, forM, forM_)
 import Control.Monad.Reader (ReaderT,runReaderT,ask)
 import Control.Monad.State
@@ -1179,7 +1179,7 @@ visitExpr nodeCoor expr@AST.AssignExpr{} = do
   -- `one` and `two` may have `ArrayAccess`,
   -- and if that is so, then they have to be reversed to originalArrayAccess,
   -- because they'll be formatted and added differently
-  originalArrayAccess :: Maybe SymExpr <- (Map.lookup ArrayAccess . env) <$> get
+  maybe_originalArrayAccess :: Maybe SymExpr <- (Map.lookup ArrayAccess . env) <$> get
 
   one <- do
     incrementLogEnumeration
@@ -1194,46 +1194,49 @@ visitExpr nodeCoor expr@AST.AssignExpr{} = do
       censor (map $ \(Log.Log num tag) -> Log.Log num $ Log.Nested "Right Operand" tag)
              (visitExpr nodeCoor (AST.assEright expr))
         <* decrementLogDepth
-
-  modify $ \symState -> SymState {
-    env = Map.alter (const originalArrayAccess) ArrayAccess (env symState),
-    executionResults = executionResults symState,
-    logHeader = logHeader symState
-  }
   
   let logContents = [
           ("expr",show expr)
         , ("one",show one)
         , ("two",show two)
         ]
+
   -- if either one or two is ER_ArrayCallExpr,
   -- then we want to record this in the state „ArrayAccess“
-  do let left = createArrayAccessionInfo_er $ getSummarized_er one
-         right = createArrayAccessionInfo_er $ getSummarized_er two
-     let maybeArrayAccessed
-           | any isJust [left,right] = Just $ ReAssignment (fromJust left,fromJust right)
-           | otherwise = Nothing
-     let logTag = case (left,right) of
-           (Just (ViaNonConstantIndex _),Just (ViaNonConstantIndex _))  -> "both sides have array access"
-           (Just (ViaNonConstantIndex _),_)  -> "left side has array access"
-           (_,Just (ViaNonConstantIndex _)) -> "right side has array access"
-           _  -> "both sides have no array access"
-     -- telling
-     do case logTag of
-          "both sides have no array access" -> return ()
-          _ -> do
-            tellNextLog $ Log.ModifyState loc ("ArrayAccess","maybeArrayAccessed: " ++ show maybeArrayAccessed)
-            modify $ \symState -> let
-              arrayAccessed = fromJust maybeArrayAccessed
-              val = (nodeCoor,arrayAccessed) in SymState {
-              env = Map.alter (\case
-                Just (SymArrayAccess li) -> Just $ SymArrayAccess $ li ++ [val]
-                Nothing -> Just $ SymArrayAccess [val])
-                ArrayAccess (env symState),
-              executionResults = executionResults symState ++ [ER_ArrayAccess (nodeCoor,expr) arrayAccessed],
+  do formalParms <- (getFormalParms . env) <$> get
+     let left  = createArrayAccessionInfo_er (getSummarized_er one) formalParms
+         right = createArrayAccessionInfo_er (getSummarized_er two) formalParms
+     if | all isNothing [left,right] -> return ()
+        | otherwise -> do
+            -- reverse the state to `originalArrayAccess`
+            -- because ReAssignment will replace the Array Access of the left and right operands
+            modify $ \symState -> SymState {
+              env = Map.alter (const maybe_originalArrayAccess) ArrayAccess (env symState),
+              executionResults = executionResults symState,
               logHeader = logHeader symState
             }
-     constructLog loc logTag [("one",show one),("two",show two),("maybeArrayAccessed",show maybeArrayAccessed)]
+            let arrayAccessed = ReAssignment (left,right)
+            let logTag = case (left,right) of
+                  (Just _,Just _)  -> "both sides have array access"
+                  (Just _,_)  -> "left side has array access"
+                  (_,Just _) -> "right side has array access"
+                  _  -> "both sides have no array access"
+            -- telling
+            do case logTag of
+                 "both sides have no array access" -> return ()
+                 _ -> do
+                   tellNextLog $ Log.ModifyState loc ("ArrayAccess","arrayAccessed: " ++ show arrayAccessed)
+                   modify $ \symState -> let
+                     val = (nodeCoor,arrayAccessed) in SymState {
+                     env = Map.alter (\case
+                       Just (SymArrayAccess li) -> Just $ SymArrayAccess $ li ++ [val]
+                       Nothing -> Just $ SymArrayAccess [val])
+                       ArrayAccess (env symState),
+                     executionResults = executionResults symState ++ [ER_ArrayAccess (nodeCoor,expr) arrayAccessed],
+                     logHeader = logHeader symState
+                   }
+            constructLog loc logTag [("one",show one),("two",show two),
+              ("arrayAccessed",show arrayAccessed)] $> ()
 
   -- one_val's sole purpose is its type
   -- one_svn is important to find key in the map
@@ -1417,12 +1420,14 @@ visitExpr nodeCoor expr@AST.VarExpr{} = do
       do case symExpr0 of
            SObjAcc [_,"length"] -> do
              let arrayAccessed = AccessionViaObject symExpr0
+                 newArrayAccessInfo_tu = (nodeCoor,arrayAccessed)
+             constructLog loc "creating new ArrayAccessInfo" [
+               ("newArrayAccessInfo_tu",show newArrayAccessInfo_tu)]
              modify $ \symState -> SymState {
-               env = let
-                 val = (nodeCoor,arrayAccessed) in
+               env =
                  Map.alter (\case
-                   Just (SymArrayAccess li) -> Just $ SymArrayAccess $ li ++ [val]
-                   Nothing -> Just $ SymArrayAccess [val])
+                   Just (SymArrayAccess li) -> Just $ SymArrayAccess $ li ++ [newArrayAccessInfo_tu]
+                   Nothing -> Just $ SymArrayAccess [newArrayAccessInfo_tu])
                    ArrayAccess (env symState),
                executionResults = executionResults symState ++ [ER_ArrayAccess (nodeCoor,expr) arrayAccessed],
                logHeader = logHeader symState
@@ -1476,18 +1481,21 @@ visitExpr nodeCoor expr@AST.ArrayCallExpr{} = do
   let symExprCall = SArrayIndexAccess arrType arrName index_er
       symExprVal = objAccCalculator varNames symExprCall
   -- array has been accessed, and this needs to be recorded
-  do let indexVars :: [String] = maybe [] AST.getArrayIndexVarNames (AST.index expr)
-     case createArrayAccessionInfo (indexVars,symExprCall) of
+  do formalParms <- (getFormalParms . env) <$> get
+     let indexVars :: [String] = maybe [] AST.getArrayIndexVarNames (AST.index expr)
+         arrayAccessInfo = createArrayAccessionInfo (indexVars,symExprCall) formalParms
+     case arrayAccessInfo of
        Nothing -> return ()
        Just arrayAccessed -> do
          tellNextLog $ Log.ModifyState loc ("ArrayAccess","arrayAccessed: " ++ show arrayAccessed)
+         let newArrayAccessInfo_tu = (nodeCoor,arrayAccessed)
+         constructLog loc "creating new arrayAccessInfo" [
+           ("newArrayAccessInfo_tu",show newArrayAccessInfo_tu)]
          modify $ \symState -> SymState {
-           env = let
-             val = (nodeCoor,arrayAccessed) in
-             Map.alter (\case
-               Just (SymArrayAccess li) -> Just $ SymArrayAccess $ li ++ [val]
-               Nothing -> Just $ SymArrayAccess [val])
-               ArrayAccess (env symState),
+           env = Map.alter (\case
+             Just (SymArrayAccess li) -> Just $ SymArrayAccess $ li ++ [newArrayAccessInfo_tu]
+             Nothing -> Just $ SymArrayAccess [newArrayAccessInfo_tu])
+             ArrayAccess (env symState),
            executionResults = executionResults symState ++ [ER_ArrayAccess (nodeCoor,expr) arrayAccessed],
            logHeader = logHeader symState
          }
@@ -1598,16 +1606,27 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
   (hasCond,maybe_forCondExpr_visited,forCondExpr_visited_expr) <- case mForCondExpr of
     Nothing -> return (False,Nothing,SBool True)
     Just forCondExpr -> do
-       tellNextLog (Log.HorizontalLine "For Cond")
-       if hasAcc
-         then incrementLogEnumeration $> ()
-         else return ()
-       re <- incrementLogDepth *>
-         censor (prependLogs "For Loop Condition") (visitExpr nodeCoor forCondExpr)
-                          <* decrementLogDepth
-       return $ (,,) True (Just re) $ case re of
-         ER_Expr forCondExpr_visited -> forCondExpr_visited
-         _ -> error $ printf "won't happen1: %s ==> %s" loc (show re)
+      tellNextLog (Log.HorizontalLine "For Cond")
+      if hasAcc
+        then incrementLogEnumeration $> ()
+        else return ()
+      re <- do
+        let loopConditionNodeCoor = case theLoopSyntax of
+              WhileSyntax -> nodeCoor
+              ForSyntax   -> CFGT.Node_Coor {
+                CFGT.varDeclAt = CFGT.varDeclAt nodeCoor + 1,
+                CFGT.varFrame  = CFGT.varFrame nodeCoor
+              }
+        -- visiting the loop could lead to a new ArrayAccess entry.
+        re <- incrementLogDepth *>
+                censor (prependLogs "For Loop Condition")
+                       (visitExpr loopConditionNodeCoor forCondExpr)
+                  <* decrementLogDepth
+        return re
+      return $ (,,) True (Just re)
+        (case re of
+           ER_Expr forCondExpr_visited -> forCondExpr_visited
+           _ -> error $ printf "won't happen1: %s ==> %s" loc (show re))
 
   -- here gets decided whether to call `visitUnregisteredLoop` or `visitRegisteredLoop`
   do -- `forBody_forStep_visited`, alongside `forCondExpr_visited`, helps deciding whether
@@ -1660,11 +1679,14 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
               (forCondExpr_visited_expr :: SymExpr,
                loopState :: SymState,
                forBody_forStep_visited :: [ExecutionResult])
-       2 -> callUnregisteredLoop (loc ++ ".callUnregisteredLoop")
-              (maybe_acc_er,env_Before_Acc_with_essentials,executionResults_Before_Acc)
-              (forCondExpr_visited_expr :: SymExpr,
-               loopState :: SymState,
-               forBody_forStep_visited :: [ExecutionResult])
+       2 -> do
+         callUnregisteredLoop (loc ++ ".callUnregisteredLoop")
+           (maybe_acc_er,
+            env_Before_Acc_with_essentials,
+            executionResults_Before_Acc)
+           (forCondExpr_visited_expr :: SymExpr,
+            loopState :: SymState,
+            forBody_forStep_visited :: [ExecutionResult])
        3 -> do
          tellNextLog $ Log.ForLoopDone "visitRegisteredLoop"
          modify $ \symState -> SymState
@@ -1723,11 +1745,21 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
     _ -> False
   ----------
   callUnregisteredLoop loc
-    (maybe_acc_er,env_Before_Acc,executionResults_Before_Acc)
+    (maybe_acc_er,env_Before_Acc_with_essentials,executionResults_Before_Acc)
     (forCondExpr_visited_expr :: SymExpr,
      loopState :: SymState,
-     forBody_forStep_ers :: [ExecutionResult]) = do
-       modify $ \symState -> SymState env_Before_Acc executionResults_Before_Acc (logHeader symState)
+     forBody_forStep_ers :: [ExecutionResult]) = do {-MEOW
+     
+     
+     modify $ \symState -> SymState {
+           env = Map.alter (const maybe_arrayAccessWithLoopCond) ArrayAccess $ env symState,
+           executionResults = executionResults symState,
+           logHeader = logHeader symState
+         }-}
+       modify $ \symState -> SymState
+         env_Before_Acc_with_essentials
+         executionResults_Before_Acc
+         (logHeader symState)
        
        visitUnregisteredLoop theLoopSyntax (nodeCoor,cfg) (maybe_acc_er,m_Acc)
          (mForCondExpr,forCondExpr_visited_expr)
@@ -1995,6 +2027,7 @@ visitUnregisteredLoop theLoopSyntax (nodeCoor,cfg) (maybe_acc_er,m_Acc)
                    CFGT.ForStep _ -> CFG.convert node
                    _ -> Just node)
   originalState <- get
+  --throwError $ constructErrorMsg loc "MEOW" [("originalState",show originalState)]
   let (forBodyLogs,forBodySymStateEnv) = let
         (er,forBodyLogs,_,forBodySymStateEnv) = runCFG cfgs cfg (Just path)
           (Just $ SymState (env originalState) (executionResults originalState) (Log.Header 1 [0]))
@@ -2041,14 +2074,7 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
             symExpr2 = SymVar (toSymType2 symExpr) vn [ForAccumulator branchRange symExpr]
             varAssignment :: (String,(SymExpr,CFGT.Node_Coor))
             varAssignment = (vn,(symExpr2,forAccNodeCoor))
-            in [varAssignment]{-modify $ \symState -> SymState {
-                 env = Map.alter (\case
-                   Just (SVarAssignments li) -> Just $ SVarAssignments $ li ++ [varAssignment]
-                   Nothing -> Just $ SVarAssignments [varAssignment]
-                   ) VarAssignments (env symState),
-                 executionResults = executionResults symState,
-                 logHeader = logHeader symState
-               }-}
+            in [varAssignment]
           Just er -> error $ constructErrorMsg loc "TODO1" [("er",show er)]
           -- there is no counter
           Nothing -> []

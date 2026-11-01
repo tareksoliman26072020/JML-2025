@@ -202,6 +202,11 @@ getArrayIndexVarNames expr = let
   logContents = [("expr",show expr)] in
   case expr of
     VarExpr{} -> [varName expr]
+    NumberLiteral _ -> []
+    BoolLiteral _ -> []
+    CharLiteral _ -> []
+    StringLiteral _ -> []
+    Null -> []
     _ -> error $ constructErrorMsg loc "TODO" logContents
 
 isVarExpr :: Expression -> Bool

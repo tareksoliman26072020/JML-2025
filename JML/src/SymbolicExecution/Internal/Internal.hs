@@ -64,12 +64,12 @@ isArithmeticOperator op = elem op [Add, Sub, Mul, Div, Mod]
 isBooleanOperator :: SymBinOp -> Bool
 isBooleanOperator = flip elem [Eq, Neq, Lt, Le, Gt, Ge, And, Or]
 
-isFormalParameter :: SymExpr -> Map.Map SymStateKey SymExpr -> Bool
+isFormalParameter :: SymExpr -> SymStateEnv -> Bool
 isFormalParameter symExpr ma = case symExpr of
   SymVar _ varName _ -> hasFormalParameter varName ma
   _ -> False
 
-isGlobalVariable :: SymExpr -> Map.Map SymStateKey SymExpr -> Bool
+isGlobalVariable :: SymExpr -> SymStateEnv -> Bool
 isGlobalVariable symExpr ma = case symExpr of
   SymVar _ varName _ -> hasGlobalVariable varName ma
   _ -> False
@@ -144,17 +144,17 @@ list whenEmpty whenNotEmpty li
   | null li = whenEmpty
   | otherwise = whenNotEmpty li
 
-hasFormalParameter :: String -> Map.Map SymStateKey SymExpr -> Bool
+hasFormalParameter :: String -> SymStateEnv -> Bool
 hasFormalParameter varName ma = case Map.lookup FormalParms ma of
   Nothing -> False
   Just (SFormalParms li) -> varName `elem` li
 
-hasGlobalVariable :: String -> Map.Map SymStateKey SymExpr -> Bool
+hasGlobalVariable :: String -> SymStateEnv -> Bool
 hasGlobalVariable varName ma = case Map.lookup GlobalVars ma of
   Nothing -> False
   Just (SGlobalVars li) -> varName `elem` li
 
-nodeHasGlobalVar :: Map.Map SymStateKey SymExpr -> CFGT.Node -> Bool
+nodeHasGlobalVar :: SymStateEnv -> CFGT.Node -> Bool
 nodeHasGlobalVar ma = \case
   CFGT.Node _ (CFGT.Statement stmt) _ ->
     let varNames = AST.getVarNames (AST.getStatementExpression stmt)
@@ -171,7 +171,7 @@ nodeHasGlobalVar ma = \case
   process_mVarNames :: Maybe [String] -> Bool
   process_mVarNames = maybe False (\varNames -> any (\vn -> isGlobalVariable2 vn ma) varNames)
 
-nodeHasFormalParm :: Map.Map SymStateKey SymExpr -> CFGT.Node -> Bool
+nodeHasFormalParm :: SymStateEnv -> CFGT.Node -> Bool
 nodeHasFormalParm ma = \case
   CFGT.Node _ (CFGT.Statement stmt) _ ->
     let varNames = AST.getVarNames (AST.getStatementExpression stmt)
@@ -188,7 +188,7 @@ nodeHasFormalParm ma = \case
   process_mVarNames :: Maybe [String] -> Bool
   process_mVarNames = maybe False (\varNames -> any (\vn -> hasFormalParameter vn ma) varNames)
 
-recordFormalParm :: String -> Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
+recordFormalParm :: String -> SymStateEnv -> SymStateEnv
 recordFormalParm varName ma =
   let lookingup = Map.lookup FormalParms ma
   in case lookingup of
@@ -197,7 +197,7 @@ recordFormalParm varName ma =
          | varName `elem` li -> ma
          | otherwise -> Map.insert FormalParms (SFormalParms $ li ++ [varName]) ma
 
-recordGlobalVar :: String -> Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
+recordGlobalVar :: String -> SymStateEnv -> SymStateEnv
 recordGlobalVar varName ma =
   case Map.lookup GlobalVars ma of
     Nothing -> Map.insert GlobalVars (SGlobalVars [varName]) ma
@@ -879,7 +879,7 @@ getSymType2 vn symExpr = let
     SymArrayAccess li -> let
       f :: ArrayAccessionInfo -> Maybe SymType
       f = \case
-        ReAssignment (info1,info2) -> pick_known_symType3 (f info1,f info2)
+        ReAssignment (info1,info2) -> pick_known_symType3 (info1 >>= f,info2 >>= f)
         ViaConstantIndex (t,_,_) -> Just t
         ViaNonConstantIndex (t,_,_) -> Just t
         AccessionViaObject expr -> case expr of
@@ -975,25 +975,25 @@ getAccessedArraysNamesViaNamedIndexes indexes symExpr = let
     SBin expr1 _ expr2 -> concatMap (getAccessedArraysNamesViaNamedIndexes indexes) [expr1,expr2]
     _ -> error $ constructErrorMsg loc "TODO" logContents
 
-get_SItes :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
+get_SItes :: SymStateEnv -> SymStateEnv
 get_SItes m = flip Map.filterWithKey m $ \_ -> \case
   SIte _ _ _ -> True
   _ -> False
 
-get_scopeRanges :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
+get_scopeRanges :: SymStateEnv -> SymStateEnv
 get_scopeRanges m = flip Map.filterWithKey m $ \case
   ScopeRange _ -> const True
   _ -> const False
 
-get_SLoops :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
+get_SLoops :: SymStateEnv -> SymStateEnv
 get_SLoops m = flip Map.filterWithKey m $ \_ -> \case
   SLoop _ _ _ _ _ -> True
   _ -> False
   
-findVarName :: String -> Map.Map SymStateKey SymExpr -> Maybe SymExpr
+findVarName :: String -> SymStateEnv -> Maybe SymExpr
 findVarName str = Map.lookup (VarName str)
 
-findVarName_via_coor :: (String,CFGT.ScopeRange) -> Map.Map SymStateKey SymExpr -> Maybe SymExpr
+findVarName_via_coor :: (String,CFGT.ScopeRange) -> SymStateEnv -> Maybe SymExpr
 findVarName_via_coor (varName,br) s = do
   symExpr <- Map.lookup (ScopeRange br) s
   case symExpr of
@@ -1421,7 +1421,7 @@ getNewVarBinding nodeCoor = \case
   _ -> Nothing
 
 -- `allVarNames` are all VarNames. I search that one specific SymExpr from it using `itsSymExpr`
-getNewVarAssignment :: (Map.Map SymStateKey SymExpr,CFGT.Node_Coor) -> AST.Statement -> Maybe (String,(SymExpr,CFGT.Node_Coor))
+getNewVarAssignment :: (SymStateEnv,CFGT.Node_Coor) -> AST.Statement -> Maybe (String,(SymExpr,CFGT.Node_Coor))
 getNewVarAssignment (allVarNames,nodeCoor) = \case
   -- AssignStmt {varModifier :: [Modifier], assign :: Expression}
   AST.AssignStmt _ expr -> case expr of
@@ -1560,10 +1560,10 @@ getGlobalVars2 ma =
        VarName vn -> isGlobalVariable3 tu vn
        _ -> False
 
-getFormalParms :: Map.Map SymStateKey SymExpr -> [String]
+getFormalParms :: SymStateEnv -> [String]
 getFormalParms = maybe [] (\(SFormalParms li) -> li) . Map.lookup FormalParms
 
-getFormalParms2 :: Map.Map SymStateKey SymExpr -> Map.Map SymStateKey SymExpr
+getFormalParms2 :: SymStateEnv -> SymStateEnv
 getFormalParms2 ma =
   let formalPs = getFormalParms ma
   in flip Map.filterWithKey ma $ \k _ -> case k of
@@ -1815,21 +1815,28 @@ getArrayAccess env = let
 
 -- This function checks if an expression accesses an array,
 -- and if so, then it's a right. If not, then Left
-createArrayAccessionInfo_er :: ExecutionResult -> Maybe ArrayAccessionInfo
-createArrayAccessionInfo_er er = let
+createArrayAccessionInfo_er :: ExecutionResult -> [String] -> Maybe ArrayAccessionInfo
+createArrayAccessionInfo_er er formalParms = let
   loc = "SymbolicExecution.Internal.Internal.createArrayAccessionInfo_er"
-  logContents = [("er",show er)]
-  in case er of
-    ER_ArrayCallExpr callExpr _ -> createArrayAccessionInfo ([],callExpr)
+  logContents = [
+    ("er",show er),
+    ("formalParms",show formalParms)] in
+  case er of
+    ER_ArrayCallExpr callExpr _ -> createArrayAccessionInfo ([],callExpr) formalParms
     _ -> Nothing
     
-createArrayAccessionInfo :: ([String],SymExpr) -> Maybe ArrayAccessionInfo
-createArrayAccessionInfo (indexVars,symExpr) = let
+createArrayAccessionInfo :: ([String],SymExpr) -> [String] -> Maybe ArrayAccessionInfo
+createArrayAccessionInfo (indexVars,symExpr) formalParms = let
   loc = "SymbolicExecution.Internal.Internal.createArrayAccessionInfo"
-  logContents = [("symExpr",show symExpr),("indexVars",show indexVars)] in
+  logContents = [
+    ("symExpr",show symExpr),
+    ("indexVars",show indexVars),
+    ("formalParms",show formalParms)] in
   case symExpr of
-    SArrayIndexAccess arrType arrName indexSymExpr
-      | isConstant indexSymExpr -> Just $ ViaConstantIndex
+    SArrayIndexAccess arrType arrName indexSymExpr -> let
+      indexVarNames = getVarNames3 indexSymExpr in if
+      | isConstant indexSymExpr ||
+        all (`elem` formalParms) indexVarNames -> Just $ ViaConstantIndex
           $ (,,) arrType arrName (indexVars,indexSymExpr)
       | otherwise -> Just $ ViaNonConstantIndex
           $ (,,) arrType arrName (indexVars,indexSymExpr)
