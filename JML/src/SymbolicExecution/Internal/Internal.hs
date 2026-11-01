@@ -1807,6 +1807,27 @@ stateChangingCondition_2_symExprs symType = \case
     SBin (SArrayIndexAccess symType arrayName counterSymExpr) Eq value_2_exclude
   Condition symExpr -> symExpr
 
+--
+isForAccumulatorSymExpr :: CFGT.ScopeRange -> SymExpr -> Bool
+isForAccumulatorSymExpr branchRange symExpr = let
+  loc = "SymbolicExecution.Internal.Internal.isForAccumulatorSymExpr"
+  logContents = [
+    ("branchRange",show branchRange),
+    ("symExpr",show symExpr)] in case symExpr of
+  SymVar _ _ li -> flip any li $ \case
+    ForAccumulator br _ -> branchRange == br
+  SymArray _ mSymExpr _ -> maybe False (isForAccumulatorSymExpr branchRange) mSymExpr
+  SBin expr1 _ expr2 -> any (isForAccumulatorSymExpr branchRange) [expr1,expr2]
+  SymInt _ -> False
+  SymNum _ -> False
+  SymDouble _ -> False
+  SymFloat _ -> False
+  SBool _ -> False
+  SymString _ -> False
+  SObjAcc _ -> False
+  SymNull _ -> False
+  _ -> error $ constructErrorMsg loc "TODO" logContents
+
 getArrayAccess :: SymStateEnv -> Maybe SymExpr
 getArrayAccess env = let
   loc = "SymbolicExecution.Internal.Internal.getArrayAccess" in

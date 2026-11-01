@@ -1213,10 +1213,6 @@ visitExpr nodeCoor expr@AST.AssignExpr{} = do
           | all hasViaNonConstantIndex al -> "both sides have array access"
           | either (const False) hasViaNonConstantIndex left -> "left side has array access"
           | either (const False) hasViaNonConstantIndex right -> "right side has array access"
-     {-case CFGT.varDeclAt nodeCoor of
-       7 -> throwError $ constructErrorMsg loc "MEOW" $ logContents ++
-              [("left",show left),("right",show right),("logTag",logTag)]
-       _ -> return ()-}
      if | logTag == "both sides have no array access" -> return ()
         | otherwise -> do
             constructLog loc "removing array access of left and right operands, and adding ReAssignment" [
@@ -2039,7 +2035,6 @@ visitUnregisteredLoop theLoopSyntax (nodeCoor,loopConditionNodeCoor,cfg) (maybe_
                    CFGT.ForStep _ -> CFG.convert node
                    _ -> Just node)
   originalState <- get
-  --throwError $ constructErrorMsg loc "MEOW" [("originalState",show originalState)]
   let (forBodyLogs,forBodySymStateEnv) = let
         (er,forBodyLogs,_,forBodySymStateEnv) = runCFG cfgs cfg (Just path)
           (Just $ SymState (env originalState) (executionResults originalState) (Log.Header 1 [0]))
@@ -2092,7 +2087,7 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
           Nothing -> []
         _ -> []
       -- GlobalVars from `originalState`
-      originalGlobalVars = maybe [] (\case
+  let originalGlobalVars = maybe [] (\case
           SGlobalVars li -> li
           val -> error $ "visitUnregisteredLoop ==> won't happen 1 ==> " ++ show val)
           $ Map.lookup GlobalVars (env originalState) 
@@ -2230,15 +2225,17 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
   -- creating the loop summry can reveal significant infos that were unknown beforehand
   do -- [dynamically accessed arrays]: if the array indexes are loop counters,
      -- then they must be denoted to as `ViaNonConstantIndex` instead of `ViaConstantIndex`
+     let d_a_ars = dynamicallyAccessedArrays loopSummary
      studyArrayAccesses :: Maybe
        ([(CFGT.Node_Coor,ArrayAccessionInfo)],[(CFGT.Node_Coor,ArrayAccessionInfo)]) <- do
        maybe_ars_acces <- (getArrayAccess . env) <$> get
-       let d_a_ars = dynamicallyAccessedArrays loopSummary
        let res = case maybe_ars_acces of
              Nothing -> Nothing
              -- filter li so that only the `ViaConstantIndex` which are involved
              -- in the `dynamicallyAccessedArrays` are remained
-             Just (SymArrayAccess li) -> Just $ (,) li
+             Just (SymArrayAccess li)
+               | null d_a_ars -> Nothing
+               | otherwise -> Just $ (,) li
                [a :: (CFGT.Node_Coor,ArrayAccessionInfo)
                  | a@(coor,ViaConstantIndex (_,_,(vars,_))) <- li
                  , -- I use [1) the coordinates, and 2) the index name] to check
@@ -2262,6 +2259,7 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
              newArrayAccesses = foldl' folding [] allArrayAccesses
          constructLog loc "converting some `ViaConstantIndex` to `ViaNonConstantIndex`" [
            ("(old) allArrayAccesses",show allArrayAccesses),
+           ("d_a_ars",show d_a_ars),
            ("(to be converted) relevant_arrayAccesses",show relevant_arrayAccesses),
            ("(new) newArrayAccesses",show newArrayAccesses)]
          modify $ \symState -> SymState {

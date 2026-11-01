@@ -194,7 +194,7 @@ data SymExpr =
   | SVarAssignments [(String,(SymExpr,CFGT.Node_Coor))]
   | SException SymType String String
   | SActions [SymExpr]
-  | SArrayIndexAccess SymType String SymExpr
+  | SArrayIndexAccess SymType String SymExpr--[([String],SymExpr)]
   | SymArray (Maybe SymType) (Maybe SymExpr) [SymExpr]
   | SymUnknown (String,SymExpr) [SymReason]
   | SFormalParms [String]

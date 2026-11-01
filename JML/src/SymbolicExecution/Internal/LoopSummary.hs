@@ -283,16 +283,10 @@ inferLoopSummary
 getLoopInitFacts :: SymStateEnv -> (SymStateEnv,[ExecutionResult]) -> [String] -> CFGT.ScopeRange -> SymbolicExecutionMonad [(String,SymExpr)]
 getLoopInitFacts origEnv (newEnv,newEnv_ers) loopFrameTargets branchRange = do
   let loc = globalLoc ++ ".getLoopInitFacts"
-      logContents = [
-        ("origEnv",show origEnv),
-        ("newEnv",show newEnv),
-        ("newEnv_ers",show newEnv_ers),
-        ("loopFrameTargets",show loopFrameTargets)]
-  constructLog loc "getLoopInitFacts" logContents
   let theVarNames = flip Map.foldMapWithKey (getVarNames origEnv) $ \(VarName vn) v ->
         helper vn v
   let forLoopCountersInitFacts :: [(String,SymExpr)]
-      forLoopCountersInitFacts = case Map.lookup VarAssignments origEnv of
+      forLoopCountersInitFacts = case Map.lookup VarAssignments newEnv of
         Just (SVarAssignments li) -> [(vn,initVal)
             | (vn,(SymVar _ _ varInfos,_)) <- li
             , let relevant_varInfo = [initVal
@@ -308,6 +302,15 @@ getLoopInitFacts origEnv (newEnv,newEnv_ers) loopFrameTargets branchRange = do
                     _ -> error $ constructErrorMsg loc "won't happen2" [("relevant_varInfo",show relevant_varInfo)]
             ]
         Nothing -> []
+  let logContents = [
+        ("origEnv",show origEnv),
+        ("x",show $ Map.lookup VarAssignments origEnv),
+        ("newEnv",show newEnv),
+        ("newEnv_ers",show newEnv_ers),
+        ("loopFrameTargets",show loopFrameTargets),
+        ("theVarNames",show theVarNames),
+        ("forLoopCountersInitFacts",show forLoopCountersInitFacts)]
+  constructLog loc "getLoopInitFacts" logContents
   let toReturn = theVarNames ++ forLoopCountersInitFacts
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn where
   helper :: String -> SymExpr -> [(String,SymExpr)]
@@ -565,11 +568,16 @@ getLoopCounters (branchRange,origEnv,newEnv)
   let loopExitingConditions2 = map snd loopExitingConditions
       conds_vns :: [String]
       conds_vns = [vn
-        | vn <- nub $ concatMap getVarNames3
-                    $ (maybe [] ((:[]) . id) loopGuard) ++ loopExitingConditions2
+        | vn <- nub
+                $ (concatMap getVarNames3
+                   $ (maybe [] ((:[]) . id) loopGuard) ++ loopExitingConditions2)
+                ++ map fst loopInitFacts
         , vn `elem` loopFrameTargets
         ]
   let toReturn = conds_vns
+  {-throwError $ constructErrorMsg loc "MEOW1" $ logContents ++ [
+    ("loopExitingConditions2",show loopExitingConditions2),
+    ("toReturn",show toReturn)]-}
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn
 
 --------------------
@@ -579,17 +587,20 @@ getLoopCounters (branchRange,origEnv,newEnv)
 getDynamicallyAccessedArrays :: CFGT.CFG -> [String] -> [ExecutionResult] -> SymbolicExecutionMonad [(SymType,String,[(CFGT.Node_Coor,String)])]
 getDynamicallyAccessedArrays cfg loopCounters loop_ers = do
   let loc = "SymbolicExecution.Internal.LoopSummary.getDynamicallyAccessedArrays"
-      logContents = [
-        ("cfg",show cfg),
-        ("loopCounters",show loopCounters),
-        ("loop_ers",show loop_ers)]
       relevantSymExprs :: [(SymExpr,[(CFGT.Node_Coor,String)])]
       relevantSymExprs = study_loop_ers loop_ers
       --symExpr = SBin (SArrayIndexAccess (Array Int) "a" (SymVar Int "i" [])) Eq (SymVar Int "x" [])
+      logContents = [
+        ("cfg",show cfg),
+        ("loopCounters",show loopCounters),
+        ("loop_ers",show loop_ers),
+        ("relevantSymExprs",show relevantSymExprs)]
+  constructLog loc "getDynamicallyAccessedArrays" logContents
   let toReturn = [(arrType,arrName,vns)
         | (symExpr,vns) <- relevantSymExprs
         , (arrType,arrName) <- getAccessedArraysNamesViaNamedIndexes loopCounters symExpr
         ]
+  --throwError $ constructErrorMsg loc "MEOW2" $ logContents ++ [("toReturn",show toReturn)]
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
   err loc msg er = error $ constructErrorMsg loc msg [("er",show er)]
   -- checks `loop_ers` and returns all expressions of form `SArrayIndexAccess`
@@ -1066,12 +1077,27 @@ getLoopReadOnlyVars :: [String] -> (CFGT.ScopeRange, SymStateEnv, SymStateEnv) -
 getLoopReadOnlyVars loopVarNames (branchRange,origEnv,new_env) = do
   let loc = "SymbolicExecution.Internal.LoopSummary.getLoopReadOnlyVars"
       logContents = [
-             ("loopVarNames",show loopVarNames)
-            ,("branchRange",show branchRange)
-            ,("new_env",show new_env)
-            ]
+        ("loopVarNames",show loopVarNames),
+        ("branchRange",show branchRange),
+        ("new_env",show new_env)]
   constructLog loc "getLoopReadOnlyVars" logContents
-  let newAssignsEnv :: SymStateEnv
+  let assigns :: [String]
+      assigns = nub $ Map.foldlWithKey' (\acc -> \case
+        -- check the for loop accumolator
+        VarAssignments -> \case
+          SVarAssignments li -> acc ++ [varName
+            | (varName,(symExpr,nodeCoor)) <- li
+            , CFGT.varFrame nodeCoor == branchRange
+            , isForAccumulatorSymExpr branchRange symExpr
+            ]
+        k@(VarName vn) -> case Map.lookup k origEnv of
+          Just old_expr -> \case
+            new_expr
+              | old_expr /= new_expr -> acc ++ [vn]
+              | otherwise -> acc
+          Nothing -> const (acc ++ [vn])
+        _ -> const acc) [] new_env
+      {-newAssignsEnv :: SymStateEnv
       newAssignsEnv = flip Map.filterWithKey new_env $ \case
         k@(VarName vn) -> case Map.lookup k origEnv of
           Just old_expr -> \case
@@ -1079,11 +1105,15 @@ getLoopReadOnlyVars loopVarNames (branchRange,origEnv,new_env) = do
           Nothing -> const True
         _ -> const False
       assigns :: [String]
-      assigns = [vn | (VarName vn) <- Map.keys newAssignsEnv]
+      assigns = [vn | (VarName vn) <- Map.keys newAssignsEnv]-}
       toReturn = filter (`notElem` assigns) loopVarNames
-  constructLog loc "Summary" [
+  {-throwError $ constructErrorMsg loc "SummaryMEOW4" $ logContents ++ [
     ("origEnv",show origEnv),
-    ("assigns",show assigns)]
+    ("new_env",show new_env),
+    --("newAssignsEnv",show newAssignsEnv),
+    ("toReturn",show toReturn),
+    ("assigns",show assigns)]-}
+  -- MEOW4
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
 
 --------------------
@@ -1098,6 +1128,7 @@ getLoopFrameTargets loopVarNames loopReadOnlyVars = do
         ("loopReadOnlyVars",show loopReadOnlyVars)]
   constructLog loc "getLoopFrameTargets" logContents
   let toReturn = loopVarNames \\ loopReadOnlyVars
+  --throwError $ constructErrorMsg loc "MEOW3" $ logContents ++ [("toReturn",show toReturn)]
   (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
 
 --------------------
