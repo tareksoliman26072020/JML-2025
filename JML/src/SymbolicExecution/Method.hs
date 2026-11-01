@@ -2270,13 +2270,6 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
            logHeader = logHeader symState
          }
      return ()
-  {-(env <$> get) >>= \env -> throwError $ constructErrorMsg loc "MEOW" [
-    ("originalGlobalVars",show originalGlobalVars),
-    ("forBodyGlobalVars",show forBodyGlobalVars),
-    ("map_withGlobalVars",show map_withGlobalVars),
-    ("map_withVarAssignments",show map_withVarAssignments),
-    ("map_withVarNames",show map_withVarNames),
-    ("env",show env)]-}
   --
   loopPatterns <- do
     incrementLogEnumeration

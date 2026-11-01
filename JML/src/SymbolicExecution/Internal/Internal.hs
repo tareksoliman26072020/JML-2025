@@ -1848,7 +1848,6 @@ getArrayAccess env = let
   flip fmap (Map.lookup ArrayAccess env) $ \case
     a@(SymArrayAccess _) -> a
     a -> error $ constructErrorMsg loc "won't happen" [("a",show a)]
-  
 
 -- This function checks if an expression accesses an array,
 -- and if so, then it's a right. If not, then Left
