@@ -2210,8 +2210,6 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
                  ) (VarName vn) ma
           ) map_withVarAssignments forBody_Some_VarNames
 
-  s <- env <$> get
-  --throwError $ constructErrorMsg loc "WOF" [("s",show s)]
   loopSummary <- do
     incrementLogEnumeration
     censor (map (\(Log.Log num tag) ->
@@ -2245,7 +2243,11 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
        return res
      -- if `relevant_arrayAccesses` is empty, then nothing is to be changed
      case studyArrayAccesses of
-       Nothing -> return ()
+       Nothing -> modify $ \symState -> SymState {
+         env = map_withVarNames,
+         executionResults = executionResults symState,
+         logHeader = logHeader symState
+       }
        Just (allArrayAccesses,relevant_arrayAccesses) -> do
          let -- helper function for the folding function `newArrayAccesses`
              folding acc tu@(coor,info) = case info of
@@ -2268,6 +2270,13 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
            logHeader = logHeader symState
          }
      return ()
+  {-(env <$> get) >>= \env -> throwError $ constructErrorMsg loc "MEOW" [
+    ("originalGlobalVars",show originalGlobalVars),
+    ("forBodyGlobalVars",show forBodyGlobalVars),
+    ("map_withGlobalVars",show map_withGlobalVars),
+    ("map_withVarAssignments",show map_withVarAssignments),
+    ("map_withVarNames",show map_withVarNames),
+    ("env",show env)]-}
   --
   loopPatterns <- do
     incrementLogEnumeration
