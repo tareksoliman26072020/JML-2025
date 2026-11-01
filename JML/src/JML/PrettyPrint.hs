@@ -122,7 +122,7 @@ ppExpr expr = case expr of
     | null li -> error $ "JML.PrettyPrint.ppExpr ==> TODO1: JMLObjAcc []"
     | last li == "length" -> intercalate "." li
     | otherwise -> printf "JMLObjAcc [%s]" (intercalate ", " li)
-  JMLArrayIndexAccess _ arrName arrIndexExpr -> printf "%s[%s]" arrName (ppExpr arrIndexExpr)
+  JMLArrayIndexAccess _ arrName (_,arrIndexExpr) -> printf "%s[%s]" arrName (ppExpr arrIndexExpr)
 --JMLArray (Just Int_Type) (Just (JMLInt 2)) [JMLInt 99,JMLInt 5]
   JMLArray _ _ elems -> printf "[%s]" (intercalate ", " $ map ppExpr elems)
   SymFun ToString expr -> printf "toString(%s)" (ppExpr expr)

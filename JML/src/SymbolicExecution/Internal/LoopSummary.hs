@@ -633,7 +633,7 @@ getDynamicallyAccessedArrays cfg loopCounters loop_ers = do
   studySymExpr nodeCoor symExpr = case studySymExprHelper symExpr of
     [] -> []
     vns -> [(symExpr,map ((,) nodeCoor) vns)]
-  -- returns True is SymExpr has an accessed array (SArrayIndexAccess),
+  -- returns True if SymExpr has an accessed array (SArrayIndexAccess),
   -- and the index is a loop counter (a frame target)
   studySymExprHelper :: SymExpr -> [String]
   studySymExprHelper symExpr = let
@@ -646,7 +646,9 @@ getDynamicallyAccessedArrays cfg loopCounters loop_ers = do
       SNot expr -> studySymExprHelper expr
       SIte _ _ _ -> err loc "TODO1"
       SLoop _ _ _ _ _ -> err loc "TODO2"
-      SArrayIndexAccess _ _ index -> study_array_index index
+      SArrayIndexAccess _ _ (indexVars,index) ->  nub $
+        filter (\indexVar -> indexVar `elem` loopCounters) indexVars ++
+        study_array_index index
       SymVar _ _ _ -> []
       SBool _ -> []
       SymInt _ -> []
@@ -1604,10 +1606,10 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
             _ -> error $ constructErrorMsg loc "TODO4" logContents
           | otherwise -> error $ constructErrorMsg loc "TODO5" logContents
       ----------
-      (_,SBin (SArrayIndexAccess _ arrName index@(SymVar _ vn1 [])) Neq expr2)
+      (_,SBin (SArrayIndexAccess _ arrName (_,index@(SymVar _ vn1 []))) Neq expr2)
         | vn == vn1 -> Just $ LoopExitFactArrayAccessValue arrName index expr2
       ----------
-      (_,SBin expr1 Neq (SArrayIndexAccess _ arrName index@(SymVar _ vn2 [])))
+      (_,SBin expr1 Neq (SArrayIndexAccess _ arrName (_,index@(SymVar _ vn2 []))))
         | vn == vn2 -> Just $ LoopExitFactArrayAccessValue arrName index expr1
       ----------
       (Complicated _ _,_) -> Nothing

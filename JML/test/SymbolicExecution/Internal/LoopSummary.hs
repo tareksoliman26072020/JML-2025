@@ -142,7 +142,7 @@ contains = [LoopSummary {
     (Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 0, branchEnd = 4}},
      SBin (SymVar Int "i" []) Ge (SObjAcc ["a","length"])),
     (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}},
-     SBin (SArrayIndexAccess (Array Int) "a" (SymVar Int "i" [])) Eq (SymVar Int "x" []))],
+     SBin (SArrayIndexAccess (Array Int) "a" (["i"],SymVar Int "i" [])) Eq (SymVar Int "x" []))],
   loopExitViaBreakFacts = [],
   loopExitViaReturnFacts = [
     ([(Just $ Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},ElemInArray "a" (SymVar Int "i" []) (SymVar Int "x" []))],

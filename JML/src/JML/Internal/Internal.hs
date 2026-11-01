@@ -190,8 +190,8 @@ symExprToExpr jmlState symExpr =
        SYT.SException t str1 str2 -> JMLException (toJMLType t) str1 str2
        SYT.SBool b -> JMLBool b
        SYT.SObjAcc li -> JMLObjAcc li
-       SYT.SArrayIndexAccess arrType arrName arrIndexSymExpr ->
-         JMLArrayIndexAccess (toJMLType arrType) arrName (symExprToExpr jmlState arrIndexSymExpr)
+       SYT.SArrayIndexAccess arrType arrName (indexVars,arrIndexSymExpr) ->
+         JMLArrayIndexAccess (toJMLType arrType) arrName (indexVars,symExprToExpr jmlState arrIndexSymExpr)
        SYT.SymArray mElemType mArrSize symExprs ->
          JMLArray (toJMLType <$> mElemType) (symExprToExpr jmlState <$> mArrSize) (map (symExprToExpr jmlState) symExprs)
        SYT.SymFun definedFun symExpr -> SymFun
@@ -223,8 +223,8 @@ symExprToExpr2 symExpr =
        SYT.SException t str1 str2 -> JMLException (toJMLType t) str1 str2
        SYT.SBool b -> JMLBool b
        SYT.SObjAcc li -> JMLObjAcc li
-       SYT.SArrayIndexAccess arrType arrName arrIndexSymExpr ->
-         JMLArrayIndexAccess (toJMLType arrType) arrName (symExprToExpr2 arrIndexSymExpr)
+       SYT.SArrayIndexAccess arrType arrName (indexVars,arrIndexSymExpr) ->
+         JMLArrayIndexAccess (toJMLType arrType) arrName (indexVars,symExprToExpr2 arrIndexSymExpr)
        SYT.SymArray mElemType mArrSize symExprs ->
          JMLArray (toJMLType <$> mElemType) (symExprToExpr2 <$> mArrSize) (map symExprToExpr2 symExprs)
        SYT.SymFun definedFun symExpr -> SymFun
@@ -397,7 +397,7 @@ hasJMLVarUnknown vn expr = let
     SymFun ToString expr -> hasJMLVarUnknown vn expr
     JMLOld expr -> hasJMLVarUnknown vn expr
     JMLNum _ -> False
-    JMLArrayIndexAccess _ _ expr -> hasJMLVarUnknown vn expr
+    JMLArrayIndexAccess _ _ (_,expr) -> hasJMLVarUnknown vn expr
     _ -> error $ printf "TODO in %s ==> %s" loc (show expr)
 
 hasJMLVarUnknown0 :: Expr -> Bool
@@ -413,7 +413,7 @@ hasJMLVarUnknown0 expr = let
     SymFun ToString expr -> hasJMLVarUnknown0 expr
     JMLOld expr -> hasJMLVarUnknown0 expr
     JMLNum _ -> False
-    JMLArrayIndexAccess _ _ expr -> hasJMLVarUnknown0 expr
+    JMLArrayIndexAccess _ _ (_,expr) -> hasJMLVarUnknown0 expr
     _ -> error $ printf "TODO in %s ==> %s" loc (show expr)
 
 substitute_JMLVarUnknown :: (CFGT.ScopeRange,String) -> Expr -> Expr -> Expr
@@ -453,7 +453,7 @@ getArrayAccessIndex :: String -> Expr -> Expr
 getArrayAccessIndex arrName expr = let
   loc = "JML.Internal.Internal.getArrayAccessIndex" in
   case expr of
-    JMLArrayIndexAccess _ arrName2 resExpr
+    JMLArrayIndexAccess _ arrName2 (_,resExpr)
       | arrName == arrName2 -> resExpr
     _ -> error $ constructErrorMsg loc "TODO" [("expr",show expr)]
 
@@ -917,16 +917,16 @@ addBehavior sy er = do
                     Left _ -> False
                 _ -> False
             , let SYT.ReAssignment (
-                    Right (SYT.ViaNonConstantIndex (arrType1,arrName1,(_,arrIndexSymExpr1))),
+                    Right (SYT.ViaNonConstantIndex (arrType1,arrName1,(indexVars,arrIndexSymExpr1))),
                     _) = arrayAccessionInfo
             , let f (arrType2,arrName2,arrIndexSymExpr2) = symExprToExpr jmlState
                     $ SYT.SArrayIndexAccess arrType2 arrName2 arrIndexSymExpr2
             , let leftExpr = symExprToExpr jmlState
-                    $ SYT.SArrayIndexAccess arrType1 arrName1 arrIndexSymExpr1
+                    $ SYT.SArrayIndexAccess arrType1 arrName1 (indexVars,arrIndexSymExpr1)
             , let rightExpr = case arrayAccessionInfo of
                     SYT.ReAssignment (_,either_rightSide) -> case either_rightSide of
-                      Right (SYT.ViaNonConstantIndex (a,b,(_,c))) -> f (a,b,c)
-                      Right (SYT.ViaConstantIndex (a,b,(_,c))) -> f (a,b,c)
+                      Right (SYT.ViaNonConstantIndex (a,b,c)) -> f (a,b,c)
+                      Right (SYT.ViaConstantIndex (a,b,c)) -> f (a,b,c)
                       Right (SYT.AccessionViaObject symExpr) -> symExprToExpr jmlState symExpr
                   expr = leftExpr `JMLEquals` rightExpr
                   

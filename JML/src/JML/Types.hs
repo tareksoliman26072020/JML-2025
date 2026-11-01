@@ -31,7 +31,7 @@ data Expr = JMLVar JMLType String | JMLVarUnknown [CFGT.ScopeRange] JMLType Stri
           | JMLRange String Expr Expr
           | JMLResult Expr | JMLActions [Expr]
           | JMLException JMLType String String
-          | JMLObjAcc [String] | JMLArrayIndexAccess JMLType String Expr
+          | JMLObjAcc [String] | JMLArrayIndexAccess JMLType String ([String],Expr)
           | JMLArray (Maybe JMLType) (Maybe Expr) [Expr]
           | SymFun DefinedFun Expr
           | JMLVoid {- this is made to be coupled with `JMLResult` -}

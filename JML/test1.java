@@ -3682,9 +3682,9 @@ public void manyArrs6() {
  (Actions,SActions [SymFun Println (SymVar (Array String) "meow")])
 ]
 */
-public void manyArrs7(String[] meow) {
-  for(int i=0; i<meow.length; i++) {
-    meow[i] = toString(i+1) + ". " + meow[i];
+public void manyArrs7(String[] brand) {
+  for(int i=0; i<brand.length; i++) {
+    brand[i] = toString(i+1) + ". " + brand[i];
   }
   println(meow);
 }

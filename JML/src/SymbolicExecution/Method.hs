@@ -1287,7 +1287,7 @@ visitExpr nodeCoor expr@AST.AssignExpr{} = do
   two_newVal <- do
     varNames <- (getVarNames . env) <$> get
     case (one,two_val) of
-      (ER_ArrayCallExpr (SArrayIndexAccess arrType arrName index) _,_) ->
+      (ER_ArrayCallExpr (SArrayIndexAccess arrType arrName (_,index)) _,_) ->
         case Map.lookup (VarName arrName) varNames of
           Just (SymArray mt ml elems) -> case index of
             SymInt num ->
@@ -1483,12 +1483,12 @@ visitExpr nodeCoor expr@AST.ArrayCallExpr{} = do
     case Map.lookup (VarName arrName) theEnv of
       Nothing -> throwError $ "won't happen3 ==> " ++ loc
       Just symExpr -> return $ toSymType2 symExpr
-  let symExprCall = SArrayIndexAccess arrType arrName index_er
+  let indexVars :: [String] = maybe [] AST.getArrayIndexVarNames (AST.index expr)
+  let symExprCall = SArrayIndexAccess arrType arrName (indexVars,index_er)
       symExprVal = objAccCalculator varNames symExprCall
   -- array has been accessed, and this needs to be recorded
   do formalParms <- (getFormalParms . env) <$> get
-     let indexVars :: [String] = maybe [] AST.getArrayIndexVarNames (AST.index expr)
-         arrayAccessInfo = createArrayAccessionInfo (indexVars,symExprCall) formalParms
+     let arrayAccessInfo = createArrayAccessionInfo (indexVars,symExprCall) formalParms
      case arrayAccessInfo of
        Left _ -> return ()
        Right arrayAccessed -> do

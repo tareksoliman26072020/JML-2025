@@ -602,11 +602,11 @@ numericCalculator2 op = \case
     in SBin (SArrayIndexAccess (Array t3) name1 symExpr1)
             op
             (cast t3 b)
-  (a,b@(SArrayIndexAccess (Array t2) name2 symExpr2)) ->
+  (a,b@(SArrayIndexAccess (Array t2) name2 (indexVars,symExpr2))) ->
     let t3 = pick_known_symType (toSymType2 a,t2)
     in SBin (cast t3 a)
             op
-            (SArrayIndexAccess (Array t3) name2 symExpr2)
+            (SArrayIndexAccess (Array t3) name2 (indexVars,symExpr2))
 ----------
   (a,b) -> error $ printf "numericCalculator: (%s ,, %s ,, %s)" (show a) (show op) (show b)
 
@@ -838,7 +838,7 @@ objAccCalculator varNames expr = let
        SObjAcc [varName,_] ->
          let Just varNameVal = Map.lookup (VarName varName) varNames
          in objAccCalculator2 expr varNameVal
-       SArrayIndexAccess arrType arrName arrIndexSymExpr ->
+       SArrayIndexAccess arrType arrName (_,arrIndexSymExpr) ->
          let Just varSymExpr = Map.lookup (VarName arrName) varNames
          in case (varSymExpr,arrIndexSymExpr) of
               (SymArray _ mSizeSymExpr elems,SymInt index) -> case mSizeSymExpr of
@@ -1071,8 +1071,8 @@ substitute input symExpr = let
     SObjAcc [arrName,"length"] -> case lookup arrName input of
       Just expr -> error $ constructErrorMsg loc "TODO1" $ logContents ++ [("expr",show expr)]
       Nothing -> symExpr
-    SArrayIndexAccess arrType arrName indexSymExpr ->
-      SArrayIndexAccess arrType arrName $ substitute input indexSymExpr
+    SArrayIndexAccess arrType arrName (indexVars,indexSymExpr) ->
+      SArrayIndexAccess arrType arrName (indexVars,substitute input indexSymExpr)
     _ -> error $ constructErrorMsg loc "TODO2" logContents
 
 ----------

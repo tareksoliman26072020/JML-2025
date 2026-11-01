@@ -275,7 +275,7 @@ hasSymUnknown = \case
   SymVar _ _ _ -> False
   SymInt _ -> False
   SymString _ -> False
-  SArrayIndexAccess _ _ symExpr -> hasSymUnknown symExpr
+  SArrayIndexAccess _ _ (_,symExpr) -> hasSymUnknown symExpr
   SymUnknown _ _ -> True
   symExpr -> error $ "SymbolicExecution.Internal.hasSymUnknown: " ++ show symExpr
 
@@ -286,7 +286,7 @@ hasSymVar = \case
   SymVar _ _ _ -> True
   SymInt _ -> False
   SymString _ -> False
-  SArrayIndexAccess _ _ symExpr -> hasSymVar symExpr
+  SArrayIndexAccess _ _ (_,symExpr) -> hasSymVar symExpr
   SymUnknown (_,symExpr) _ -> hasSymVar symExpr
   SObjAcc _ -> False
   --SIte condExpr ifEnv maybe_elseEnv -> condExpr
@@ -441,9 +441,12 @@ toSymExpr theType expr = let
     arrName_symExpr = toSymExpr arrType arrName_expr in
     case maybe_index of
       Nothing -> fun_error 2
-      Just index -> case arrName_symExpr of
-        SymVar _ arrName _ -> SArrayIndexAccess arrType arrName (toSymExpr theType index)
-        _ -> fun_error 3
+      Just index -> let
+        indexVars = AST.getArrayIndexVarNames index in
+        case arrName_symExpr of
+          SymVar _ arrName _ -> SArrayIndexAccess arrType arrName
+            (indexVars,toSymExpr theType index)
+          _ -> fun_error 3
   AST.Null -> SymNull theType
   _ -> fun_error 4
 
@@ -969,12 +972,22 @@ getVarName symExpr = let
 getAccessedArraysNamesViaNamedIndexes :: [String] -> SymExpr -> [(SymType,String)]
 getAccessedArraysNamesViaNamedIndexes indexes symExpr = let
   loc = "SymbolicExecution.Internal.Internal.getAccessedArraysNamesViaNamedIndexes"
-  logContents = [("symExpr",show symExpr)]
+  logContents = [("indexes",show indexes),("symExpr",show symExpr)]
   in case symExpr of
     SymVar _ _ _ -> []
-    SArrayIndexAccess arrType arrName (SymVar _ index _)
-      | index `elem` indexes -> [(arrType,arrName)]
+    SArrayIndexAccess arrType arrName (indexVars,indexSymExpr)
+      | any (`elem` indexes) indexVars -> [(arrType,arrName)]
+      | otherwise -> case indexSymExpr of
+          SymVar _ index _
+            | index `elem` indexes -> [(arrType,arrName)]
+            | otherwise -> []
     SBin expr1 _ expr2 -> concatMap (getAccessedArraysNamesViaNamedIndexes indexes) [expr1,expr2]
+    SymString _ -> []
+    SymNum    _ -> []
+    SymInt    _ -> []
+    SymDouble _ -> []
+    SymFloat  _ -> []
+    SBool     _ -> []
     _ -> error $ constructErrorMsg loc "TODO" logContents
 
 get_SItes :: SymStateEnv -> SymStateEnv
@@ -1255,7 +1268,7 @@ lookupPartialSymExprs vn tu@(symStateKey,symExpr) = case symStateKey of
       ----------
     --(ScopeRange (SR {branchStart = 6, branchEnd = 2}),
     -- SArrayIndexAccess (Array Int) "arr" (SymVar UnknownGlobalVarSymType "i"))
-      SArrayIndexAccess _ arrName indexSymExpr -> let
+      SArrayIndexAccess _ arrName (_,indexSymExpr) -> let
         x = lookupPartialSymExprs vn (symStateKey,indexSymExpr) in if
         | arrName == vn -> [symExpr] ++ x
         | otherwise -> x
@@ -1470,7 +1483,7 @@ getVarNames2 (symStateKey,symExpr) = (case symStateKey of
     SBin symExpr1 _ symExpr2 ->
       getVarNames2 (symStateKey,symExpr1) ++ getVarNames2 (symStateKey,symExpr2)
     SNot symExpr -> getVarNames2 (symStateKey,symExpr)
-    SArrayIndexAccess s1 s2 s3 -> [s2]
+    SArrayIndexAccess s1 s2 _ -> [s2]
     SymArray onw two three -> []
     SymUnknown _ _ -> []
     SymNull _ -> []
@@ -1490,7 +1503,7 @@ getVarNames3 symExpr = case symExpr of
   SBin symExpr1 _ symExpr2 ->
     getVarNames3 symExpr1 ++ getVarNames3 symExpr2
   SNot symExpr -> getVarNames3 symExpr
-  SArrayIndexAccess _ s2 s3 -> [s2] ++ getVarNames3 s3
+  SArrayIndexAccess _ s2 (_,s3) -> [s2] ++ getVarNames3 s3
   SymArray onw two three -> []
   SymUnknown _ _ -> []
   SymNull _ -> []
@@ -1714,7 +1727,7 @@ ppSymExpr_no_symType = \case
     _ -> error $ "TODO1: ppSymExpr_no_symType ==> " ++ show t
   SymVar _ s _ -> s
   SymArray _ _ elems -> printf "[%s]" $ intercalate ", " (map ppSymExpr_no_symType elems)
-  SArrayIndexAccess _ arrName arrIndexExpr ->
+  SArrayIndexAccess _ arrName (_,arrIndexExpr) ->
     printf "%s[%s]" arrName (ppSymExpr_no_symType arrIndexExpr)
   SymUnknown (_,symExpr) _ -> printf "(Last Known Value: %s)" (ppSymExpr_no_symType symExpr)
   SObjAcc li -> intercalate "." li
@@ -1776,9 +1789,9 @@ createStateChangingConditions cond = let
   logContents = [("cond",show cond)]
   in case cond of
        -----
-       SBin expr1@(SArrayIndexAccess _ vn1 indexSymExpr1)
+       SBin expr1@(SArrayIndexAccess _ vn1 _)
             Eq
-            expr2@(SArrayIndexAccess _ vn2 indexSymExpr2) -> error
+            expr2@(SArrayIndexAccess _ vn2 _) -> error
               $ constructErrorMsg loc "TODO1" $ logContents ++ [
                   ("expr1",show expr1),
                   ("expr2",show expr2)]
@@ -1793,10 +1806,10 @@ createStateChangingConditions cond = let
                   ("expr1",show expr1),
                   ("expr2",show expr2)]
        -----
-       SBin expr1@(SArrayIndexAccess _ vn indexSymExpr) Eq expr2 -> (:[]) $
+       SBin expr1@(SArrayIndexAccess _ vn (_,indexSymExpr)) Eq expr2 -> (:[]) $
          ElemInArray vn indexSymExpr expr2
        -----
-       SBin expr1 Eq expr2@(SArrayIndexAccess _ vn indexSymExpr) -> (:[]) $
+       SBin expr1 Eq expr2@(SArrayIndexAccess _ vn (_,indexSymExpr)) -> (:[]) $
          ElemInArray vn indexSymExpr expr1
        -----
        _ -> (:[]) $ Condition cond
@@ -1804,7 +1817,7 @@ createStateChangingConditions cond = let
 stateChangingCondition_2_symExprs :: SymType -> StateChangingCondition -> SymExpr
 stateChangingCondition_2_symExprs symType = \case
   ElemInArray arrayName counterSymExpr value_2_exclude ->
-    SBin (SArrayIndexAccess symType arrayName counterSymExpr) Eq value_2_exclude
+    SBin (SArrayIndexAccess symType arrayName ([],counterSymExpr)) Eq value_2_exclude
   Condition symExpr -> symExpr
 
 --
@@ -1858,7 +1871,7 @@ createArrayAccessionInfo (indexVars,symExpr) formalParms = let
     ("indexVars",show indexVars),
     ("formalParms",show formalParms)] in
   case symExpr of
-    SArrayIndexAccess arrType arrName indexSymExpr -> let
+    SArrayIndexAccess arrType arrName (_,indexSymExpr) -> let
       indexVarNames = getVarNames3 indexSymExpr in if
       | isConstant indexSymExpr ||
         all (`elem` formalParms) indexVarNames -> Right $ ViaConstantIndex

@@ -593,7 +593,7 @@ example41_correct = Left $ Eliminated
 
 -- i[j] == x
 example42 = SBin
-  (SArrayIndexAccess (SYT.Array SYT.Int) "i" (SymVar SYT.Int "j" []))
+  (SArrayIndexAccess (SYT.Array SYT.Int) "i" ([],SymVar SYT.Int "j" []))
   Eq
   (SymVar SYT.Int "x" [])
 
@@ -605,7 +605,7 @@ example42_correct = Right example42
 example43 = SBin
   (SymVar SYT.Int "x" [])
   Eq
-  (SArrayIndexAccess (SYT.Array SYT.Int) "i" (SymVar SYT.Int "j" []))
+  (SArrayIndexAccess (SYT.Array SYT.Int) "i" ([],SymVar SYT.Int "j" []))
 
 example43_correct = Right example42
 
