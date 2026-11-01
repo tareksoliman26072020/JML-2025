@@ -126,9 +126,9 @@ allTargets = [
   ("sum1_While2", sum1_While2), ("sum1_While2Call1", sum1_While2Call1),
                                 ("sum1_While2Call2", sum1_While2Call2),
   ("sumOddNums", sumOddNums), ("sumOddNumsCall1", sumOddNumsCall1),
-                              ("sumOddNumsCall2", sumOddNumsCall2),{-
+                              ("sumOddNumsCall2", sumOddNumsCall2),
   ("sumUntilNegative", sumUntilNegative), ("sumUntilNegativeCall1", sumUntilNegativeCall1),
-                                          ("sumUntilNegativeCall2", sumUntilNegativeCall2),
+                                          ("sumUntilNegativeCall2", sumUntilNegativeCall2),{-
   ("processArray1", processArray1), ("processArray1Call", processArray1Call),
   ("isEmpty", isEmpty), ("callIsEmpty", callIsEmpty), ("callIsNotEmpty", callIsNotEmpty),
   ("fillArray", fillArray), ("fillArrayCall", fillArrayCall),
@@ -3832,7 +3832,7 @@ sumOddNumsCall2 = Map.fromList [
 -----------------------------
 -----------------------------
 -----------------------------
-{-
+
 sumUntilNegative :: SymStateEnv
 sumUntilNegative = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "sumUntilNegative"),
@@ -3843,13 +3843,16 @@ sumUntilNegative = Map.fromList [
     (VarAssignments,SVarAssignments [
         ("i",(SymVar SYT.Int "i" [ForAccumulator (SR {branchStart = 2, branchEnd = 9}) (SymInt 0)],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 2, branchEnd = 9}})),
         ("sum",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 10}})),
-        ("sum",(SArrayIndexAccess (SYT.Array SYT.Int) "nums" (SymInt 0),Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 2, branchEnd = 9}}))]),
+        ("sum",(SArrayIndexAccess (SYT.Array SYT.Int) "nums" (["i"],SymInt 0),Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 2, branchEnd = 9}}))]),
+    (ArrayAccess,SymArrayAccess [
+        (Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 10}},
+         AccessionViaObject (SObjAcc ["nums","length"])),
+        (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 9}},
+         ViaNonConstantIndex (SYT.Array SYT.Int,"nums",(["i"],SymInt 0))),
+        (Node_Coor {varDeclAt = 7, varFrame = SR {branchStart = 2, branchEnd = 9}},
+         ViaNonConstantIndex (SYT.Array SYT.Int,"nums",(["i"],SymInt 0)))]),
     (VarName "nums",SymVar (SYT.Array SYT.Int) "nums" []),
     (VarName "sum",SymUnknown ("sum",SymInt 0) [([(For,SR {branchStart = 2, branchEnd = 9})],7)]),
-    (ArrayAccess,SymArrayAccess [
-        (Left (SArrayIndexAccess (SYT.Array SYT.Int) "nums" (SymInt 0)),
-         Just (SYT.Array SYT.Int,"nums",SymInt 0),
-         Left (SArrayIndexAccess (SYT.Array SYT.Int) "nums" (SymInt 0)))]),
     (ScopeRange (SR {branchStart = 2, branchEnd = 9}),
      SLoop (Just (Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}))
            (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Less, expr2 = VarExpr {varType = Nothing, varObj = ["nums"], varName = "length"}}))
@@ -3882,7 +3885,7 @@ sumUntilNegativeCall2 = Map.fromList [
 -----------------------------
 -----------------------------
 -----------------------------
-
+{-
 processArray1 :: SymStateEnv
 processArray1 = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "processArray1"),
