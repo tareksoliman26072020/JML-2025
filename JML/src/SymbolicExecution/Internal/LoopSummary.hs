@@ -597,6 +597,7 @@ getDynamicallyAccessedArrays cfg loopCounters loop_ers = do
         | (symExpr,vns) <- relevantSymExprs
         , (arrType,arrName) <- getAccessedArraysNamesViaNamedIndexes loopCounters symExpr
         ]
+  --throwError $ constructErrorMsg loc "MEOW1" $ logContents ++ [("toReturn",show toReturn)]
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
   err loc msg er = error $ constructErrorMsg loc msg [("er",show er)]
   -- checks `loop_ers` and returns all expressions of form `SArrayIndexAccess`

@@ -704,6 +704,7 @@ getBreaks_ers ers = let
     ER_Entry _ _ -> False
     ER_MethodParameter _ _ -> False
     ER_FunCall _ -> False
+    ER_ArrayAccess _ _ -> False
     _ -> error $ constructErrorMsg loc "TODO2" $ errContents er
 
 getReturns_StateEnv :: SymStateEnv -> SymStateEnv
@@ -742,6 +743,7 @@ getReturns_ers ers = let
     ER_State _ -> False
     ER_Continue -> False
     ER_FunCall _ -> False
+    ER_ArrayAccess _ _ -> False
     _ -> error $ constructErrorMsg loc "TODO1" $ errContents er
 
 -- alters the type of a global variable based on the expression and the scope it exists in

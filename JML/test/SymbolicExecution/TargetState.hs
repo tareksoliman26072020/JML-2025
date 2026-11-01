@@ -128,10 +128,10 @@ allTargets = [
   ("sumOddNums", sumOddNums), ("sumOddNumsCall1", sumOddNumsCall1),
                               ("sumOddNumsCall2", sumOddNumsCall2),
   ("sumUntilNegative", sumUntilNegative), ("sumUntilNegativeCall1", sumUntilNegativeCall1),
-                                          ("sumUntilNegativeCall2", sumUntilNegativeCall2),{-
+                                          ("sumUntilNegativeCall2", sumUntilNegativeCall2),
   ("processArray1", processArray1), ("processArray1Call", processArray1Call),
   ("isEmpty", isEmpty), ("callIsEmpty", callIsEmpty), ("callIsNotEmpty", callIsNotEmpty),
-  ("fillArray", fillArray), ("fillArrayCall", fillArrayCall),
+  ("fillArray", fillArray), ("fillArrayCall", fillArrayCall),{-
   ("sqrt", sqrt), ("sqrtCall1", sqrtCall1),
                   ("sqrtCall2", sqrtCall2),
   ("boo34", boo34), ("boo34Call", boo34Call),
@@ -3885,7 +3885,7 @@ sumUntilNegativeCall2 = Map.fromList [
 -----------------------------
 -----------------------------
 -----------------------------
-{-
+
 processArray1 :: SymStateEnv
 processArray1 = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "processArray1"),
@@ -3896,16 +3896,12 @@ processArray1 = Map.fromList [
     (VarAssignments,SVarAssignments [
         ("i",(SymVar SYT.Int "i" [ForAccumulator (SR {branchStart = 2, branchEnd = 9}) (SymInt 0)],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 2, branchEnd = 9}})),
         ("sum",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 10}})),
-        ("sum",(SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymInt 0),Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 4, branchEnd = 7}})),
-        ("sum",(SBin (SymInt (-1)) SYT.Mul (SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymInt 0)),Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 4, branchEnd = 7}}))]),
+        ("sum",(SArrayIndexAccess (SYT.Array SYT.Int) "arr" (["i"],SymInt 0),Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 4, branchEnd = 7}})),
+        ("sum",(SBin (SymInt (-1)) SYT.Mul (SArrayIndexAccess (SYT.Array SYT.Int) "arr" (["i"],SymInt 0)),Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 4, branchEnd = 7}}))]),
     (VarName "arr",SymVar (SYT.Array SYT.Int) "arr" []),
     (VarName "sum",SymUnknown ("sum",SymInt 0) [
         ([(For,SR {branchStart = 2, branchEnd = 9}),(If,SR {branchStart = 4, branchEnd = 7})],5),
         ([(For,SR {branchStart = 2, branchEnd = 9}),(If,SR {branchStart = 4, branchEnd = 7})],6)]),
-    (ArrayAccess,SymArrayAccess [
-        (Left (SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymInt 0)),
-         Just (SYT.Array SYT.Int,"arr",SymInt 0),
-         Left (SArrayIndexAccess (SYT.Array SYT.Int) "arr" (SymInt 0)))]),
     (ScopeRange (SR {branchStart = 2, branchEnd = 9}),
      SLoop (Just (Node {id = 2, nodeData = Statement (AssignStmt {varModifier = [], assign = AssignExpr {assEleft = VarExpr {varType = Just (BuiltInType Int), varObj = [], varName = "i"}, assEright = NumberLiteral 0.0}}), parent = 0}))
            (Just (BinOpExpr {expr1 = VarExpr {varType = Nothing, varObj = [], varName = "i"}, binOp = Less, expr2 = VarExpr {varType = Nothing, varObj = ["arr"], varName = "length"}}))
@@ -3940,6 +3936,9 @@ isEmpty :: SymStateEnv
 isEmpty = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Bool "isEmpty"),
     (FormalParms,SFormalParms ["arr"]),
+    (ArrayAccess,SymArrayAccess [
+        (Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 1}},
+         AccessionViaObject (SObjAcc ["arr","length"]))]),
     (VarName "arr",SymVar (SYT.Array SYT.Int) "arr" []),
     (Return,SBin (SObjAcc ["arr","length"]) SYT.Eq (SymInt 0))
   ]
@@ -3979,6 +3978,9 @@ fillArray = Map.fromList [
         ("i",(SymVar SYT.Int "i" [ForAccumulator (SR {branchStart = 2, branchEnd = 6}) (SymInt 0)],Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 2, branchEnd = 6}})),
         ("arr",(SymArray (Just SYT.Int) (Just (SymVar SYT.Int "size" [])) [],Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 7}})),
         ("arr",(SymArray (Just SYT.Int) (Just (SymVar SYT.Int "size" [])) [SymVar SYT.Int "elem" []],Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}}))]),
+    (ArrayAccess,SymArrayAccess [
+        (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 6}},
+         ViaNonConstantIndex (SYT.Array SYT.Int,"arr",(["i"],SymInt 0)))]),
     (VarName "arr",SymUnknown ("arr",SymArray (Just SYT.Int) (Just (SymVar SYT.Int "size" [])) []) [([(For,SR {branchStart = 2, branchEnd = 6})],4)]),
     (VarName "elem",SymVar SYT.Int "elem" []),
     (VarName "size",SymVar SYT.Int "size" []),
@@ -4005,7 +4007,7 @@ fillArrayCall = Map.fromList [
 -----------------------------
 -----------------------------
 -----------------------------
-
+{-
 sqrt :: SymStateEnv
 sqrt = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "sqrt"),

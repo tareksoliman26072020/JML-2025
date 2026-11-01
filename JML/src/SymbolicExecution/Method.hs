@@ -1358,6 +1358,12 @@ two_newVal = SymArray (Just (Array Int)) (Just 2) [SymNull Int,SymNull Int]
   incrementLogEnumeration >>
     incrementLogDepth *> inferGlobalVarType (toSymType2 two_newVal) two <* decrementLogDepth
 
+  {-case nodeCoor of
+    CFGT.Node_Coor 4 _ -> throwError $ constructErrorMsg loc "MEOW2" [
+      ("one",show one),
+      ("two",show two),
+      ("toReturn",show toReturn)]
+    _ -> return ()-}
   tellNextLog (Log.Return "visitExpr -> AssignExpr"
     (printf "%s\n\n%s was %s\n%s is %s" (show toReturn)
        leftOpKeyStr leftOpValStr
