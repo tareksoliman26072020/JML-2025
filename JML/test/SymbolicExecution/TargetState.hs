@@ -92,7 +92,7 @@ allTargets = [
   ("manyArrs4", manyArrs4),
   ("manyArrs5", manyArrs5),
   ("manyArrs6", manyArrs6),
-  ("manyArrs7", manyArrs7), ("manyArrs7Call1", manyArrs7Call1), ("manyArrs7Call2", manyArrs7Call2),{-
+  ("manyArrs7", manyArrs7), ("manyArrs7Call1", manyArrs7Call1), ("manyArrs7Call2", manyArrs7Call2),
   ("ifFun",ifFun),
   ("ifFun2",ifFun2),
   ("ifFunCall",ifFunCall), ("ifFun2Call",ifFun2Call), ("ifFun2Call2",ifFun2Call2),
@@ -109,7 +109,7 @@ allTargets = [
   ("ifFun12",ifFun12),
   ("ifFun13",ifFun13), ("ifFun13Call",ifFun13Call),
   ("succFun", succFun), ("succFunCall", succFunCall), ("callSuccFun", callSuccFun), ("callCallSuccFun", callCallSuccFun),
-  ("wrongSum1", wrongSum1),
+  ("wrongSum1", wrongSum1),{-
   ("wrongSum2", wrongSum2),
   ("wrongSum3", wrongSum3),
   ("wrongSum4", wrongSum4),
@@ -2627,7 +2627,7 @@ manyArrs7Call2 = Map.fromList [
 -----------------------------
 -----------------------------
 -----------------------------
-{-
+
 ifFun :: SymStateEnv
 ifFun = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "ifFun"),
@@ -3378,7 +3378,7 @@ wrongSum1 = Map.fromList [
 -----------------------------
 -----------------------------
 -----------------------------
-
+{-
 wrongSum2 :: SymStateEnv
 wrongSum2 = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "wrongSum2"),
