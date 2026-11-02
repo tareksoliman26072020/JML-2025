@@ -3898,6 +3898,15 @@ processArray1 = Map.fromList [
         ("sum",(SymInt 0,Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 10}})),
         ("sum",(SArrayIndexAccess (SYT.Array SYT.Int) "arr" (["i"],SymInt 0),Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 4, branchEnd = 7}})),
         ("sum",(SBin (SymInt (-1)) SYT.Mul (SArrayIndexAccess (SYT.Array SYT.Int) "arr" (["i"],SymInt 0)),Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 4, branchEnd = 7}}))]),
+    (ArrayAccess,SymArrayAccess [
+        (Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 0, branchEnd = 10}},
+         AccessionViaObject (SObjAcc ["arr","length"])),
+        (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 2, branchEnd = 9}},
+         ViaNonConstantIndex (SYT.Array SYT.Int,"arr",(["i"],SymInt 0))),
+        (Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 4, branchEnd = 7}},
+         ViaNonConstantIndex (SYT.Array SYT.Int,"arr",(["i"],SymInt 0))),
+        (Node_Coor {varDeclAt = 6, varFrame = SR {branchStart = 4, branchEnd = 7}},
+         ViaNonConstantIndex (SYT.Array SYT.Int,"arr",(["i"],SymInt 0)))]),
     (VarName "arr",SymVar (SYT.Array SYT.Int) "arr" []),
     (VarName "sum",SymUnknown ("sum",SymInt 0) [
         ([(For,SR {branchStart = 2, branchEnd = 9}),(If,SR {branchStart = 4, branchEnd = 7})],5),
