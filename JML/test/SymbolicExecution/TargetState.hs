@@ -131,10 +131,10 @@ allTargets = [
                                           ("sumUntilNegativeCall2", sumUntilNegativeCall2),
   ("processArray1", processArray1), ("processArray1Call", processArray1Call),
   ("isEmpty", isEmpty), ("callIsEmpty", callIsEmpty), ("callIsNotEmpty", callIsNotEmpty),
-  ("fillArray", fillArray), ("fillArrayCall", fillArrayCall),{-
+  ("fillArray", fillArray), ("fillArrayCall", fillArrayCall),
   ("sqrt", sqrt), ("sqrtCall1", sqrtCall1),
                   ("sqrtCall2", sqrtCall2),
-  ("boo34", boo34), ("boo34Call", boo34Call),
+  ("boo34", boo34), ("boo34Call", boo34Call),{-
   ("getMax", getMax), ("getMaxCall", getMaxCall),
   ("swap",swap), ("swapCall",swapCall),
   ("partition", partition), ("partitionCall1", partitionCall1),
@@ -4016,7 +4016,7 @@ fillArrayCall = Map.fromList [
 -----------------------------
 -----------------------------
 -----------------------------
-{-
+
 sqrt :: SymStateEnv
 sqrt = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "sqrt"),
@@ -4075,6 +4075,9 @@ boo34 = Map.fromList [
     (VarAssignments,SVarAssignments [
         ("status",(SymString "non-empty",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 6}})),
         ("status",(SymString "empty",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 1, branchEnd = 6}}))]),
+    (ArrayAccess,SymArrayAccess [
+        (Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 7}},
+         AccessionViaObject (SObjAcc ["input","length"]))]),
     (VarName "input",SymVar SYT.String "input" []),
     (VarName "status",SymUnknown ("status",SymVar SYT.String "status" []) [
         ([(If,SR {branchStart = 1, branchEnd = 6})],3),
@@ -4090,6 +4093,9 @@ boo34 = Map.fromList [
               (VarAssignments,SVarAssignments [
                   ("msg",(SymString "non-empty",Node_Coor {varDeclAt = 2, varFrame = SR {branchStart = 1, branchEnd = 6}})),
                   ("status",(SymString "non-empty",Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 1, branchEnd = 6}}))]),
+              (ArrayAccess,SymArrayAccess [
+                  (Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 7}},
+                   AccessionViaObject (SObjAcc ["input","length"]))]),
               (VarName "input",SymVar SYT.String "input" []),
               (VarName "msg",SymString "non-empty"),
               (VarName "status",SymString "non-empty")]) 
@@ -4102,6 +4108,9 @@ boo34 = Map.fromList [
               (VarAssignments,SVarAssignments [
                   ("msg",(SymString "empty",Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 1, branchEnd = 6}})),
                   ("status",(SymString "empty",Node_Coor {varDeclAt = 5, varFrame = SR {branchStart = 1, branchEnd = 6}}))]),
+              (ArrayAccess,SymArrayAccess [
+                  (Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 7}},
+                   AccessionViaObject (SObjAcc ["input","length"]))]),
               (VarName "input",SymVar SYT.String "input" []),
               (VarName "msg",SymString "empty"),
               (VarName "status",SymString "empty")]))),
@@ -4124,7 +4133,7 @@ boo34Call = Map.fromList [
 -----------------------------
 -----------------------------
 -----------------------------
-
+{-
 getMax :: SymStateEnv
 getMax = Map.fromList [
     (MethodHandle,SMethodHandle SYT.Int "getMax"),

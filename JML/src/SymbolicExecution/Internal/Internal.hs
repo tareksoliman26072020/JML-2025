@@ -15,7 +15,7 @@ import Text.Printf (printf)
 import Control.Applicative (Alternative(empty),asum,(<|>))
 import qualified Data.Map as Map
 import Prelude hiding (negate)
-import Data.List (nub,find,foldl',intercalate)
+import Data.List (nub,find,foldl',intercalate,(\\),groupBy)
 import Control.Monad (forM_, foldM_)
 import Data.Functor (($>))
 import Data.Maybe (catMaybes,isNothing)
@@ -1890,6 +1890,45 @@ hasViaNonConstantIndex = \case
     $ catMaybes
     $ map hush [either_info1,either_info2]
   _ -> False
+
+-- extract specific informations from the Map.
+-- so far, these informations are: ArrayAccess.
+-- in case more informations need to be extracted, then this can and must be extended
+getEssentials :: SymStateEnv -> [(SymStateKey,SymExpr)]
+getEssentials theEnv = sort
+  $ map (\li@((k,v):rest) -> (,) k $ combine_clean (v : map snd rest))
+  $ groupBy (\(fst1,_) (fst2,_) -> fst1 == fst2)
+  $ sort
+  $ flip Map.foldMapWithKey theEnv
+  $ \k v -> case (k,v) of
+      (ArrayAccess,SymArrayAccess _) -> [(k,v)]
+      (ScopeRange _,SIte _ ifEnv maybeElseEnv) -> let
+        rec1 = getEssentials ifEnv
+        rec2 = maybe [] getEssentials maybeElseEnv
+        in rec1 ++ rec2
+      _ -> []
+  where
+  -- flatten SymExprs which share the same nature
+  -- and delete duplicates
+  combine_clean :: [SymExpr] -> SymExpr
+  combine_clean symExprs = let
+    loc = "SymbolicExecution.Method.visitLoop.combine" in case symExprs of
+    (SymArrayAccess li1 : rest) -> SymArrayAccess $ nub
+      $ li1 ++ concat [li2 | SymArrayAccess li2 <- rest]
+    _ -> error $ constructErrorMsg loc "TODO"
+      [("symExprs",show symExprs)]
+  -- put similar keys next to each other
+  sort :: [(SymStateKey,SymExpr)] -> [(SymStateKey,SymExpr)]
+  sort everyThing = let
+    loc = "SymbolicExecution.Method.visitLoop.sort"
+    logContents = [("everyThing",show everyThing)]
+    in case everyThing of
+         [] -> []
+         (a@(ArrayAccess,_) : rest) -> let
+           symArrayAccesses = [a | a@(ArrayAccess,_) <- rest]
+           newRest = rest \\ symArrayAccesses
+           in (a : symArrayAccesses) ++ sort newRest
+         _ -> error $ constructErrorMsg loc "TODO" logContents
 
 hush :: Either a b -> Maybe b
 hush = \case

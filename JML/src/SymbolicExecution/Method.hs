@@ -1658,40 +1658,8 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
            -- informations in the loop the need to recorded:
            -- get essentials from loop that needs to be recorded outside of the loop
            (essentialsEnv,env_Before_Acc_with_essentials) <- do
-             let -- flatten SymExprs which share the same nature
-                 -- and delete duplicates
-                 combine_clean :: [SymExpr] -> SymExpr
-                 combine_clean symExprs = let
-                   loc = "SymbolicExecution.Method.visitLoop.combine" in case symExprs of
-                   (SymArrayAccess li1 : rest) -> SymArrayAccess $ nub
-                     $ li1 ++ concat [li2 | SymArrayAccess li2 <- rest]
-                   _ -> error $ constructErrorMsg loc "TODO"
-                     [("symExprs",show symExprs)]
-                 -- put similar keys next to each other
-                 sort :: [(SymStateKey,SymExpr)] -> [(SymStateKey,SymExpr)]
-                 sort everyThing = let
-                   loc = "SymbolicExecution.Method.visitLoop.sort"
-                   logContents = [("everyThing",show everyThing)]
-                   in case everyThing of
-                        [] -> []
-                        (a@(ArrayAccess,_) : rest) -> let
-                          symArrayAccesses = [a | a@(ArrayAccess,_) <- rest]
-                          newRest = rest \\ symArrayAccesses
-                          in (a : symArrayAccesses) ++ sort newRest
-                        _ -> error $ constructErrorMsg loc "TODO" logContents
-                 essentialsFromLoop :: SymStateEnv -> [(SymStateKey,SymExpr)]
-                 essentialsFromLoop theEnv = sort
-                   $ map (\li@((k,v):rest) -> (,) k $ combine_clean (v : map snd rest))
-                   $ groupBy (\(fst1,_) (fst2,_) -> fst1 == fst2)
-                   $ sort
-                   $ flip Map.foldMapWithKey theEnv
-                   $ \k v -> case (k,v) of
-                       (ArrayAccess,SymArrayAccess _) -> [(k,v)]
-                       (ScopeRange _,SIte _ ifEnv maybeElseEnv) -> let
-                         rec1 = essentialsFromLoop ifEnv
-                         rec2 = maybe [] essentialsFromLoop maybeElseEnv
-                         in rec1 ++ rec2
-                       _ -> []
+             let essentialsFromLoop :: SymStateEnv -> [(SymStateKey,SymExpr)]
+                 essentialsFromLoop = getEssentials
              let essentialsEnv = Map.fromList $ essentialsFromLoop (env loopFirstRoundState)
              let env_Before_Acc_with_essentials = Map.foldlWithKey'
                    (\m key newVal -> Map.insert key newVal m) env_Before_Acc
