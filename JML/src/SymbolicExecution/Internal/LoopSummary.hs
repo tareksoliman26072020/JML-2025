@@ -585,8 +585,6 @@ getLoopCounters (branchRange,origEnv,newEnv)
 getDynamicallyAccessedArrays :: CFGT.CFG -> [String] -> SymStateEnv -> [ExecutionResult] -> SymbolicExecutionMonad [(SymType,String,[(CFGT.Node_Coor,String)])]
 getDynamicallyAccessedArrays cfg loopCounters loopFirstRoundEnv loop_ers = do
   let loc = "SymbolicExecution.Internal.LoopSummary.getDynamicallyAccessedArrays"
-      relevantSymExprs :: [(SymExpr,[(CFGT.Node_Coor,String)])]
-      relevantSymExprs = study_loop_ers loop_ers
       firstRoundArrayAccesses :: [(CFGT.Node_Coor,ArrayAccessionInfo)]
       firstRoundArrayAccesses = case Map.lookup ArrayAccess loopFirstRoundEnv of
         Nothing -> []
@@ -594,111 +592,45 @@ getDynamicallyAccessedArrays cfg loopCounters loopFirstRoundEnv loop_ers = do
       -- `loopFirstRoundEnv` is the environment resulting after visiting all the statements
       -- in the loop for one round.
       -- `arrayAccessIndexes` records the coordinates in the loop in which a `loopCounter` is used to access an array
-      arrayAccessIndexes :: [(CFGT.Node_Coor,[String])] = let
+      arrayAccessIndexes :: [(CFGT.Node_Coor,(SymType,String),[String])] = let
         -- `f` delivers the names of the indexes in `ViaConstantIndex` and `ViaNonConstantIndex`
-        f :: ArrayAccessionInfo -> [String]
+        -- I only want to keep the indexes names which are not constant
+        f :: ArrayAccessionInfo -> [(SymType,String,[String])]
         f info = case info of
-          ViaConstantIndex (_,_,(indexVars,_)) -> indexVars
-          ViaNonConstantIndex (_,_,(indexVars,_)) -> indexVars
+          ViaConstantIndex (t,arrName,(indexVars,_)) ->
+            [(t,arrName,filter (`elem` loopCounters) indexVars)]
+          ViaNonConstantIndex (t,arrName,(indexVars,_)) ->
+            [(t,arrName,filter (`elem` loopCounters) indexVars)]
           AccessionViaObject _ -> []
           ReAssignment (either_info1,either_info2) -> concatMap f
             $ catMaybes $ map hush [either_info1,either_info2]
-        in [(nodeCoor,vars)
+        in concat [res
              | (nodeCoor,arrayAccessionInfo) <- firstRoundArrayAccesses
-             , let vars = f arrayAccessionInfo
-             , let -- I only want to keep the indexes names which are not constant
-                   relevantVars = filter (`elem` loopCounters) vars]
-      --symExpr = SBin (SArrayIndexAccess (Array Int) "a" (SymVar Int "i" [])) Eq (SymVar Int "x" [])
+             , let li = f arrayAccessionInfo
+             , let res = [(nodeCoor,(t,arrName),vars)
+                     | (t,arrName,vars) <- f arrayAccessionInfo]]
       logContents = [
         ("cfg",show cfg),
         ("loopCounters",show loopCounters),
         ("loop_ers",show loop_ers),
         ("loopFirstRoundEnv",show loopFirstRoundEnv),
         ("firstRoundArrayAccesses",show firstRoundArrayAccesses),
-        ("arrayAccessIndexes",show arrayAccessIndexes),
-        ("relevantSymExprs",show relevantSymExprs)]
+        ("arrayAccessIndexes",show arrayAccessIndexes)]
   constructLog loc "getDynamicallyAccessedArrays" logContents
-  let toReturn = [(arrType,arrName,vns)
-        | (symExpr,vns) <- relevantSymExprs
-        , (arrType,arrName) <- getAccessedArraysNamesViaNamedIndexes loopCounters symExpr
-        ]
-  --throwError $ constructErrorMsg loc "MEOW1" $ logContents ++ [("toReturn",show toReturn)]
+  let toReturn = studyArrayAccesses arrayAccessIndexes
   tellNextLog (Log.Return loc (show toReturn)) $> toReturn where
-  err loc msg er = error $ constructErrorMsg loc msg [("er",show er)]
-  -- checks `loop_ers` and returns all expressions of form `SArrayIndexAccess`
-  -- which involve `loopCounters`
-  study_loop_ers :: [ExecutionResult] -> [(SymExpr,[(CFGT.Node_Coor,String)])]
-  study_loop_ers ers = let
-    loc = "SymbolicExecution.Internal.LoopSummary.getDynamicallyAccessedArrays.study_loop_ers"
-    in flip concatMap ers $ \er -> case er of
-    ER_Summary coor er -> study_er_summary coor er
-    _ -> err loc "TODO3" er
-  study_er_summary :: CFGT.Node_Coor -> ExecutionResult -> [(SymExpr,[(CFGT.Node_Coor,String)])]
-  study_er_summary coor er = let
-    loc = "SymbolicExecution.Internal.LoopSummary.getDynamicallyAccessedArrays.study_er_summary"
-    logContents = [
-      ("coor",show coor),
-      ("er",show er)] in case er of
-      ER_IfExpr _ (ifCond,_) (_,ifErs) (_,elseErs) ->
-        studySymExpr coor ifCond ++ study_loop_ers ifErs ++ study_loop_ers elseErs
-      ER_SymStateMapEntry _ symExpr -> studySymExpr coor symExpr
-      ER_Expr symExpr -> studySymExpr coor symExpr
-      ER_ArrayCallExpr{} -> err loc "TODO1" er
-      ER_IfCond symExpr -> studySymExpr coor symExpr
-      ER_PredefinedFunCall symExpr -> studySymExpr coor symExpr
-      ER_Return mSymExpr -> maybe [] (studySymExpr coor) mSymExpr
-      ER_ActualParameterDetected _ _ -> err loc "TODO2" er
-      ER_Break -> []
-      ER_SymTypeInferred _ _ -> []
-      ER_FunCall _ -> []
-      ER_Continue -> []
-      _ -> error $ constructErrorMsg loc "TODO" logContents
-  studySymExpr :: CFGT.Node_Coor -> SymExpr -> [(SymExpr,[(CFGT.Node_Coor,String)])]
-  studySymExpr nodeCoor symExpr = case studySymExprHelper symExpr of
+  studyArrayAccesses :: [(CFGT.Node_Coor,(SymType,String),[String])] -> [(SymType,String,[(CFGT.Node_Coor,String)])]
+  studyArrayAccesses = \case
     [] -> []
-    vns -> [(symExpr,map ((,) nodeCoor) vns)]
-  -- returns True if SymExpr has an accessed array (SArrayIndexAccess),
-  -- and the index is a loop counter (a frame target)
-  studySymExprHelper :: SymExpr -> [String]
-  studySymExprHelper symExpr = let
-    loc = "SymbolicExecution.Internal\
-          \.LoopSummary.getDynamicallyAccessedArrays.studySymExprHelper"
-    logContents = [("symExpr",show symExpr)]
-    err msg = error $ constructErrorMsg loc msg logContents in
-    case symExpr of
-      SBin expr1 _ expr2 -> concatMap studySymExprHelper [expr1,expr2]
-      SNot expr -> studySymExprHelper expr
-      SIte _ _ _ -> err loc "TODO1"
-      SLoop _ _ _ _ _ -> err loc "TODO2"
-      SArrayIndexAccess _ _ (indexVars,index) ->  nub $
-        filter (\indexVar -> indexVar `elem` loopCounters) indexVars ++
-        study_array_index index
-      SymVar _ _ _ -> []
-      SBool _ -> []
-      SymInt _ -> []
-      SymString _ -> []
-      SymDouble _ -> []
-      SymFloat _ -> []
-      SObjAcc _ -> []
-      _ -> err loc "TODO3"
-  -- checks if the index has a loop counter
-  study_array_index :: SymExpr -> [String]
-  study_array_index index = let
-    loc = "SymbolicExecution.Internal\
-          \.LoopSummary.getDynamicallyAccessedArrays.study_array_index"
-    logContents = [
-      ("index",show index)
-      ] in case index of
-    SymVar _ vn _
-      | vn `elem` loopCounters -> [vn]
-      | otherwise -> []
-    SymInt _ -> []
-    SymDouble _ -> []
-    SymString _ -> []
-    SymFloat _ -> []
-    SBool _ -> []
-    SObjAcc _ -> []
-    _ -> error $ constructErrorMsg loc "TODO" [("index",show index)]
+    (a@(_,(arrType,arrName),indexVars) : rest) -> let
+      same = a : [b
+        | b@(_,(arrType2,arrName2),_) <- rest
+        , arrType == arrType2 && arrName == arrName2]
+      newRest = rest \\ same
+      combine = (,,) arrType arrName $ concat [res
+        | (nodeCoor3,_,indexVars3) <- same
+        , let res = map ((,) nodeCoor3) indexVars3]
+      in combine : studyArrayAccesses newRest
 
 --------------------
 --------------------
