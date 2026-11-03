@@ -207,6 +207,7 @@ getArrayIndexVarNames expr = let
     CharLiteral _ -> []
     StringLiteral _ -> []
     Null -> []
+    BinOpExpr expr1 _ expr2 -> concatMap getArrayIndexVarNames [expr1,expr2]
     _ -> error $ constructErrorMsg loc "TODO" logContents
 
 isVarExpr :: Expression -> Bool

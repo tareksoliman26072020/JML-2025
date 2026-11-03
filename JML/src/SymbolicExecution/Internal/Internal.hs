@@ -269,28 +269,38 @@ isSymUnknown = \case
   _ -> False
 
 hasSymUnknown :: SymExpr -> Bool
-hasSymUnknown = \case
+hasSymUnknown sExpr = let
+  loc = "SymbolicExecution.Internal.Internal.hasSymUnknown"
+  logContents = [("sExpr",show sExpr)] in case sExpr of
   SBin symExpr1 _ symExpr2 -> any hasSymUnknown [symExpr1,symExpr2]
   SNot symExpr -> hasSymUnknown symExpr
   SymVar _ _ _ -> False
   SymInt _ -> False
   SymString _ -> False
+  SBool _ -> False
+  SymNull _ -> False
   SArrayIndexAccess _ _ (_,symExpr) -> hasSymUnknown symExpr
   SymUnknown _ _ -> True
-  symExpr -> error $ "SymbolicExecution.Internal.hasSymUnknown: " ++ show symExpr
+  SymArray _ _ symExprs -> any hasSymUnknown symExprs
+  symExpr -> error $ constructErrorMsg loc "TODO" logContents
 
 hasSymVar :: SymExpr -> Bool
-hasSymVar = \case
+hasSymVar sExpr = let
+  loc = "SymbolicExecution.Internal.Internal.hasSymVar"
+  logContents = [("sExpr",show sExpr)] in case sExpr of
   SBin symExpr1 _ symExpr2 -> any hasSymVar [symExpr1,symExpr2]
   SNot symExpr -> hasSymVar symExpr
   SymVar _ _ _ -> True
   SymInt _ -> False
   SymString _ -> False
+  SBool _ -> False
+  SymNull _ -> False
   SArrayIndexAccess _ _ (_,symExpr) -> hasSymVar symExpr
   SymUnknown (_,symExpr) _ -> hasSymVar symExpr
   SObjAcc _ -> False
+  SymArray _ _ symExprs -> any hasSymVar symExprs
   --SIte condExpr ifEnv maybe_elseEnv -> condExpr
-  symExpr -> error $ "SymbolicExecution.Internal.hasSymVar: " ++ show symExpr
+  symExpr -> error $ constructErrorMsg loc "TODO" logContents
 
 isSymFun :: SymExpr -> Bool
 isSymFun = \case
