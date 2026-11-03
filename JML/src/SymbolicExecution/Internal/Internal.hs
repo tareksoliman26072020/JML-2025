@@ -1894,19 +1894,12 @@ hasViaNonConstantIndex = \case
 -- extract specific informations from the Map.
 -- so far, these informations are: ArrayAccess.
 -- in case more informations need to be extracted, then this can and must be extended
-getEssentials :: SymStateEnv -> [(SymStateKey,SymExpr)]
-getEssentials theEnv = sort
+getEssentials :: [SymStateEnv] -> [(SymStateKey,SymExpr)]
+getEssentials envs = sort
   $ map (\li@((k,v):rest) -> (,) k $ combine_clean (v : map snd rest))
   $ groupBy (\(fst1,_) (fst2,_) -> fst1 == fst2)
   $ sort
-  $ flip Map.foldMapWithKey theEnv
-  $ \k v -> case (k,v) of
-      (ArrayAccess,SymArrayAccess _) -> [(k,v)]
-      (ScopeRange _,SIte _ ifEnv maybeElseEnv) -> let
-        rec1 = getEssentials ifEnv
-        rec2 = maybe [] getEssentials maybeElseEnv
-        in rec1 ++ rec2
-      _ -> []
+  $ foldl' (\acc theEnv -> acc ++ Map.foldMapWithKey getting theEnv) [] envs
   where
   -- flatten SymExprs which share the same nature
   -- and delete duplicates
@@ -1929,6 +1922,12 @@ getEssentials theEnv = sort
            newRest = rest \\ symArrayAccesses
            in (a : symArrayAccesses) ++ sort newRest
          _ -> error $ constructErrorMsg loc "TODO" logContents
+  getting :: SymStateKey -> SymExpr -> [(SymStateKey,SymExpr)]
+  getting k v = case (k,v) of
+    (ArrayAccess,SymArrayAccess _) -> [(k,v)]
+    (ScopeRange _,SIte _ ifEnv maybeElseEnv) -> 
+      getEssentials [ifEnv,maybe Map.empty id maybeElseEnv]
+    _ -> []
 
 hush :: Either a b -> Maybe b
 hush = \case

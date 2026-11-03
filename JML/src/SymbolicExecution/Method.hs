@@ -18,7 +18,7 @@ import Visitors.API
 import Control.Monad.Writer
 import Text.Printf (printf)
 import Data.Functor (($>))
-import Data.List (foldl',nub,intercalate,find,groupBy,(\\))
+import Data.List (foldl',nub,intercalate,find)
 import SymbolicExecution.Internal.Internal
 import SymbolicExecution.Internal.LoopSummary
 import SymbolicExecution.Internal.LoopPattern
@@ -440,23 +440,26 @@ instance CFGVisitor MethodProcessor where
                     CFGT.branchStart = CFGT.id n,
                     CFGT.branchEnd = CFG.getBranchEnd (CFGT.id n) cfg
                   }
-              -- condVarAssignments gives me
-              -- 1) the VarAssignments in the if/else branch,
-              --    which were originally defined outside of them
-              -- 2) the VarAssignments of global variables
-              let condVarAssignments sEnv = flip filter (getVarAssignments sEnv) $
-                    \(name,_) ->
-                      Map.member (VarName name) mainVarNames ||
-                      (isGlobalVariable2 name sEnv)
-                      
-                  newMainVarAssignments = nub $
-                      condVarAssignments ifSymStateEnv ++
-                      maybe [] condVarAssignments mElseSymStateEnv
-                  newMainGlobalVars = nub $
+                  -- condVarAssignments gives me
+                  -- 1) the VarAssignments in the if/else branch,
+                  --    which were originally defined outside of them
+                  -- 2) the VarAssignments of global variables                      
+                  newMainVarAssignments = let
+                    condVarAssignments sEnv = flip filter (getVarAssignments sEnv) $
+                      \(name,_) ->
+                        Map.member (VarName name) mainVarNames ||
+                        (isGlobalVariable2 name sEnv)
+                    in nub $ condVarAssignments ifSymStateEnv ++
+                             maybe [] condVarAssignments mElseSymStateEnv
+              let newMainGlobalVars = nub $
                       filter (\vn -> isGlobalVariable2 vn stateEnv)
                              (getVarNames2 (ScopeRange condBranchRange,ifCond))
                       ++ getGlobalVars ifSymStateEnv
                       ++ maybe [] getGlobalVars mElseSymStateEnv
+                  -- newMainVarAssignments give me
+                  -- ArrayAccesses mentioned in the if/else branch
+                  newMainArrayAccesses = getEssentials
+                    [ifSymStateEnv, maybe Map.empty id mElseSymStateEnv]
               tellNextLog $ Log.ModifyState (printf "%s ==> recording symbolic branching" loc) (printf "if node num: %d" (CFGT.id n),show symExpr)
               let newNode@(newNodeKey,newNodeValue) = (,)
                     (ScopeRange condBranchRange) symExpr
@@ -471,7 +474,10 @@ instance CFGVisitor MethodProcessor where
                             VarAssignments (SVarAssignments newMainVarAssignments) addNode
                           addGlobalVars = Map.insert
                             GlobalVars (SGlobalVars newMainGlobalVars) addVarAssignments
-                      in addGlobalVars
+                          addArrayAccesses = Map.union
+                            (Map.fromList newMainArrayAccesses)
+                            addGlobalVars
+                      in addArrayAccesses--addGlobalVars
                     -- if there's a VarName that was assigned between `condBranchRange`
                     -- then make it unknown
                     unknownVarAssigns = flip filter (getVarAssignments ma1) $ \case
@@ -1209,11 +1215,11 @@ visitExpr nodeCoor expr@AST.AssignExpr{} = do
      let arrayAccessed = ReAssignment (left,right)
      let logTag = let
           al = catMaybes $ map hush [left,right] in if
-          | null al || all (not . hasViaNonConstantIndex) al -> "both sides have no array access"
-          | all hasViaNonConstantIndex al -> "both sides have array access"
-          | either (const False) hasViaNonConstantIndex left -> "left side has array access"
-          | either (const False) hasViaNonConstantIndex right -> "right side has array access"
-     if | logTag == "both sides have no array access" -> return ()
+          | null al || all (not . hasViaNonConstantIndex) al -> "both sides have no dynamic access to arrays"
+          | all hasViaNonConstantIndex al -> "both sides have dynamic access to arrays"
+          | either (const False) hasViaNonConstantIndex left -> "left side has dynamic access to an array"
+          | either (const False) hasViaNonConstantIndex right -> "right side has dynamic access to an array"
+     if | logTag == "both sides have no dynamic access to arrays" -> return ()
         | otherwise -> do
             constructLog loc "removing array access of left and right operands, and adding ReAssignment" [
               ("one",show one), ("two",show two), ("arrayAccessed",show arrayAccessed),
@@ -1658,12 +1664,8 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
            -- informations in the loop the need to recorded:
            -- get essentials from loop that needs to be recorded outside of the loop
            (essentialsEnv,env_Before_Acc_with_essentials) <- do
-             let essentialsFromLoop :: SymStateEnv -> [(SymStateKey,SymExpr)]
-                 essentialsFromLoop = getEssentials
-             let essentialsEnv = Map.fromList $ essentialsFromLoop (env loopFirstRoundState)
-             let env_Before_Acc_with_essentials = Map.foldlWithKey'
-                   (\m key newVal -> Map.insert key newVal m) env_Before_Acc
-                   essentialsEnv
+             let essentialsEnv = Map.fromList $ getEssentials [env loopFirstRoundState]
+             let env_Before_Acc_with_essentials = Map.union essentialsEnv env_Before_Acc
              return (essentialsEnv,env_Before_Acc_with_essentials)
            -- the essentials need to be put in `loopFirstRoundState`
            -- because they have a purpose in LoopSummary
