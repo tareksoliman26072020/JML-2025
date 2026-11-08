@@ -15,7 +15,7 @@ import Text.Printf (printf)
 import Control.Applicative (Alternative(empty),asum,(<|>))
 import qualified Data.Map as Map
 import Prelude hiding (negate)
-import Data.List (nub,find,foldl',intercalate,(\\),groupBy)
+import Data.List (nub,find,foldl',intercalate,(\\),groupBy,sortOn)
 import Control.Monad (forM_, foldM_)
 import Data.Functor (($>))
 import Data.Maybe (catMaybes,isNothing)
@@ -1918,7 +1918,7 @@ getEssentials envs = sort
   -- and delete duplicates
   combine_clean :: [SymExpr] -> SymExpr
   combine_clean symExprs = let
-    loc = "SymbolicExecution.Method.visitLoop.combine" in case symExprs of
+    loc = "SymbolicExecution.Internal.getEssentials.combine_clean" in case symExprs of
     (SymArrayAccess li1 : rest) -> SymArrayAccess $ nub
       $ li1 ++ concat [li2 | SymArrayAccess li2 <- rest]
     _ -> error $ constructErrorMsg loc "TODO"
@@ -1926,7 +1926,7 @@ getEssentials envs = sort
   -- put similar keys next to each other
   sort :: [(SymStateKey,SymExpr)] -> [(SymStateKey,SymExpr)]
   sort everyThing = let
-    loc = "SymbolicExecution.Method.visitLoop.sort"
+    loc = "SymbolicExecution.Internal.getEssentials.sort"
     logContents = [("everyThing",show everyThing)]
     in case everyThing of
          [] -> []
@@ -1943,15 +1943,36 @@ getEssentials envs = sort
     --(ScopeRange _,SLoop) ->
     _ -> []
 
+combine_clean_sort_symArrayAccesses :: [SymExpr] -> SymExpr
+combine_clean_sort_symArrayAccesses symExprs = let
+  loc = "SymbolicExecution.Internal.getEssentials\
+        \.combine_clean_symArrayAccesses" in case symExprs of
+  (SymArrayAccess li1 : rest) -> SymArrayAccess $ nub
+      $ sortOn (\(coor,_) -> CFGT.varDeclAt coor)
+      $ li1 ++ concat [li2 | SymArrayAccess li2 <- rest]
+  _ -> error $ constructErrorMsg loc "TODO"
+    [("symExprs",show symExprs)]
+
 hush :: Either a b -> Maybe b
 hush = \case
   Left _ -> Nothing
   Right x -> Just x
 
 getFalsifiedConditionalBranches :: [ExecutionResult] -> [ExecutionResult]
-getFalsifiedConditionalBranches = filter $ \er -> case er of
-  ER_FalsifiedConditionalBranch _ _ -> True
-  _ -> False
+getFalsifiedConditionalBranches = concatMap $ \er -> case er of
+  ER_FalsifiedConditionalBranch _ _ -> [er]
+  ER_Summary _ er -> getFalsifiedConditionalBranches [er]
+  ER_IfExpr _ _ (_,if_ers) (_,else_ers) -> getFalsifiedConditionalBranches $ if_ers ++ else_ers
+  _ -> []
+
+getLoopSummaries :: SymStateEnv -> [LoopSummary]
+getLoopSummaries env = let
+  loc = "SymbolicExecution.Internal.Internal.getLoopSummaries" in
+  flip Map.foldMapWithKey env $ \case
+    ScopeRange _ -> \case
+      SLoop _ _ _ mLoopSummary _ -> maybe [] (:[]) mLoopSummary
+      _ -> []
+    _ -> const []
 
 -------------------
 -------------------
