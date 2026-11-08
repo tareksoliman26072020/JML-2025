@@ -1883,13 +1883,14 @@ createArrayAccessionInfo (indexVars,symExpr) formalParms = let
     ("indexVars",show indexVars),
     ("formalParms",show formalParms)] in
   case symExpr of
-    SArrayIndexAccess arrType arrName (_,indexSymExpr) -> let
-      indexVarNames = getVarNames3 indexSymExpr in if
+    SArrayIndexAccess arrType arrName (arrayIndexAccessVars,indexSymExpr) -> let
+      indexVarNames = getVarNames3 indexSymExpr
+      vars = nub $ arrayIndexAccessVars ++ indexVars in if
       | isConstant indexSymExpr ||
         all (`elem` formalParms) indexVarNames -> Right $ ViaConstantIndex
-          $ (,,) arrType arrName (indexVars,indexSymExpr)
+          $ (,,) arrType arrName (vars,indexSymExpr)
       | otherwise -> Right $ ViaNonConstantIndex
-          $ (,,) arrType arrName (indexVars,indexSymExpr)
+          $ (,,) arrType arrName (vars,indexSymExpr)
     SObjAcc _ -> error $ constructErrorMsg loc "TODO3" logContents
     _ -> Left symExpr
 
@@ -1937,6 +1938,7 @@ getEssentials envs = sort
     (ArrayAccess,SymArrayAccess _) -> [(k,v)]
     (ScopeRange _,SIte _ ifEnv maybeElseEnv) -> 
       getEssentials [ifEnv,maybe Map.empty id maybeElseEnv]
+    --(ScopeRange _,SLoop) ->
     _ -> []
 
 hush :: Either a b -> Maybe b

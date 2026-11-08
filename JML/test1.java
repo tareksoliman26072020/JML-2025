@@ -6253,6 +6253,41 @@ public int[] takeWhileAsLongAsEven(int[] arr) {
   return res;
 }
 
+public int[] fun1(int[] arr, int i) {
+  int[] res = new int[0];
+  if(arr[i] % 2 == 0) {
+    int[] temp = new int[res.length+1];
+    for(int j=0; j<=i; j++) {
+      if(j<i) {
+       temp[j] = res[j];
+      }
+      else {
+        temp[j] = arr[i];
+      }
+    }
+    res = temp;
+  }
+  return res;
+}
+
+public int[] fun2(int[] arr) {
+  int[] res = new int[0];
+  int i = 0;
+  if(arr[i] % 2 == 0) {
+    int[] temp = new int[res.length+1];
+    for(int j=0; j<=i; j++) {
+      if(j<i) {
+       temp[j] = res[j];
+      }
+      else {
+        temp[j] = arr[i];
+      }
+    }
+    res = temp;
+  }
+  return res;
+}
+
 //DONE
 //JavaMethod
 /*

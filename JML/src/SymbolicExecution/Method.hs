@@ -8,6 +8,7 @@ import qualified CFG.Types as CFGT
 import qualified CFG.Internal as CFG
 import qualified Data.Map as Map
 import Data.Maybe (mapMaybe, fromJust, isJust, isNothing, catMaybes)
+import Data.Either (isRight)
 import Control.Monad (foldM, zipWithM, zipWithM_, liftM, liftM2, forM, forM_)
 import Control.Monad.Reader (ReaderT,runReaderT,ask)
 import Control.Monad.State
@@ -1215,11 +1216,24 @@ visitExpr nodeCoor expr@AST.AssignExpr{} = do
      let arrayAccessed = ReAssignment (left,right)
      let logTag = let
           al = catMaybes $ map hush [left,right] in if
-          | null al || all (not . hasViaNonConstantIndex) al -> "both sides have no dynamic access to arrays"
-          | all hasViaNonConstantIndex al -> "both sides have dynamic access to arrays"
-          | either (const False) hasViaNonConstantIndex left -> "left side has dynamic access to an array"
-          | either (const False) hasViaNonConstantIndex right -> "right side has dynamic access to an array"
-     if | logTag == "both sides have no dynamic access to arrays" -> return ()
+          | null al || all (not . hasViaNonConstantIndex) al ->
+              "both sides have no dynamic access to arrays"
+          | all hasViaNonConstantIndex al ->
+              "both sides have dynamic access to arrays"
+          | either (const False) hasViaNonConstantIndex left ->
+              "left side has dynamic access to an array"
+          | either (const False) hasViaNonConstantIndex right ->
+              "right side has dynamic access to an array"
+     let isReAssignment = any isRight [left,right]
+     {-if (CFGT.varDeclAt nodeCoor) `elem` [1,2]
+       then return ()
+       else throwError $ constructErrorMsg loc "MEOW" [
+         ("nodeCoor",show nodeCoor), ("expr",show expr),
+         ("left",show left), ("one",show one),
+         ("right",show right), ("two",show two),
+         ("logTag",logTag)]-}
+     if | not isReAssignment -> return ()
+     -- | logTag == "both sides have no dynamic access to arrays" -> return ()
         | otherwise -> do
             constructLog loc "removing array access of left and right operands, and adding ReAssignment" [
               ("one",show one), ("two",show two), ("arrayAccessed",show arrayAccessed),
@@ -2239,6 +2253,14 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
      studyArrayAccesses :: Maybe
        ([(CFGT.Node_Coor,ArrayAccessionInfo)],[(CFGT.Node_Coor,ArrayAccessionInfo)]) <- do
        maybe_ars_acces <- (getArrayAccess . env) <$> get
+       let -- helper for `res`
+           getInfoIndexNames :: ArrayAccessionInfo -> [String]
+           getInfoIndexNames info = case info of
+             ViaConstantIndex (_,_,(vars,_)) -> vars
+             ViaNonConstantIndex _ -> []
+             ReAssignment (either1,either2) -> let
+               x = catMaybes $ map hush [either1,either2] in
+               concatMap getInfoIndexNames x
        let res = case maybe_ars_acces of
              Nothing -> Nothing
              -- filter li so that only the `ViaConstantIndex` which are involved
@@ -2246,10 +2268,11 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
              Just (SymArrayAccess li)
                | null d_a_ars -> Nothing
                | otherwise -> Just $ (,) li
-               [a :: (CFGT.Node_Coor,ArrayAccessionInfo)
-                 | a@(coor,ViaConstantIndex (_,_,(vars,_))) <- li
-                 , -- I use [1) the coordinates, and 2) the index name] to check
-                   flip any d_a_ars $ \(_,_,li2 :: [(CFGT.Node_Coor,String)]) ->
+               [(coor,info)
+                 | (coor,info) <- li
+                 , let vars = getInfoIndexNames info
+                   -- I use [1) the coordinates, and 2) the index name] to check
+                 , flip any d_a_ars $ \(_,_,li2 :: [(CFGT.Node_Coor,String)]) ->
                      flip any li2 $ \(coor2,var) ->
                        coor == coor2 && var `elem` vars]
        return res
@@ -2262,15 +2285,26 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
        }
        Just (allArrayAccesses,relevant_arrayAccesses) -> do
          let -- helper function for the folding function `newArrayAccesses`
-             folding acc tu@(coor,info) = case info of
+             foldingHelper :: CFGT.Node_Coor -> ArrayAccessionInfo -> (CFGT.Node_Coor,ArrayAccessionInfo)
+             foldingHelper coor info = case info of
+               ViaConstantIndex tu -> case lookup coor relevant_arrayAccesses of
+                 Nothing -> (coor,info)
+                 Just _  -> (coor,ViaNonConstantIndex tu)
+               ReAssignment (either_info1,either_info2) -> (,) coor $
+                 ReAssignment ((snd . foldingHelper coor) <$> either_info1,
+                               (snd . foldingHelper coor) <$> either_info2)
+               _ -> (coor,info)
+             {--- helper function for the folding function `newArrayAccesses`
+               folding acc tu@(coor,info) = case info of
                ViaConstantIndex tu2 -> case lookup coor relevant_arrayAccesses of
                  Nothing -> acc ++ [tu]
                  Just _  -> acc ++ [(coor,ViaNonConstantIndex tu2)]
-               _ -> acc ++ [tu]
+               _ -> acc ++ [tu]-}
              -- replace every element in `allArrayAccesses` which equals an element in
              -- `relevant_arrayAccesses` with ViaNonConstantIndex
              newArrayAccesses :: [(CFGT.Node_Coor,ArrayAccessionInfo)]
-             newArrayAccesses = foldl' folding [] allArrayAccesses
+             newArrayAccesses = foldl' (\acc tu@(coor,info) ->
+               acc ++ [foldingHelper coor info]) [] allArrayAccesses
          constructLog loc "converting some `ViaConstantIndex` to `ViaNonConstantIndex`" [
            ("(old) allArrayAccesses",show allArrayAccesses),
            ("d_a_ars",show d_a_ars),
