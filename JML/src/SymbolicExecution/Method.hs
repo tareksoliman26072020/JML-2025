@@ -1664,18 +1664,20 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
   let prependLogs :: String -> [Log.Log] -> [Log.Log]
       prependLogs newLogTagStr = map (\(Log.Log innerCounterStr logTag) ->
         Log.Log innerCounterStr $ Log.Nested newLogTagStr logTag)
-  (hasAcc,maybe_acc_er,env_With_Acc) <- do
+  (hasAcc,maybe_forAccVarName,maybe_acc_er,env_With_Acc) <- do
     case m_Acc of
       Nothing -> do
         theEnv <- env <$> get
-        return (False,Nothing,theEnv)
+        return (False,Nothing,Nothing,theEnv)
       Just acc -> do
         tellNextLog (Log.HorizontalLine "For Accumulator")
         acc_er <- incrementLogDepth *>
           censor (prependLogs "For Accumulator") (methodProcessorMonad $ visitNode acc)
             <* decrementLogDepth
         theEnv <- env <$> get
-        return (True,Just acc_er,theEnv)
+        let varName = AST.getVarName $ AST.getLeftVarAssignExpr
+              $ fromJust $ CFG.getExpression acc
+        return (True,Just varName,Just acc_er,theEnv)
   (hasCond,maybe_forCondExpr_visited,forCondExpr_visited_expr) <- case mForCondExpr of
     Nothing -> return (False,Nothing,SBool True)
     Just forCondExpr -> do
@@ -1694,7 +1696,7 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
         (case re of
            ER_Expr forCondExpr_visited -> forCondExpr_visited
            _ -> error $ printf "won't happen1: %s ==> %s" loc (show re))
-
+  env1 <- env <$> get
   -- here gets decided whether to call `visitUnregisteredLoop` or `visitRegisteredLoop`
   do -- `forBody_forStep_visited`, alongside `forCondExpr_visited`, helps deciding whether
      --   to call `visitUnregisteredLoop` or `visitRegisteredLoop`
@@ -1730,7 +1732,12 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
                  logHeader = logHeader loopFirstRoundState
                }
            -- executionResults may have essentials too
-           executionResults_essentials <- (getFalsifiedConditionalBranches . executionResults) <$> get
+           executionResults_essentials <- do
+             neglectedBranches <- (getFalsifiedConditionalBranches . executionResults) <$> get
+             let forAccumulator :: [ExecutionResult] = case maybe_forAccVarName of
+                   Nothing -> []
+                   Just str -> [ER_ForAccumulatorDetected nodeCoor str]
+             return $ neglectedBranches ++ forAccumulator
            put s
            modify $ \symState -> SymState {
              env = Map.foldlWithKey'
@@ -1749,7 +1756,9 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
      de <- do
        incrementLogEnumeration
        incrementLogDepth *>
-         studyLoop (env loopFirstRoundStateWithEssentials,forBody_forStep_visited) forCondExpr_visited_expr
+         studyLoop (env loopFirstRoundStateWithEssentials,forBody_forStep_visited) 
+                   (get_ER_ForAccumulatorDetected executionResults_essentials) 
+                   forCondExpr_visited_expr
            <* decrementLogDepth
      let summary = [
            ("nodeCoor",show nodeCoor),
@@ -1760,7 +1769,12 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
            ("forBody_forStep_visited",show forBody_forStep_visited),
            ("de",show de)]
      {-if de == 1
-       then throwError $ constructErrorMsg loc "MEOW" summary
+       then throwError $ constructErrorMsg loc "MEOW" $ [
+         ("env_Before_Acc",show env_Before_Acc),
+         ("env_With_Acc",show env_With_Acc),
+         ("m_Acc",show m_Acc),
+         ("executionResults_essentials",show executionResults_essentials),
+         ("env1",show env1)] ++ summary
        else return ()-}
      case de of
        1 -> callRegisteredLoop (loc ++ ".callRegisteredLoop")
@@ -1794,8 +1808,9 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
   -- 1 ==> callRegisteredLoop
   -- 2 ==> callUnregisteredLoop
   -- 3 ==> ER_ForLoopDone
-  studyLoop :: (SymStateEnv,[ExecutionResult]) -> SymExpr -> SymbolicExecutionMonad Int
-  studyLoop (loopFirstRoundEnvWithEssentials,forBody_forStep_visited) forCondExpr_visited_expr = do
+  studyLoop :: (SymStateEnv,[ExecutionResult]) -> [ExecutionResult] -> SymExpr -> SymbolicExecutionMonad Int
+  studyLoop (loopFirstRoundEnvWithEssentials,forBody_forStep_visited)
+            forAccumulators_er forCondExpr_visited_expr = do
     let loc = "SymbolicExecution.Method.visitLoop.studyLoop"
         logContents = [
           ("loopFirstRoundEnvWithEssentials",show loopFirstRoundEnvWithEssentials),
@@ -1816,6 +1831,7 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
               Just (vn,expr) -> hasSymVar expr || hasSymUnknown expr
           , let vn = fst $ fromJust maybe_vn_expr
           ]
+        --allForAccumulators = 
         toReturn = foldr (\r acc -> case acc of
           2 -> acc
           _ -> case r of

@@ -1974,6 +1974,13 @@ getLoopSummaries env = let
       _ -> []
     _ -> const []
 
+get_ER_ForAccumulatorDetected :: [ExecutionResult] -> [ExecutionResult]
+get_ER_ForAccumulatorDetected = concatMap $ \er -> case er of
+  ER_ForAccumulatorDetected _ _ -> [er]
+  ER_Summary _ er -> get_ER_ForAccumulatorDetected [er]
+  ER_IfExpr _ _ (_,if_ers) (_,else_ers) -> get_ER_ForAccumulatorDetected $ if_ers ++ else_ers
+  _ -> []
+
 -------------------
 -------------------
 -------------------

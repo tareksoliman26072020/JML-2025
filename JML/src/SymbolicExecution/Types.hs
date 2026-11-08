@@ -143,6 +143,7 @@ data ExecutionResult =
                                 -- due to the presence of previous return statement
                                 -- in a scope or more
   | ER_ActualParameterDetected String SymExpr
+  | ER_ForAccumulatorDetected CFGT.Node_Coor String
   | ER_ArrayAccess (CFGT.Node_Coor,AST.Expression) ArrayAccessionInfo
   | ER_FalsifiedConditionalBranch
       (Int,     -- coors of the falsified condition
