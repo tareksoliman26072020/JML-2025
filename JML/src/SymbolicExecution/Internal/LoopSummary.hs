@@ -178,6 +178,7 @@ getLoopExitingConditions cfg (loopCondExprNodeCoor,loopGuard) (breaksEnv,breaks_
           | (coor,conds) <- foldl' studyBreakSymExpr [] elseErs
           ]
         in acc ++ ifRec ++ elseRec
+      ER_ForAccumulatorDetected _ _ -> acc
       _ -> error $ constructErrorMsg loc "TODO1" [("acc",show acc),("er",show er)]
   --
   studyreturnSymExpr :: [(CFGT.Node_Coor,SymExpr)] -> ExecutionResult -> [(CFGT.Node_Coor,SymExpr)]
@@ -201,6 +202,7 @@ getLoopExitingConditions cfg (loopCondExprNodeCoor,loopGuard) (breaksEnv,breaks_
           ]
         in acc ++ ifRec ++ elseRec
       ER_Entry _ _ -> acc
+      ER_ForAccumulatorDetected _ _ -> acc
       ER_MethodParameter _ _ -> acc
       ER_ArrayAccess _ _ -> acc
       ER_SymTypeInferred _ _ -> acc

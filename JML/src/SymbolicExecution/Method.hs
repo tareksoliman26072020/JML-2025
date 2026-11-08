@@ -9,7 +9,7 @@ import qualified CFG.Internal as CFG
 import qualified Data.Map as Map
 import Data.Maybe (mapMaybe, fromJust, isJust, isNothing, catMaybes)
 import Data.Either (isRight)
-import Control.Monad (foldM, zipWithM, zipWithM_, liftM, liftM2, forM, forM_)
+import Control.Monad (foldM, zipWithM, zipWithM_, liftM, liftM2, liftM3, forM, forM_)
 import Control.Monad.Reader (ReaderT,runReaderT,ask)
 import Control.Monad.State
 import Control.Monad.Except
@@ -397,7 +397,7 @@ instance CFGVisitor MethodProcessor where
               -- record neglected branch
               -- and add the record to „executionResults“
               -- via „ER_FalsifiedConditionalBranch“
-              case branches_paths of
+              {-case branches_paths of
                 [ifB] | b -> return ER_Void
                 [ifB] | not b -> return ER_Void
                 [ifB,elseB] -> do
@@ -430,10 +430,7 @@ instance CFGVisitor MethodProcessor where
                     executionResults = executionResults symState ++ [er],
                     logHeader = logHeader symState
                   }
-                  return ER_Void
-              {-get >>= \s -> throwError $ constructErrorMsg loc "MEOW" [
-                ("env",show $ env s),
-                ("executionResults",show $ executionResults s)]-}
+                  return ER_Void-}
             SBin _ _ _ -> do
               let (ifLogs,if_ers,ifSymState0Env) = let
                     ifInitState = SymState (env state) [] (Log.Header 1 [0])
@@ -1261,13 +1258,6 @@ visitExpr nodeCoor expr@AST.AssignExpr{} = do
           | either (const False) hasViaNonConstantIndex right ->
               "right side has dynamic access to an array"
      let isReAssignment = any isRight [left,right]
-     {-if (CFGT.varDeclAt nodeCoor) `elem` [1,2]
-       then return ()
-       else throwError $ constructErrorMsg loc "MEOW" [
-         ("nodeCoor",show nodeCoor), ("expr",show expr),
-         ("left",show left), ("one",show one),
-         ("right",show right), ("two",show two),
-         ("logTag",logTag)]-}
      if | not isReAssignment -> return ()
      -- | logTag == "both sides have no dynamic access to arrays" -> return ()
         | otherwise -> do
@@ -1654,7 +1644,7 @@ visitLoop :: LoopSyntax -> (CFGT.Node_Coor,CFGT.CFG) -> Maybe CFGT.Node -> Maybe
 visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path branchRange = do
   let loc = "SymbolicExecution.Method.visitLoop"
   tellNextLog (Log.Location "SymbolicExecution.Method.visitLoop")
-  (env_Before_Acc,executionResults_Before_Acc) <- liftM2 (,) (env <$> get) (executionResults <$> get)
+  (env_Before_Acc,executionResults_Before_Acc,logHeader_Before_Acc) <- liftM3 (,,) (env <$> get) (executionResults <$> get) (logHeader <$> get)
   let loopConditionNodeCoor = case theLoopSyntax of
         WhileSyntax -> nodeCoor
         ForSyntax   -> CFGT.Node_Coor {
@@ -1664,20 +1654,22 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
   let prependLogs :: String -> [Log.Log] -> [Log.Log]
       prependLogs newLogTagStr = map (\(Log.Log innerCounterStr logTag) ->
         Log.Log innerCounterStr $ Log.Nested newLogTagStr logTag)
-  (hasAcc,maybe_forAccVarName,maybe_acc_er,env_With_Acc) <- do
+  (hasAcc,forAccumulator_er,maybe_acc_er,env_With_Acc) <- do
     case m_Acc of
       Nothing -> do
         theEnv <- env <$> get
-        return (False,Nothing,Nothing,theEnv)
+        return (False,[],Nothing,theEnv)
       Just acc -> do
         tellNextLog (Log.HorizontalLine "For Accumulator")
         acc_er <- incrementLogDepth *>
           censor (prependLogs "For Accumulator") (methodProcessorMonad $ visitNode acc)
             <* decrementLogDepth
         theEnv <- env <$> get
-        let varName = AST.getVarName $ AST.getLeftVarAssignExpr
-              $ fromJust $ CFG.getExpression acc
-        return (True,Just varName,Just acc_er,theEnv)
+        let forAccumulator_er :: [ExecutionResult] = let
+              varName = AST.getVarName $ AST.getLeftVarAssignExpr
+                $ fromJust $ CFG.getExpression acc in
+              [ER_ForAccumulatorDetected nodeCoor varName]
+        return (True,forAccumulator_er,Just acc_er,theEnv)
   (hasCond,maybe_forCondExpr_visited,forCondExpr_visited_expr) <- case mForCondExpr of
     Nothing -> return (False,Nothing,SBool True)
     Just forCondExpr -> do
@@ -1696,7 +1688,7 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
         (case re of
            ER_Expr forCondExpr_visited -> forCondExpr_visited
            _ -> error $ printf "won't happen1: %s ==> %s" loc (show re))
-  env1 <- env <$> get
+
   -- here gets decided whether to call `visitUnregisteredLoop` or `visitRegisteredLoop`
   do -- `forBody_forStep_visited`, alongside `forCondExpr_visited`, helps deciding whether
      --   to call `visitUnregisteredLoop` or `visitRegisteredLoop`
@@ -1712,7 +1704,10 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
          constructLog loc "forBody_forStep_path" [
            ("forBody_forStep_path",show forBody_forStep_path),
            ("state before visiting loop path",show s)]
-         ers <- mapM (censor (filter $ const False) . methodProcessorMonad . visitNode) forBody_forStep_path
+         
+         ers <-
+           mapM (censor (filter $ const False) . methodProcessorMonad . visitNode) forBody_forStep_path
+           
          -- get loop infos,
          (loopFirstRoundStateWithEssentials,
           env_Before_Acc_with_essentials,
@@ -1734,10 +1729,8 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
            -- executionResults may have essentials too
            executionResults_essentials <- do
              neglectedBranches <- (getFalsifiedConditionalBranches . executionResults) <$> get
-             let forAccumulator :: [ExecutionResult] = case maybe_forAccVarName of
-                   Nothing -> []
-                   Just str -> [ER_ForAccumulatorDetected nodeCoor str]
-             return $ neglectedBranches ++ forAccumulator
+             return $ neglectedBranches ++ forAccumulator_er
+           ers1 <- executionResults <$> get
            put s
            modify $ \symState -> SymState {
              env = Map.foldlWithKey'
@@ -1746,6 +1739,7 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
              executionResults = executionResults symState ++ executionResults_essentials,
              logHeader = logHeader symState
            }
+           ers2 <- executionResults <$> get
            return (loopFirstRoundStateWithEssentials,
                    env_Before_Acc_with_essentials,
                    executionResults_essentials)
@@ -1768,14 +1762,6 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
            ("forBody_forStep_path",show forBody_forStep_path),
            ("forBody_forStep_visited",show forBody_forStep_visited),
            ("de",show de)]
-     {-if de == 1
-       then throwError $ constructErrorMsg loc "MEOW" $ [
-         ("env_Before_Acc",show env_Before_Acc),
-         ("env_With_Acc",show env_With_Acc),
-         ("m_Acc",show m_Acc),
-         ("executionResults_essentials",show executionResults_essentials),
-         ("env1",show env1)] ++ summary
-       else return ()-}
      case de of
        1 -> callRegisteredLoop (loc ++ ".callRegisteredLoop")
                (maybe_acc_er,env_Before_Acc_with_essentials,executionResults_Before_Acc,
@@ -1815,12 +1801,15 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
         logContents = [
           ("loopFirstRoundEnvWithEssentials",show loopFirstRoundEnvWithEssentials),
           ("forBody_forStep_visited",show forBody_forStep_visited),
+          ("forAccumulators_er",show forAccumulators_er),
           ("forCondExpr_visited_expr",show forCondExpr_visited_expr)]
     constructLog loc "studyLoop" logContents
     let if_conds = flip map (get_ER_IfExprs forBody_forStep_visited)
           $ \(ER_Summary _(ER_IfExpr _ (_,(SIte cond _ _)) _ _)) -> cond
         if_else_ers = flip concatMap (get_ER_IfExprs forBody_forStep_visited)
           $ \(ER_Summary _(ER_IfExpr _ _ (_,if_ers) (_,else_ers))) -> if_ers ++ else_ers
+        forAccumulators_vns = [vn
+          | ER_ForAccumulatorDetected _ vn <- forAccumulators_er]
         anyHasSymVar = [vn
           | er <- forBody_forStep_visited ++ if_else_ers  
           , let maybe_vn_expr :: Maybe (String,SymExpr) = case getSummarized_er er of
@@ -1828,10 +1817,11 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
                   _ -> Nothing
           , case maybe_vn_expr of
               Nothing -> False
-              Just (vn,expr) -> hasSymVar expr || hasSymUnknown expr
+              Just (vn,expr) ->
+                hasSymVar expr || hasSymUnknown expr-- || vn `elem` forAccumulators_vns
           , let vn = fst $ fromJust maybe_vn_expr
           ]
-        --allForAccumulators = 
+        allForAccumulators = [vn | ER_ForAccumulatorDetected _ vn <- forAccumulators_er]
         toReturn = foldr (\r acc -> case acc of
           2 -> acc
           _ -> case r of
@@ -1847,7 +1837,6 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
           ("anyHasSymVar",show anyHasSymVar),
           ("toReturn",show toReturn)]
     constructLog loc "Summary" summary
-    
     (tellNextLog $ Log.Return loc (show toReturn)) $> toReturn
   ----------
   isLoopTerminated = \case
@@ -1864,14 +1853,11 @@ visitLoop theLoopSyntax (nodeCoor,cfg) m_Acc mForCondExpr forBody_forStep_path b
      loopConditionNodeCoor :: CFGT.Node_Coor,
      forBody_forStep_ers :: [ExecutionResult]) = do
        let loc = "SymbolicExecution.visitLoop.callUnregisteredLoop"
-       --executionResults_before1 <- executionResults <$> get
        modify $ \symState -> SymState
          env_Before_Acc_with_essentials
-         executionResults_Before_Acc
+         (executionResults_Before_Acc ++ executionResults_essentials)
          (logHeader symState)
-       --executionResults_before2 <- executionResults <$> get
-
-       --throwError "WOF"
+       
        res <- visitUnregisteredLoop theLoopSyntax (nodeCoor,loopConditionNodeCoor,cfg) (maybe_acc_er,m_Acc)
          (mForCondExpr,forCondExpr_visited_expr)
          (forBody_forStep_path,loopFirstRoundStateWithEssentials,forBody_forStep_ers,
@@ -1959,7 +1945,6 @@ visitRegisteredLoop theLoopSyntax loopCounter (env_Before_Acc,executionResults_B
         ER_Expr forCondExpr_visited -> forCondExpr_visited
         _ -> error $ printf "won't happen1: %s ==> %s" loc (show res)
 
-  s1 <- get
   -- whether the loop condition is atomic
   case forCondExpr_visited of
     -- it's atomic, and do a round
@@ -2155,9 +2140,6 @@ visitUnregisteredLoop theLoopSyntax (nodeCoor,loopConditionNodeCoor,cfg) (maybe_
         in case er of
              "" -> (forBodyLogs,forBodyExecutionResults,forBodySymStateEnv)
              _  -> error $ printf "%s ==> error in for body runner ==> %s" loc er
-  {-throwError $ constructErrorMsg loc "MEOW3" [
-    ("nodeCoor",show nodeCoor),
-    ("forBodyExecutionResults",show forBodyExecutionResults)]-}
   -- record unregistered logs
   flip mapM_ forBodyLogs $ \log -> do
     Log.Header _ baseCounter <- logHeader <$> get
@@ -2384,16 +2366,6 @@ h) if there are GlobalVars that are mentioned for the first time in 2) and have 
                      flip any li2 $ \(coor2,var) ->
                        coor == coor2 && var `elem` vars]
        return res
-     {-throwError $ constructErrorMsg loc "MEOW" [
-       ("nodeCoor",show nodeCoor),
-       ("d_a_ars",show d_a_ars),
-       ("studyArrayAccesses",show studyArrayAccesses)]-}
-     {-throwError $ constructErrorMsg loc "MEOW2" [
-       ("nodeCoor",show nodeCoor),
-       ("snd studyArrayAccesses",maybe "Nothing" (show . snd) studyArrayAccesses),
-       ("d_a_ars",show d_a_ars),
-       ("d_a_ars2",show d_a_ars2),
-       ("forBodySymStateEnv",show forBodySymStateEnv)]-}
      -- if `relevant_arrayAccesses` is empty, then nothing is to be changed
      case studyArrayAccesses of
        Nothing -> modify $ \symState -> SymState {

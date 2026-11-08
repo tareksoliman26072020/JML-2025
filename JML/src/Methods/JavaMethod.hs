@@ -151,11 +151,6 @@ javaMethodInputs = [
   ("addElemRight",2,addElemRight), ("addElemRightCall",2,addElemRightCall),
   ("removeAtPos",2,removeAtPos), ("removeAtPosCall1",2,removeAtPosCall1),
                                 ("removeAtPosCall2",2,removeAtPosCall2),
-  ("takeWhileAsLongAsEven",2,takeWhileAsLongAsEven),
-      ("takeWhileAsLongAsEvenCall1",2,takeWhileAsLongAsEvenCall1),
-      ("takeWhileAsLongAsEvenCall2",2,takeWhileAsLongAsEvenCall2),
-----------Bubble Sort:
-  ("bubbleSort",2,bubbleSort), ("bubbleSortCall",2,bubbleSortCall),
   ("replicate",2,replicate), ("replicateCall",2,replicateCall),
   ("sum3",2,sum3), ("sum3Call1",2,sum3Call1),
                    ("sum3Call2",2,sum3Call2),
@@ -167,10 +162,6 @@ javaMethodInputs = [
                    ("tailCall4",2,tailCall4),
   ("doubleArrayElems",2,doubleArrayElems), ("doubleArrayElemsCall",2,doubleArrayElemsCall),
   ("doubleArrayElems2",2,doubleArrayElems2), ("doubleArrayElems2Call",2,doubleArrayElems2Call),
-----------
-  ("quickSort",2,quickSort), ("quickSortCall1",2,quickSortCall1)
-                           , ("quickSortCall2",2,quickSortCall2)
-                           , ("quickSortCall3",2,quickSortCall3),
 ----------
   ("idByLoop",3,idByLoop),
   ("idByLoopStride3",3,idByLoopStride3),
@@ -1844,57 +1835,6 @@ removeAtPosCall2 = "public void removeAtPosCall2() {\n\
                    \  println(arr);\n\
                    \}"
 
-takeWhileAsLongAsEven = "public int[] takeWhileAsLongAsEven(int[] arr) {\n\
-                        \  int[] res = new int[0];\n\
-                        \  for(int i=0; i<arr.length; i++) {\n\
-                        \    if(arr[i] % 2 == 0) {\n\
-                        \      int[] temp = new int[res.length+1];\n\
-                        \      for(int j=0; j<=i; j++) {\n\
-                        \        if(j<i) {\n\
-                        \         temp[j] = res[j];\n\
-                        \        }\n\
-                        \        else {\n\
-                        \          temp[j] = arr[i];\n\
-                        \        }\n\
-                        \      }\n\
-                        \      res = temp;\n\
-                        \    }\n\
-                        \    else {\n\
-                        \      return res;\n\
-                        \    }\n\
-                        \  }\n\
-                        \  return res;\n\
-                        \}"
-
-takeWhileAsLongAsEvenCall1 = "public void takeWhileAsLongAsEvenCall1() {\n\
-                             \  int[] arr = takeWhileAsLongAsEven(new int[]{2,4,6,8});\n\
-                             \  println(arr);\n\
-                             \}"
-
-takeWhileAsLongAsEvenCall2 = "public void takeWhileAsLongAsEvenCall2() {\n\
-                             \  int[] arr = takeWhileAsLongAsEven(new int[]{2,4,7,6,8});\n\
-                             \  println(arr);\n\
-                             \}"
-
-bubbleSort = "public static void bubbleSort(int[] arr) {\n\
-             \  int n = arr.length;\n\
-             \  for (int i = 0; i < n - 1; i++) {\n\
-             \    for (int j = 0; j < n - i - 1; j++) {\n\
-             \      if (arr[j] > arr[j + 1]) {\n\
-             \        int temp = arr[j];\n\
-             \        arr[j] = arr[j + 1];\n\
-             \        arr[j + 1] = temp;\n\
-             \      }\n\
-             \    }\n\
-             \  }\n\
-             \}"
-
-bubbleSortCall = "public static void bubbleSortCall() {\n\
-                 \  int[] arr = new int[] {5,4,6,4,7,8,9,0,1};\n\
-                 \  bubbleSort(arr);\n\
-                 \  return arr;\n\
-                 \}"
-
 replicate = "public String replicate(int n,String v) {\n\
             \  String core = v;\n\
             \  String res = \"\";\n\
@@ -1996,61 +1936,6 @@ doubleArrayElems2 = "public static void doubleArrayElems2(int[] arr) {\n\
 doubleArrayElems2Call = "public static void doubleArrayElems2Call() {\n\
                         \  doubleArrayElems2(new int[]{1,2,3});\n\
                         \}"
-
-quickSort = "public static void quickSort(int[] arr) {\n\
-            \  if (arr == null || arr.length <= 1) {\n\
-            \    return;\n\
-            \  }\n\
-            \\n\
-            \  int[] stack = new int[arr.length * 2];\n\
-            \  int top = -1;\n\
-            \\n\
-            \  top++;\n\
-            \  stack[top] = 0;\n\
-            \  top++;\n\
-            \  stack[top] = arr.length - 1;\n\
-            \\n\
-            \  while (top >= 1) {\n\
-            \    int high = stack[top];\n\
-            \    top--;\n\
-            \    int low = stack[top];\n\
-            \    top--;\n\
-            \\n\
-            \    int pivotIndex = partition(arr, low, high);\n\
-            \\n\
-            \    if (pivotIndex - 1 > low) {\n\
-            \      top++;\n\
-            \      stack[top] = low;\n\
-            \      top++;\n\
-            \      stack[top] = pivotIndex - 1;\n\
-            \    }\n\
-            \\n\
-            \    if (pivotIndex + 1 < high) {\n\
-            \      top++;\n\
-            \      stack[top] = pivotIndex + 1;\n\
-            \      top++;\n\
-            \      stack[top] = high;\n\
-            \    }\n\
-            \  }\n\
-            \}"
-
-quickSortCall1 = "public static int[] quickSortCall1() {\n\
-                 \  int[] arr = null;\n\
-                 \  quickSort(arr);\n\
-                 \  return arr;\n\
-                 \}"
-
-quickSortCall2 = "public static int[] quickSortCall2() {\n\
-                 \  int[] arr = new int[] {7};\n\
-                 \  quickSort(arr);\n\
-                 \  return arr;\n\
-                 \}"
-
-quickSortCall3 = "public static int[] quickSortCall3() {\n\
-                 \  int[] arr = new int[] {1,5,2,4,3};\n\
-                 \  quickSort(arr);\n\
-                 \  return arr;\n\
-                 \}"
 
 idByLoop = "public static int idByLoop(int n) {\n\
            \  int i = 0;\n\
