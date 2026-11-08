@@ -144,6 +144,11 @@ data ExecutionResult =
                                 -- in a scope or more
   | ER_ActualParameterDetected String SymExpr
   | ER_ArrayAccess (CFGT.Node_Coor,AST.Expression) ArrayAccessionInfo
+  | ER_FalsifiedConditionalBranch
+      (Int,     -- coors of the falsified condition
+       Int)     -- coors of the parent branch
+      (SymStateEnv,
+       [ExecutionResult])  -- skipped state of the branch body when the condition was not fulfilled
   deriving (Show,Eq)
 
 instance MonadFail (Either String) where

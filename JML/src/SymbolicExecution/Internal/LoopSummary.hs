@@ -204,6 +204,7 @@ getLoopExitingConditions cfg (loopCondExprNodeCoor,loopGuard) (breaksEnv,breaks_
       ER_MethodParameter _ _ -> acc
       ER_ArrayAccess _ _ -> acc
       ER_SymTypeInferred _ _ -> acc
+      ER_FalsifiedConditionalBranch _ _ -> acc
       _ -> error $ constructErrorMsg loc "TODO1" [
         ("acc",show acc),
         ("returns_ers",show returns_ers),
@@ -332,8 +333,8 @@ getLoopCounters (branchRange,origEnv,newEnv)
 --------------------
 --------------------
 
-getDynamicallyAccessedArrays :: CFGT.CFG -> [String] -> SymStateEnv -> [ExecutionResult] -> SymbolicExecutionMonad [(SymType,String,[(CFGT.Node_Coor,String)])]
-getDynamicallyAccessedArrays cfg loopCounters loopFirstRoundEnvWithEssentials loop_ers = do
+getDynamicallyAccessedArrays :: CFGT.CFG -> [String] -> SymStateEnv -> [ExecutionResult] -> [ExecutionResult] -> SymbolicExecutionMonad [(SymType,String,[(CFGT.Node_Coor,String)])]
+getDynamicallyAccessedArrays cfg loopCounters loopFirstRoundEnvWithEssentials loop_ers executionResults_essentials = do
   let loc = "SymbolicExecution.Internal.LoopSummary.getDynamicallyAccessedArrays"
       firstRoundArrayAccesses :: [(CFGT.Node_Coor,ArrayAccessionInfo)]
       firstRoundArrayAccesses = case Map.lookup ArrayAccess loopFirstRoundEnvWithEssentials of
@@ -364,6 +365,7 @@ getDynamicallyAccessedArrays cfg loopCounters loopFirstRoundEnvWithEssentials lo
         ("loopCounters",show loopCounters),
         ("loop_ers",show loop_ers),
         ("loopFirstRoundEnvWithEssentials",show loopFirstRoundEnvWithEssentials),
+        ("executionResults_essentials",show executionResults_essentials),
         ("firstRoundArrayAccesses",show firstRoundArrayAccesses),
         ("arrayAccessIndexes",show arrayAccessIndexes)]
   constructLog loc "getDynamicallyAccessedArrays" logContents
@@ -1293,4 +1295,7 @@ getLoopExitFacts (loopGuard,loopExitingConditions) loopFrameTargetsDevelopmentTr
         | vn == vn2 -> Just $ LoopExitFactArrayAccessValue arrName index expr1
       ----------
       (Complicated _ _,_) -> Nothing
+      ----------
+      (_,SBin (SBin _ Mod (SymInt 2)) Eq (SymInt 0)) -> Nothing --TODO
+      ----------
       _ -> error $ constructErrorMsg loc "TODO6" logContents

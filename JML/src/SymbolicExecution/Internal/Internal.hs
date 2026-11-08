@@ -715,6 +715,7 @@ getBreaks_ers ers = let
     ER_MethodParameter _ _ -> False
     ER_FunCall _ -> False
     ER_ArrayAccess _ _ -> False
+    ER_FalsifiedConditionalBranch _ _ -> False
     _ -> error $ constructErrorMsg loc "TODO2" $ errContents er
 
 getReturns_StateEnv :: SymStateEnv -> SymStateEnv
@@ -754,6 +755,7 @@ getReturns_ers ers = let
     ER_Continue -> False
     ER_FunCall _ -> False
     ER_ArrayAccess _ _ -> False
+    ER_FalsifiedConditionalBranch _ _ -> False
     _ -> error $ constructErrorMsg loc "TODO1" $ errContents er
 
 -- alters the type of a global variable based on the expression and the scope it exists in
@@ -1945,6 +1947,11 @@ hush :: Either a b -> Maybe b
 hush = \case
   Left _ -> Nothing
   Right x -> Just x
+
+getFalsifiedConditionalBranches :: [ExecutionResult] -> [ExecutionResult]
+getFalsifiedConditionalBranches = filter $ \er -> case er of
+  ER_FalsifiedConditionalBranch _ _ -> True
+  _ -> False
 
 -------------------
 -------------------
