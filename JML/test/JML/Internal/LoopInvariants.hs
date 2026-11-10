@@ -73,7 +73,7 @@ contains = [
           (Universal,
            [("k1",(JMLInt 0,(Int_Type,"i",JMLInt 0,(JMLInt 1,True)),JMLObjAcc ["a","length"]))],
            (Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},
-            JMLBin (JMLArrayIndexAccess (Array_Type Int_Type) "a" (JMLVar Int_Type "k1"))
+            JMLBin (JMLArrayIndexAccess (Array_Type Int_Type) "a" ([],JMLVar Int_Type "k1"))
                    Neq
                    (JMLVar Int_Type "x")))
           (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}},

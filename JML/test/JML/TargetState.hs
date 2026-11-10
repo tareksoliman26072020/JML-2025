@@ -2455,7 +2455,7 @@ elemAt = Method {
       assignable = [],
       vars = [],
       hasSideEffect = False,
-      ensures = [JMLResult $ JMLArrayIndexAccess (Array_Type Int_Type) "arr" (JMLVar Int_Type "pos")]
+      ensures = [JMLResult $ JMLArrayIndexAccess (Array_Type Int_Type) "arr" (["pos"],JMLVar Int_Type "pos")]
     }
   ]
 }
@@ -2506,7 +2506,7 @@ elemAt2 = Method {
         JMLVar (Array_Type Int_Type) "arr" `JMLEquals` JMLArray (Just Int_Type) (Just (JMLInt 5)) [JMLInt 6,JMLInt 5,JMLInt 4,JMLInt 7,JMLInt 8]
       ],
       hasSideEffect = False,
-      ensures = [JMLResult (JMLArrayIndexAccess (Array_Type Int_Type) "arr" (JMLVar Int_Type "pos"))]
+      ensures = [JMLResult (JMLArrayIndexAccess (Array_Type Int_Type) "arr" (["pos"],JMLVar Int_Type "pos"))]
     }
   ]
 }
@@ -2588,7 +2588,7 @@ elemAt3 = Method {
       assignable = [],
       vars = [JMLVar (Array_Type Int_Type) "arr" `JMLEquals` JMLArray (Just Int_Type) (Just (JMLInt 5)) [JMLInt 6,JMLInt 5,JMLInt 4,JMLInt 7,JMLInt 8]],
       hasSideEffect = False,
-      ensures = [JMLResult (JMLArrayIndexAccess (Array_Type Int_Type) "arr" (JMLVar Int_Type "pos"))]
+      ensures = [JMLResult (JMLArrayIndexAccess (Array_Type Int_Type) "arr" (["pos"],JMLVar Int_Type "pos"))]
     }
   ]
 }
@@ -4735,12 +4735,12 @@ swap = Method {
                                NonFlattableAnd
                                (JMLBin (JMLVar Int_Type "j") Lt (JMLObjAcc ["arr","length"])))),
       assignable = ["arr[i]","arr[j]"],
-      vars = [JMLVar Int_Type "temp" `JMLEquals` JMLArrayIndexAccess (Array_Type Int_Type) "arr" (JMLVar Int_Type "i")],
+      vars = [JMLVar Int_Type "temp" `JMLEquals` JMLArrayIndexAccess (Array_Type Int_Type) "arr" (["i"],JMLVar Int_Type "i")],
       hasSideEffect = False,
       ensures = [
         JMLResult JMLVoid,
-        JMLArrayIndexAccess (Array_Type Int_Type) "arr" (JMLVar Int_Type "i") `JMLEquals` JMLOld (JMLArrayIndexAccess (Array_Type Int_Type) "arr" (JMLVar Int_Type "j")),
-        JMLArrayIndexAccess (Array_Type Int_Type) "arr" (JMLVar Int_Type "j") `JMLEquals` JMLOld (JMLArrayIndexAccess (Array_Type Int_Type) "arr" (JMLVar Int_Type "i"))
+        JMLArrayIndexAccess (Array_Type Int_Type) "arr" (["i"],JMLVar Int_Type "i") `JMLEquals` JMLOld (JMLArrayIndexAccess (Array_Type Int_Type) "arr" (["j"],JMLVar Int_Type "j")),
+        JMLArrayIndexAccess (Array_Type Int_Type) "arr" (["j"],JMLVar Int_Type "j") `JMLEquals` JMLOld (JMLArrayIndexAccess (Array_Type Int_Type) "arr" (["i"],JMLVar Int_Type "i"))
       ]
     }
   ]
@@ -5589,7 +5589,7 @@ contains :: Method
 contains = Method {
   name = "contains",
   jmlSpecifications = [
-    LoopSpecification (
+    LoopSpecification $
       LoopInvariants {
         loopScopeRange = SR {branchStart = 2, branchEnd = 7},
         loopClauses = [
@@ -5598,7 +5598,7 @@ contains = Method {
             (Universal,
              [("k1",(JMLInt 0,(Int_Type,"i",JMLInt 0,(JMLInt 1,True)),JMLObjAcc ["a","length"]))],
              (Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},
-              JMLBin (JMLArrayIndexAccess (Array_Type Int_Type) "a" (JMLVar Int_Type "k1"))
+              JMLBin (JMLArrayIndexAccess (Array_Type Int_Type) "a" ([],JMLVar Int_Type "k1"))
                      Neq
                      (JMLVar Int_Type "x")))
             (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 3, branchEnd = 5}},
@@ -5606,9 +5606,8 @@ contains = Method {
           LoopAssigns $ LoopFrameTemplate ["i"],
           DecreasesTemplate $ JMLBin (JMLObjAcc ["a","length"]) Sub (JMLVar Int_Type "i")
         ]
-      }
-    ),
-    MethodSpecification (
+      },
+    MethodSpecification $
       NormalBehavior {
         behaviorScopeRange = Nothing,
         requires = Nothing,
@@ -5616,19 +5615,18 @@ contains = Method {
         vars = [
           JMLVar Int_Type "i"
             `JMLEquals`
-              (JMLBin (JMLBin (JMLInt 0) Lt (JMLObjAcc ["a","length"])) And (JMLBin (JMLArrayIndexAccess (Array_Type Int_Type) "a" (JMLInt 0)) Neq (JMLVar Int_Type "x")) `JMLImplies` JMLObjAcc ["a","length"]),
+              (JMLBin (JMLBin (JMLInt 0) Lt (JMLObjAcc ["a","length"])) And (JMLBin (JMLArrayIndexAccess (Array_Type Int_Type) "a" (["i"],JMLInt 0)) Neq (JMLVar Int_Type "x")) `JMLImplies` JMLObjAcc ["a","length"]),
           JMLVar Int_Type "i"
             `JMLEquals`
-              (JMLBin (JMLBin (JMLInt 0) Ge (JMLObjAcc ["a","length"])) Or (JMLBin (JMLArrayIndexAccess (Array_Type Int_Type) "a" (JMLInt 0)) Eq (JMLVar Int_Type "x")) `JMLImplies` JMLInt 0)
+              (JMLBin (JMLBin (JMLInt 0) Ge (JMLObjAcc ["a","length"])) Or (JMLBin (JMLArrayIndexAccess (Array_Type Int_Type) "a" (["i"],JMLInt 0)) Eq (JMLVar Int_Type "x")) `JMLImplies` JMLInt 0)
         ],
         hasSideEffect = False,
         ensures = [
-          ExistentialQuantification (Universal,[("k1",(JMLInt 0,(Int_Type,"i",JMLInt 0,(JMLInt 1,True)),JMLObjAcc ["a","length"]))],(Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},JMLBin (JMLArrayIndexAccess (Array_Type Int_Type) "a" (JMLVar Int_Type "k1")) Neq (JMLVar Int_Type "x")))
+          ExistentialQuantification (Universal,[("k1",(JMLInt 0,(Int_Type,"i",JMLInt 0,(JMLInt 1,True)),JMLObjAcc ["a","length"]))],(Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},JMLBin (JMLArrayIndexAccess (Array_Type Int_Type) "a" ([],JMLVar Int_Type "k1")) Neq (JMLVar Int_Type "x")))
             `JMLImplies` JMLResult (JMLBool False),
-          ExistentialQuantification (Existential,[("k1",(JMLInt 0,(Int_Type,"i",JMLInt 0,(JMLInt 1,True)),JMLObjAcc ["a","length"]))],(Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},JMLBin (JMLArrayIndexAccess (Array_Type Int_Type) "a" (JMLVar Int_Type "k1")) Eq (JMLVar Int_Type "x")))
+          ExistentialQuantification (Existential,[("k1",(JMLInt 0,(Int_Type,"i",JMLInt 0,(JMLInt 1,True)),JMLObjAcc ["a","length"]))],(Node_Coor {varDeclAt = 3, varFrame = SR {branchStart = 3, branchEnd = 5}},JMLBin (JMLArrayIndexAccess (Array_Type Int_Type) "a" ([],JMLVar Int_Type "k1")) Eq (JMLVar Int_Type "x")))
             `JMLImplies` JMLResult (JMLBool True)
         ]
       }
-    )
   ]
 }
