@@ -4334,17 +4334,6 @@ public void ifFun7Call2() {
 //DONE
 //JavaMethod
 /*
-[
-    (MethodHandle,SMethodHandle Void "ifFun7Call3"),
-    (GlobalVars,SGlobalVars ["t","v","w","s"]),
-    (VarName "s",SymString "something"),
-    (VarName "t",SymVar Int "t"),
-    (VarName "v",SymUnknown ("v",SymVar String "v") [([(If,SR {branchStart = 1, branchEnd = 4})],2)]),
-    (VarName "w",SymUnknown ("w",SymVar String "w") [([(If,SR {branchStart = 1, branchEnd = 4})],3)]),
-    (Return,SymReturnVoid)
-]
-*/
-/*
 fromList [
     (MethodHandle,SMethodHandle Void "ifFun7Call3"),
     (GlobalVars,SGlobalVars ["t","v","w","s"]),
@@ -4385,7 +4374,6 @@ fromList [
   @   ensures s == "something";
   @   ensures w == "bye";
   @*/
-
 public void ifFun7Call3() {
   ifFun7(t);
 }
