@@ -1,0 +1,31 @@
+\chapter{Introduction}
+\label{chap:introduction}
+
+\section{Motivation}
+Deductive reasoning about programs has a long history; see
+\textcite{hoare1969axiomatic} for an early foundational contribution.
+
+\section{Research Objective}
+This thesis investigates automated inference of loop invariants for Java
+programs using Java Modeling Language (JML) annotations.
+
+\section{Illustrative Java/JML Example}
+\cref{lst:count} illustrates a counting loop with a candidate invariant.
+
+\begin{lstlisting}[caption={Example Java method with JML clauses},label={lst:count}]
+/*@ normal_behavior
+  @   requires n >= 0;
+  @   assignable \nothing;
+  @   ensures \result == n;
+  @*/
+public static int count(int n) {
+    int i = 0;
+    //@ maintaining 0 <= i && i <= n;
+    //@ loop_assigns i;
+    //@ decreases n - i;
+    while (i < n) {
+        i++;
+    }
+    return i;
+}
+\end{lstlisting}

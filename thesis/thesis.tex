@@ -1,0 +1,72 @@
+\documentclass[12pt,a4paper,oneside]{report}
+
+% Language, typography and layout
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[a4paper,margin=30mm]{geometry}
+
+% Mathematics, tables, figures and programming examples
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{csquotes}
+
+% Bibliography
+\usepackage[backend=biber,style=ieee,sorting=none]{biblatex}
+\addbibresource{references.bib}
+
+% Links and cross-references (load near the end)
+\usepackage[hidelinks]{hyperref}
+\usepackage[nameinlink,noabbrev]{cleveref}
+
+% Java/JML listings: code is displayed verbatim, not executed
+\lstdefinestyle{javajml}{
+  language=Java,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue!60!black},
+  commentstyle=\color{teal!60!black},
+  stringstyle=\color{red!60!black},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  frame=single,
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false
+}
+\lstset{style=javajml}
+
+\title{Automated Inference of JML Loop Invariants for Java Programs}
+\author{Your Name}
+\date{\today}
+
+\begin{document}
+% Keep title and abstract pages unnumbered and free of PDF page anchors.
+\hypersetup{pageanchor=false}
+\maketitle
+\begin{abstract}
+  This is a placeholder abstract. Replace it with a summary of your
+  research problem, method, evaluation, and findings.
+\end{abstract}
+
+\hypersetup{pageanchor=true}
+\pagenumbering{roman}
+\tableofcontents
+\clearpage
+\pagenumbering{arabic}
+
+\input{chapters/01-introduction}
+\input{chapters/02-background}
+\input{chapters/03-related-work}
+\input{chapters/04-implementation}
+\input{chapters/05-evaluation}
+\input{chapters/06-discussion}
+\input{chapters/07-conclusion}
+
+\printbibliography[heading=bibintoc]
+\end{document}

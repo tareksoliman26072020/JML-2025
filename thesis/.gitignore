@@ -1,0 +1,19 @@
+# LaTeX-generated files (do not ignore source PDFs inside figures/)
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.lof
+*.lot
+*.nav
+*.snm
+*.vrb
+*.xdv
+/thesis.pdf
