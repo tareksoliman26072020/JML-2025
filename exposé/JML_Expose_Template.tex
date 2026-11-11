@@ -1,0 +1,156 @@
+% Set this file as the main document and select pdfLaTeX.
+% Replace bracketed metadata and milestones before submission.
+% With a university class, retain the body and adapt the title block and preamble.
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=23mm]{geometry}
+\usepackage{graphicx}
+\usepackage{array,tabularx}
+\usepackage[hidelinks]{hyperref}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+\setcounter{secnumdepth}{0}
+\emergencystretch=2em
+\begin{document}
+\begin{center}
+
+{\LARGE\bfseries Automated Inference of JML Method Contracts and Loop Invariants in Haskell\par}\vspace{0.4em}
+{\large A Static Analysis Based on Monad Transformers\par}\vspace{0.8em}
+{\small Master's Thesis Exposé\par}
+{\small [Author] \textperiodcentered{} [Degree programme] \textperiodcentered{} [University or chair]\par}
+{\small [Supervisor] \textperiodcentered{} [Submission date]\par}
+\end{center}
+\section{Introduction and Motivation}
+The Java Modeling Language (JML) specifies what Java methods require, what they guarantee, and which locations they may modify. For methods with loops, a deductive verifier typically also needs an inductive description of what remains true at each iteration, a frame for the loop's writes, and a measure of progress toward termination [1]. Writing these annotations by hand requires identifying facts that hold for all relevant executions, including zero iterations and early exits. When a loop updates its own bound or scans an array, a local description of the current iteration is often insufficient to derive a useful method postcondition.
+
+This thesis develops a Haskell prototype that infers candidate JML specifications through static analysis of Java-like method declarations. Its input is one method or a collection of methods, written without surrounding class or package declarations. It analyses method bodies without executing the input program on concrete values. The central task is to infer loop invariants and use the resulting facts, where applicable, to derive method contracts. The proposed evaluation asks which inferences are correct and useful under explicit input and arithmetic assumptions.
+
+\section{Research Questions and Scope}
+\begin{enumerate}
+\item Which method contracts and loop annotations can the prototype infer for the Java-like fragment represented in the benchmark?
+\item Which generated annotations satisfy the relevant proof obligations and support the intended caller guarantees, and which constructs or input regimes cause failures?
+\item How does the Haskell implementation use monad transformers to compose environment access, state updates, error propagation and diagnostics across symbolic execution and JML generation?
+\end{enumerate}
+The thesis focuses on method specification cases and loop annotations. Normal and exceptional behavior cases can contain multiple clauses. A loop specification can include an invariant, a write frame, and a termination measure, each with its own proof obligation. Standalone input bounds the language scope. The evaluation will make any class context, callee contracts, nullness rules and arithmetic settings needed for verification explicit.
+
+\section{Implementation}
+\subsection{Analysis Pipeline}
+The parser converts method declarations into an abstract syntax tree (AST). The CFG module transforms the AST into a control-flow graph with node and edge collections. Ordinary nodes carry an identifier, a parent identifier and node contents. The entry and exit use dedicated constructors.
+
+The \texttt{SymbolicExecution} module traverses the CFG and represents values and conditions as symbolic expressions. Its environment maps structured keys to expressions, including information about assignments and their source scopes. A loop entry in the environment can carry a \texttt{LoopSummary} and detected loop patterns. \texttt{LoopSummary} records initialization facts, the guard, potential writes, progress and exit information. The planned name \texttt{MethodSummary} reflects the wider role of this stage, which includes collecting structural and data-flow facts as well as symbolic execution.
+
+The JML module consumes the symbolic environment and constructs a Method value containing JML specifications. On the loop path, it passes \texttt{LoopSummary} and pattern evidence to \texttt{inferLoopInvariantTemplates}. The current implementation includes rules for counter bounds, stride relations and search exclusion. It also derives loop frames and candidate termination measures. In a search loop, the module can use a processed-prefix fact to construct a method-level clause. The pretty-printer renders method and loop annotations. The file-selecting entry point is \texttt{printJMLMethod0}. For example, \texttt{printJMLMethod} "\texttt{contains}" False selects \texttt{contains} from \texttt{test1.java} and suppresses diagnostic logs. Reproducing a benchmark example requires recording the actual input file or harness [2].
+
+\subsection{Monad Transformers}
+The two analysis stages use the same transformer structure with different environments, log types and states. The type aliases below come from \texttt{SymbolicExecution.Types} and \texttt{JML.Types} [2].
+
+\begin{samepage}
+\small
+\begin{verbatim}
+type SymbolicExecutionMonad =
+  ExceptT String (ReaderT (Config,[CFGT.CFG])
+    (WriterT [Log.Log] (State SymState)))
+
+type JMLMonad =
+  ExceptT String (ReaderT (Map.Map String SYT.SymbolicExecution)
+    (WriterT [Log.Log] (State JMLState)))
+\end{verbatim}
+\end{samepage}
+\texttt{ReaderT} provides configuration and available CFGs to symbolic execution, and a map of symbolic environments to JML generation. State carries evolving analysis data. \texttt{WriterT} records diagnostics, and \texttt{ExceptT} propagates analysis errors represented as strings. The runners unpack the result, diagnostics and final state. The printed output is produced by an I/O wrapper around these computations. The thesis will trace a method through both stacks and show which effects are used at each step, including which diagnostic and state information remains available after an error. A Java exception modelled by the analysis is a program outcome. An error propagated by \texttt{ExceptT} is an outcome of the analyser.
+
+\section{Benchmark and Correctness}
+\subsection{Baseline and Evaluation Corpus}
+The initial corpus consists of \texttt{test3-0.java} and \texttt{test3.java} [2]. The first file records examples of inferred contracts for methods without loops. Cases such as \texttt{exceptionFun} and \texttt{swap} provide starting points for evaluating exceptional behavior and frame conditions. The second file records loop summaries, templates and annotated examples for \texttt{idByLoop}, \texttt{idByLoopStride3}, \texttt{idByLoop2}, \texttt{halving} and \texttt{contains}. These checked-in outputs and the associated structural test fixtures provide a reproducible starting point for selecting cases. The thesis will evaluate regenerated outputs at a recorded commit and add boundary cases and methods beyond those used to design the current rules.
+
+\begin{center}
+\small
+\renewcommand{\arraystretch}{1.24}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{.23\linewidth} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{.29\linewidth}@{}}
+\hline
+\textbf{Case} & \textbf{Main verification question} & \textbf{Initial evidence} \\
+\hline
+\texttt{test3-0.java} & Do contracts capture return values, exceptions and writes? & Saved annotations for loop-free methods \\
+\texttt{idByLoop} and \texttt{idByLoop2} & Are skipped iterations and exits accounted for? & Saved counter examples, including an internal exit \\
+\texttt{idByLoopStride3} and \texttt{halving} & Do the bounds hold across overshoot, moving bounds and integer limits? & Saved stride and moving-bound outputs \\
+\texttt{contains} & Do the array-prefix facts support a method contract over the intended domain? & Saved loop annotations and a contradictory method precondition \\
+\hline
+\end{tabularx}
+\end{center}
+The saved \texttt{contains} contract includes a.length \textless{} a.length. Its conjunction of requires clauses excludes every input from that specification case. The saved postcondition also mentions the body-local index i, which is outside the scope of a method postcondition. A reference normal contract should cover non-null arrays, including empty arrays, and characterize the return value by existence of a matching element anywhere in the array. The implementation can then be checked independently on the early-return and exhausted-search paths. Null inputs should be addressed explicitly when evaluating exceptional behavior.
+
+The saved \texttt{halving} invariant i \textless{}= n fails after the first iteration when the original input is 1. At the next guard check i is 1 and n is 0. The saved \texttt{idByLoop} bound i \textless{}= n already fails at initialization when n is negative, although its method contract admits negative inputs. These cases test whether the inference accounts for the state at the final guard check and the state of a loop that is skipped.
+
+\subsection{Correctness Worked Example}
+The following hand-derived annotation for \texttt{idByLoop} keeps all Java int inputs in scope and replaces the unconditional upper bound with guarded cases.
+
+\begin{samepage}
+\small
+\begin{verbatim}
+/*@ normal_behavior
+  @   requires true;
+  @   assignable \nothing;
+  @   ensures \result == (n > 0 ? n : 0);
+  @*/
+int idByLoop(int n) {
+    int i = 0;
+    //@ maintaining 0 <= i;
+    //@ maintaining n >= 0 ==> i <= n;
+    //@ maintaining n < 0 ==> i == 0;
+    //@ loop_assigns i;
+    //@ decreases (n > 0 ? n - i : 0);
+    while (i < n) {
+        i++;
+    }
+    return i;
+}
+\end{verbatim}
+\end{samepage}
+Initialization establishes each invariant at i = 0. If the guard is true, then 0 \textless{}= i \textless{} n, so incrementing i is safe for Java int arithmetic and preserves i \textless{}= n. The body writes only i. For every executing iteration the variant n - i is positive before the increment and decreases by one. At normal loop exit, i \textgreater{}= n. For n \textgreater{}= 0 this yields i = n together with the invariant. For n \textless{} 0, the loop is skipped and i = 0. These steps establish the stated result and explain which parts of the annotation support the proof.
+
+\subsection{Reproducible Evaluation}
+The evaluation will record the repository commit, input methods, commands, toolchain versions and arithmetic and nullness settings. Each case will retain the input, generated annotation, a hand-justified reference property, and verifier diagnostics. Methods will be placed in minimal Java classes for OpenJML checking [1]. Any changes needed for a verifier-ready wrapper or for repairing generated syntax will be recorded. Results for raw and repaired annotations will be reported separately.
+
+For each generated specification, the evaluation will check well-definedness and scope, satisfiability of the precondition, coverage of intended input classes, method postconditions and frames, and the loop obligations of initialization, preservation, exit reasoning and termination. The selected boundary cases will include empty arrays, negative and zero bounds, early returns, and values near Java integer limits. The evaluation will record supported and unsupported constructs, invalid annotations with a witness where available, verified but weak annotations, and inconclusive checks such as timeouts. A failure will be traced to the earliest stage supported by the evidence. Pass rates will use explicit denominators and will describe the evaluated corpus.
+
+\section{Related Work}
+King [3] introduced symbolic execution as a way to reason about program paths using symbolic inputs. KeY applies symbolic execution in deductive verification of Java against specifications [4]. OpenJML provides the verification reference for this thesis, with explicit loop obligations and JML method specifications [1].
+
+Houdini [5] uses static checking to eliminate invalid annotations from a set of candidates for ESC/Java. Its generate-and-check approach is relevant to deciding how to validate candidates produced from the prototype's loop summaries. Daikon [6] proposes likely invariants from observed program executions. It provides a point of comparison for the sources of evidence used by invariant inference techniques. Liang, Hudak and Jones [7] describe monad transformers for composing interpreter effects, which provides a basis for discussing the structure of the Haskell analysis.
+
+\section{Expected Contribution and Thesis Outline}
+The expected contribution is an implementation and a reproducible evaluation of JML inference for a defined fragment. The thesis will explain how symbolic and structural facts are transformed into loop annotations, where these facts support method contracts, and what the benchmark reveals about coverage, precision and correctness.
+
+\begin{enumerate}
+\item Introduction and motivation. Define the problem, scope and research questions.
+\item Background and related work. Introduce JML, loop proof obligations, symbolic execution and monad transformers.
+\item Analysis design and implementation. Trace the parser, CFG, symbolic environment and JML generator through a worked method.
+\item Benchmark and evaluation. Describe the corpus and protocol, then report verified results, limitations and failure cases.
+\item Discussion and conclusion. Address the research questions, threats to validity and future extensions.
+\end{enumerate}
+The work will proceed through four milestones. Freeze the baseline commit and corpus by [date]. Complete the selected inference fixes and extensions by [date], run the OpenJML evaluation by [date], and complete thesis revision by [date].
+
+\section{References}
+{\small [1] OpenJML. JML Tutorial, especially Specifying Loops.\ \href{https://www.openjml.org/tutorial/Loops}{Source}\par}
+
+{\small [2] Soliman, T. JML-2025. Source and benchmark snapshots, commit 32a899e.\ \href{https://github.com/tareksoliman26072020/JML-2025/tree/32a899eabe502f8d795b091f286a096fdf2326f4}{Source}\par}
+
+{\small [3] King, J. C. (1976). Symbolic execution and program testing. Communications of the ACM, 19(7), 385--394.\ \href{https://doi.org/10.1145/360248.360252}{Source}\par}
+
+{\small [4] Ahrendt, W., Beckert, B., Bubel, R., Hähnle, R., Schmitt, P. H., and Ulbrich, M. (Eds.). (2016). Deductive Software Verification: The KeY Book. Springer.\ \href{https://doi.org/10.1007/978-3-319-49812-6}{Source}\par}
+
+{\small [5] Flanagan, C., and Leino, K. R. M. (2001). Houdini, an Annotation Assistant for ESC/Java. FME 2001, 500--517.\ \href{https://doi.org/10.1007/3-540-45251-6_29}{Source}\par}
+
+{\small [6] Ernst, M. D., Perkins, J. H., Guo, P. J., McCamant, S., Pacheco, C., Tschantz, M. S., and Xiao, C. (2007). The Daikon system for dynamic detection of likely invariants. Science of Computer Programming, 69(1--3), 35--45.\ \href{https://doi.org/10.1016/j.scico.2007.01.015}{Source}\par}
+
+{\small [7] Liang, S., Hudak, P., and Jones, M. P. (1995). Monad transformers and modular interpreters. POPL '95, 333--343.\ \href{https://doi.org/10.1145/199448.199528}{Source}\par}
+
+
+% Optional figure after uploading a pre-rendered PDF alongside this file:
+% \begin{figure}[htbp]
+%   \centering
+%   \includegraphics[width=.9\linewidth]{analysis-pipeline.pdf}
+%   \caption{From method declarations to JML specifications.}
+%   \label{fig:pipeline}
+% \end{figure}
+\end{document}
