@@ -933,13 +933,22 @@ addBehavior sy er = do
             ]
       -- add new preconditions (nonNullableArrays) and (requires_access_indexes_within_range)
       -- to default clause
-      do incrementLogEnumeration
+      do let Just newPreCondition = combinePreconditions
+               nonNullableArrays And requires_access_indexes_within_range
+         s1 <- get
+         tellingReportTheStack loc "MEOW1" (jmlStack s1)
+         incrementLogEnumeration
          incrementLogDepth
-         mutateDefaultClause $ let
-           Just newPreCondition = combinePreconditions
-             nonNullableArrays And requires_access_indexes_within_range
-           in newPreCondition
+         mutateDefaultClause newPreCondition
          decrementLogDepth
+         s2 <- get
+         tellingReportTheStack loc "MEOW2" (jmlStack s2)
+         throwError $ constructErrorMsg loc "MEOW3" [
+           ("nonNullableArrays",show nonNullableArrays),
+           ("requires_access_indexes_within_range",show requires_access_indexes_within_range),
+           ("newPreCondition",show newPreCondition),
+           ("s1",show s1),
+           ("s2",show s2)]
       -- add (arrAssignable) and (arrIndexesEnsures) to default clause
       do incrementLogEnumeration
          incrementLogDepth

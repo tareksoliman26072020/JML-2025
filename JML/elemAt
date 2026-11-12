@@ -1,0 +1,88 @@
+fromList [
+  (MethodHandle,SMethodHandle Int "elemAt"),
+  (GlobalVars,SGlobalVars []),
+  (FormalParms,SFormalParms ["arr","pos"]),
+  (VarAssignments,SVarAssignments []),
+  (ArrayAccess,SymArrayAccess [
+      (Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}},
+       AccessionViaObject (SObjAcc ["arr","length"])),
+      (Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 2}},
+       ViaConstantIndex (Array Int,"arr",(["pos"],SymVar Int "pos" [])))]),
+  (VarName "arr",SymVar (Array Int) "arr" []),
+  (VarName "pos",SymVar Int "pos" []),
+  (ScopeRange (SR {branchStart = 1, branchEnd = 3}),
+   SIte (SBin (SObjAcc ["arr","length"]) Le (SymVar Int "pos" []))
+        (fromList [
+            (MethodHandle,SMethodHandle Int "elemAt"),
+            (FormalParms,SFormalParms ["arr","pos"]),
+            (ArrayAccess,SymArrayAccess [
+             (Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}},
+              AccessionViaObject (SObjAcc ["arr","length"]))]),
+            (VarName "arr",SymVar (Array Int) "arr" []),
+            (VarName "pos",SymVar Int "pos" []),
+            (Return,SException Int "Exception" "not found")])
+        Nothing),
+  (Return,SymUnknown ("",SArrayIndexAccess (Array Int) "arr" (["pos"],SymVar Int "pos" [])) [([(If,SR {branchStart = 1, branchEnd = 3})],2)])
+]
+
+================================
+
+/*@ exceptional_behavior
+  @   requires (arr != null) && ((0 <= arr.length) && (arr.length < arr.length));
+  @   requires arr != null;
+  @   requires arr.length <= pos;
+  @   signals Exception;
+  @   assignable \nothing;
+  @ also
+  @ normal_behavior
+  @   requires arr != null;
+  @   requires (arr != null) && (((0 <= arr.length) && (arr.length < arr.length)) && ((0 <= pos) && (pos < arr.length)));
+  @   requires arr.length > pos;
+  @   assignable \nothing;
+  @   ensures \result == arr[pos];
+  @*/
+int elemAt (int[] arr, int pos) {
+  if(arr.length<=pos) {
+    return throw new Exception("not found");
+  }
+  return arr[pos];
+}
+
+
+Method {
+  name = "elemAt",
+  jmlSpecifications = [
+    MethodSpecification $ ExceptionalBehavior {
+      behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 3}),
+      requires = Just (JMLBin (JMLBin (JMLBin (JMLVar (Array_Type Int_Type) "arr") Neq (JMLNull (Array_Type Int_Type))) And (JMLBin (JMLBin (JMLInt 0) Le (JMLObjAcc ["arr","length"])) NonFlattableAnd (JMLBin (JMLObjAcc ["arr","length"]) Lt (JMLObjAcc ["arr","length"])))) And (JMLBin (JMLBin (JMLVar (Array_Type Int_Type) "arr") Neq (JMLNull (Array_Type Int_Type))) And (JMLBin (JMLObjAcc ["arr","length"]) Le (JMLVar Int_Type "pos")))),
+      signals = "Exception",
+      assignable = [],
+      vars = [],
+      hasSideEffect = False,
+      ensures = []
+    },
+    MethodSpecification $ NormalBehavior {behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 3}), requires = Just (JMLBin (JMLBin (JMLVar (Array_Type Int_Type) "arr") Neq (JMLNull (Array_Type Int_Type))) And (JMLBin (JMLBin (JMLBin (JMLVar (Array_Type Int_Type) "arr") Neq (JMLNull (Array_Type Int_Type))) And (JMLBin (JMLBin (JMLBin (JMLInt 0) Le (JMLObjAcc ["arr","length"])) NonFlattableAnd (JMLBin (JMLObjAcc ["arr","length"]) Lt (JMLObjAcc ["arr","length"]))) And (JMLBin (JMLBin (JMLInt 0) Le (JMLVar Int_Type "pos")) NonFlattableAnd (JMLBin (JMLVar Int_Type "pos") Lt (JMLObjAcc ["arr","length"]))))) And (JMLBin (JMLObjAcc ["arr","length"]) Gt (JMLVar Int_Type "pos")))), assignable = [], vars = [], hasSideEffect = False, ensures = [JMLResult (JMLArrayIndexAccess (Array_Type Int_Type) "arr" (["pos"],JMLVar Int_Type "pos"))]
+    }
+  ]
+}
+
+==============================
+
+/*@ exceptional_behavior
+  @   requires (arr != null) && (arr.length <= pos);
+  @   signals Exception;
+  @   assignable \nothing;
+  @ also
+  @ normal_behavior
+  @   requires (arr != null) && (arr.length > pos);
+  @   assignable \nothing;
+  @   ensures \result == arr[pos];
+  @*/
+public int elemAt(int[] arr, int pos) throws Exception {
+  if(arr.length<=pos) {
+    throw new Exception("not found");
+  }
+  return arr[pos];
+}
+
+
