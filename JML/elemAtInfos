@@ -24,17 +24,20 @@ After:
 
 ===================================
 
+4.2.2. ER_ArrayAccess in JML.Internal.Internal.addBehavior ==> ER_ArrayAccess
+  1) li: [(Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}},AccessionViaObject (SObjAcc ["arr","length"])),(Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 2}},ViaConstantIndex (Array Int,"arr",(["pos"],SymVar Int "pos" [])))]
+
 4.2.3. MEOW1 in JML.Internal.Internal.addBehavior
   1.1) (Nothing,Nothing)
   1.2 
 
 4.2.4.1. mutateDefaultClause in JML.Internal.Internal.mutateDefaultClause
-  1) newPrecondition: JMLBin (JMLBin (JMLVar (Array_Type Int_Type) "arr") Neq (JMLNull (Array_Type Int_Type))) And (JMLBin (JMLBin (JMLBin (JMLInt 0) Le (JMLObjAcc ["arr","length"])) NonFlattableAnd (JMLBin (JMLObjAcc ["arr","length"]) Lt (JMLObjAcc ["arr","length"]))) And (JMLBin (JMLBin (JMLInt 0) Le (JMLVar Int_Type "pos")) NonFlattableAnd (JMLBin (JMLVar Int_Type "pos") Lt (JMLObjAcc ["arr","length"]))))
+  1) newPrecondition: JMLBin (JMLBin (JMLVar (Array_Type Int_Type) "arr") Neq (JMLNull (Array_Type Int_Type))) And (JMLBin (JMLBin (JMLInt 0) Le (JMLVar Int_Type "pos")) NonFlattableAnd (JMLBin (JMLVar Int_Type "pos") Lt (JMLObjAcc ["arr","length"])))
 
 4.2.4.2. Report The State in JML.Internal.Internal.mutateDefaultClause <<look at the stack>>
   method: Method {name = "elemAt", jmlSpecifications = []}
   jmlStack: 
-    1.1) (Nothing,Just (JMLBin (JMLBin (JMLVar (Array_Type Int_Type) "arr") Neq (JMLNull (Array_Type Int_Type))) And (JMLBin (JMLBin (JMLBin (JMLInt 0) Le (JMLObjAcc ["arr","length"])) NonFlattableAnd (JMLBin (JMLObjAcc ["arr","length"]) Lt (JMLObjAcc ["arr","length"]))) And (JMLBin (JMLBin (JMLInt 0) Le (JMLVar Int_Type "pos")) NonFlattableAnd (JMLBin (JMLVar Int_Type "pos") Lt (JMLObjAcc ["arr","length"]))))))
+    1.1) (Nothing,Just (JMLBin (JMLBin (JMLVar (Array_Type Int_Type) "arr") Neq (JMLNull (Array_Type Int_Type))) And (JMLBin (JMLBin (JMLInt 0) Le (JMLVar Int_Type "pos")) NonFlattableAnd (JMLBin (JMLVar Int_Type "pos") Lt (JMLObjAcc ["arr","length"])))))
     1.2 
   logHeader: Header {logScopeDepth = 4, logCounter = [4,2,4,1]}
   formals: ["arr","pos"]
@@ -52,7 +55,7 @@ After:
       @*/
 
 4.2.5. MEOW2 in JML.Internal.Internal.addBehavior
-  1.1) (Nothing,Just (JMLBin (JMLBin (JMLVar (Array_Type Int_Type) "arr") Neq (JMLNull (Array_Type Int_Type))) And (JMLBin (JMLBin (JMLBin (JMLInt 0) Le (JMLObjAcc ["arr","length"])) NonFlattableAnd (JMLBin (JMLObjAcc ["arr","length"]) Lt (JMLObjAcc ["arr","length"]))) And (JMLBin (JMLBin (JMLInt 0) Le (JMLVar Int_Type "pos")) NonFlattableAnd (JMLBin (JMLVar Int_Type "pos") Lt (JMLObjAcc ["arr","length"]))))))
+  1.1) (Nothing,Just (JMLBin (JMLBin (JMLVar (Array_Type Int_Type) "arr") Neq (JMLNull (Array_Type Int_Type))) And (JMLBin (JMLBin (JMLInt 0) Le (JMLVar Int_Type "pos")) NonFlattableAnd (JMLBin (JMLVar Int_Type "pos") Lt (JMLObjAcc ["arr","length"])))))
   1.2 
 ==============
 ===End Logs===
@@ -64,21 +67,17 @@ Method {name = "elemAt", jmlSpecifications = []}
 ==================================================
 Error3 in Main.printJMLMethod0
 MEOW3 in JML.Internal.Internal.addBehavior
-  1) nonNullableArrays: Just $ JMLBin
-       (JMLVar (Array_Type Int_Type) "arr") Neq (JMLNull (Array_Type Int_Type))
+  1) er: ER_ArrayAccess [(Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}},AccessionViaObject (SObjAcc ["arr","length"])),(Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 2}},ViaConstantIndex (Array Int,"arr",(["pos"],SymVar Int "pos" [])))]
 
-  2) requires_access_indexes_within_range: Just $ JMLBin
-       (JMLBin (JMLBin (JMLInt 0) Le (JMLObjAcc ["arr","length"]))
-               NonFlattableAnd
-               (JMLBin (JMLObjAcc ["arr","length"]) Lt (JMLObjAcc ["arr","length"])))
-       And
-       (JMLBin (JMLBin (JMLInt 0) Le (JMLVar Int_Type "pos"))
-               NonFlattableAnd
-               (JMLBin (JMLVar Int_Type "pos") Lt (JMLObjAcc ["arr","length"])))
+  2) nonNullableArrays: Just (JMLBin (JMLVar (Array_Type Int_Type) "arr") Neq (JMLNull (Array_Type Int_Type)))
 
-  3) newPreCondition: JMLBin (JMLBin (JMLVar (Array_Type Int_Type) "arr") Neq (JMLNull (Array_Type Int_Type))) And (JMLBin (JMLBin (JMLBin (JMLInt 0) Le (JMLObjAcc ["arr","length"])) NonFlattableAnd (JMLBin (JMLObjAcc ["arr","length"]) Lt (JMLObjAcc ["arr","length"]))) And (JMLBin (JMLBin (JMLInt 0) Le (JMLVar Int_Type "pos")) NonFlattableAnd (JMLBin (JMLVar Int_Type "pos") Lt (JMLObjAcc ["arr","length"]))))
+  3) requires_access_indexes_within_range: Just $ JMLBin
+       (JMLBin (JMLInt 0) Le (JMLVar Int_Type "pos"))
+       NonFlattableAnd
+       (JMLBin (JMLVar Int_Type "pos") Lt (JMLObjAcc ["arr","length"]))
 
-  4) s1: JMLState {method = Method {name = "elemAt", jmlSpecifications = []}, jmlStack = [Requires (Nothing,Nothing) []], logHeader = Header {logScopeDepth = 3, logCounter = [4,2,2]}, formalParms = ["arr","pos"], localVars = [], globalVars = [], reAssigned = [], pathCreationEnumeration = 0, executionResults = [ER_GlobalVars [],ER_FormalParms ["arr","pos"],ER_VarAssignments [],ER_ArrayAccess [(Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}},AccessionViaObject (SObjAcc ["arr","length"])),(Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 2}},ViaConstantIndex (Array Int,"arr",(["pos"],SymVar Int "pos" [])))]]}
+  4) newPreCondition: JMLBin (JMLBin (JMLVar (Array_Type Int_Type) "arr") Neq (JMLNull (Array_Type Int_Type))) And (JMLBin (JMLBin (JMLInt 0) Le (JMLVar Int_Type "pos")) NonFlattableAnd (JMLBin (JMLVar Int_Type "pos") Lt (JMLObjAcc ["arr","length"])))
 
-  5) s2: JMLState {method = Method {name = "elemAt", jmlSpecifications = []}, jmlStack = [Requires (Nothing,Just (JMLBin (JMLBin (JMLVar (Array_Type Int_Type) "arr") Neq (JMLNull (Array_Type Int_Type))) And (JMLBin (JMLBin (JMLBin (JMLInt 0) Le (JMLObjAcc ["arr","length"])) NonFlattableAnd (JMLBin (JMLObjAcc ["arr","length"]) Lt (JMLObjAcc ["arr","length"]))) And (JMLBin (JMLBin (JMLInt 0) Le (JMLVar Int_Type "pos")) NonFlattableAnd (JMLBin (JMLVar Int_Type "pos") Lt (JMLObjAcc ["arr","length"])))))) []], logHeader = Header {logScopeDepth = 3, logCounter = [4,2,4,2]}, formalParms = ["arr","pos"], localVars = [], globalVars = [], reAssigned = [], pathCreationEnumeration = 0, executionResults = [ER_GlobalVars [],ER_FormalParms ["arr","pos"],ER_VarAssignments [],ER_ArrayAccess [(Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}},AccessionViaObject (SObjAcc ["arr","length"])),(Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 2}},ViaConstantIndex (Array Int,"arr",(["pos"],SymVar Int "pos" [])))]]}
+  5) s1: JMLState {method = Method {name = "elemAt", jmlSpecifications = []}, jmlStack = [Requires (Nothing,Nothing) []], logHeader = Header {logScopeDepth = 3, logCounter = [4,2,2]}, formalParms = ["arr","pos"], localVars = [], globalVars = [], reAssigned = [], pathCreationEnumeration = 0, executionResults = [ER_GlobalVars [],ER_FormalParms ["arr","pos"],ER_VarAssignments [],ER_ArrayAccess [(Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}},AccessionViaObject (SObjAcc ["arr","length"])),(Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 2}},ViaConstantIndex (Array Int,"arr",(["pos"],SymVar Int "pos" [])))]]}
 
+  6) s2: JMLState {method = Method {name = "elemAt", jmlSpecifications = []}, jmlStack = [Requires (Nothing,Just (JMLBin (JMLBin (JMLVar (Array_Type Int_Type) "arr") Neq (JMLNull (Array_Type Int_Type))) And (JMLBin (JMLBin (JMLInt 0) Le (JMLVar Int_Type "pos")) NonFlattableAnd (JMLBin (JMLVar Int_Type "pos") Lt (JMLObjAcc ["arr","length"]))))) []], logHeader = Header {logScopeDepth = 3, logCounter = [4,2,4,2]}, formalParms = ["arr","pos"], localVars = [], globalVars = [], reAssigned = [], pathCreationEnumeration = 0, executionResults = [ER_GlobalVars [],ER_FormalParms ["arr","pos"],ER_VarAssignments [],ER_ArrayAccess [(Node_Coor {varDeclAt = 1, varFrame = SR {branchStart = 0, branchEnd = 2}},AccessionViaObject (SObjAcc ["arr","length"])),(Node_Coor {varDeclAt = 4, varFrame = SR {branchStart = 0, branchEnd = 2}},ViaConstantIndex (Array Int,"arr",(["pos"],SymVar Int "pos" [])))]]}

@@ -712,11 +712,16 @@ createExpr_arr_not_null2 :: (JMLType,String) -> Expr
 createExpr_arr_not_null2 (arrType,arrName) = JMLBin
   (JMLVar arrType arrName) Neq (JMLNull arrType)
 
-createExpr_arrIndex_within_range :: (String,Expr) -> Expr
-createExpr_arrIndex_within_range (arrName,index) =
-  let left = JMLBin (JMLInt 0) Le index
+createExpr_arrIndex_within_range :: (String,[String],Expr) -> Expr
+createExpr_arrIndex_within_range (arrName,indexNames,index) =
+  let indexJMLVar = JMLBin (JMLInt 0) Le . JMLVar Int_Type
+      --left = JMLBin (JMLInt 0) Le index
+      left = foldl' (\case
+        Nothing -> Just . indexJMLVar
+        Just acc -> \indexName -> Just $
+          JMLBin acc NonFlattableAnd (indexJMLVar indexName)) Nothing indexNames
       right = JMLBin index Lt (JMLObjAcc [arrName,"length"])
-  in JMLBin left NonFlattableAnd right 
+  in JMLBin (fromJust left) NonFlattableAnd right 
 
 -- This functions gets passed an array name `arrName`
 --     and a jml-expression.
@@ -841,20 +846,20 @@ addBehavior sy er = do
       constructLog innerLoc "ER_ArrayAccess" logContents
       symExec <- getSymbolicExecution
       -- `extractArrays` gets mentioned arrays
-      let extractArray :: (SYT.SymType,String,SYT.SymbolicExecutionValue) -> (SYT.SymType,String)
-          extractArray (arrType,arrName,_) = (arrType,arrName)
-          flatten :: SYT.ArrayAccessionInfo -> [(SYT.SymType,String,SYT.SymbolicExecutionValue)]
+      let extractArray :: (SYT.SymType,String,[String],SYT.SymbolicExecutionValue) -> (SYT.SymType,String)
+          extractArray (arrType,arrName,_,_) = (arrType,arrName)
+          flatten :: SYT.ArrayAccessionInfo -> [(SYT.SymType,String,[String],SYT.SymbolicExecutionValue)]
           flatten = \case
             SYT.ReAssignment (either_info1,either_info2) -> concatMap flatten
               $ catMaybes $ map SY.Internal.hush [either_info1,either_info2]
-            SYT.ViaConstantIndex (a,b,(_,c)) -> [(a,b,c)]
-            SYT.ViaNonConstantIndex (a,b,(_,c)) -> [(a,b,c)]
+            SYT.ViaConstantIndex (a,b,(indexNames,c)) -> [(a,b,indexNames,c)]
+            SYT.ViaNonConstantIndex (a,b,(indexNames,c)) -> [(a,b,indexNames,c)]
             SYT.AccessionViaObject symExpr -> let
               err msg = error $ constructErrorMsg loc msg $ logContents ++ [("symExpr",show symExpr)] in
               case symExpr of
                 SYT.SObjAcc [arrName,"length"] ->
                   case SY.Internal.getVarNameSymType arrName symExec of
-                    Just arrType -> [(arrType,arrName,symExpr)]
+                    Just arrType -> [(arrType,arrName,[],symExpr)]
                     Nothing -> err "TODO1"
                 _ -> err "TODO2"
           extractArrays :: [(SYT.SymType,String)]
@@ -871,10 +876,14 @@ addBehavior sy er = do
               (\l (symType2,arrName2) -> combinePreconditions
                 l And (Just $ createExpr_arr_not_null2 (toJMLType symType2,arrName2)))
               (Just $ createExpr_arr_not_null2 (toJMLType symType1,arrName1)) rest
-      let requires_access_indexes_within_range :: Maybe Expr
+      let requires_access_indexes_within_range :: Maybe Expr--MEOW4
           requires_access_indexes_within_range = case [res
-            | (_,arrName,indexSymExpr) <- nub $ concatMap (flatten . snd) li
-            , let res = createExpr_arrIndex_within_range (arrName,symExprToExpr jmlState indexSymExpr)
+            | (_,arrName,indexNames,indexSymExpr) <- nub $ concatMap (flatten . snd) li
+            , let jmlIndex = symExprToExpr jmlState indexSymExpr
+            , case indexSymExpr of
+                SYT.SObjAcc [_,"length"] -> False
+                _ -> True
+            , let res = createExpr_arrIndex_within_range (arrName,indexNames,jmlIndex)
             ] of
             [] -> error $ constructErrorMsg innerLoc "won't happen" logContents
             (first : rest) -> foldl'
@@ -933,7 +942,7 @@ addBehavior sy er = do
             ]
       -- add new preconditions (nonNullableArrays) and (requires_access_indexes_within_range)
       -- to default clause
-      do let Just newPreCondition = combinePreconditions
+      {-do let Just newPreCondition = combinePreconditions
                nonNullableArrays And requires_access_indexes_within_range
          s1 <- get
          tellingReportTheStack loc "MEOW1" (jmlStack s1)
@@ -944,11 +953,12 @@ addBehavior sy er = do
          s2 <- get
          tellingReportTheStack loc "MEOW2" (jmlStack s2)
          throwError $ constructErrorMsg loc "MEOW3" [
+           ("er",show er),
            ("nonNullableArrays",show nonNullableArrays),
            ("requires_access_indexes_within_range",show requires_access_indexes_within_range),
            ("newPreCondition",show newPreCondition),
            ("s1",show s1),
-           ("s2",show s2)]
+           ("s2",show s2)]-}
       -- add (arrAssignable) and (arrIndexesEnsures) to default clause
       do incrementLogEnumeration
          incrementLogDepth
