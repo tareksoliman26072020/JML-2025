@@ -2426,7 +2426,7 @@ elemAt :: Method
 elemAt = Method {
   name = "elemAt",
   jmlSpecifications = [
-     MethodSpecification $ ExceptionalBehavior {
+    MethodSpecification $ ExceptionalBehavior {
       behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 3}),
       requires = Just
         $ JMLBin (JMLBin (JMLVar (Array_Type Int_Type) "arr")
@@ -2442,7 +2442,7 @@ elemAt = Method {
       hasSideEffect = False,
       ensures = []
     },
-     MethodSpecification $ NormalBehavior {
+    MethodSpecification $ NormalBehavior {
       behaviorScopeRange = Just (SR {branchStart = 1, branchEnd = 3}),
       requires = Just
         $ JMLBin (JMLBin (JMLVar (Array_Type Int_Type) "arr")

@@ -885,7 +885,7 @@ addBehavior sy er = do
                 _ -> True
             , let res = createExpr_arrIndex_within_range (arrName,indexNames,jmlIndex)
             ] of
-            [] -> error $ constructErrorMsg innerLoc "won't happen" logContents
+            [] -> Nothing
             (first : rest) -> foldl'
               (\l r -> combinePreconditions l And (Just r))
               (Just first) rest
