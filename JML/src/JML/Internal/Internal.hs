@@ -864,14 +864,18 @@ addBehavior sy er = do
                 _ -> err "TODO2"
           extractArrays :: [(SYT.SymType,String)]
           extractArrays = concatMap (map extractArray . flatten . snd) li
-
+      -- not all extracted arrays are of relevance.
+      -- filter locally declared arrays out.
+      locals <- localVars <$> get
+      let filteredExtractedArrays = nub [a
+            | a@(_,arrName) <- extractArrays, arrName `notElem` locals]
       jmlState <- get
       -- `nonNullableArrays` is a collections of arrays that has the form:
       -- Just JMLBin (JMLVar <array type> <array name>) Neq (JMLNull <array type>)
       -- The goal is to denote the fact that the arrays has to not be null in order to be accessed--createExpr_arr_not_null2
       let nonNullableArrays :: Maybe Expr
-          nonNullableArrays = case nub extractArrays of
-            [] -> error $ constructErrorMsg innerLoc "won't happen" logContents
+          nonNullableArrays = case filteredExtractedArrays of
+            [] -> Nothing
             ((symType1,arrName1) : rest) -> foldl'
               (\l (symType2,arrName2) -> combinePreconditions
                 l (Just $ createExpr_arr_not_null2 (toJMLType symType2,arrName2)))
@@ -892,23 +896,26 @@ addBehavior sy er = do
       let arrAssignable :: Clause
           arrAssignable = let
             f :: SYT.ArrayAccessionInfo -> [String] = \case
-              SYT.ReAssignment (either_info1,either_info2) -> concatMap (\case
+              SYT.ReAssignment (either_info1,_) -> case either_info1 of
                 Left _ -> []
-                Right info -> f info) [either_info1,either_info2]
+                Right info1 -> f info1
               SYT.ViaNonConstantIndex (_,arrName,(_,SYT.SymVar _ indexName _)) ->
                 [printf "%s[%s]" arrName indexName]
               SYT.ViaConstantIndex (_,arrName,(_,SYT.SymVar _ indexName _)) ->
                 [printf "%s[%s]" arrName indexName]
               _ -> []
+            p :: SYT.ArrayAccessionInfo -> Bool = \case
+              SYT.ReAssignment (either_info1,_) -> case either_info1 of
+                Left _ -> False
+                Right info1 -> p info1
+              SYT.ViaNonConstantIndex (_,arrName,(_,SYT.SymVar _ indexName _)) ->
+                arrName `notElem` locals
+              SYT.ViaConstantIndex (_,arrName,(_,SYT.SymVar _ indexName _)) ->
+                arrName `notElem` locals
+              _ -> False
             in Assignable $ concat [f arrayAccessionInfo
             | (_,arrayAccessionInfo) <- li
-            {-, let res = case arrayAccessionInfo of
-                    SYT.ViaNonConstantIndex (_,arrName,(_,SYT.SymVar _ indexName _)) -> Just
-                      $ printf "%s[%s]" arrName indexName
-                    _ -> Nothing-}
-            ]{-
-            [res | (Right (_,arrName,SYT.SymVar _ indexName _),_,_) <- li
-                 , let res = printf "%s[%s]" arrName indexName]-}
+            , p arrayAccessionInfo]
       {-
       li: [(Left (SymVar Int "temp"),Nothing,Right (Array Int,"arr",SymVar Int "i")),
            (Right (Array Int,"arr",SymVar Int "i"),Nothing,Right (Array Int,"arr",SymVar Int "j")),
@@ -971,14 +978,17 @@ addBehavior sy er = do
             ]
       -- add new preconditions (nonNullableArrays) and (requires_access_indexes_within_range)
       -- to default clause
-      do let Just newPreCondition = combinePreconditions
+      do let mNewPreCondition = combinePreconditions
                nonNullableArrays requires_access_indexes_within_range
          s1 <- get
-         tellingReportTheStack loc "MEOW1" (jmlStack s1)
-         incrementLogEnumeration
-         incrementLogDepth
-         mutateDefaultClause newPreCondition
-         decrementLogDepth
+         case mNewPreCondition of
+           Nothing -> return ()
+           Just newPreCondition -> do
+             tellingReportTheStack loc "MEOW1" (jmlStack s1)
+             incrementLogEnumeration
+             incrementLogDepth
+             mutateDefaultClause newPreCondition
+             decrementLogDepth
          s2 <- get
          tellingReportTheStack loc "MEOW2" (jmlStack s2)
          {-throwError $ constructErrorMsg loc "MEOW3" [
@@ -988,6 +998,8 @@ addBehavior sy er = do
            ("newPreCondition",show newPreCondition),
            ("jmlStack1",show $ jmlStack s1),
            ("jmlStack2",show $ jmlStack s2),
+           ("s1",show s1),
+           ("s2",show s2),
            ("arrAssignable",show arrAssignable),
            ("arrIndexesEnsures",show arrIndexesEnsures)]-}
       -- add (arrAssignable) and (arrIndexesEnsures) to default clause

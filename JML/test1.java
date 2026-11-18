@@ -2979,13 +2979,15 @@ SymState {
 }
 */
 /*@ exceptional_behavior
-  @   requires (arr != null) && (arr.length <= pos);
+  @   requires arr != null;
+  @   requires arr.length <= pos;
   @   signals Exception;
   @   assignable \nothing;
   @ also
   @ normal_behavior
-  @   requires (arr != null) && (arr.length > pos);
-  @   assignable \nothing;
+  @   requires arr != null;
+  @   requires (0 <= pos) && (pos < arr.length);
+  @   assignable arr[pos];
   @   ensures \result == arr[pos];
   @*/
 public int elemAt(int[] arr, int pos) throws Exception {

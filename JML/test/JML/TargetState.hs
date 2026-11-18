@@ -2500,13 +2500,18 @@ elemAt2 = Method {
     },
      MethodSpecification $ NormalBehavior {
       behaviorScopeRange = Just (SR {branchStart = 2, branchEnd = 4}),
-      requires = Just (JMLBin (JMLInt 5) Gt (JMLVar Int_Type "pos")),
+      requires = Just
+        $ JMLBin (JMLBin (JMLBin (JMLInt 0) Le (JMLVar Int_Type "pos"))
+                         NonFlattableAnd
+                         (JMLBin (JMLVar Int_Type "pos") Lt (JMLObjAcc ["arr","length"])))
+                 And
+                 (JMLBin (JMLInt 5) Gt (JMLVar Int_Type "pos")),
       assignable = [],
       vars = [
         JMLVar (Array_Type Int_Type) "arr" `JMLEquals` JMLArray (Just Int_Type) (Just (JMLInt 5)) [JMLInt 6,JMLInt 5,JMLInt 4,JMLInt 7,JMLInt 8]
       ],
       hasSideEffect = False,
-      ensures = [JMLResult (JMLArrayIndexAccess (Array_Type Int_Type) "arr" (["pos"],JMLVar Int_Type "pos"))]
+      ensures = [JMLResult (JMLOld $ JMLArrayIndexAccess (Array_Type Int_Type) "arr" (["pos"],JMLVar Int_Type "pos"))]
     }
   ]
 }
