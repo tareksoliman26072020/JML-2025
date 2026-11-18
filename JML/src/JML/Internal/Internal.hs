@@ -18,6 +18,7 @@ import JML.Types
 import JML.PrettyPrint (ppBehavior, ppBehaviors, ppColoredClauses)
 import qualified JML.Logs.Log as Log
 import Data.Maybe (isJust,catMaybes,fromJust,mapMaybe)
+import Data.Either (isRight)
 
 import qualified CFG.Types as CFGT (ScopeRange, ScopeRange(SR), Node_Coor(..))
 
@@ -175,6 +176,15 @@ symExprToExpr jmlState symExpr =
        SYT.SymVar t vn _
          | isReassigned vn jmlState -> JMLOld $ JMLVar (toJMLType t) vn
          | otherwise -> JMLVar (toJMLType t) vn
+       SYT.SArrayIndexAccess arrType arrName (indexVars,arrIndexSymExpr) -> let
+         res = JMLArrayIndexAccess
+                 (toJMLType arrType) arrName
+                 (indexVars,symExprToExpr jmlState arrIndexSymExpr) in if
+         | isReassigned arrName jmlState -> JMLOld res
+         | otherwise -> res
+       SYT.SymArray mElemType mArrSize symExprs ->
+         JMLArray (toJMLType <$> mElemType) (symExprToExpr jmlState <$> mArrSize) (map (symExprToExpr jmlState) symExprs)
+
        SYT.SymNum num -> JMLNum num
        SYT.SBin symExpr1 op symExpr2 ->
          JMLBin (symExprToExpr jmlState symExpr1)
@@ -190,10 +200,6 @@ symExprToExpr jmlState symExpr =
        SYT.SException t str1 str2 -> JMLException (toJMLType t) str1 str2
        SYT.SBool b -> JMLBool b
        SYT.SObjAcc li -> JMLObjAcc li
-       SYT.SArrayIndexAccess arrType arrName (indexVars,arrIndexSymExpr) ->
-         JMLArrayIndexAccess (toJMLType arrType) arrName (indexVars,symExprToExpr jmlState arrIndexSymExpr)
-       SYT.SymArray mElemType mArrSize symExprs ->
-         JMLArray (toJMLType <$> mElemType) (symExprToExpr jmlState <$> mArrSize) (map (symExprToExpr jmlState) symExprs)
        SYT.SymFun definedFun symExpr -> SymFun
          (toDefinedFun definedFun) (symExprToExpr jmlState symExpr)
        SYT.SymNull symType -> JMLNull (toJMLType symType)
@@ -890,13 +896,23 @@ addBehavior sy er = do
               (\l r -> combinePreconditions l And (Just r))
               (Just first) rest
       let arrAssignable :: Clause
-          arrAssignable = Assignable $ catMaybes
-            [res | (_,arrayAccessionInfo) <- li
-                 , let res = case arrayAccessionInfo of
-                         SYT.ViaNonConstantIndex (_,arrName,(_,SYT.SymVar _ indexName _)) -> Just
-                           $ printf "%s[%s]" arrName indexName
-                         _ -> Nothing
-              ]{-
+          arrAssignable = let
+            f :: SYT.ArrayAccessionInfo -> [String] = \case
+              SYT.ReAssignment (either_info1,either_info2) -> concatMap (\case
+                Left _ -> []
+                Right info -> f info) [either_info1,either_info2]
+              SYT.ViaNonConstantIndex (_,arrName,(_,SYT.SymVar _ indexName _)) ->
+                [printf "%s[%s]" arrName indexName]
+              SYT.ViaConstantIndex (_,arrName,(_,SYT.SymVar _ indexName _)) ->
+                [printf "%s[%s]" arrName indexName]
+              _ -> []
+            in Assignable $ concat [f arrayAccessionInfo
+            | (_,arrayAccessionInfo) <- li
+            {-, let res = case arrayAccessionInfo of
+                    SYT.ViaNonConstantIndex (_,arrName,(_,SYT.SymVar _ indexName _)) -> Just
+                      $ printf "%s[%s]" arrName indexName
+                    _ -> Nothing-}
+            ]{-
             [res | (Right (_,arrName,SYT.SymVar _ indexName _),_,_) <- li
                  , let res = printf "%s[%s]" arrName indexName]-}
       {-
@@ -914,35 +930,54 @@ addBehavior sy er = do
               JMLOld (JMLArrayIndexAccess (Array_Type Int_Type) "arr" (JMLVar Int_Type "i"))]
        -}
       let arrIndexesEnsures :: [Clause]
-          arrIndexesEnsures = [Ensures expr
+          arrIndexesEnsures = let
+            p1 info = any (\f -> f info) 
+              [SY.Internal.hasViaConstantIndex,SY.Internal.hasViaNonConstantIndex]
+            p2 = \case
+              SYT.ViaConstantIndex (_,arrName,_) -> SY.Internal.hasFormalParameter
+                arrName symExec
+              SYT.ViaNonConstantIndex (_,arrName,_) -> SY.Internal.hasFormalParameter
+                arrName symExec
+              info -> error $ constructErrorMsg (loc ++ ".arrIndexesEnsures.p2") "TODO"
+                [("info",show info)]
+            f (arrType,arrName,arrIndexSymExpr) = symExprToExpr jmlState
+              $ SYT.SArrayIndexAccess arrType arrName arrIndexSymExpr
+            getTuple = \case
+              SYT.ViaNonConstantIndex (arrType,arrName,(indexVars,arrIndexSymExpr)) ->
+                (arrType,arrName,(indexVars,arrIndexSymExpr))
+              SYT.ViaConstantIndex (arrType,arrName,(indexVars,arrIndexSymExpr)) ->
+                (arrType,arrName,(indexVars,arrIndexSymExpr))
+            in [Ensures expr
             | (_,arrayAccessionInfo) <- li
             , case arrayAccessionInfo of
                 SYT.ReAssignment (
-                  Right (SYT.ViaNonConstantIndex _),
-                  either_rightSide) -> case either_rightSide of
-                    Right (SYT.ReAssignment _) -> error $ constructErrorMsg loc "TODO3" [
-                      ("arrayAccessionInfo",show arrayAccessionInfo)]
-                    Right _ -> True
-                    Left _ -> False
+                  Right leftSide,
+                  either_rightSide)
+                    | p1 leftSide && p2 leftSide -> case either_rightSide of
+                        Right (SYT.ReAssignment _) -> error $ constructErrorMsg loc "TODO3" [
+                          ("arrayAccessionInfo",show arrayAccessionInfo)]
+                        _ -> True
+                    | otherwise -> False
                 _ -> False
-            , let SYT.ReAssignment (
-                    Right (SYT.ViaNonConstantIndex (arrType1,arrName1,(indexVars,arrIndexSymExpr1))),
-                    _) = arrayAccessionInfo
-            , let f (arrType2,arrName2,arrIndexSymExpr2) = symExprToExpr jmlState
-                    $ SYT.SArrayIndexAccess arrType2 arrName2 arrIndexSymExpr2
-            , let leftExpr = symExprToExpr jmlState
-                    $ SYT.SArrayIndexAccess arrType1 arrName1 (indexVars,arrIndexSymExpr1)
-            , let rightExpr = case arrayAccessionInfo of
-                    SYT.ReAssignment (_,either_rightSide) -> case either_rightSide of
-                      Right (SYT.ViaNonConstantIndex (a,b,c)) -> f (a,b,c)
-                      Right (SYT.ViaConstantIndex (a,b,c)) -> f (a,b,c)
-                      Right (SYT.AccessionViaObject symExpr) -> symExprToExpr jmlState symExpr
+            , let SYT.ReAssignment (Right leftSide,either_rightSide) = arrayAccessionInfo
+                  (arrType1,arrName1,(indexVars,arrIndexSymExpr1)) = getTuple leftSide
+            , let leftExpr = let
+                    converted = symExprToExpr jmlState
+                      $ SYT.SArrayIndexAccess arrType1 arrName1 (indexVars,arrIndexSymExpr1) in
+                    case converted of
+                      JMLOld res -> res
+                      _ -> converted
+            , let rightExpr = case either_rightSide of
+                    Right (SYT.ViaNonConstantIndex (a,b,c)) -> f (a,b,c)
+                    Right (SYT.ViaConstantIndex (a,b,c)) -> f (a,b,c)
+                    Right (SYT.AccessionViaObject symExpr) -> symExprToExpr jmlState symExpr
+                    Left symExpr -> symExprToExpr jmlState symExpr
                   expr = leftExpr `JMLEquals` rightExpr
                   
             ]
       -- add new preconditions (nonNullableArrays) and (requires_access_indexes_within_range)
       -- to default clause
-      {-do let Just newPreCondition = combinePreconditions
+      do let Just newPreCondition = combinePreconditions
                nonNullableArrays And requires_access_indexes_within_range
          s1 <- get
          tellingReportTheStack loc "MEOW1" (jmlStack s1)
@@ -952,13 +987,15 @@ addBehavior sy er = do
          decrementLogDepth
          s2 <- get
          tellingReportTheStack loc "MEOW2" (jmlStack s2)
-         throwError $ constructErrorMsg loc "MEOW3" [
+         {-throwError $ constructErrorMsg loc "MEOW3" [
            ("er",show er),
            ("nonNullableArrays",show nonNullableArrays),
            ("requires_access_indexes_within_range",show requires_access_indexes_within_range),
            ("newPreCondition",show newPreCondition),
            ("s1",show s1),
-           ("s2",show s2)]-}
+           ("s2",show s2),
+           ("arrAssignable",show arrAssignable),
+           ("arrIndexesEnsures",show arrIndexesEnsures)]-}
       -- add (arrAssignable) and (arrIndexesEnsures) to default clause
       do incrementLogEnumeration
          incrementLogDepth

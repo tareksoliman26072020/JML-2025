@@ -4725,7 +4725,9 @@ swap = Method {
      MethodSpecification $ NormalBehavior {
       behaviorScopeRange = Nothing,
       requires = Just $
-        JMLBin (JMLBin (JMLVar (Array_Type Int_Type) "arr") Neq (JMLNull (Array_Type Int_Type))) 
+        JMLBin (JMLBin (JMLVar (Array_Type Int_Type) "arr")
+                       Neq
+                       (JMLNull (Array_Type Int_Type))) 
                And
                (JMLBin (JMLBin (JMLBin (JMLInt 0) Le (JMLVar Int_Type "i"))
                                NonFlattableAnd
@@ -4735,12 +4737,19 @@ swap = Method {
                                NonFlattableAnd
                                (JMLBin (JMLVar Int_Type "j") Lt (JMLObjAcc ["arr","length"])))),
       assignable = ["arr[i]","arr[j]"],
-      vars = [JMLVar Int_Type "temp" `JMLEquals` JMLArrayIndexAccess (Array_Type Int_Type) "arr" (["i"],JMLVar Int_Type "i")],
+      vars = [
+        JMLVar Int_Type "temp"
+          `JMLEquals`
+            JMLOld (JMLArrayIndexAccess (Array_Type Int_Type) "arr" (["i"],JMLVar Int_Type "i"))],
       hasSideEffect = False,
       ensures = [
         JMLResult JMLVoid,
-        JMLArrayIndexAccess (Array_Type Int_Type) "arr" (["i"],JMLVar Int_Type "i") `JMLEquals` JMLOld (JMLArrayIndexAccess (Array_Type Int_Type) "arr" (["j"],JMLVar Int_Type "j")),
-        JMLArrayIndexAccess (Array_Type Int_Type) "arr" (["j"],JMLVar Int_Type "j") `JMLEquals` JMLOld (JMLArrayIndexAccess (Array_Type Int_Type) "arr" (["i"],JMLVar Int_Type "i"))
+        JMLArrayIndexAccess (Array_Type Int_Type) "arr" (["i"],JMLVar Int_Type "i")
+          `JMLEquals`
+            JMLOld (JMLArrayIndexAccess (Array_Type Int_Type) "arr" (["j"],JMLVar Int_Type "j")),
+        JMLArrayIndexAccess (Array_Type Int_Type) "arr" (["j"],JMLVar Int_Type "j")
+          `JMLEquals`
+            JMLOld (JMLArrayIndexAccess (Array_Type Int_Type) "arr" (["i"],JMLVar Int_Type "i"))
       ]
     }
   ]

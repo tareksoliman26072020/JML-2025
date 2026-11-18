@@ -1906,6 +1906,14 @@ hasViaNonConstantIndex = \case
     $ map hush [either_info1,either_info2]
   _ -> False
 
+hasViaConstantIndex :: ArrayAccessionInfo -> Bool
+hasViaConstantIndex = \case
+  ViaConstantIndex _ -> True
+  ReAssignment (either_info1,either_info2) -> any hasViaConstantIndex
+    $ catMaybes
+    $ map hush [either_info1,either_info2]
+  _ -> False
+
 -- extract specific informations from the Map.
 -- so far, these informations are: ArrayAccess.
 -- in case more informations need to be extracted, then this can and must be extended
