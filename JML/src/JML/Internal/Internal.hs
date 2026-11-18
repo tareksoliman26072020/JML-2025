@@ -15,6 +15,7 @@ import Data.Traversable (forM)
 import qualified Data.Map as Map
 
 import JML.Types
+import JML.Internal.Normalizer (combinePreconditions,nubPreConditions)
 import JML.PrettyPrint (ppBehavior, ppBehaviors, ppColoredClauses)
 import qualified JML.Logs.Log as Log
 import Data.Maybe (isJust,catMaybes,fromJust,mapMaybe)
@@ -482,60 +483,6 @@ addToDefaultClause clause = do
   }
   tellingReportTheState loc $> ()
 
-combinePreconditions :: Maybe Expr -> Op -> Maybe Expr -> Maybe Expr
-combinePreconditions mPre1 op mPre2 = case (mPre1,mPre2) of
-  (Nothing,Nothing) -> Nothing
-  (Nothing,Just pre2) -> Just pre2
-  (Just pre1,Nothing) -> Just pre1
-  (Just pre1,Just pre2) -> let
-    combined = JMLBin pre1 op pre2
-    nubbed = nubPreConditions combined
-    in Just nubbed
-
-nubPreConditions :: Expr -> Expr
-nubPreConditions expr = let
-  loc = "JML.Internal.Internal.nubPreConditions" in
-  case expr of
-    JMLBin expr1 op expr2
-      | expr1 == expr2 -> expr
-    ---------- a && (b && c)
-    JMLBin expr1 And right@(JMLBin expr2 And expr3)
-      | -- a && (a && b) == a && b
-        expr1 == expr2 -> nubPreConditions right
-      | -- a && (b && a) == b && a
-        expr1 == expr3 -> nubPreConditions right
-    ---------- (a && b) && c
-    JMLBin left@(JMLBin expr1 And expr2) And expr3
-      | -- (a && b) && a == a && b
-        expr1 == expr3 -> nubPreConditions left
-      | -- (b && a) && a == b && a
-        expr2 == expr3 -> nubPreConditions left
-    ---------- a && (b || c)
-    JMLBin expr1 And right@(JMLBin expr2 Or expr3)
-      | -- a && (a || b) == a || b
-        expr1 == expr2 -> nubPreConditions right
-      | -- a && (b || a) == b || a
-        expr1 == expr3 -> nubPreConditions right
-    ---------- (a || b) && c
-    JMLBin left@(JMLBin expr1 Or expr2) And expr3
-      | -- (a || b) && a
-        expr1 == expr3 -> nubPreConditions left
-      | -- (b || a) && a
-        expr2 == expr3 -> nubPreConditions left
-    ---------- a || (b || c)
-    JMLBin expr1 Or right@(JMLBin expr2 Or expr3)
-      | -- a || (a || b)
-        expr1 == expr2 -> nubPreConditions right
-      | -- a || (b || a)
-        expr1 == expr3 -> nubPreConditions right
-    ----------
-    _ -> expr
-
-isJMLBinExpr :: Expr -> Bool
-isJMLBinExpr = \case
- JMLBin _ _ _ -> True
- _ -> False
-
 combineExistentiallyQuantifiedExprs :: Expr -> Expr -> Expr
 combineExistentiallyQuantifiedExprs expr1 expr2 = let
   loc = "JML.Internal.Internal.combineExistentiallyQuantifiedExprs"
@@ -573,7 +520,7 @@ mutateDefaultClause newPrecondition = do
     jmlStack = [Requires (maybe_sr,res) li
       | Requires (maybe_sr,maybe_preCondition) li <- jmlStack jmlState
       , let res = combinePreconditions
-              maybe_preCondition And (Just newPrecondition)
+              maybe_preCondition (Just newPrecondition)
       ],
     logHeader = logHeader jmlState,
     formalParms = formalParms jmlState,
@@ -927,7 +874,7 @@ addBehavior sy er = do
             [] -> error $ constructErrorMsg innerLoc "won't happen" logContents
             ((symType1,arrName1) : rest) -> foldl'
               (\l (symType2,arrName2) -> combinePreconditions
-                l And (Just $ createExpr_arr_not_null2 (toJMLType symType2,arrName2)))
+                l (Just $ createExpr_arr_not_null2 (toJMLType symType2,arrName2)))
               (Just $ createExpr_arr_not_null2 (toJMLType symType1,arrName1)) rest
       let requires_access_indexes_within_range :: Maybe Expr--MEOW4
           requires_access_indexes_within_range = case [res
@@ -940,7 +887,7 @@ addBehavior sy er = do
             ] of
             [] -> Nothing
             (first : rest) -> foldl'
-              (\l r -> combinePreconditions l And (Just r))
+              (\l r -> combinePreconditions l (Just r))
               (Just first) rest
       let arrAssignable :: Clause
           arrAssignable = let
@@ -1025,7 +972,7 @@ addBehavior sy er = do
       -- add new preconditions (nonNullableArrays) and (requires_access_indexes_within_range)
       -- to default clause
       do let Just newPreCondition = combinePreconditions
-               nonNullableArrays And requires_access_indexes_within_range
+               nonNullableArrays requires_access_indexes_within_range
          s1 <- get
          tellingReportTheStack loc "MEOW1" (jmlStack s1)
          incrementLogEnumeration
@@ -1039,8 +986,8 @@ addBehavior sy er = do
            ("nonNullableArrays",show nonNullableArrays),
            ("requires_access_indexes_within_range",show requires_access_indexes_within_range),
            ("newPreCondition",show newPreCondition),
-           ("s1",show s1),
-           ("s2",show s2),
+           ("jmlStack1",show $ jmlStack s1),
+           ("jmlStack2",show $ jmlStack s2),
            ("arrAssignable",show arrAssignable),
            ("arrIndexesEnsures",show arrIndexesEnsures)]-}
       -- add (arrAssignable) and (arrIndexesEnsures) to default clause
@@ -1122,7 +1069,7 @@ addBehavior sy er = do
                      (any (\f -> f arrName jmlState) [isFormalParm,isGlobalVar])
           return $ case new_preConds of
             [] -> Just ifRequires
-            li -> foldl' (\l r -> combinePreconditions (Just r) And l) (Just ifRequires) li
+            li -> foldl' (\l r -> combinePreconditions (Just r) l) (Just ifRequires) li
         let newIfBehaviors =
               [res | MethodSpecification b <- jmlSpecifications $ method ifJMLState
                    , let clause = Requires (Just scopeRange,modified_ifRequires) []
@@ -1152,7 +1099,7 @@ addBehavior sy er = do
                          (any (\f -> f arrName jmlState) [isFormalParm,isGlobalVar])
               return $ case new_preConds of
                 [] -> Just elseRequires
-                li -> foldl' (\l r -> combinePreconditions (Just r) And l) (Just elseRequires) li
+                li -> foldl' (\l r -> combinePreconditions (Just r) l) (Just elseRequires) li
             let newElseBehaviors =
                   [res | MethodSpecification b <- jmlSpecifications $ method elseJMLState
                        , let clause = Requires (Just scopeRange,modified_elseRequires) []
@@ -1222,8 +1169,15 @@ addBehavior sy er = do
             | ifBodyHasReturn -> do
                 if | hasElseBody -> inheritClausesFromInnerState originalStack (jmlStack elseJMLState)
                        (scopeRange,Just elseRequires) "inheriting clauses from elseJMLState"
-                   | otherwise -> inheritClausesFromInnerState originalStack []
-                       (scopeRange,Just $ negate ifRequires) "no clauses to inherit (2)"
+                   | otherwise -> do
+                       --jmlStack1 <- jmlStack <$> get
+                       inheritClausesFromInnerState originalStack []--MEOW6
+                         (scopeRange,Just $ negate ifRequires) "no clauses to inherit (2)"
+                       {-jmlStack2 <- jmlStack <$> get
+                       throwError $ constructErrorMsg loc "MEOW7" [
+                         ("jmlStack1",show jmlStack1),("jmlStack2",show jmlStack2)]-}
+                       {-get >>= \s -> (throwError $ constructErrorMsg loc "MEOW7" [
+                         ("s",show s)])-}
             -- if body returns nothing, else body returns
             | elseBodyHasReturn -> do
                 inheritClausesFromInnerState originalStack (jmlStack ifJMLState) (scopeRange,Just ifRequires) "inheriting clauses from ifJMLState"
@@ -1344,7 +1298,7 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
                $ case accessedArrays of
                    [] -> Nothing
                    (firstExpr : rest) -> foldl'
-                     (\l r -> combinePreconditions l And (Just r))
+                     (\l r -> combinePreconditions l (Just r))
                      (Just firstExpr) rest
       ER_ReturnVoid -> return $ (,) [JMLResult JMLVoid] Nothing
       ER_ReturnException exceptionName -> return $ (,) [] Nothing
@@ -1424,7 +1378,7 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
       _ -> Nothing
     gettingSideEffect = HasSideEffect `elem` values
     gettingEnsures = [expr | Ensures expr <- values]
-    newPreCondition = combinePreconditions (requires behavior) And thePreCondition
+    newPreCondition = combinePreconditions (requires behavior) thePreCondition
     behavior2process = case behavior of
       NormalBehavior{} -> NormalBehavior {
         behaviorScopeRange = theScopeRange,
@@ -1579,30 +1533,27 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
   inheritClausesFromInnerState :: [Clauses] -> [Clauses] -> (CFGT.ScopeRange,Maybe Expr) -> String -> JMLMonad ()
   inheritClausesFromInnerState originalStack innerStateClauses (new_scopeRange,new_mPreCondition) nestedMsg = do
     let loc = "JML.Internal.Internal.addBehavior.inheritClausesFromInnerState"
-    tellNextLog $ Log.Location loc $ printf
-      "\n\
-      \** %s:\n\
-      \%s\n\n\
-      \======\n\
-      \======\n\
-      \** %s:\n\
-      \%s\n\n\
-      \======\n\
-      \======\n\
-      \** %s: %s\n\n\
-      \======\n\
-      \======\n\
-      \** %s: %s"
-      (yellow "original stack") (intercalate "\n------\n" $ map ppColoredClauses originalStack)
-      (yellow "Inner State Clauses") (intercalate "\n------\n" $ map ppColoredClauses innerStateClauses)
-      (yellow "new scope Range") (show new_scopeRange)
-      (yellow "new mPreCondition") (show new_mPreCondition)
+        logContents = [
+          ("originalStack",show originalStack),
+          ("innerStateClauses",show innerStateClauses),
+          ("new_scopeRange",show new_scopeRange),
+          ("new_mPreCondition",show new_mPreCondition),
+          ("nestedMsg",show nestedMsg)]
+    constructLog loc "inheritClausesFromInnerState" logContents
     let helper (_,old_mPreCondition) vals nestedMsg = let
           -- new pre condition of the to-be-created clause
           mPreCondition = case catMaybes [old_mPreCondition,new_mPreCondition] of
             [] -> Nothing
             [cond] -> Just cond
-            [oldCond,newCond] -> Just $ JMLBin oldCond And newCond in do
+            [oldCond,newCond] -> let
+              nubbed2 = nubPreConditions $ fromJust combined2
+              combined2 = combinePreconditions (Just oldCond) (Just newCond){- in
+              error $ constructErrorMsg loc "MEOW8" [
+                ("oldCond",show oldCond),
+                ("newCond",show newCond),
+                ("combined2",show combined2),
+                ("nubbed2",show nubbed2)]-}
+              in combined2 in do
           incrementLogEnumeration
           incrementLogDepth
           flip censor

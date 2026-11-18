@@ -27,6 +27,7 @@ import qualified SymbolicExecution.PrettyPrint as SY.PP
 
 import qualified JML.Types as JMLT
 import qualified JML.Internal.Internal as JML.Internal
+import qualified JML.Internal.Normalizer as JML.Internal.Normalizer (nubPreConditions, isRedundantDueTo, combinePreconditions, equalBoolExprs)
 import qualified JML.PrettyPrint as JML.PP (ppBehaviors, pp_CFG_JML, ppLoopInvariants)
 import qualified JML.Logs.Log as JML.Log (Log)
 import qualified JML.Logs.PrettyPrint as JML.PP.Log (ppLogs, LogKind(Console))
@@ -375,8 +376,22 @@ symExpr2 = SYT.SBin (SYT.SymVar SYT.Int "i" []) SYT.Add (SYT.SymInt 1)
 symExpr :: SYT.SymExpr
 symExpr = SYT.SBin symExpr1 SYT.Gt symExpr2
 
+jmlExpr1 :: JMLT.Expr
+jmlExpr1 = JMLT.JMLBin
+  (JMLT.JMLBin (JMLT.JMLVar (JMLT.Array_Type JMLT.Int_Type) "arr") JMLT.Neq (JMLT.JMLNull (JMLT.Array_Type JMLT.Int_Type)))
+  JMLT.And
+  (JMLT.JMLBin (JMLT.JMLBin (JMLT.JMLInt 0) JMLT.Le (JMLT.JMLVar JMLT.Int_Type "pos")) JMLT.NonFlattableAnd (JMLT.JMLBin (JMLT.JMLVar JMLT.Int_Type "pos") JMLT.Lt (JMLT.JMLObjAcc ["arr","length"])))
+
+jmlExpr2 :: JMLT.Expr
+jmlExpr2 = JMLT.JMLBin (JMLT.JMLObjAcc ["arr","length"]) JMLT.Gt (JMLT.JMLVar JMLT.Int_Type "pos")
+
 main :: IO ()
-main = print $ SY.Calculator.booleanCalculator symExpr
+main = let
+  x = jmlExpr2 `JML.Internal.Normalizer.isRedundantDueTo` jmlExpr1
+  y = JML.Internal.Normalizer.combinePreconditions (Just jmlExpr1) (Just jmlExpr2)
+  in do print x
+        print y
+        print $ y == Just jmlExpr1
 
 run :: SYT.SymType
 run = SY.Internal.toSymType2

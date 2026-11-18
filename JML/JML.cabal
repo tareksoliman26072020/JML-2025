@@ -30,6 +30,7 @@ library
       CFG.Types
       JML.Internal.Internal
       JML.Internal.LoopInvariants
+      JML.Internal.Normalizer
       JML.Logs.Console
       JML.Logs.Log
       JML.Logs.PrettyPrint
