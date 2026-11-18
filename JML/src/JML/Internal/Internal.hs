@@ -1068,13 +1068,14 @@ addBehavior sy er = do
                      (not $ arrName `equalsNullIn` ifRequires) &&
                      (any (\f -> f arrName jmlState) [isFormalParm,isGlobalVar])
           return $ case new_preConds of
-            [] -> Just ifRequires
-            li -> foldl' (\l r -> combinePreconditions (Just r) l) (Just ifRequires) li
+                [] -> Just ifRequires
+                li -> foldl' (\l r -> combinePreconditions (Just r) l) (Just ifRequires) li
         let newIfBehaviors =
               [res | MethodSpecification b <- jmlSpecifications $ method ifJMLState
                    , let clause = Requires (Just scopeRange,modified_ifRequires) []
                    , let res = addClauseToBehavior b clause
                    ]
+        --throwError $ constructErrorMsg loc "WOF" [("newIfBehaviors",show newIfBehaviors)]
         forM newIfBehaviors $ \b -> do
           incrementLogEnumeration
           incrementLogDepth *> addBehaviorToState b <* decrementLogDepth
@@ -1347,6 +1348,16 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
       decrementLogDepth
       tellingReportTheState loc
       return ()
+    {-tellingReportTheState loc
+    stack <- jmlStack <$> get
+    case stack of
+      [Requires (Nothing,Just (JMLBin (JMLVar (Array_Type Int_Type) "arr") Neq (JMLNull (Array_Type Int_Type)))) [Assignable []]] -> return ()
+      _ -> get >>= \s -> (throwError $ constructErrorMsg loc "MEOWMEOW" [
+        ("allRequires",show allRequires),
+        ("noRequireBehavior",show noRequireBehavior),
+        ("newBehaviors",show newBehaviors),
+        ("s",show s),
+        ("stack",show stack)])-}
   -- adding the behavior
   addBehaviorToState :: Behavior -> JMLMonad Behavior
   addBehaviorToState newBehavior = do
@@ -1378,7 +1389,15 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
       _ -> Nothing
     gettingSideEffect = HasSideEffect `elem` values
     gettingEnsures = [expr | Ensures expr <- values]
-    newPreCondition = combinePreconditions (requires behavior) thePreCondition
+    newPreCondition = let
+      res = combinePreconditions (requires behavior) thePreCondition
+      in res{-case res of
+           Just (JMLBin (JMLVar (Array_Type Int_Type) "arr") Neq (JMLNull (Array_Type Int_Type))) -> res
+           _ -> error $ constructErrorMsg loc "WOF2" [
+             ("requires behavior",show $ requires behavior),
+             ("thePreCondition",show thePreCondition),
+             ("res",show res)]-}
+    --newPreCondition = combinePreconditions (requires behavior) thePreCondition
     behavior2process = case behavior of
       NormalBehavior{} -> NormalBehavior {
         behaviorScopeRange = theScopeRange,

@@ -2449,10 +2449,10 @@ elemAt = Method {
                          Neq
                          (JMLNull (Array_Type Int_Type)))
                  And
-                 (JMLBin (JMLObjAcc ["arr","length"])
-                         Gt
-                         (JMLVar Int_Type "pos")),
-      assignable = [],
+                 (JMLBin (JMLBin (JMLInt 0) Le (JMLVar Int_Type "pos"))
+                         NonFlattableAnd
+                         (JMLBin (JMLVar Int_Type "pos") Lt (JMLObjAcc ["arr","length"]))),
+      assignable = ["arr[pos]"],
       vars = [],
       hasSideEffect = False,
       ensures = [JMLResult $ JMLArrayIndexAccess (Array_Type Int_Type) "arr" (["pos"],JMLVar Int_Type "pos")]

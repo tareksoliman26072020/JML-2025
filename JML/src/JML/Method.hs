@@ -294,7 +294,9 @@ runSE sys sy =
             tellNextLog $ Log.NextSymExpr loc (show k) (show v)
             incrementLogDepth >> incrementLogEnumeration
             -- visiting
+            --s1 <- get
             visited <- visitingSymExpr sy (k,v)
+            --s2 <- get
             visited2 <- case visited of
               ER_IfThenElse one two three -> do
                 nextPathEnumeration <- (+1) <$> getPathEnumeration
