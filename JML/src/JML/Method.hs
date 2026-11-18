@@ -3,6 +3,7 @@ module JML.Method where
 
 import Prelude hiding (negate)
 import Visitors.API
+import qualified CFG.Types as CFGT
 import JML.Types
 import JML.Internal.Internal
 import JML.Internal.LoopInvariants (inferLoopInvariantTemplates)
@@ -147,8 +148,23 @@ instance SymbolicExecutionVisitor MethodProcessor where
 --  (ArrayAccess "res",SymArrayAccess [(SObjAcc ["arr","length"],Just False)])
     (SYT.ArrayAccess,SYT.SymArrayAccess li) -> do
       let loc = globalLoc ++ ".visitSymExpr.ArrayAccess"
+          nodeCoor `originatesFrom` scopeRange = CFGT.varDeclAt nodeCoor
+            `elem`
+              [CFGT.branchStart scopeRange .. CFGT.branchEnd scopeRange]
+          -- `li` contains infos from other branches.
+          -- filter them out
+          filtered_li = [a
+            | a@(nodeCoor,_) <- li
+            , let sy2 = filterKeys (\case
+                    SYT.ScopeRange scopeRange ->
+                      nodeCoor `originatesFrom` scopeRange
+                    _ -> False) sy
+            , Map.null sy2]
       tellNextLog $ Log.Location loc (show li)
-      let toReturn = ER_ArrayAccess li
+      constructLog loc "filtering" [
+        ("original list",show li),
+        ("list after filtering",show filtered_li)]
+      let toReturn = ER_ArrayAccess filtered_li
       tellingThenReturning loc toReturn
     -----------------------------
     (SYT.ScopeRange scopeRange,SYT.SLoop _ _ _ maybe_loopSummary loopPatterns) -> do

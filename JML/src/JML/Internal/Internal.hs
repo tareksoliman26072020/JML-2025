@@ -487,7 +487,54 @@ combinePreconditions mPre1 op mPre2 = case (mPre1,mPre2) of
   (Nothing,Nothing) -> Nothing
   (Nothing,Just pre2) -> Just pre2
   (Just pre1,Nothing) -> Just pre1
-  (Just pre1,Just pre2) -> Just $ JMLBin pre1 op pre2
+  (Just pre1,Just pre2) -> let
+    combined = JMLBin pre1 op pre2
+    nubbed = nubPreConditions combined
+    in Just nubbed
+
+nubPreConditions :: Expr -> Expr
+nubPreConditions expr = let
+  loc = "JML.Internal.Internal.nubPreConditions" in
+  case expr of
+    JMLBin expr1 op expr2
+      | expr1 == expr2 -> expr
+    ---------- a && (b && c)
+    JMLBin expr1 And right@(JMLBin expr2 And expr3)
+      | -- a && (a && b) == a && b
+        expr1 == expr2 -> nubPreConditions right
+      | -- a && (b && a) == b && a
+        expr1 == expr3 -> nubPreConditions right
+    ---------- (a && b) && c
+    JMLBin left@(JMLBin expr1 And expr2) And expr3
+      | -- (a && b) && a == a && b
+        expr1 == expr3 -> nubPreConditions left
+      | -- (b && a) && a == b && a
+        expr2 == expr3 -> nubPreConditions left
+    ---------- a && (b || c)
+    JMLBin expr1 And right@(JMLBin expr2 Or expr3)
+      | -- a && (a || b) == a || b
+        expr1 == expr2 -> nubPreConditions right
+      | -- a && (b || a) == b || a
+        expr1 == expr3 -> nubPreConditions right
+    ---------- (a || b) && c
+    JMLBin left@(JMLBin expr1 Or expr2) And expr3
+      | -- (a || b) && a
+        expr1 == expr3 -> nubPreConditions left
+      | -- (b || a) && a
+        expr2 == expr3 -> nubPreConditions left
+    ---------- a || (b || c)
+    JMLBin expr1 Or right@(JMLBin expr2 Or expr3)
+      | -- a || (a || b)
+        expr1 == expr2 -> nubPreConditions right
+      | -- a || (b || a)
+        expr1 == expr3 -> nubPreConditions right
+    ----------
+    _ -> expr
+
+isJMLBinExpr :: Expr -> Bool
+isJMLBinExpr = \case
+ JMLBin _ _ _ -> True
+ _ -> False
 
 combineExistentiallyQuantifiedExprs :: Expr -> Expr -> Expr
 combineExistentiallyQuantifiedExprs expr1 expr2 = let
@@ -1304,7 +1351,7 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
     let noRequireBehavior = case er of
           ER_Return symExpr _ -> NormalBehavior {
             behaviorScopeRange = Nothing,
-            requires = maybeArrAccessed,
+            requires = Nothing,--maybeArrAccessed,
             assignable = [],
             vars = [],
             hasSideEffect = False,
@@ -1312,7 +1359,7 @@ Implication (JMLBin (JMLInt 0) Lt (JMLVar Int_Type "n"))
           }
           ER_ReturnVoid -> NormalBehavior {
             behaviorScopeRange = Nothing,
-            requires = maybeArrAccessed,
+            requires = Nothing,--maybeArrAccessed,MEOW5
             assignable = [],
             vars = [],
             hasSideEffect = False,
@@ -1958,6 +2005,9 @@ recordExecutionResult er = modify $ \jmlState -> JMLState  {
   pathCreationEnumeration = pathCreationEnumeration jmlState,
   executionResults = executionResults jmlState ++ [er]
 }
+
+filterKeys :: (k -> Bool) -> Map.Map k a -> Map.Map k a
+filterKeys p = Map.filterWithKey $ \k -> const (p k)
 
 ------------------------------------
 -- Helpers for CounterBoundsTemplate
