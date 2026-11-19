@@ -21,7 +21,7 @@ import qualified JML.Logs.Log as Log
 import Data.Maybe (isJust,catMaybes,fromJust,mapMaybe)
 import Data.Either (isRight)
 
-import qualified CFG.Types as CFGT (ScopeRange, ScopeRange(SR), Node_Coor(..))
+import qualified CFG.Types as CFGT (ScopeRange(..), ScopeRange(SR), Node_Coor(..))
 
 import qualified SymbolicExecution.Types as SYT
 import qualified SymbolicExecution.Internal.Internal as SY.Internal
@@ -848,22 +848,31 @@ addBehavior sy er = do
       -- `extractArrays` gets mentioned arrays
       let extractArray :: (SYT.SymType,String,[String],SYT.SymbolicExecutionValue) -> (SYT.SymType,String)
           extractArray (arrType,arrName,_,_) = (arrType,arrName)
-          flatten :: SYT.ArrayAccessionInfo -> [(SYT.SymType,String,[String],SYT.SymbolicExecutionValue)]
-          flatten = \case
-            SYT.ReAssignment (either_info1,either_info2) -> concatMap flatten
-              $ catMaybes $ map SY.Internal.hush [either_info1,either_info2]
+          flatten :: (CFGT.Node_Coor,SYT.ArrayAccessionInfo) -> [(SYT.SymType,String,[String],SYT.SymbolicExecutionValue)]
+          flatten (nodeCoor,info) = case info of
+            SYT.ReAssignment (either_info1,either_info2) -> concat{- flatten
+              $ catMaybes $ map SY.Internal.hush [either_info1,either_info2]-}
+              [res | either_info <- [either_info1,either_info2]
+                , let res = case either_info of
+                        Left _ -> []
+                        Right info -> flatten (nodeCoor,info)]
             SYT.ViaConstantIndex (a,b,(indexNames,c)) -> [(a,b,indexNames,c)]
             SYT.ViaNonConstantIndex (a,b,(indexNames,c)) -> [(a,b,indexNames,c)]
             SYT.AccessionViaObject symExpr -> let
-              err msg = error $ constructErrorMsg loc msg $ logContents ++ [("symExpr",show symExpr)] in
+              err msg = error $ constructErrorMsg loc msg $ logContents ++ [("symExpr",show symExpr),("nodeCoor",show nodeCoor),("symExec",show symExec)] in
               case symExpr of
-                SYT.SObjAcc [arrName,"length"] ->
-                  case SY.Internal.getVarNameSymType arrName symExec of
-                    Just arrType -> [(arrType,arrName,[],symExpr)]
-                    Nothing -> err "TODO1"
-                _ -> err "TODO2"
+                SYT.SObjAcc [arrName,"length"] -> let
+                  symExec2
+                    | CFGT.branchStart (CFGT.varFrame nodeCoor) == 0 = symExec
+                    | otherwise = case Map.lookup (SYT.ScopeRange $ CFGT.varFrame nodeCoor) symExec of
+                        Nothing -> err "TODO1"
+                        Just (SYT.SIte _ ifEnv maybeElseEnv) -> err "TODO2"
+                  in case SY.Internal.getVarNameSymType arrName symExec2 of
+                       Just arrType -> [(arrType,arrName,[],symExpr)]
+                       Nothing -> err "TODO3"
+                _ -> err "TODO4"
           extractArrays :: [(SYT.SymType,String)]
-          extractArrays = concatMap (map extractArray . flatten . snd) li
+          extractArrays = concatMap (map extractArray . flatten) li
       -- not all extracted arrays are of relevance.
       -- filter locally declared arrays out.
       locals <- localVars <$> get
@@ -882,7 +891,7 @@ addBehavior sy er = do
               (Just $ createExpr_arr_not_null2 (toJMLType symType1,arrName1)) rest
       let requires_access_indexes_within_range :: Maybe Expr--MEOW4
           requires_access_indexes_within_range = case [res
-            | (_,arrName,indexNames,indexSymExpr) <- nub $ concatMap (flatten . snd) li
+            | (_,arrName,indexNames,indexSymExpr) <- nub $ concatMap flatten li
             , let jmlIndex = symExprToExpr jmlState indexSymExpr
             , case indexSymExpr of
                 SYT.SObjAcc [_,"length"] -> False
