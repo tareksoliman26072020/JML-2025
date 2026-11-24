@@ -50,7 +50,7 @@ The research consequently addresses both annotation inference and the software a
 \item Which generated annotations satisfy the relevant proof obligations and support the intended caller guarantees, and which constructs or input regimes cause failures?
 \item How do Haskell's intermediate representations and monad transformer composition support modularity, extension and traceability across symbolic execution and JML generation, and where do consistency and error-handling limitations remain?
 \end{enumerate}
-The thesis focuses on method specification cases and loop annotations. Normal and exceptional behavior cases can contain multiple clauses. A loop specification can include an invariant, a write frame, and a termination measure, each with its own proof obligation. Standalone input bounds the language scope. The evaluation will make any class context, callee contracts, nullness rules and arithmetic settings needed for verification explicit.
+The thesis focuses on method specification cases and loop annotations. Normal and exceptional behavior cases can contain multiple clauses. A loop specification can include an invariant, a write frame\footnote{A write frame encompasses targeted variables in a loop}, and a termination measure, each with its own proof obligation. For verification with OpenJML, standalone method declarations will be placed in an explicitly documented Java context. The evaluation will make any class context (such as class members), callee contracts (called methods with actual parameters), nullness assumptions and arithmetic settings needed for verification explicit.
 
 \section{Implementation}
 \subsection{Analysis Pipeline}
