@@ -7,6 +7,7 @@
 \usepackage[margin=23mm]{geometry}
 \usepackage{graphicx}
 \usepackage{array,tabularx}
+\usepackage{tikz}
 \usepackage[hidelinks]{hyperref}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{5pt}
@@ -54,11 +55,28 @@ The thesis focuses on method specification cases and loop annotations. Normal an
 
 \section{Implementation}
 \subsection{Analysis Pipeline}
-The parser converts method declarations into an abstract syntax tree (AST). The CFG module transforms the AST into a control-flow graph with node and edge collections. Ordinary nodes carry an identifier, a parent identifier and node contents. The entry and exit use dedicated constructors.
+The prototype takes a collection of Java-like method declarations and generates candidate JML annotations for a selected method. Figure~\ref{fig:pipeline} shows the intermediate representations and how loop information contributes to method contracts [2].
 
-The \texttt{SymbolicExecution} module traverses the CFG and represents values and conditions as symbolic expressions. Its environment maps structured keys to expressions, including information about assignments and their source scopes. A loop entry in the environment can carry a \texttt{LoopSummary} and detected loop patterns. \texttt{LoopSummary} records initialization facts, the guard, potential writes, progress and exit information. The planned name \texttt{MethodSummary} reflects the wider role of this stage, which includes collecting structural and data-flow facts as well as symbolic execution.
+\begin{enumerate}
+\item \textbf{Parsing (\texttt{Parser}).} The parser converts each method declaration into an abstract syntax tree (AST) representing its signature, statements, and expressions.
 
-The JML module consumes the symbolic environment and constructs a Method value containing JML specifications. On the loop path, it passes \texttt{LoopSummary} and pattern evidence to \texttt{inferLoopInvariantTemplates}. The current implementation includes rules for counter bounds, stride relations and search exclusion. It also derives loop frames and candidate termination measures. In a search loop, the module can use a processed-prefix fact to construct a method-level clause. The pretty-printer renders method and loop annotations. The file-selecting entry point is \texttt{printJMLMethod0}. For example, \texttt{printJMLMethod} "\texttt{contains}" False selects \texttt{contains} from \texttt{test1.java} and suppresses diagnostic logs. Reproducing a benchmark example requires recording the actual input file or harness [2].
+\item \textbf{Control-flow graph construction (\texttt{CFG}).} The CFG module builds a graph for each method. Directed edges represent transfers of control through branches and loops. Ordinary and exit nodes carry node and parent identifiers. Nodes directly nested in either arm of an \texttt{if} share the condition node as their parent. The analysis distinguishes the arms using graph edges and ranges of node identifiers.
+
+\item \textbf{Symbolic execution and summarization (\texttt{SymbolicExecution}).} The analyzer traverses the CFG and updates a symbolic environment. An assignment can bind a local variable to an expression over a symbolic parameter [3]. The environment records method information, variable bindings, assignment sites, and branch and exit conditions. For loops handled by the summarization path, the analyzer constructs a \texttt{LoopSummary} recording the loop form, guard, initialization facts, read-only variables, potential writes, counter updates, and early-exit conditions. The proposed name \texttt{MethodSummary} reflects the stage's broader role in collecting structural and data-flow facts.
+
+\item \textbf{Loop pattern recognition (within \texttt{SymbolicExecution}).} The analyzer uses the summary to recognize patterns such as increasing or decreasing counters, stable or moving bounds, array traversal, linear search, and early return. A loop can match multiple patterns. Its entry in the symbolic environment contains both the summary and the recognized \texttt{LoopPattern} values with the summary fields that support them.
+
+\item \textbf{Specification inference (\texttt{JML}).} The module constructs candidate normal and exceptional cases. Branch conditions can inform preconditions, while return values and writes inform postconditions and frame clauses. For summarized loops, the module uses the summary and pattern evidence to infer candidate invariants such as counter bounds and stride relations, as well as loop frames and termination measures. When linear search and early return share a match condition, \texttt{SearchExclusionTemplate} represents a universally quantified invariant candidate excluding matches from the scanned range. The same template can contribute a candidate method postcondition in which existence of a match implies a particular return value. The saved \texttt{contains} example in \emph{\nameref{sec:evaluation-corpus}} illustrates this connection and the need to check candidates for scope and correctness.
+\end{enumerate}
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/analysis-pipeline}
+  \caption{Data flow of the JML inference prototype. The symbolic environment carries method facts and, for summarized loops, loop summaries and recognized patterns. Selected loop templates also inform method cases. The pretty-printer combines the inferred annotations with the selected method's CFG [2].}
+  \label{fig:pipeline}
+\end{figure}
+
+The entry point \texttt{printJMLMethod0} takes an input file, a method name, and a flag for diagnostic logs. The call \texttt{printJMLMethod "contains" False} selects \texttt{contains} from \texttt{test1.java} and suppresses those logs. Reproducing a benchmark example requires recording the input file or harness [2].
 
 \subsection{Monad Transformers}
 The two analysis stages use the same transformer structure with different environments, log types and states. The type aliases below come from \texttt{SymbolicExecution.Types} and \texttt{JML.Types} [2].
@@ -79,6 +97,7 @@ type JMLMonad =
 
 \section{Benchmark and Correctness}
 \subsection{Baseline and Evaluation Corpus}
+\label{sec:evaluation-corpus}
 The initial corpus consists of \texttt{test3-0.java} and \texttt{test3.java} [2]. The first file records examples of inferred contracts for methods without loops. Cases such as \texttt{exceptionFun} and \texttt{swap} provide starting points for evaluating exceptional behavior and frame conditions. The second file records loop summaries, templates and annotated examples for \texttt{idByLoop}, \texttt{idByLoopStride3}, \texttt{idByLoop2}, \texttt{halving} and \texttt{contains}. These checked-in outputs and the associated structural test fixtures provide a reproducible starting point for selecting cases. The thesis will evaluate regenerated outputs at a recorded commit and add boundary cases and methods beyond those used to design the current rules.
 
 \begin{center}
@@ -169,11 +188,4 @@ The work will proceed through four milestones. Freeze the baseline commit and co
 \endgroup
 
 
-% Optional figure after uploading a pre-rendered PDF alongside this file:
-% \begin{figure}[htbp]
-%   \centering
-%   \includegraphics[width=.9\linewidth]{analysis-pipeline.pdf}
-%   \caption{From method declarations to JML specifications.}
-%   \label{fig:pipeline}
-% \end{figure}
 \end{document}
